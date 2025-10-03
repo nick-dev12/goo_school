@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion de l'établissement - Admin</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/detaille_etablissement.css' %}"
+    />
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+    <style>
+      /* Style pour les messages */
+      .messages {
+        max-width: 1200px;
+        margin: 1rem auto;
+        padding: 0 20px;
+      }
+      .alert {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+      .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+      }
+      .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+    
+    <!-- Messages d'erreur ou de succès -->
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="container">
+      <!-- Header -->
+      <!-- School Information Card -->
+      <div class="school-card fade-in">
+        <div class="school-header">
+          <div class="school-name">{{ etablissement.nom }}</div>
+          <div class="school-actions">
+            <button class="btn btn-secondary">
+              <i class="fas fa-file-export"></i> Exporter
+            </button>
+          </div>
+        </div>
+        <div class="school-body">
+          <div class="school-info-grid">
+            <div class="info-item">
+              <div class="info-label">Code établissement</div>
+              <div class="info-value highlight">
+                {{ etablissement.code_etablissement }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Type d'établissement</div>
+              <div class="info-value">
+                {{ etablissement.get_type_etablissement_display }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Statut</div>
+              <div class="info-value">
+                <span
+                  class="status-dot {% if etablissement.actif %}active{% else %}inactive{% endif %}"
+                ></span>
+                {% if etablissement.actif %}Actif{% else %}Inactif{% endif %}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Date d'inscription</div>
+              <div class="info-value">
+                {{ etablissement.date_creation|date:"d F Y" }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Directeur</div>
+              <div class="info-value">
+                {{ etablissement.directeur_prenom }} 
+                {{etablissement.directeur_nom }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Adresse</div>
+              <div class="info-value">
+                {{ etablissement.adresse }}, {{ etablissement.ville }}, 
+                {{etablissement.pays }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Téléphone</div>
+              <div class="info-value">
+                {{ etablissement.telephone|default:"Non renseigné" }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Email</div>
+              <div class="info-value">
+                {{ etablissement.email|default:"Non renseigné" }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Section -->
+
+      <div class="key-indicators">
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--primary)">
+            <i class="fas fa-user-graduate"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Élèves inscrits</h3>
+            <p class="indicator-value">542</p>
+            <span class="indicator-trend positive">5.2% ce mois</span>
+          </div>
+          <a href="gestion-eleves.php" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+
+        <div class="indicator-card">
+          <div
+            class="indicator-icon"
+            style="background-color: var(--secondary)"
+          >
+            <i class="fas fa-chalkboard-teacher"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Nombre d'enseignants</h3>
+            <p class="indicator-value">48</p>
+            <span class="indicator-trend">Personnel actif</span>
+          </div>
+          <a href="gestion-enseignants.php" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--accent)">
+            <i class="fas fa-star"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Satisfaction</h3>
+            <p class="indicator-value">4.8/5.0</p>
+            <span class="indicator-trend">Sur l'année en cours</span>
+          </div>
+          <a href="gestion-classes.php" class="indicator-link"
+            ><i class="fas fa-school"></i
+          ></a>
+        </div>
+
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--info)">
+            <i class="fas fa-comments"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Messages non lus</h3>
+            <p class="indicator-value">12</p>
+            <span class="indicator-trend negative"
+              >Nécessitent votre attention</span
+            >
+          </div>
+          <a href="messages.php" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs fade-in">
+        <button class="tab active" data-tab="users">Utilisateurs</button>
+        <button class="tab" data-tab="settings">Paramètres</button>
+        <button class="tab" data-tab="reports">Rapports</button>
+        <button class="tab" data-tab="billing">Facturation</button>
+      </div>
+
+      <!-- Users Tab Content -->
+      <div class="tab-content fade-in">
+        <div class="tab-pane active" id="users-tab">
+          <h3 class="section-title">
+            <i class="fas fa-users"></i>
+            Gestion des utilisateurs
+          </h3>
+          <div class="users-grid">
+            <div class="user-card">
+              <div class="user-header">
+                <div class="user-avatar">JD</div>
+                <div class="user-info">
+                  <div class="user-name">Jean Dupont</div>
+                  <div class="user-role">Directeur</div>
+                </div>
+                <div class="user-status active">Actif</div>
+              </div>
+              <div class="user-actions">
+                <button class="user-action-btn">
+                  <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button class="user-action-btn">
+                  <i class="fas fa-envelope"></i> Contacter
+                </button>
+              </div>
+            </div>
+            <div class="user-card">
+              <div class="user-header">
+                <div class="user-avatar">ML</div>
+                <div class="user-info">
+                  <div class="user-name">Marie Laurent</div>
+                  <div class="user-role">Administrateur</div>
+                </div>
+                <div class="user-status active">Actif</div>
+              </div>
+              <div class="user-actions">
+                <button class="user-action-btn">
+                  <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button class="user-action-btn">
+                  <i class="fas fa-envelope"></i> Contacter
+                </button>
+              </div>
+            </div>
+            <div class="user-card">
+              <div class="user-header">
+                <div class="user-avatar">PT</div>
+                <div class="user-info">
+                  <div class="user-name">Pierre Thomas</div>
+                  <div class="user-role">Professeur de Maths</div>
+                </div>
+                <div class="user-status active">Actif</div>
+              </div>
+              <div class="user-actions">
+                <button class="user-action-btn">
+                  <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button class="user-action-btn">
+                  <i class="fas fa-envelope"></i> Contacter
+                </button>
+              </div>
+            </div>
+            <div class="user-card">
+              <div class="user-header">
+                <div class="user-avatar">SB</div>
+                <div class="user-info">
+                  <div class="user-name">Sophie Bernard</div>
+                  <div class="user-role">Professeur d'Anglais</div>
+                </div>
+                <div class="user-status inactive">Inactif</div>
+              </div>
+              <div class="user-actions">
+                <button class="user-action-btn">
+                  <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button class="user-action-btn">
+                  <i class="fas fa-envelope"></i> Contacter
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Tab Content -->
+        <div class="tab-pane" id="settings-tab">
+          <h3 class="section-title">
+            <i class="fas fa-cog"></i>
+            Paramètres de l'établissement
+          </h3>
+          <form class="settings-form" method="post" action="{% url 'school_admin:administrateur_update_etablissement' %}">
+            {% csrf_token %}
+            <div class="box1">
+              <input type="hidden" name="etablissement_id" value="{{ etablissement.id }}">
+              <div class="form-group">
+                <label class="form-label">Nom de l'établissement</label>
+                <input
+                  type="text"
+                  name="nom"
+                  class="form-control"
+                  value="{{ etablissement.nom }}"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Code établissement</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value="{{ etablissement.code_etablissement }}"
+                  disabled
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Type d'établissement</label>
+                <select name="type_etablissement" class="form-control" required>
+                  <option value="lycee" {% if etablissement.type_etablissement == 'lycee' %}selected{% endif %}>Lycée</option>
+                  <option value="college" {% if etablissement.type_etablissement == 'college' %}selected{% endif %}>Collège</option>
+                  <option value="ecole_primaire" {% if etablissement.type_etablissement == 'ecole_primaire' %}selected{% endif %}>École primaire</option>
+                  <option value="universite" {% if etablissement.type_etablissement == 'universite' %}selected{% endif %}>Université</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Adresse</label>
+                <input
+                  type="text"
+                  name="adresse"
+                  class="form-control"
+                  value="{{ etablissement.adresse }}, {{ etablissement.ville }}, {{ etablissement.pays }}"
+                  required
+                />
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="flex: 1">
+                  <label class="form-label">Téléphone</label>
+                  <input
+                    type="text"
+                    name="telephone"
+                    class="form-control"
+                    value="{{ etablissement.telephone|default:'' }}"
+                  />
+                </div>
+                <div class="form-group" style="flex: 1">
+                  <label class="form-label">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    class="form-control"
+                    value="{{ etablissement.email|default:'' }}"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Site web</label>
+                <input
+                  type="text"
+                  name="site_web"
+                  class="form-control"
+                  value="{{ etablissement.site_web|default:'' }}"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Logo de l'établissement</label>
+                <input type="file" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Statut de l'établissement</label>
+                <div style="display: flex; align-items: center; gap: 1rem">
+                  <span>Inactif</span>
+                  <label class="switch">
+                    <input type="checkbox" name="actif" value="1" {% if etablissement.actif %}checked{% endif %} />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Actif</span>
+                </div>
+              </div>
+            </div>
+            <div class="modules-container">
+              <label class="form-label">Modules activés</label>
+              <div class="modules-flex">
+                <!-- Modules de base -->
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #28a745;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_gestion_eleves"
+                      value="1"
+                      {% if etablissement.module_gestion_eleves %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Gestion des élèves</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #28a745;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_notes_evaluations"
+                      value="1"
+                      {% if etablissement.module_notes_evaluations %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Notes et évaluations</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #28a745;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_emploi_temps"
+                      value="1"
+                      {% if etablissement.module_emploi_temps %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Emploi du temps</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #28a745;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_gestion_personnel"
+                      value="1"
+                      {% if etablissement.module_gestion_personnel %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Gestion du personnel</span>
+                </div>
+
+                <!-- Modules premium -->
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: linear-gradient(
+                      135deg,
+                      #fff8e1 0%,
+                      #ffffff 100%
+                    );
+                    border-radius: 8px;
+                    border-left: 4px solid #ffc107;
+                    position: relative;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_surveillance"
+                      value="1"
+                      {% if etablissement.module_surveillance %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Surveillance et sécurité</span>
+                  <span
+                    style="
+                      position: absolute;
+                      top: -8px;
+                      right: -8px;
+                      padding: 2px 8px;
+                      border-radius: 12px;
+                      font-size: 0.7rem;
+                      font-weight: 600;
+                      background: linear-gradient(135deg, #ffd700, #ffb347);
+                      color: #8b4513;
+                    "
+                    >Premium</span
+                  >
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: linear-gradient(
+                      135deg,
+                      #fff8e1 0%,
+                      #ffffff 100%
+                    );
+                    border-radius: 8px;
+                    border-left: 4px solid #ffc107;
+                    position: relative;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_communication"
+                      value="1"
+                      {% if etablissement.module_communication %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Communication parents</span>
+                  <span
+                    style="
+                      position: absolute;
+                      top: -8px;
+                      right: -8px;
+                      padding: 2px 8px;
+                      border-radius: 12px;
+                      font-size: 0.7rem;
+                      font-weight: 600;
+                      background: linear-gradient(135deg, #ffd700, #ffb347);
+                      color: #8b4513;
+                    "
+                    >Premium</span
+                  >
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: linear-gradient(
+                      135deg,
+                      #fff8e1 0%,
+                      #ffffff 100%
+                    );
+                    border-radius: 8px;
+                    border-left: 4px solid #ffc107;
+                    position: relative;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_orientation"
+                      value="1"
+                      {% if etablissement.module_orientation %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Orientation scolaire</span>
+                  <span
+                    style="
+                      position: absolute;
+                      top: -8px;
+                      right: -8px;
+                      padding: 2px 8px;
+                      border-radius: 12px;
+                      font-size: 0.7rem;
+                      font-weight: 600;
+                      background: linear-gradient(135deg, #ffd700, #ffb347);
+                      color: #8b4513;
+                    "
+                    >Premium</span
+                  >
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: linear-gradient(
+                      135deg,
+                      #fff8e1 0%,
+                      #ffffff 100%
+                    );
+                    border-radius: 8px;
+                    border-left: 4px solid #ffc107;
+                    position: relative;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_formation"
+                      value="1"
+                      {% if etablissement.module_formation %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Formation continue</span>
+                  <span
+                    style="
+                      position: absolute;
+                      top: -8px;
+                      right: -8px;
+                      padding: 2px 8px;
+                      border-radius: 12px;
+                      font-size: 0.7rem;
+                      font-weight: 600;
+                      background: linear-gradient(135deg, #ffd700, #ffb347);
+                      color: #8b4513;
+                    "
+                    >Premium</span
+                  >
+                </div>
+
+                <!-- Modules optionnels -->
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_transport_scolaire"
+                      value="1"
+                      {% if etablissement.module_transport_scolaire %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Transport scolaire</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_cantine"
+                      value="1"
+                      {% if etablissement.module_cantine %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Gestion de la cantine</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_bibliotheque"
+                      value="1"
+                      {% if etablissement.module_bibliotheque %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Gestion de la bibliothèque</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_sante"
+                      value="1"
+                      {% if etablissement.module_sante %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Suivi médical</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_activites"
+                      value="1"
+                      {% if etablissement.module_activites %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Activités extra-scolaires</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_comptabilite"
+                      value="1"
+                      {% if etablissement.module_comptabilite %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Comptabilité</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #17a2b8;
+                  "
+                >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      name="module_censeurs"
+                      value="1"
+                      {% if etablissement.module_censeurs %}checked{% endif %}
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Censeurs</span>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="submit-btn">
+              <i class="fas fa-save"></i> Enregistrer les modifications
+            </button>
+          </form>
+        </div>
+
+        <!-- Reports Tab Content -->
+        <div class="tab-pane" id="reports-tab">
+          <h3 class="section-title">
+            <i class="fas fa-file-alt"></i>
+            Rapports et analyses
+          </h3>
+          <div
+            style="
+              background: var(--gray-50);
+              padding: 2rem;
+              border-radius: var(--radius-lg);
+              text-align: center;
+              margin-bottom: 2rem;
+            "
+          >
+            <i
+              class="fas fa-chart-pie"
+              style="
+                font-size: 3rem;
+                color: var(--admin-primary);
+                margin-bottom: 1rem;
+              "
+            ></i>
+            <h4>Visualisation des rapports</h4>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem">
+              Sélectionnez une période et un type de rapport pour visualiser les
+              données.
+            </p>
+            <div
+              style="
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+                flex-wrap: wrap;
+              "
+            >
+              <select class="form-control" style="width: auto">
+                <option>Période</option>
+                <option>Ce mois</option>
+                <option>Mois dernier</option>
+                <option>Ce trimestre</option>
+                <option>Année scolaire</option>
+              </select>
+              <select class="form-control" style="width: auto">
+                <option>Type de rapport</option>
+                <option>Assiduité</option>
+                <option>Performances</option>
+                <option>Financier</option>
+                <option>Utilisation plateforme</option>
+              </select>
+              <button class="btn btn-primary">
+                <i class="fas fa-filter"></i> Filtrer
+              </button>
+            </div>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 1.5rem;
+                text-align: left;
+              "
+            >
+              <div
+                style="
+                  background: var(--white);
+                  padding: 1.5rem;
+                  border-radius: var(--radius-md);
+                  box-shadow: var(--shadow-sm);
+                "
+              >
+                <h5 style="margin-bottom: 1rem; color: var(--text-primary)">
+                  Rapport d'assiduité
+                </h5>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem">
+                  Taux de présence des élèves: <strong>94.3%</strong>
+                </p>
+                <div
+                  style="
+                    width: 100%;
+                    background: var(--gray-200);
+                    height: 8px;
+                    border-radius: var(--radius-full);
+                    overflow: hidden;
+                  "
+                >
+                  <div
+                    style="
+                      width: 94.3%;
+                      height: 100%;
+                      background: var(--success);
+                    "
+                  ></div>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 0.5rem;
+                    font-size: 0.9rem;
+                  "
+                >
+                  <span>Mois précédent: 92.1%</span>
+                  <span class="stat-trend positive"
+                    ><i class="fas fa-arrow-up"></i> +2.2%</span
+                  >
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--white);
+                  padding: 1.5rem;
+                  border-radius: var(--radius-md);
+                  box-shadow: var(--shadow-sm);
+                "
+              >
+                <h5 style="margin-bottom: 1rem; color: var(--text-primary)">
+                  Performances académiques
+                </h5>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem">
+                  Moyenne générale: <strong>14.2/20</strong>
+                </p>
+                <div
+                  style="
+                    width: 100%;
+                    background: var(--gray-200);
+                    height: 8px;
+                    border-radius: var(--radius-full);
+                    overflow: hidden;
+                  "
+                >
+                  <div
+                    style="
+                      width: 71%;
+                      height: 100%;
+                      background: var(--admin-primary);
+                    "
+                  ></div>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 0.5rem;
+                    font-size: 0.9rem;
+                  "
+                >
+                  <span>Mois précédent: 13.8/20</span>
+                  <span class="stat-trend positive"
+                    ><i class="fas fa-arrow-up"></i> +0.4 pts</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+              gap: 1.5rem;
+            "
+          >
+            <div class="stat-card">
+              <div class="stat-icon blue">
+                <i class="fas fa-download"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-title">Rapports disponibles</div>
+                <div class="stat-value">12</div>
+                <button
+                  class="btn btn-primary"
+                  style="margin-top: 1rem; width: 100%"
+                >
+                  <i class="fas fa-file-pdf"></i> Télécharger PDF
+                </button>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green">
+                <i class="fas fa-history"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-title">Historique</div>
+                <div class="stat-value">24 mois</div>
+                <button
+                  class="btn btn-primary"
+                  style="margin-top: 1rem; width: 100%"
+                >
+                  <i class="fas fa-eye"></i> Voir l'historique
+                </button>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon orange">
+                <i class="fas fa-bell"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-title">Alertes</div>
+                <div class="stat-value">
+                  3 <span class="badge badge-warning">Nouveau</span>
+                </div>
+                <button
+                  class="btn btn-primary"
+                  style="margin-top: 1rem; width: 100%"
+                >
+                  <i class="fas fa-envelope"></i> Gérer les alertes
+                </button>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon purple">
+                <i class="fas fa-cogs"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-title">Personnalisation</div>
+                <div class="stat-value">Avancée</div>
+                <button
+                  class="btn btn-primary"
+                  style="margin-top: 1rem; width: 100%"
+                >
+                  <i class="fas fa-sliders-h"></i> Configurer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing Tab Content -->
+        <div class="tab-pane" id="billing-tab">
+          <h3 class="section-title">
+            <i class="fas fa-file-invoice-dollar"></i>
+            Facturation et abonnement
+          </h3>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+              gap: 2rem;
+              margin-bottom: 2rem;
+            "
+          >
+            <div
+              style="
+                background: var(--white);
+                padding: 2rem;
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-card);
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 1.5rem;
+                "
+              >
+                <h4 style="color: var(--text-primary)">Plan actuel</h4>
+                <span class="badge badge-primary">Premium</span>
+              </div>
+              <div
+                style="
+                  background: var(--admin-primary-light);
+                  padding: 1.5rem;
+                  border-radius: var(--radius-md);
+                  margin-bottom: 1.5rem;
+                  text-align: center;
+                "
+              >
+                <div
+                  style="
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    color: var(--admin-primary);
+                  "
+                >
+                  6 000 000 CFA
+                </div>
+                <div style="color: var(--text-secondary)">par ANS</div>
+              </div>
+              <div style="margin-bottom: 1.5rem">
+                <h5 style="margin-bottom: 1rem; color: var(--text-primary)">
+                  Fonctionnalités incluses:
+                </h5>
+                <ul style="padding-left: 1.5rem; color: var(--text-secondary)">
+                  <li style="margin-bottom: 0.5rem">
+                    Gestion complète des élèves
+                  </li>
+                  <li style="margin-bottom: 0.5rem">Emploi du temps avancé</li>
+                  <li style="margin-bottom: 0.5rem">Notes et évaluations</li>
+                  <li style="margin-bottom: 0.5rem">Modules personnalisés</li>
+                  <li style="margin-bottom: 0.5rem">Support prioritaire</li>
+                  <li>Analyses et rapports détaillés</li>
+                </ul>
+              </div>
+              <button class="btn btn-primary" style="width: 100%">
+                <i class="fas fa-sync"></i> Changer de plan
+              </button>
+            </div>
+            <div
+              style="
+                background: var(--white);
+                padding: 2rem;
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-card);
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 1.5rem;
+                "
+              >
+                <h4 style="color: var(--text-primary)">Prochaine facture</h4>
+                <span class="badge badge-success">À venir</span>
+              </div>
+              <div style="margin-bottom: 1.5rem">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <span>Abonnement Premium</span>
+                  <span>99 000 CFA</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <span>Module Cantine</span>
+                  <span>15 000 CFA</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <span>Module Transport</span>
+                  <span>10 000 CFA</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.75rem;
+                    padding-top: 0.75rem;
+                    border-top: 1px solid var(--gray-200);
+                  "
+                >
+                  <span><strong>Total HT</strong></span>
+                  <span><strong>6 240 000 CFA</strong></span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <span>TVA (5%)</span>
+                  <span>98 000 CFA</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.75rem;
+                    padding-top: 0.75rem;
+                    border-top: 2px solid var(--gray-300);
+                  "
+                >
+                  <span><strong>Total TTC</strong></span>
+                  <span><strong>6 338 000 CFA</strong></span>
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--gray-50);
+                  padding: 1rem;
+                  border-radius: var(--radius-md);
+                  margin-bottom: 1.5rem;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  <span>Date de facturation</span>
+                  <span>15 Juin 2023</span>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>Méthode de paiement</span>
+                  <span>Carte bancaire •••• 4242</span>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary"
+                style="width: 100%; margin-bottom: 0.75rem"
+              >
+                <i class="fas fa-credit-card"></i> Modifier le paiement
+              </button>
+              <button
+                class="btn btn-secondary"
+                style="
+                  width: 100%;
+                  background: var(--white);
+                  border: 1px solid var(--gray-300);
+                  color: var(--text-primary);
+                "
+              >
+                <i class="fas fa-download"></i> Télécharger la facture
+              </button>
+            </div>
+          </div>
+
+          <h4 class="section-title" style="margin: 2rem 0 1rem">
+            <i class="fas fa-history"></i>
+            Historique des paiements
+          </h4>
+          <div
+            style="
+              background: var(--white);
+              border-radius: var(--radius-lg);
+              box-shadow: var(--shadow-card);
+              overflow: hidden;
+            "
+          >
+            <div style="overflow-x: auto">
+              <table style="width: 100%; border-collapse: collapse">
+                <thead style="background: var(--gray-50)">
+                  <tr>
+                    <th
+                      style="
+                        padding: 1rem;
+                        text-align: left;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        border-bottom: 2px solid var(--gray-200);
+                      "
+                    >
+                      Date
+                    </th>
+                    <th
+                      style="
+                        padding: 1rem;
+                        text-align: left;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        border-bottom: 2px solid var(--gray-200);
+                      "
+                    >
+                      Description
+                    </th>
+                    <th
+                      style="
+                        padding: 1rem;
+                        text-align: left;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        border-bottom: 2px solid var(--gray-200);
+                      "
+                    >
+                      Montant
+                    </th>
+                    <th
+                      style="
+                        padding: 1rem;
+                        text-align: left;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        border-bottom: 2px solid var(--gray-200);
+                      "
+                    >
+                      Statut
+                    </th>
+                    <th
+                      style="
+                        padding: 1rem;
+                        text-align: left;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        border-bottom: 2px solid var(--gray-200);
+                      "
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom: 1px solid var(--gray-200)">
+                    <td style="padding: 1rem; color: var(--text-secondary)">
+                      15/05/2023
+                    </td>
+                    <td style="padding: 1rem; color: var(--text-primary)">
+                      Abonnement mensuel + modules
+                    </td>
+                    <td
+                      style="
+                        padding: 1rem;
+                        color: var(--text-primary);
+                        font-weight: 600;
+                      "
+                    >
+                      6 380 000 CFA
+                    </td>
+                    <td style="padding: 1rem">
+                      <span class="badge badge-success">Payé</span>
+                    </td>
+                    <td style="padding: 1rem">
+                      <button class="user-action-btn">
+                        <i class="fas fa-download"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Tab switching functionality
+      document.addEventListener("DOMContentLoaded", function () {
+        const tabs = document.querySelectorAll(".tab");
+        const tabPanes = document.querySelectorAll(".tab-pane");
+
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", function () {
+            // Remove active class from all tabs
+            tabs.forEach((t) => t.classList.remove("active"));
+            // Add active class to clicked tab
+            this.classList.add("active");
+
+            // Get the tab id
+            const tabId = this.getAttribute("data-tab") + "-tab";
+
+            // Hide all tab panes
+            tabPanes.forEach((pane) => pane.classList.remove("active"));
+            // Show the selected tab pane
+            document.getElementById(tabId).classList.add("active");
+          });
+        });
+
+        // Add fade-in animation to elements as they come into view
+        const fadeElements = document.querySelectorAll(".fade-in");
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.style.opacity = "1";
+                entry.target.style.transform = "translateY(0)";
+              }
+            });
+          },
+          { threshold: 0.1 }
+        );
+
+        fadeElements.forEach((element) => {
+          element.style.opacity = "0";
+          element.style.transform = "translateY(20px)";
+          element.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+          observer.observe(element);
+        });
+
+      
+
+        // Add click event to user action buttons
+        const userActionBtns = document.querySelectorAll(".user-action-btn");
+        userActionBtns.forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const action = this.querySelector("i").className.includes("edit")
+              ? "modifier"
+              : "contacter";
+            alert(`Vous avez choisi d'${action} cet utilisateur.`);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon Profil - {{ user.username }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/profil_admin.css' %}" />
+    <style>
+      /* Styles pour les messages */
+      .messages {
+        margin-bottom: 20px;
+      }
+      
+      .alert {
+        padding: 12px 16px;
+        margin-bottom: 15px;
+        border-radius: var(--radius-md);
+        position: relative;
+        display: flex;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+      }
+      
+      .alert i {
+        margin-right: 10px;
+        font-size: 18px;
+      }
+      
+      .alert-success {
+        background-color: var(--success-light);
+        color: var(--success);
+        border-left: 4px solid var(--success);
+      }
+      
+      .alert-error {
+        background-color: var(--warning-light);
+        color: var(--warning);
+        border-left: 4px solid var(--warning);
+      }
+      
+      .alert-warning {
+        background-color: var(--info-light);
+        color: var(--info);
+        border-left: 4px solid var(--info);
+      }
+      
+      .alert-info {
+        background-color: var(--admin-primary-light);
+        color: var(--admin-primary);
+        border-left: 4px solid var(--admin-primary);
+      }
+      
+      .close-alert {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.3s;
+      }
+      
+      .close-alert:hover {
+        opacity: 1;
+      }
+      
+      /* Styles pour les erreurs de champ */
+      .has-error .form-control {
+        border-color: var(--warning);
+        box-shadow: 0 0 0 1px var(--warning-light);
+      }
+      
+      .error-message {
+        color: var(--warning);
+        font-size: 0.85rem;
+        margin-top: 5px;
+        display: block;
+      }
+      
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+    <div class="container">
+      <!-- Messages -->
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+              <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+              {{ message }}
+              <button type="button" class="close-alert">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title">
+          <i class="fas fa-user-shield" style="font-size: 1.8rem; background: var(--gradient-header); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+          <h1>Mon Profil - {{ user.username }}</h1>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-secondary"><i class="fas fa-question-circle"></i> Aide</button>
+          <a href="{% url 'school_admin:deconnexion_compte_administrateur' %}" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+        </div>
+      </div>
+
+      <!-- Profile Layout -->
+      <div class="profile-container">
+        <!-- Profile Card -->
+        <div class="profile-card fade-in">
+          <div class="profile-banner"></div>
+          <div class="profile-avatar-container">
+            <img src="{{ user.photo.url }}" alt="Photo de profil">
+          </div>
+          <div class="profile-info">
+            <h2 class="profile-name">{{ user.username }}</h2>
+            <div class="profile-role">{{ user.fonction }}</div>
+            <div class="profile-email">{{ user.email }}</div>
+
+            <div class="profile-stats">
+              <div class="stat-item">
+                <div class="stat-value">142</div>
+                <div class="stat-label">Établissements</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Annonces</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">8</div>
+                <div class="stat-label">Mises à jour</div>
+              </div>
+            </div>
+
+            <div class="profile-actions">
+              <a href="{% url 'school_admin:profil_admin' %}" class="btn btn-primary" style="width: 100%;"><i class="fas fa-edit"></i> Modifier le profil</a>
+              <button class="btn btn-secondary" style="width: 100%;"><i class="fas fa-cog"></i> Paramètres avancés</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Content -->
+        <div>
+          <!-- Tab Navigation -->
+          <div class="profile-tabs">
+            <button class="tab active" data-tab="personal"><i class="fas fa-user"></i> Informations personnelles</button>
+            <button class="tab" data-tab="security"><i class="fas fa-lock"></i> Sécurité</button>
+            <button class="tab" data-tab="preferences"><i class="fas fa-sliders-h"></i> Préférences</button>
+            <button class="tab" data-tab="notifications"><i class="fas fa-bell"></i> Notifications</button>
+          </div>
+
+          <!-- Personal Information Tab -->
+          <form method="post" action="{% url 'school_admin:update_profil_admin' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+          <div class="tab-content active" id="personal-tab">
+            <div class="content-section">
+              <h2 class="section-title"><i class="fas fa-camera"></i> Photo de profil</h2>
+              <p class="section-subtitle">Téléchargez une photo qui vous ressemble pour personnaliser votre profil.</p>
+
+              <div class="avatar-upload" id="avatarUpload">
+                <div class="avatar-upload-icon">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <input type="file" id="photo" name="photo" accept="image/*">
+              </div>
+            </div>
+
+            <div class="content-section">
+              <h2 class="section-title"><i class="fas fa-id-card"></i> Informations personnelles</h2>
+              <p class="section-subtitle">Mettez à jour vos informations personnelles pour assurer une communication efficace.</p>
+
+              <div class="form-grid">
+                <div class="form-group {% if field_errors.prenom %}has-error{% endif %}">
+                  <label class="form-label">Prénom</label>
+                  <input type="text" name="prenom" class="form-control" value="{{ form_data.prenom|default:user.prenom }}" required />
+                  {% if field_errors.prenom %}
+                    <span class="error-message">{{ field_errors.prenom }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group {% if field_errors.nom %}has-error{% endif %}">
+                  <label class="form-label">Nom</label>
+                  <input type="text" name="nom" class="form-control" value="{{ form_data.nom|default:user.nom }}" required />
+                  {% if field_errors.nom %}
+                    <span class="error-message">{{ field_errors.nom }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group {% if field_errors.email %}has-error{% endif %}">
+                  <label class="form-label">Email professionnel</label>
+                  <input type="email" name="email" class="form-control" value="{{ form_data.email|default:user.email }}" required />
+                  {% if field_errors.email %}
+                    <span class="error-message">{{ field_errors.email }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group {% if field_errors.telephone %}has-error{% endif %}">
+                  <label class="form-label">Téléphone professionnel</label>
+                  <input type="text" name="telephone" class="form-control" value="{{ form_data.telephone|default:user.telephone }}" required />
+                  {% if field_errors.telephone %}
+                    <span class="error-message">{{ field_errors.telephone }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Poste</label>
+                  <input type="text" class="form-control" value="{{ user.type_compte }}" disabled />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Service</label>
+                  <input type="text" class="form-control" value="{{ user.fonction }}" disabled />
+                </div>
+              </div>
+            </div>
+
+            <input type="hidden" name="username" value="{{ user.username }}">
+            <input type="hidden" name="type_compte" value="{{ user.type_compte }}">
+            <input type="hidden" name="fonction" value="{{ user.fonction }}">
+
+            <div class="form-actions">
+              <button class="btn btn-secondary"><i class="fas fa-times"></i> Annuler</button>
+              <button type="submit" class="btn btn-primary" id="savePersonalInfo"><i class="fas fa-save"></i> Enregistrer les modifications</button>
+            </div>
+          </div>
+          </form>
+
+          <!-- Security Tab -->
+          <form method="post" action="{% url 'school_admin:update_password_admin' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+          <div class="tab-content" id="security-tab">
+            <div class="content-section">
+              <h2 class="section-title"><i class="fas fa-shield-alt"></i> Sécurité du compte</h2>
+              <p class="section-subtitle">Gérez la sécurité de votre compte pour protéger vos données et celles des établissements.</p>
+            </div>
+
+            <div class="security-settings">
+              <div class="security-title">
+                <i class="fas fa-key"></i> Mot de passe
+              </div>
+              <div class="security-description">Votre mot de passe a été modifié il y a 45 jours. Nous recommandons de le changer tous les 90 jours pour des raisons de sécurité.</div>
+              <div class="security-status">
+                <div class="status-indicator status-secure"></div>
+                <span>Niveau de sécurité : Élevé</span>
+              </div>
+
+              <div class="change-password-form">
+                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">Changer de mot de passe</h3>
+                {% if field_errors.password or field_errors.new_password or field_errors.confirm_password %}
+                <div class="alert alert-error" style="margin-bottom: 1rem;">
+                  <i class="fas fa-exclamation-circle"></i>
+                  {{ field_errors.password }}
+                  {{ field_errors.new_password }}
+                  {{ field_errors.confirm_password }}
+                  <button type="button" class="close-alert">&times;</button>
+                </div>
+                {% endif %}
+                <div class="form-group {% if field_errors.password %}has-error{% endif %}">
+                  <label class="form-label">Mot de passe actuel</label>
+                  <input type="password" class="form-control" name="password" placeholder="Entrez votre mot de passe actuel" required />
+                  {% if field_errors.password %}
+                    <span class="error-message">{{ field_errors.password }}</span>
+                  {% endif %}
+                </div>
+
+                <div class="form-group {% if field_errors.new_password %}has-error{% endif %}">
+                  <label class="form-label">Nouveau mot de passe</label>
+                  <input type="password" class="form-control" name="new_password" placeholder="Entrez un nouveau mot de passe" required />
+                  {% if field_errors.new_password %}
+                    <span class="error-message">{{ field_errors.new_password }}</span>
+                  {% endif %}
+                </div>
+
+                <div class="form-group {% if field_errors.confirm_password %}has-error{% endif %}">
+                  <label class="form-label">Confirmer le nouveau mot de passe</label>
+                  <input type="password" class="form-control" name="confirm_new_password" placeholder="Confirmez votre nouveau mot de passe" required />
+                  {% if field_errors.confirm_password %}
+                    <span class="error-message">{{ field_errors.confirm_password }}</span>
+                  {% endif %}
+                </div>
+
+                <div style="background: var(--admin-primary-light); padding: 1rem; border-radius: var(--radius-md); margin-top: 1rem;">
+                  <div style="font-size: 0.9rem; color: var(--admin-primary); font-weight: 600; margin-bottom: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Conseils pour un mot de passe sécurisé :
+                  </div>
+                  <ul style="font-size: 0.85rem; margin-left: 1.25rem; color: var(--text-primary);">
+                    <li>Au moins 12 caractères</li>
+                    <li>Combinaison de lettres, chiffres et symboles</li>
+                    <li>Ne pas utiliser d'informations personnelles</li>
+                    <li>Ne pas réutiliser un ancien mot de passe</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="security-settings">
+              <div class="security-title">
+                <i class="fas fa-mobile-alt"></i> Authentification à deux facteurs (2FA)
+              </div>
+              <div class="security-description">Ajoutez une couche de sécurité supplémentaire en activant l'authentification à deux facteurs.</div>
+              <div class="security-status">
+                <div class="status-indicator status-warning"></div>
+                <span>Statut : Désactivé</span>
+              </div>
+
+              <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;"><i class="fas fa-toggle-off"></i> Activer l'authentification à deux facteurs</button>
+
+              <div style="background: var(--info-light); padding: 1rem; border-radius: var(--radius-md); margin-top: 1rem;">
+                <p style="font-size: 0.9rem; color: var(--info); margin: 0;">
+                  <i class="fas fa-info-circle"></i> L'authentification à deux facteurs vous enverra un code par SMS ou via une application d'authentification à chaque connexion.
+                </p>
+              </div>
+            </div>
+
+            <div class="security-settings">
+              <div class="security-title">
+                <i class="fas fa-laptop"></i> Appareils connectés
+              </div>
+              <div class="security-description">Gérez les appareils sur lesquels vous êtes actuellement connecté.</div>
+
+              <div style="margin-top: 1rem;">
+                {% if user_sessions %}
+                  {% for session in user_sessions %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; {% if not forloop.last %}border-bottom: 1px solid var(--gray-200);{% endif %}">
+                      <div>
+                        <div style="font-weight: 600;">{{ session.device_info }}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">IP: {{ session.ip_address }} • Dernière activité: {{ session.last_activity|date:"d/m/Y H:i" }}</div>
+                      </div>
+                      {% if session.is_current %}
+                        <span class="badge badge-success">Actuel</span>
+                      {% else %}
+                        <button class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.8rem;" 
+                                onclick="disconnectSession('{{ session.session_key }}')">
+                          <i class="fas fa-sign-out-alt"></i> Déconnecter
+                        </button>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="alert alert-info" style="margin-top: 1rem;">
+                    <i class="fas fa-info-circle"></i> Aucune session active n'a été trouvée.
+                  </div>
+                {% endif %}
+              </div>
+
+              <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" 
+                      onclick="disconnectAllSessions()">
+                <i class="fas fa-sign-out-alt"></i> Déconnecter de tous les autres appareils
+              </button>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-secondary"><i class="fas fa-times"></i> Annuler</button>
+              <button type="submit" class="btn btn-primary" id="saveSecuritySettings"><i class="fas fa-save"></i> Enregistrer les modifications</button>
+            </div>
+          </div>
+          </form>
+
+          <!-- Preferences Tab -->
+          <div class="tab-content" id="preferences-tab">
+            <div class="content-section">
+              <h2 class="section-title"><i class="fas fa-palette"></i> Préférences d'affichage</h2>
+              <p class="section-subtitle">Personnalisez l'interface selon vos préférences.</p>
+            </div>
+
+            <div class="preference-group">
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Thème de l'interface</div>
+                  <div class="preference-description">Choisissez entre le thème clair, sombre ou automatique.</div>
+                </div>
+                <select class="form-control" style="width: auto; min-width: 150px;">
+                  <option>Thème clair</option>
+                  <option>Thème sombre</option>
+                  <option selected>Automatique</option>
+                </select>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Langue</div>
+                  <div class="preference-description">Sélectionnez votre langue préférée pour l'interface.</div>
+                </div>
+                <select class="form-control" style="width: auto; min-width: 150px;">
+                  <option>Français</option>
+                  <option>Anglais</option>
+                  <option>Espagnol</option>
+                  <option>Allemand</option>
+                </select>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Fuseau horaire</div>
+                  <div class="preference-description">Définissez votre fuseau horaire pour l'affichage des dates et heures.</div>
+                </div>
+                <select class="form-control" style="width: auto; min-width: 200px;">
+                  <option>(UTC+01:00) Paris</option>
+                  <option>(UTC+00:00) Londres</option>
+                  <option>(UTC-05:00) New York</option>
+                  <option>(UTC+09:00) Tokyo</option>
+                </select>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Format de date</div>
+                  <div class="preference-description">Choisissez comment les dates doivent être affichées.</div>
+                </div>
+                <select class="form-control" style="width: auto; min-width: 150px;">
+                  <option>DD/MM/YYYY (15/06/2023)</option>
+                  <option>MM/DD/YYYY (06/15/2023)</option>
+                  <option>YYYY-MM-DD (2023-06-15)</option>
+                </select>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Animations</div>
+                  <div class="preference-description">Activez ou désactivez les animations de l'interface.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="content-section">
+              <h2 class="section-title"><i class="fas fa-tachometer-alt"></i> Préférences système</h2>
+              <p class="section-subtitle">Configurez les paramètres système selon vos besoins.</p>
+            </div>
+
+            <div class="preference-group">
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Nombre d'éléments par page</div>
+                  <div class="preference-description">Définissez le nombre d'éléments à afficher par page dans les listes.</div>
+                </div>
+                <select class="form-control" style="width: auto; min-width: 120px;">
+                  <option>10</option>
+                  <option selected>25</option>
+                  <option>50</option>
+                  <option>100</option>
+                </select>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Tri par défaut</div>
+                  <div class="preference-description">Définissez le critère de tri par défaut pour les listes.</div>
+                </div>
+                <select class="form-control" style="width: auto; min-width: 180px;">
+                  <option>Date (plus récent en premier)</option>
+                  <option>Nom (ordre alphabétique)</option>
+                  <option>Priorité (plus haute en premier)</option>
+                  <option>Date (plus ancien en premier)</option>
+                </select>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Afficher les tutoriels</div>
+                  <div class="preference-description">Afficher les tutoriels pour les nouvelles fonctionnalités.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Sauvegarde automatique</div>
+                  <div class="preference-description">Enregistrer automatiquement vos modifications toutes les 5 minutes.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-secondary"><i class="fas fa-times"></i> Annuler</button>
+              <button class="btn btn-primary" id="savePreferences"><i class="fas fa-save"></i> Enregistrer les préférences</button>
+            </div>
+          </div>
+
+          <!-- Notifications Tab -->
+          <div class="tab-content" id="notifications-tab">
+            <div class="content-section">
+              <h2 class="section-title"><i class="fas fa-bell"></i> Préférences de notification</h2>
+              <p class="section-subtitle">Gérez comment et quand vous souhaitez être notifié des événements importants.</p>
+            </div>
+
+            <div class="preference-group">
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--gray-300);">Notifications par email</h3>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Nouveaux messages des établissements</div>
+                  <div class="preference-description">Recevoir un email lorsqu'un établissement vous envoie un message.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Alertes système</div>
+                  <div class="preference-description">Recevoir des alertes pour les problèmes système critiques.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Rapports hebdomadaires</div>
+                  <div class="preference-description">Recevoir un résumé hebdomadaire de l'activité des établissements.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Mises à jour du système</div>
+                  <div class="preference-description">Être informé des nouvelles fonctionnalités et mises à jour.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Rappels de sécurité</div>
+                  <div class="preference-description">Recevoir des rappels pour changer votre mot de passe et vérifier vos paramètres de sécurité.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="preference-group">
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--gray-300);">Notifications push (navigateur)</h3>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Messages urgents</div>
+                  <div class="preference-description">Recevoir des notifications push pour les messages marqués comme urgents.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Problèmes système</div>
+                  <div class="preference-description">Être alerté immédiatement en cas de problème système majeur.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Maintenance planifiée</div>
+                  <div class="preference-description">Recevoir des notifications avant les maintenances planifiées.</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="preference-group">
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--gray-300);">Paramètres avancés</h3>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Heures de notification</div>
+                  <div class="preference-description">Définissez les heures pendant lesquelles vous souhaitez recevoir des notifications.</div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <select class="form-control" style="width: auto; min-width: 100px;">
+                    <option>08:00</option>
+                    <option>09:00</option>
+                    <option selected>07:00</option>
+                  </select>
+                  <span style="display: flex; align-items: center;">à</span>
+                  <select class="form-control" style="width: auto; min-width: 100px;">
+                    <option>18:00</option>
+                    <option>19:00</option>
+                    <option selected>20:00</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="preference-item">
+                <div class="preference-info">
+                  <div class="preference-title">Urgence critique</div>
+                  <div class="preference-description">Recevoir des notifications 24/7 pour les problèmes critiques (ex: panne système).</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-secondary"><i class="fas fa-times"></i> Annuler</button>
+              <button class="btn btn-primary" id="saveNotifications"><i class="fas fa-save"></i> Enregistrer les préférences</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast toast-success" id="toastNotification">
+      <i class="fas fa-check-circle toast-icon"></i>
+      <div class="toast-content">
+        <div class="toast-title">Succès</div>
+        <div class="toast-message">Les modifications ont été enregistrées avec succès !</div>
+      </div>
+      <button class="toast-close" id="closeToast"><i class="fas fa-times"></i></button>
+    </div>
+
+    <script>
+      // Fonction pour déconnecter une session
+      function disconnectSession(sessionKey) {
+        if (confirm('Êtes-vous sûr de vouloir déconnecter cette session ?')) {
+          // Créer un formulaire pour envoyer la demande de déconnexion
+          const form = document.createElement('form')
+          form.method = 'POST'
+          form.action = '{% url "school_admin:profil_admin" %}'
+          
+          // Ajouter le token CSRF
+          const csrfToken = document.createElement('input')
+          csrfToken.type = 'hidden'
+          csrfToken.name = 'csrfmiddlewaretoken'
+          csrfToken.value = document.querySelector('[name=csrfmiddlewaretoken]').value
+          form.appendChild(csrfToken)
+          
+          // Ajouter la clé de session à déconnecter
+          const sessionKeyInput = document.createElement('input')
+          sessionKeyInput.type = 'hidden'
+          sessionKeyInput.name = 'disconnect_session'
+          sessionKeyInput.value = sessionKey
+          form.appendChild(sessionKeyInput)
+          
+          // Soumettre le formulaire
+          document.body.appendChild(form)
+          form.submit()
+        }
+      }
+      
+      // Fonction pour déconnecter toutes les sessions
+      function disconnectAllSessions() {
+        if (confirm('Êtes-vous sûr de vouloir déconnecter toutes les autres sessions ? Vous resterez connecté sur cet appareil.')) {
+          // Créer un formulaire pour envoyer la demande de déconnexion
+          const form = document.createElement('form')
+          form.method = 'POST'
+          form.action = '{% url "school_admin:profil_admin" %}'
+          
+          // Ajouter le token CSRF
+          const csrfToken = document.createElement('input')
+          csrfToken.type = 'hidden'
+          csrfToken.name = 'csrfmiddlewaretoken'
+          csrfToken.value = document.querySelector('[name=csrfmiddlewaretoken]').value
+          form.appendChild(csrfToken)
+          
+          // Ajouter l'action de déconnexion de toutes les sessions
+          const actionInput = document.createElement('input')
+          actionInput.type = 'hidden'
+          actionInput.name = 'disconnect_all_sessions'
+          actionInput.value = 'true'
+          form.appendChild(actionInput)
+          
+          // Soumettre le formulaire
+          document.body.appendChild(form)
+          form.submit()
+        }
+      }
+      
+      document.addEventListener('DOMContentLoaded', function () {
+        // Elements
+        const tabs = document.querySelectorAll('.tab')
+        const tabContents = document.querySelectorAll('.tab-content')
+        const avatarUpload = document.getElementById('avatarUpload')
+        const savePersonalInfo = document.getElementById('savePersonalInfo')
+        const saveSecuritySettings = document.getElementById('saveSecuritySettings')
+        const savePreferences = document.getElementById('savePreferences')
+        const saveNotifications = document.getElementById('saveNotifications')
+        const toast = document.getElementById('toastNotification')
+        const closeToast = document.getElementById('closeToast')
+        const closeAlertButtons = document.querySelectorAll('.close-alert')
+        
+        // Fermeture des alertes
+        closeAlertButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const alert = this.parentElement
+            alert.style.opacity = '0'
+            setTimeout(() => {
+              alert.style.display = 'none'
+            }, 300)
+          })
+        })
+        
+        // Activer l'onglet approprié
+        const activeTab = '{{ active_tab|default:"personal" }}'
+        if (activeTab) {
+          // Trouver l'onglet à activer
+          const tabToActivate = document.querySelector(`.tab[data-tab="${activeTab}"]`)
+          if (tabToActivate) {
+            // Simuler un clic sur l'onglet
+            tabToActivate.click()
+          }
+        }
+      
+        // Tab switching
+        tabs.forEach((tab) => {
+          tab.addEventListener('click', function () {
+            // Remove active class from all tabs
+            tabs.forEach((t) => t.classList.remove('active'))
+            // Add active class to clicked tab
+            this.classList.add('active')
+      
+            // Hide all tab contents
+            tabContents.forEach((content) => content.classList.remove('active'))
+      
+            // Show selected tab content
+            const tabId = this.getAttribute('data-tab') + '-tab'
+            document.getElementById(tabId).classList.add('active')
+          })
+        })
+      
+        // Avatar upload
+        avatarUpload.addEventListener('click', function () {
+          // In a real app, this would trigger a file input
+          showToast("Fonctionnalité de téléchargement d'image activée. Sélectionnez une image depuis votre appareil.", 'success')
+        })
+      
+        // Save personal info
+        savePersonalInfo.addEventListener('click', function () {
+          showToast('Vos informations personnelles ont été mises à jour avec succès !', 'success')
+        })
+      
+        // Save security settings
+        saveSecuritySettings.addEventListener('click', function () {
+          showToast('Vos paramètres de sécurité ont été mis à jour avec succès !', 'success')
+        })
+      
+        // Save preferences
+        savePreferences.addEventListener('click', function () {
+          showToast('Vos préférences ont été enregistrées avec succès !', 'success')
+        })
+      
+        // Save notifications
+        saveNotifications.addEventListener('click', function () {
+          showToast('Vos préférences de notification ont été mises à jour avec succès !', 'success')
+        })
+      
+        // Close toast
+        closeToast.addEventListener('click', function () {
+          toast.classList.remove('show')
+        })
+      
+        // Show toast function
+        function showToast(message, type = 'success') {
+          const toast = document.getElementById('toastNotification')
+          const toastMessage = toast.querySelector('.toast-message')
+          const toastIcon = toast.querySelector('.toast-icon')
+      
+          // Set message
+          toastMessage.textContent = message
+      
+          // Set type
+          toast.className = 'toast'
+          if (type === 'success') {
+            toast.classList.add('toast-success')
+            toastIcon.className = 'fas fa-check-circle toast-icon'
+          } else {
+            toast.classList.add('toast-error')
+            toastIcon.className = 'fas fa-exclamation-circle toast-icon'
+          }
+      
+          // Show toast
+          toast.classList.add('show')
+      
+          // Hide after 5 seconds
+          setTimeout(() => {
+            toast.classList.remove('show')
+          }, 5000)
+        }
+      
+        // Add fade-in animation to elements
+        const fadeElements = document.querySelectorAll('.fade-in')
+        fadeElements.forEach((element, index) => {
+          element.style.opacity = '0'
+          element.style.transform = 'translateY(20px)'
+          element.style.transition = 'opacity 0.5s ease, transform 0.5s ease'
+      
+          // Staggered animation
+          setTimeout(() => {
+            element.style.opacity = '1'
+            element.style.transform = 'translateY(0)'
+          }, 100 * index)
+        })
+      
+        // Initialize tooltips or other interactive elements
+        const preferenceItems = document.querySelectorAll('.preference-item')
+        preferenceItems.forEach((item) => {
+          item.addEventListener('mouseenter', function () {
+            this.style.transform = 'translateX(5px)'
+            this.style.transition = 'all 0.3s ease'
+          })
+      
+          item.addEventListener('mouseleave', function () {
+            this.style.transform = 'translateX(0)'
+          })
+        })
+      })
+    </script>
+  </body>
+</html>

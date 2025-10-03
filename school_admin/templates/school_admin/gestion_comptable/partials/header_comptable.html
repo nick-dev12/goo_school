@@ -1,0 +1,265 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+/>
+<div class="dashboard">
+  <!-- Main Content -->
+  <main class="main-content full-width" id="mainContent">
+    <!-- Header Horizontal -->
+    <header class="dashboard-header-horizontal">
+      <div class="header-left">
+        <div class="header-logo">
+          <i class="fas fa-school"></i>
+          <span>Goo-School</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-search">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher une classe, un élève..." />
+        </div>
+
+        <button class="header-button">
+          <i class="fas fa-bell"></i>
+        </button>
+
+        <button class="header-button">
+          <i class="fas fa-envelope"></i>
+        </button>
+
+        <a href="{% url 'school_admin:profil_admin' %}">
+          <div class="header-profile">
+            <div class="header-avatar">
+              <img src="{{ user.photo.url }}" alt="Photo de profil" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name">
+                {{ user.nom }} {{ user.prenom }}
+              </div>
+              <div class="header-user-role">{{ user.fonction }}</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </header>
+
+    <!-- Welcome Banner -->
+    <section class="welcome-banner">
+      <div class="banner-content">
+        <h1 class="banner-title">
+          Bienvenue, {{ user.nom }} {{ user.prenom }}
+        </h1>
+        <p class="banner-subtitle">Goo-School - Année scolaire 2023-2024</p>
+      </div>
+      <button class="nav-toggle-btn" id="openNavMenu">
+        menu
+        <i class="fas fa-th"></i>
+      </button>
+    </section>
+
+    <!-- Navigation Overlay -->
+    <div class="navigation-overlay" id="navOverlay"></div>
+
+    <!-- Navigation Cards Section (Hidden by default) -->
+    <section
+      class="section-container navigation-section"
+      id="navigationSection"
+    >
+      <button class="close-btn" id="closeNavMenu">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="nav-menu-header">
+        <h2>Menu de Navigation</h2>
+        <p>Accédez rapidement à toutes les fonctionnalités</p>
+      </div>
+
+      <!-- Section 1: Tableau de bord -->
+      <div class="section-title">
+        <h2>Tableau de bord</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a
+          href="{% url 'school_admin:dashboard_comptable' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-tachometer-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Vue d'ensemble</h3>
+            <p>Tableau de bord comptable</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 2: Gestion financière -->
+      <div class="section-title">
+        <h2>Gestion financière</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'school_admin:suivi_revenus' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-green">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Revenus</h3>
+            <p>Suivi des revenus</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:paiements_retard' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-orange">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Paiements en retard</h3>
+            <p>Suivi des impayés</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:calculs_automatiques' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-purple">
+            <i class="fas fa-calculator"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Calculs</h3>
+            <p>Calculs automatiques</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 3: Rapports -->
+      <div class="section-title">
+        <h2>Rapports</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a
+          href="{% url 'school_admin:rapports_mensuels' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Rapport mensuel</h3>
+            <p>Bilan mensuel</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:rapports_annuels' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-gray">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Rapport annuel</h3>
+            <p>Bilan annuel</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 4: Gestion des données -->
+      <div class="section-title">
+        <h2>Gestion des données</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a
+          href="{% url 'school_admin:gestion_etablissements' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-green">
+            <i class="fas fa-chalkboard"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Etablissements</h3>
+            <p>Gestion des établissements et factures</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:gestion_personnel_financier' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-light-blue">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Personnel</h3>
+            <p>Gestion financière du personnel</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:gestion_depenses' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Dépenses</h3>
+            <p>Gestion des dépenses</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 5: Communication -->
+      <div class="section-title">
+        <h2>Communication</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Messages</h3>
+            <p>Boîte de réception</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 6: Compte -->
+      <div class="section-title">
+        <h2>Mon profil</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-light-blue">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Mon Profil</h3>
+            <p>Informations personnelles</p>
+          </div>
+        </a>
+
+        <a
+          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+          class="nav-link-card logout-card"
+        >
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Déconnexion</h3>
+            <p>Quitter</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <!-- Le contenu de chaque page sera inséré ici -->
+    </div>
+  </main>
+</div>
+
+<script src="{% static 'school_admin/js/script.js' %}"></script>

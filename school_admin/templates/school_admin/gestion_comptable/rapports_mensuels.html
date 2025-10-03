@@ -1,0 +1,808 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rapports Mensuels - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/rapports_mensuels.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <h1><i class="fas fa-file-alt"></i> Rapports Mensuels</h1>
+          <p>Bilan mensuel et analyse financière détaillée</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary" id="generateMonthlyReport">
+            <i class="fas fa-plus"></i> Nouveau rapport
+          </button>
+          <button class="btn-secondary" id="exportAllReports">
+            <i class="fas fa-download"></i> Exporter tous
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-icon blue">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="card-info">
+            <h3>12</h3>
+            <p>Rapports générés</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon green">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="card-info">
+            <h3>+15.2%</h3>
+            <p>Croissance mensuelle</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon purple">
+            <i class="fas fa-euro-sign"></i>
+          </div>
+          <div class="card-info">
+            <h3>45,250,000</h3>
+            <p>Revenus totaux (FCFA)</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon orange">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="card-info">
+            <h3>2.1s</h3>
+            <p>Temps de génération</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="bilan-mensuel">
+            <i class="fas fa-chart-bar"></i> Bilan mensuel
+            <span class="tab-count">8</span>
+          </button>
+          <button class="tab-btn" data-tab="analyse-financiere">
+            <i class="fas fa-chart-line"></i> Analyse financière
+            <span class="tab-count">4</span>
+          </button>
+          <button class="tab-btn" data-tab="rapports-personnalises">
+            <i class="fas fa-cog"></i> Rapports personnalisés
+            <span class="tab-count">3</span>
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Bilan mensuel Tab -->
+          <div class="tab-panel active" id="bilan-mensuel">
+            <!-- Report Generation Tools -->
+            <div class="report-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-calendar"></i> Génération de rapport</h3>
+                  <p>Création d'un nouveau bilan mensuel</p>
+                </div>
+                <div class="tool-content">
+                  <div class="report-form">
+                    <div class="form-group">
+                      <label>Période du rapport</label>
+                      <select class="form-select" id="reportPeriod">
+                        <option value="decembre-2023">Décembre 2023</option>
+                        <option value="novembre-2023">Novembre 2023</option>
+                        <option value="octobre-2023">Octobre 2023</option>
+                        <option value="septembre-2023">Septembre 2023</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Type de rapport</label>
+                      <select class="form-select" id="reportType">
+                        <option value="complet">Rapport complet</option>
+                        <option value="resume">Résumé exécutif</option>
+                        <option value="financier">
+                          Rapport financier uniquement
+                        </option>
+                        <option value="operational">
+                          Rapport opérationnel
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Sections à inclure</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Résumé exécutif
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Données financières
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Analyse des
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Graphiques et
+                          tableaux
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Recommandations
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="generateReport">
+                      <i class="fas fa-file-alt"></i> Générer le rapport
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-chart-pie"></i> Analyse comparative</h3>
+                  <p>Comparaison avec les mois précédents</p>
+                </div>
+                <div class="tool-content">
+                  <div class="comparison-form">
+                    <div class="form-group">
+                      <label>Période de comparaison</label>
+                      <select class="form-select" id="comparisonPeriod">
+                        <option value="3-mois">3 derniers mois</option>
+                        <option value="6-mois">6 derniers mois</option>
+                        <option value="12-mois">12 derniers mois</option>
+                        <option value="personnalise">
+                          Période personnalisée
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Métriques à comparer</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Revenus
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Nombre d'élèves
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Taux de paiement
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Nouveaux
+                          établissements
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="generateComparison">
+                      <i class="fas fa-chart-pie"></i> Analyser les tendances
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reports Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-list"></i> Rapports mensuels générés</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                  <button class="btn-small primary">
+                    <i class="fas fa-download"></i> Exporter
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Période</th>
+                      <th>Type de rapport</th>
+                      <th>Statut</th>
+                      <th>Date génération</th>
+                      <th>Taille</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="period-info">
+                          <h4>Décembre 2023</h4>
+                          <p>Rapport mensuel complet</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type complet">Complet</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <span class="date">20 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="file-size">2.4 MB</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="period-info">
+                          <h4>Novembre 2023</h4>
+                          <p>Résumé exécutif</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type resume">Résumé</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <span class="date">18 Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="file-size">1.2 MB</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="period-info">
+                          <h4>Octobre 2023</h4>
+                          <p>Rapport financier uniquement</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type financier">Financier</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Oct 2023</span>
+                      </td>
+                      <td>
+                        <span class="file-size">1.8 MB</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="period-info">
+                          <h4>Septembre 2023</h4>
+                          <p>Rapport opérationnel</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type operational"
+                          >Opérationnel</span
+                        >
+                      </td>
+                      <td>
+                        <span class="status-badge en-cours">En cours</span>
+                      </td>
+                      <td>
+                        <span class="date">En cours...</span>
+                      </td>
+                      <td>
+                        <span class="file-size">-</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir progression">
+                            <i class="fas fa-clock"></i>
+                          </button>
+                          <button class="btn-action" title="Annuler">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analyse financière Tab -->
+          <div class="tab-panel" id="analyse-financiere">
+            <!-- Financial Analysis Tools -->
+            <div class="analysis-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-chart-line"></i> Analyse des tendances
+                  </h3>
+                  <p>Analyse des tendances financières sur plusieurs mois</p>
+                </div>
+                <div class="tool-content">
+                  <div class="analysis-form">
+                    <div class="form-group">
+                      <label>Période d'analyse</label>
+                      <select class="form-select" id="analysisPeriod">
+                        <option value="trimestre">Trimestre (Q4 2023)</option>
+                        <option value="semestre">Semestre (H2 2023)</option>
+                        <option value="annuel">Annuel (2023)</option>
+                        <option value="personnalise">
+                          Période personnalisée
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Indicateurs à analyser</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Évolution des
+                          revenus
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Croissance des
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Taux de rétention
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Rentabilité par
+                          établissement
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="analyzeTrends">
+                      <i class="fas fa-chart-line"></i> Analyser les tendances
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-chart-pie"></i> Analyse comparative</h3>
+                  <p>Comparaison des performances entre établissements</p>
+                </div>
+                <div class="tool-content">
+                  <div class="comparison-form">
+                    <div class="form-group">
+                      <label>Établissements à comparer</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Tous les
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Maternelle Les
+                          Gazelles
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Lycée du Plateau
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> École Primaire La
+                          Savane
+                        </label>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Critères de comparaison</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Revenus générés
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Nombre d'élèves
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Taux de paiement
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Croissance mensuelle
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="compareEstablishments">
+                      <i class="fas fa-chart-pie"></i> Comparer les
+                      établissements
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-chart-bar"></i> Analyses financières</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nom de l'analyse</th>
+                      <th>Type</th>
+                      <th>Période</th>
+                      <th>Date création</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="analysis-info">
+                          <h4>Analyse Q4 2023 - Tendances</h4>
+                          <p>Évolution des revenus et croissance</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="analysis-type tendances">Tendances</span>
+                      </td>
+                      <td>
+                        <span class="period">Q4 2023</span>
+                      </td>
+                      <td>
+                        <span class="date">18 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Terminée</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir analyse">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="analysis-info">
+                          <h4>Comparaison établissements - Nov 2023</h4>
+                          <p>Performance comparative des établissements</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="analysis-type comparative"
+                          >Comparative</span
+                        >
+                      </td>
+                      <td>
+                        <span class="period">Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Terminée</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir analyse">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rapports personnalisés Tab -->
+          <div class="tab-panel" id="rapports-personnalises">
+            <!-- Custom Report Tools -->
+            <div class="custom-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-cog"></i> Créer un rapport personnalisé
+                  </h3>
+                  <p>Configuration d'un rapport selon vos besoins</p>
+                </div>
+                <div class="tool-content">
+                  <div class="custom-form">
+                    <div class="form-group">
+                      <label>Nom du rapport</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        placeholder="Ex: Rapport Q4 2023"
+                        id="reportName"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label>Description</label>
+                      <textarea
+                        class="form-textarea"
+                        rows="3"
+                        placeholder="Description du rapport..."
+                        id="reportDescription"
+                      ></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label>Période</label>
+                      <div class="date-range">
+                        <input type="date" class="form-input" id="startDate" />
+                        <span class="date-separator">à</span>
+                        <input type="date" class="form-input" id="endDate" />
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Fréquence de génération</label>
+                      <select class="form-select" id="generationFrequency">
+                        <option value="manuel">Manuel</option>
+                        <option value="mensuel">Mensuel</option>
+                        <option value="trimestriel">Trimestriel</option>
+                        <option value="annuel">Annuel</option>
+                      </select>
+                    </div>
+                    <button class="btn-calculate" id="createCustomReport">
+                      <i class="fas fa-plus"></i> Créer le rapport
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-template"></i> Modèles de rapports</h3>
+                  <p>Utiliser un modèle prédéfini</p>
+                </div>
+                <div class="tool-content">
+                  <div class="template-form">
+                    <div class="form-group">
+                      <label>Modèle à utiliser</label>
+                      <select class="form-select" id="reportTemplate">
+                        <option value="executif">Résumé exécutif</option>
+                        <option value="financier">Rapport financier</option>
+                        <option value="operational">
+                          Rapport opérationnel
+                        </option>
+                        <option value="marketing">Rapport marketing</option>
+                        <option value="complet">Rapport complet</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Personnalisation</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Logo de l'entreprise
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Couleurs
+                          personnalisées
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> En-tête personnalisé
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Pied de page
+                          personnalisé
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="useTemplate">
+                      <i class="fas fa-template"></i> Utiliser le modèle
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Reports Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-cog"></i> Rapports personnalisés</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nom du rapport</th>
+                      <th>Type</th>
+                      <th>Fréquence</th>
+                      <th>Dernière génération</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="custom-info">
+                          <h4>Rapport Q4 2023 - Exécutif</h4>
+                          <p>Rapport personnalisé pour la direction</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="custom-type executif">Exécutif</span>
+                      </td>
+                      <td>
+                        <span class="frequency">Mensuel</span>
+                      </td>
+                      <td>
+                        <span class="date">20 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge actif">Actif</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                          <button class="btn-action" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="custom-info">
+                          <h4>Analyse Marketing - H2 2023</h4>
+                          <p>Rapport marketing personnalisé</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="custom-type marketing">Marketing</span>
+                      </td>
+                      <td>
+                        <span class="frequency">Trimestriel</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge actif">Actif</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                          <button class="btn-action" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/rapports_mensuels.js' %}"></script>
+  </body>
+</html>

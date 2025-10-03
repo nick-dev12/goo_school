@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comptes rendus de visite - Goo-School Commercial</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/comptes_rendus.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+    <div class="page-container">
+      <!-- Messages -->
+      {% if messages %}
+      <div class="message-container">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i
+              class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"
+            ></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Header de la page -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-info">
+            <div class="page-icon">
+              <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="page-details">
+              <h1 class="page-title">Comptes rendus de visite</h1>
+              <p class="page-subtitle">
+                Documentation de vos visites commerciales
+              </p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <a
+              href="{% url 'school_admin:commercial_liste_etablissements' %}"
+              class="btn btn-outline"
+            >
+              <i class="fas fa-arrow-left"></i>
+              Retour
+            </a>
+            <a
+              href="{% url 'school_admin:commercial_rendez_vous' %}"
+              class="btn btn-primary"
+            >
+              <i class="fas fa-calendar-alt"></i>
+              Voir les rendez-vous
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres et recherche -->
+      <div class="filters-section">
+        <div class="filters-container">
+          <div class="search-group">
+            <div class="search-input-group">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Rechercher un compte rendu..."
+                class="search-input"
+              />
+            </div>
+          </div>
+          <div class="filters-row">
+            <div class="filter-group">
+              <label for="etablissement-filter" class="filter-label">
+                Établissement
+              </label>
+              <select id="etablissement-filter" class="filter-select">
+                <option value="">Tous les établissements</option>
+                {% for etablissement in etablissements %}
+                <option value="{{ etablissement.id }}">
+                  {{ etablissement.nom_etablissement }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="date-filter" class="filter-label">Période</label>
+              <select id="date-filter" class="filter-select">
+                <option value="">Toutes les dates</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="year">Cette année</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="satisfaction-filter" class="filter-label">
+                Satisfaction
+              </label>
+              <select id="satisfaction-filter" class="filter-select">
+                <option value="">Toutes les satisfactions</option>
+                <option value="tres_satisfait">Très satisfait</option>
+                <option value="satisfait">Satisfait</option>
+                <option value="neutre">Neutre</option>
+                <option value="peu_satisfait">Peu satisfait</option>
+                <option value="pas_satisfait">Pas satisfait</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="stats-section">
+        <div class="stats-container">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ total_comptes_rendus }}</h3>
+              <p>Total des comptes rendus</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ comptes_rendus_mois }}</h3>
+              <p>Ce mois</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ etablissements_avec_cr }}</h3>
+              <p>Établissements</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste des comptes rendus -->
+      <div class="comptes-rendus-section">
+        {% if comptes_rendus_list %}
+        <div class="comptes-rendus-list">
+          {% for cr in comptes_rendus_list %}
+          <div
+            class="compte-rendu-card"
+            data-etablissement="{{ cr.etablissement.nom_etablissement|lower }}"
+            data-date="{{ cr.date_visite|date:'Y-m-d' }}"
+            data-satisfaction="{{ cr.satisfaction_client|default:'' }}"
+          >
+            <div class="card-header">
+              <div class="etablissement-info">
+                <div class="etablissement-avatar">
+                  <i class="fas fa-building"></i>
+                </div>
+                <div class="etablissement-details">
+                  <h3 class="etablissement-name">
+                    {{ cr.etablissement.nom_etablissement }}
+                  </h3>
+                  <p class="etablissement-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    {{ cr.etablissement.ville_etablissement }}, {{
+                    cr.etablissement.get_pays_etablissement_display }}
+                  </p>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button
+                  class="action-btn delete-btn"
+                  title="Supprimer"
+                  onclick="deleteCompteRendu({{ cr.id }})"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="compte-rendu-info">
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-heading"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Titre</span>
+                    <span class="info-value">{{ cr.titre }}</span>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-calendar"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Date de visite</span>
+                    <span class="info-value"
+                      >{{ cr.date_visite|date:"d/m/Y" }}</span
+                    >
+                  </div>
+                </div>
+                {% if cr.rendez_vous %}
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-handshake"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Rendez-vous</span>
+                    <span class="info-value"
+                      >{{ cr.rendez_vous.get_type_rdv_display }}</span
+                    >
+                  </div>
+                </div>
+                {% endif %} {% if cr.duree_visite %}
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Durée</span>
+                    <span class="info-value">{{ cr.duree_visite }} min</span>
+                  </div>
+                </div>
+                {% endif %} {% if cr.satisfaction_client %}
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-smile"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Satisfaction</span>
+                    <span
+                      class="info-value satisfaction-{{ cr.satisfaction_client }}"
+                    >
+                      {{ cr.get_satisfaction_client_display }}
+                    </span>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="compte-rendu-content">
+                <div class="content-section">
+                  <h4>Contenu</h4>
+                  <p>{{ cr.contenu|linebreaks }}</p>
+                </div>
+
+                {% if cr.personnes_rencontrees %}
+                <div class="content-section">
+                  <h4>Personnes rencontrées</h4>
+                  <p>{{ cr.personnes_rencontrees|linebreaks }}</p>
+                </div>
+                {% endif %} {% if cr.points_cles %}
+                <div class="content-section">
+                  <h4>Points clés</h4>
+                  <p>{{ cr.points_cles|linebreaks }}</p>
+                </div>
+                {% endif %} {% if cr.prochaines_etapes %}
+                <div class="content-section">
+                  <h4>Prochaines étapes</h4>
+                  <p>{{ cr.prochaines_etapes|linebreaks }}</p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="creation-info">
+                <i class="fas fa-plus-circle"></i>
+                <span>Créé le {{ cr.date_creation|date:"d/m/Y à H:i" }}</span>
+              </div>
+              <div
+                class="status-badge status-{{ cr.etablissement.statut_etablissement }}"
+              >
+                {{ cr.etablissement.get_statut_etablissement_display }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h3>Aucun rapport créé</h3>
+          <p>
+            Commencez par programmer des rendez-vous, puis créez des rapports.
+          </p>
+          <a
+            href="{% url 'school_admin:commercial_rendez_vous' %}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-calendar-alt"></i>
+            Voir les rendez-vous
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Formulaire de suppression caché -->
+    <form id="delete-form" method="post" style="display: none">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_compte_rendu" />
+      <input type="hidden" name="compte_rendu_id" id="delete-compte-rendu-id" />
+    </form>
+
+    <script>
+      // Auto-close messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(".message");
+        messages.forEach((message) => {
+          setTimeout(() => {
+            if (message.parentElement) {
+              message.style.animation = "slideOutRight 0.3s ease";
+              setTimeout(() => {
+                if (message.parentElement) {
+                  message.remove();
+                }
+              }, 300);
+            }
+          }, 4000);
+        });
+
+        // Filtres
+        const searchInput = document.getElementById("search-input");
+        const etablissementFilter = document.getElementById(
+          "etablissement-filter"
+        );
+        const dateFilter = document.getElementById("date-filter");
+        const satisfactionFilter = document.getElementById(
+          "satisfaction-filter"
+        );
+        const compteRenduCards =
+          document.querySelectorAll(".compte-rendu-card");
+
+        function filterComptesRendus() {
+          const searchTerm = searchInput.value.toLowerCase();
+          const selectedEtablissement = etablissementFilter.value;
+          const selectedDate = dateFilter.value;
+          const selectedSatisfaction = satisfactionFilter.value;
+          const today = new Date();
+          const todayStr = today.toISOString().split("T")[0];
+
+          compteRenduCards.forEach((card) => {
+            const etablissement = card.dataset.etablissement;
+            const date = card.dataset.date;
+            const satisfaction = card.dataset.satisfaction;
+
+            let show = true;
+
+            // Filtre par recherche
+            if (searchTerm && !etablissement.includes(searchTerm)) {
+              show = false;
+            }
+
+            // Filtre par établissement
+            if (selectedEtablissement) {
+              const etablissementId = card
+                .querySelector(".etablissement-name")
+                .textContent.toLowerCase();
+              if (
+                !etablissementId.includes(selectedEtablissement.toLowerCase())
+              ) {
+                show = false;
+              }
+            }
+
+            // Filtre par satisfaction
+            if (selectedSatisfaction && satisfaction !== selectedSatisfaction) {
+              show = false;
+            }
+
+            // Filtre par date
+            if (selectedDate) {
+              const cardDate = new Date(date);
+              switch (selectedDate) {
+                case "today":
+                  if (date !== todayStr) show = false;
+                  break;
+                case "week":
+                  const weekAgo = new Date(today);
+                  weekAgo.setDate(today.getDate() - 7);
+                  if (cardDate < weekAgo || cardDate > today) show = false;
+                  break;
+                case "month":
+                  const monthAgo = new Date(today);
+                  monthAgo.setMonth(today.getMonth() - 1);
+                  if (cardDate < monthAgo || cardDate > today) show = false;
+                  break;
+                case "year":
+                  const yearAgo = new Date(today);
+                  yearAgo.setFullYear(today.getFullYear() - 1);
+                  if (cardDate < yearAgo || cardDate > today) show = false;
+                  break;
+              }
+            }
+
+            card.style.display = show ? "block" : "none";
+          });
+        }
+
+        searchInput.addEventListener("input", filterComptesRendus);
+        etablissementFilter.addEventListener("change", filterComptesRendus);
+        dateFilter.addEventListener("change", filterComptesRendus);
+        satisfactionFilter.addEventListener("change", filterComptesRendus);
+      });
+
+      function deleteCompteRendu(compteRenduId) {
+        if (confirm("Êtes-vous sûr de vouloir supprimer ce compte rendu ?")) {
+          document.getElementById("delete-compte-rendu-id").value =
+            compteRenduId;
+          document.getElementById("delete-form").submit();
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,354 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de Bord Commercial</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/dashboard_commercial.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+    <!-- Dashboard Overview -->
+    <div class="dashboard_container">
+      <div class="dashboard-overview">
+        <h2 class="section-title">Vue d'ensemble</h2>
+
+        <div class="key-indicators">
+          <!-- Établissements prospectés -->
+          <div class="indicator-card">
+            <div
+              class="indicator-icon"
+              style="background-color: var(--primary)"
+            >
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Établissements prospectés</h3>
+              <p class="indicator-value">{{ total_etablissements }}</p>
+              <!-- Calcul du pourcentage d'augmentation à implémenter si nécessaire -->
+              <span class="indicator-trend">Total des établissements</span>
+            </div>
+            <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="indicator-link"
+              ><i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+
+          <!-- Contrats signés -->
+          <div class="indicator-card">
+            <div
+              class="indicator-icon"
+              style="background-color: var(--success)"
+            >
+              <i class="fas fa-handshake"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Contrats signés</h3>
+              <p class="indicator-value">{{ etablissements_signed }}</p>
+              <span class="indicator-trend {% if etablissements_signed > 0 %}positive{% endif %}">
+                {{ pipeline_stats.signes.percentage }}% du pipeline
+              </span>
+            </div>
+            <a href="{% url 'school_admin:commercial_liste_etablissements' %}?statut=contrat_signe" class="indicator-link"
+              ><i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+
+          <!-- Rendez-vous planifiés -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--accent)">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Rendez-vous planifiés</h3>
+              <p class="indicator-value">{{ rendez_vous_a_venir }}</p>
+              <span class="indicator-trend">Pour les 7 prochains jours</span>
+            </div>
+            <a href="{% url 'school_admin:commercial_rendez_vous' %}" class="indicator-link"
+              ><i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+
+          <!-- Taux de conversion -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--info)">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Taux de conversion</h3>
+              <p class="indicator-value">{{ taux_conversion }}%</p>
+              <span class="indicator-trend">
+                Contrats signés / Total établissements
+              </span>
+            </div>
+            <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="indicator-link"
+              ><i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+
+          <!-- Pays couverts -->
+          <div class="indicator-card">
+            <div
+              class="indicator-icon"
+              style="background-color: var(--secondary)"
+            >
+              <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Zones couvertes</h3>
+              <p class="indicator-value">{{ pays_stats|length }}</p>
+              <span class="indicator-trend">Pays africains</span>
+            </div>
+            <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="indicator-link"
+              ><i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance individuelle -->
+      <div class="performance-stats-section">
+        <h2 class="section-title">Performance commerciale</h2>
+
+        <!-- Métriques de performance -->
+        <div class="performance-card">
+          <div class="performance-header">
+            <h3>Mes objectifs et réalisations</h3>
+            <div class="stats-period-selector">
+              <button class="period-button active">Ce mois</button>
+              <button class="period-button">Ce trimestre</button>
+              <button class="period-button">Cette année</button>
+            </div>
+          </div>
+
+          <div class="performance-metrics">
+            <!-- Prospections -->
+            <div class="metric-item">
+              <div class="metric-value">{{ total_etablissements }}</div>
+              <div class="metric-label">Prospections</div>
+            </div>
+            <!-- Rendez-vous -->
+            <div class="metric-item">
+              <div class="metric-value">{{ total_rendez_vous }}</div>
+              <div class="metric-label">Rendez-vous</div>
+            </div>
+           
+            <!-- Contrats signés -->
+            <div class="metric-item">
+              <div class="metric-value">{{ etablissements_signed }}</div>
+              <div class="metric-label">Contrats signés</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pipeline de vente -->
+        <div class="stats-card">
+          <div class="stats-header">
+            <h3>Pipeline de vente</h3>
+            <div class="stats-period-selector">
+              <button class="period-button active">En cours</button>
+              <button class="period-button">Historique</button>
+            </div>
+          </div>
+
+          <div class="pipeline-container">
+            <!-- Nouveaux -->
+            <div class="pipeline-stage stage-new">
+              <div class="stage-label">Nouveaux</div>
+              <div class="stage-progress">
+                <div class="progress-fill" style="width: {{ pipeline_stats.nouveaux.percentage }}%">{{ pipeline_stats.nouveaux.percentage }}%</div>
+              </div>
+              <div class="stage-count">{{ etablissements_nouveaux }} établissements</div>
+            </div>
+
+            <!-- Contactés -->
+            <div class="pipeline-stage stage-contacted">
+              <div class="stage-label">Contactés</div>
+              <div class="stage-progress">
+                <div class="progress-fill" style="width: {{ pipeline_stats.contactes.percentage }}%">{{ pipeline_stats.contactes.percentage }}%</div>
+              </div>
+              <div class="stage-count">{{ etablissements_contactes }} établissements</div>
+            </div>
+
+            <!-- Rendez-vous -->
+            <div class="pipeline-stage stage-meeting">
+              <div class="stage-label">Rendez-vous</div>
+              <div class="stage-progress">
+                <div class="progress-fill" style="width: {{ pipeline_stats.rdv.percentage }}%">{{ pipeline_stats.rdv.percentage }}%</div>
+              </div>
+              <div class="stage-count">{{ etablissements_rdv }} établissements</div>
+            </div>
+
+            <!-- Proposition -->
+            <div class="pipeline-stage stage-proposal">
+              <div class="stage-label">Proposition</div>
+              <div class="stage-progress">
+                <div class="progress-fill" style="width: {{ pipeline_stats.proposition.percentage }}%">{{ pipeline_stats.proposition.percentage }}%</div>
+              </div>
+              <div class="stage-count">{{ etablissements_proposition }} établissements</div>
+            </div>
+
+            <!-- Signés -->
+            <div class="pipeline-stage stage-signed">
+              <div class="stage-label">Signés</div>
+              <div class="stage-progress">
+                <div class="progress-fill" style="width: {{ pipeline_stats.signes.percentage }}%">{{ pipeline_stats.signes.percentage }}%</div>
+              </div>
+              <div class="stage-count">{{ etablissements_signed }} établissements</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Établissements à prospecter et activités récentes -->
+      <div class="activities-section">
+        <h2 class="section-title">Suivi des établissements et activités</h2>
+
+        <div class="activities-container">
+          <!-- Établissements à prospecter -->
+          <div class="recent-activities">
+            <div class="activities-header">
+              <h3>Établissements à prospecter</h3>
+              <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="view-all-link">
+                <span>Voir tout</span>
+                <i class="fas fa-angle-right"></i>
+              </a>
+            </div>
+
+            <div class="prospect-list">
+              {% for etablissement in etablissements_recents %}
+              <div class="prospect-item">
+                <!-- Icône avec couleur selon le type d'établissement -->
+                <div
+                  class="prospect-icon"
+                  {% if etablissement.type_etablissement == 'lycee' %}
+                    style="background-color: var(--primary)"
+                  {% elif etablissement.type_etablissement == 'universite' %}
+                    style="background-color: var(--accent)"
+                  {% elif etablissement.type_etablissement == 'college' %}
+                    style="background-color: var(--warning)"
+                  {% elif etablissement.type_etablissement == 'primaire' %}
+                    style="background-color: var(--success)"
+                  {% else %}
+                    style="background-color: var(--secondary)"
+                  {% endif %}
+                >
+                  <i class="fas fa-school"></i>
+                </div>
+                
+                <!-- Contenu de l'établissement -->
+                <div class="prospect-content">
+                  <h4 class="prospect-name">{{ etablissement.nom_etablissement }}</h4>
+                  <div class="prospect-details">
+                    <span class="prospect-location">
+                      <i class="fas fa-map-marker-alt"></i> 
+                      {{ etablissement.ville_etablissement }}, 
+                      {{ etablissement.get_pays_etablissement_display }}
+                    </span>
+                    <span class="prospect-type">
+                      <i class="fas fa-graduation-cap"></i> 
+                      {{ etablissement.get_type_etablissement_display }}
+                    </span>
+                    
+                    <!-- Statut avec classe CSS correspondante -->
+                    <span class="prospect-status 
+                      {% if etablissement.statut_etablissement == 'nouveau' %}new
+                      {% elif etablissement.statut_etablissement == 'contacte' %}contacted
+                      {% elif etablissement.statut_etablissement == 'rdv_planifie' %}meeting
+                      {% elif etablissement.statut_etablissement == 'proposition' %}proposal
+                      {% elif etablissement.statut_etablissement == 'contrat_signe' %}signed
+                      {% endif %}">
+                      {{ etablissement.get_statut_etablissement_display }}
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Actions rapides -->
+                <div class="prospect-actions">
+                  <!-- Lien vers la page de détail de l'établissement -->
+                  <a href="{% url 'school_admin:commercial_detail_etablissement' etablissement.id %}" class="prospect-action-btn">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <!-- Lien vers la page de planification de rendez-vous -->
+                  <a href="{% url 'school_admin:commercial_detail_etablissement' etablissement.id %}" class="prospect-action-btn">
+                    <i class="fas fa-calendar-plus"></i>
+                  </a>
+                </div>
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <p>Aucun établissement à prospecter pour le moment.</p>
+                <a href="{% url 'school_admin:commercial_ajouter_etablissement' %}" class="btn-primary">
+                  <i class="fas fa-plus"></i> Ajouter un établissement
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Rendez-vous à venir -->
+          <div class="upcoming-meetings">
+            <div class="meetings-header">
+              <h3>Rendez-vous à venir</h3>
+              <a href="{% url 'school_admin:commercial_rendez_vous' %}" class="view-all-link">
+                <span>Voir tout</span>
+                <i class="fas fa-angle-right"></i>
+              </a>
+            </div>
+
+            <div class="meetings-list">
+              {% for rdv in rendez_vous_a_venir_list %}
+              <div class="meeting-item">
+                <!-- Date du rendez-vous -->
+                <div class="meeting-date">
+                  <span class="meeting-day">{{ rdv.date_rdv|date:"d" }}</span>
+                  <span class="meeting-month">{{ rdv.date_rdv|date:"M" }}</span>
+                </div>
+                
+                <!-- Contenu du rendez-vous -->
+                <div class="meeting-content">
+                  <h4 class="meeting-title">{{ rdv.etablissement.nom_etablissement }}</h4>
+                  <div class="meeting-details">
+                    <span class="meeting-time">
+                      <i class="fas fa-clock"></i> 
+                      {{ rdv.heure_rdv|time:"H:i" }} - 
+                      {% with heure=rdv.heure_rdv|time:"H" minutes=rdv.heure_rdv|time:"i" %}
+                        {% with heure_fin=heure|add:"1" %}
+                          {{ heure_fin }}:{{ minutes }}
+                        {% endwith %}
+                      {% endwith %}
+                    </span>
+                    <span class="meeting-location">
+                      <i class="fas fa-map-marker-alt"></i> 
+                      {{ rdv.etablissement.ville_etablissement }}, 
+                      {{ rdv.etablissement.get_pays_etablissement_display }}
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Lien vers la page de détail du rendez-vous -->
+                <a href="{% url 'school_admin:commercial_rendez_vous' %}" class="meeting-action-btn">
+                  <i class="fas fa-eye"></i>
+                </a>
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <p>Aucun rendez-vous à venir.</p>
+                <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="btn-primary">
+                  <i class="fas fa-calendar-plus"></i> Planifier un rendez-vous
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts JavaScript -->
+    <script src="{% static 'school_admin/js/commercial/script_commercial.js' %}"></script>
+  </body>
+</html>

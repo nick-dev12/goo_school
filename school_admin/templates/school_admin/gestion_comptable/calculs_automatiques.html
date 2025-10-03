@@ -1,0 +1,828 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculs Automatiques - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/calculs_automatiques.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <h1><i class="fas fa-calculator"></i> Calculs Automatiques</h1>
+          <p>Outils de calcul et de génération automatique des factures</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary" id="runAllCalculations">
+            <i class="fas fa-play"></i> Lancer tous les calculs
+          </button>
+          <button class="btn-secondary" id="exportCalculations">
+            <i class="fas fa-download"></i> Exporter résultats
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-icon blue">
+            <i class="fas fa-school"></i>
+          </div>
+          <div class="card-info">
+            <h3>6</h3>
+            <p>Établissements à calculer</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon green">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="card-info">
+            <h3>5,115</h3>
+            <p>Total élèves inscrits</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon purple">
+            <i class="fas fa-euro-sign"></i>
+          </div>
+          <div class="card-info">
+            <h3>15,345,000</h3>
+            <p>Montant à facturer (FCFA)</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon orange">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="card-info">
+            <h3>2.3s</h3>
+            <p>Temps de calcul moyen</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="calculs-mensuels">
+            <i class="fas fa-calendar-alt"></i> Calculs mensuels
+            <span class="tab-count">6</span>
+          </button>
+          <button class="tab-btn" data-tab="facturation">
+            <i class="fas fa-file-invoice"></i> Facturation
+            <span class="tab-count">12</span>
+          </button>
+          <button class="tab-btn" data-tab="rapports">
+            <i class="fas fa-chart-bar"></i> Rapports
+            <span class="tab-count">4</span>
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Calculs mensuels Tab -->
+          <div class="tab-panel active" id="calculs-mensuels">
+            <!-- Calculation Tools -->
+            <div class="calculation-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-calculator"></i> Calcul des revenus</h3>
+                  <p>Calcul automatique des revenus par établissement</p>
+                </div>
+                <div class="tool-content">
+                  <div class="calculation-form">
+                    <div class="form-group">
+                      <label>Période de calcul</label>
+                      <select class="form-select" id="calculationPeriod">
+                        <option value="decembre-2023">Décembre 2023</option>
+                        <option value="novembre-2023">Novembre 2023</option>
+                        <option value="octobre-2023">Octobre 2023</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Tarif par élève</label>
+                      <div class="input-group">
+                        <input
+                          type="number"
+                          class="form-input"
+                          value="3000"
+                          id="tarifEleve"
+                        />
+                        <span class="input-suffix">FCFA</span>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Établissements à inclure</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Tous les
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Maternelle Les
+                          Gazelles
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Lycée du Plateau
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> École Primaire La
+                          Savane
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="calculateRevenus">
+                      <i class="fas fa-play"></i> Lancer le calcul
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-percentage"></i> Calcul des taxes</h3>
+                  <p>Calcul automatique des taxes et charges</p>
+                </div>
+                <div class="tool-content">
+                  <div class="calculation-form">
+                    <div class="form-group">
+                      <label>TVA (18%)</label>
+                      <div class="input-group">
+                        <input
+                          type="number"
+                          class="form-input"
+                          value="18"
+                          id="tvaRate"
+                        />
+                        <span class="input-suffix">%</span>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Charges sociales (5%)</label>
+                      <div class="input-group">
+                        <input
+                          type="number"
+                          class="form-input"
+                          value="5"
+                          id="chargesRate"
+                        />
+                        <span class="input-suffix">%</span>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Montant de base</label>
+                      <div class="input-group">
+                        <input
+                          type="number"
+                          class="form-input"
+                          value="15000000"
+                          id="baseAmount"
+                        />
+                        <span class="input-suffix">FCFA</span>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="calculateTaxes">
+                      <i class="fas fa-play"></i> Calculer les taxes
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-users"></i> Calcul des salaires</h3>
+                  <p>Calcul automatique de la masse salariale</p>
+                </div>
+                <div class="tool-content">
+                  <div class="calculation-form">
+                    <div class="form-group">
+                      <label>Période de paie</label>
+                      <select class="form-select" id="salaryPeriod">
+                        <option value="decembre-2023">Décembre 2023</option>
+                        <option value="novembre-2023">Novembre 2023</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Heures supplémentaires</label>
+                      <div class="input-group">
+                        <input
+                          type="number"
+                          class="form-input"
+                          value="0"
+                          id="overtimeHours"
+                        />
+                        <span class="input-suffix">heures</span>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Primes et bonus</label>
+                      <div class="input-group">
+                        <input
+                          type="number"
+                          class="form-input"
+                          value="500000"
+                          id="bonusAmount"
+                        />
+                        <span class="input-suffix">FCFA</span>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="calculateSalaries">
+                      <i class="fas fa-play"></i> Calculer les salaires
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-list"></i> Résultats des calculs</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                  <button class="btn-small primary">
+                    <i class="fas fa-download"></i> Exporter
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Établissement</th>
+                      <th>Élèves inscrits</th>
+                      <th>Montant de base</th>
+                      <th>TVA (18%)</th>
+                      <th>Charges (5%)</th>
+                      <th>Total à payer</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Maternelle Les Gazelles</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">500</span>
+                      </td>
+                      <td>
+                        <span class="amount">1,500,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount">270,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount">75,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount total">1,845,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge calcule">Calculé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Recalculer">
+                            <i class="fas fa-redo"></i>
+                          </button>
+                          <button class="btn-action" title="Générer facture">
+                            <i class="fas fa-file-invoice"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Lycée du Plateau</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">520</span>
+                      </td>
+                      <td>
+                        <span class="amount">1,560,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount">280,800 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount">78,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount total">1,918,800 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge calcule">Calculé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Recalculer">
+                            <i class="fas fa-redo"></i>
+                          </button>
+                          <button class="btn-action" title="Générer facture">
+                            <i class="fas fa-file-invoice"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>École Primaire La Savane</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">2,350</span>
+                      </td>
+                      <td>
+                        <span class="amount">7,050,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount">1,269,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount">352,500 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount total">8,671,500 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-cours">En cours</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Recalculer">
+                            <i class="fas fa-redo"></i>
+                          </button>
+                          <button class="btn-action" title="Générer facture">
+                            <i class="fas fa-file-invoice"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Facturation Tab -->
+          <div class="tab-panel" id="facturation">
+            <!-- Invoice Generation Tools -->
+            <div class="invoice-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-file-invoice"></i> Génération de factures
+                  </h3>
+                  <p>Création automatique des factures</p>
+                </div>
+                <div class="tool-content">
+                  <div class="invoice-form">
+                    <div class="form-group">
+                      <label>Modèle de facture</label>
+                      <select class="form-select" id="invoiceTemplate">
+                        <option value="standard">Facture standard</option>
+                        <option value="premium">Facture premium</option>
+                        <option value="simplifiee">Facture simplifiée</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Établissements à facturer</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Tous les
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Maternelle Les
+                          Gazelles
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Lycée du Plateau
+                        </label>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Date d'échéance</label>
+                      <input
+                        type="date"
+                        class="form-input"
+                        value="2023-12-31"
+                        id="dueDate"
+                      />
+                    </div>
+                    <button class="btn-calculate" id="generateInvoices">
+                      <i class="fas fa-file-invoice"></i> Générer les factures
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-envelope"></i> Envoi automatique</h3>
+                  <p>Envoi automatique des factures par email</p>
+                </div>
+                <div class="tool-content">
+                  <div class="email-form">
+                    <div class="form-group">
+                      <label>Template d'email</label>
+                      <select class="form-select" id="emailTemplate">
+                        <option value="standard">Email standard</option>
+                        <option value="relance">Email de relance</option>
+                        <option value="personnalise">Email personnalisé</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Objet de l'email</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        value="Facture mensuelle - Décembre 2023"
+                        id="emailSubject"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label>Message personnalisé</label>
+                      <textarea
+                        class="form-textarea"
+                        rows="3"
+                        placeholder="Message optionnel..."
+                      ></textarea>
+                    </div>
+                    <button class="btn-calculate" id="sendInvoices">
+                      <i class="fas fa-paper-plane"></i> Envoyer les factures
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Invoices Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-file-invoice"></i> Factures générées</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>N° Facture</th>
+                      <th>Établissement</th>
+                      <th>Montant</th>
+                      <th>Date génération</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <span class="invoice-number">FAC-2023-001</span>
+                      </td>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Maternelle Les Gazelles</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="amount">1,845,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge envoye">Envoyée</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir facture">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Renvoyer">
+                            <i class="fas fa-redo"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <span class="invoice-number">FAC-2023-002</span>
+                      </td>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Lycée du Plateau</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="amount">1,918,800 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge paye">Payée</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir facture">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Marquer payée">
+                            <i class="fas fa-check"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rapports Tab -->
+          <div class="tab-panel" id="rapports">
+            <!-- Report Generation Tools -->
+            <div class="report-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3><i class="fas fa-chart-bar"></i> Rapport mensuel</h3>
+                  <p>Génération du rapport mensuel complet</p>
+                </div>
+                <div class="tool-content">
+                  <div class="report-form">
+                    <div class="form-group">
+                      <label>Période du rapport</label>
+                      <select class="form-select" id="reportPeriod">
+                        <option value="decembre-2023">Décembre 2023</option>
+                        <option value="novembre-2023">Novembre 2023</option>
+                        <option value="octobre-2023">Octobre 2023</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Sections à inclure</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Résumé financier
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Détail par
+                          établissement
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Graphiques
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Recommandations
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="generateMonthlyReport">
+                      <i class="fas fa-chart-bar"></i> Générer le rapport
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-chart-line"></i> Rapport de performance
+                  </h3>
+                  <p>Analyse de la performance financière</p>
+                </div>
+                <div class="tool-content">
+                  <div class="report-form">
+                    <div class="form-group">
+                      <label>Période d'analyse</label>
+                      <select class="form-select" id="analysisPeriod">
+                        <option value="trimestre">Trimestre (Q4 2023)</option>
+                        <option value="semestre">Semestre (H2 2023)</option>
+                        <option value="annuel">Annuel (2023)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Métriques à analyser</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Revenus
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Dépenses
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Rentabilité
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Tendance
+                        </label>
+                      </div>
+                    </div>
+                    <button
+                      class="btn-calculate"
+                      id="generatePerformanceReport"
+                    >
+                      <i class="fas fa-chart-line"></i> Analyser la performance
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reports Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-file-alt"></i> Rapports générés</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nom du rapport</th>
+                      <th>Type</th>
+                      <th>Période</th>
+                      <th>Date génération</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="report-info">
+                          <h4>Rapport mensuel - Décembre 2023</h4>
+                          <p>Rapport complet avec graphiques</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type mensuel">Mensuel</span>
+                      </td>
+                      <td>
+                        <span class="period">Décembre 2023</span>
+                      </td>
+                      <td>
+                        <span class="date">20 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="report-info">
+                          <h4>Analyse de performance Q4 2023</h4>
+                          <p>Analyse trimestrielle avec recommandations</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type performance">Performance</span>
+                      </td>
+                      <td>
+                        <span class="period">Q4 2023</span>
+                      </td>
+                      <td>
+                        <span class="date">18 Déc 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/calculs_automatiques.js' %}"></script>
+  </body>
+</html>

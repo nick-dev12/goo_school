@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ajout d'un établissement</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/etablissement.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <div id="teacher-modal" class="modal show">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Ajouter un etablissement</h3>
+          <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <!-- Messages d'erreur généraux -->
+          {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          
+          <form id="teacher-form" method="POST" action="">
+            {% csrf_token %}
+            <!-- Informations personnelles -->
+            <div class="form-row">
+              <h3>Informations du directeur</h3>
+              <div class="box">
+                <div class="form-group {% if field_errors.teacher_firstname %}has-error{% endif %}">
+                  <label for="teacher-firstname" class="required">Prénom</label>
+                  <input type="text" id="teacher-firstname" name="teacher_firstname" placeholder="Prénom" value="{{ form_data.teacher_firstname|default:'' }}" required />
+                  {% if field_errors.teacher_firstname %}
+                    <span class="error-message">{{ field_errors.teacher_firstname }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group {% if field_errors.teacher_lastname %}has-error{% endif %}">
+                  <label for="teacher-lastname" class="required">Nom</label>
+                  <input type="text" id="teacher-lastname" name="teacher_lastname" placeholder="Nom" value="{{ form_data.teacher_lastname|default:'' }}" required />
+                  {% if field_errors.teacher_lastname %}
+                    <span class="error-message">{{ field_errors.teacher_lastname }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="form-group {% if field_errors.teacher_email %}has-error{% endif %}">
+                <label for="teacher-email" class="required">Email</label>
+                <input type="email" id="teacher-email" name="teacher_email" placeholder="email@academie.fr" value="{{ form_data.teacher_email|default:'' }}" required />
+                <span class="form-text">Cet email sera utilisé pour la connexion</span>
+                {% if field_errors.teacher_email %}
+                  <span class="error-message">{{ field_errors.teacher_email }}</span>
+                {% endif %}
+              </div>
+              <div class="form-group {% if field_errors.teacher_phone %}has-error{% endif %}">
+                <label for="teacher-phone">Téléphone</label>
+                <input type="tel" id="teacher-phone" name="teacher_phone" placeholder="06 XX XX XX XX" value="{{ form_data.teacher_phone|default:'' }}" />
+                {% if field_errors.teacher_phone %}
+                  <span class="error-message">{{ field_errors.teacher_phone }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-row">
+              <h3>Informations de L'etablissement</h3>
+              <div class="box">
+                <div class="form-group {% if field_errors.establishment_name %}has-error{% endif %}">
+                  <label for="establishment-name" class="required">Nom de l'établissement</label>
+                  <input type="text" id="establishment-name" name="establishment_name" placeholder="Nom de l'établissement" value="{{ form_data.establishment_name|default:'' }}" required />
+                  {% if field_errors.establishment_name %}
+                    <span class="error-message">{{ field_errors.establishment_name }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group {% if field_errors.establishment_address %}has-error{% endif %}">
+                  <label for="establishment-address" class="required">Adresse de l'établissement</label>
+                  <input type="text" id="establishment-address" name="establishment_address" placeholder="Adresse de l'établissement" value="{{ form_data.establishment_address|default:'' }}" required />
+                  {% if field_errors.establishment_address %}
+                    <span class="error-message">{{ field_errors.establishment_address }}</span>
+                  {% endif %}
+                </div>
+              </div>
+
+             
+                <div class="box">
+                  <div class="form-group {% if field_errors.establishment_country %}has-error{% endif %}">
+                    <label for="establishment-country" class="required">Pays</label>
+                    <input type="text" id="establishment-country" name="establishment_country" placeholder="Pays" value="{{ form_data.establishment_country|default:'' }}" required />
+                    {% if field_errors.establishment_country %}
+                      <span class="error-message">{{ field_errors.establishment_country }}</span>
+                    {% endif %}
+                  </div>
+                    <div class="form-group {% if field_errors.establishment_city %}has-error{% endif %}">
+                    <label for="establishment-city" class="required">Ville</label>
+                    <input type="text" id="establishment-city" name="establishment_city" placeholder="Ville" value="{{ form_data.establishment_city|default:'' }}" required />
+                    {% if field_errors.establishment_city %}
+                      <span class="error-message">{{ field_errors.establishment_city }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+              <div class="form-group {% if field_errors.establishment_email %}has-error{% endif %}">
+                <label for="establishment-email" class="required">Email</label>
+                <input type="email" id="establishment-email" name="establishment_email" placeholder="email@academie.fr" value="{{ form_data.establishment_email|default:'' }}" required />
+                <span class="form-text">Cet email sera utilisé pour la connexion</span>
+                {% if field_errors.establishment_email %}
+                  <span class="error-message">{{ field_errors.establishment_email }}</span>
+                {% endif %}
+              </div>
+              <div class="form-group {% if field_errors.establishment_phone %}has-error{% endif %}">
+                <label for="establishment-phone">Téléphone</label>
+                <input type="tel" id="establishment-phone" name="establishment_phone" placeholder="06 XX XX XX XX" value="{{ form_data.establishment_phone|default:'' }}" />
+                {% if field_errors.establishment_phone %}
+                  <span class="error-message">{{ field_errors.establishment_phone }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Type d'établissement -->
+            <div class="form-group {% if field_errors.establishment_type %}has-error{% endif %}">
+              <label for="establishment-type" class="required">Type d'établissement</label>
+              <select name="establishment_type" id="establishment-type" required>
+                <option value="primary" {% if form_data.establishment_type == 'primary' %}selected{% endif %}>École Primaire</option>
+                <option value="collège" {% if form_data.establishment_type == 'collège' %}selected{% endif %}>Collège</option>
+                <option value="lycée" {% if form_data.establishment_type == 'lycée' %}selected{% endif %}>Lycée</option>
+                </select>
+              {% if field_errors.establishment_type %}
+                <span class="error-message">{{ field_errors.establishment_type }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Mot de passe provisoire -->
+            <div class="form-row">
+              <div class="form-group {% if field_errors.establishment_password %}has-error{% endif %}">
+                <label for="establishment-password" class="required">Mot de passe provisoire</label>
+                <input type="password" id="establishment-password" name="establishment_password" value="{{ form_data.establishment_password|default:'Ens2024!' }}" required />
+                <span class="form-text">Ce mot de passe sera communiqué au directeur pour sa première connexion</span>
+                {% if field_errors.establishment_password %}
+                  <span class="error-message">{{ field_errors.establishment_password }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Modules à activer -->
+            <div class="form-row">
+              <h3>Modules à activer</h3>
+              <div class="modules-grid">
+                <!-- Modules de base -->
+                <div class="module-card module-basic">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Gestion des élèves</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_gestion_eleves" value="1" {% if form_data.module_gestion_eleves %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-basic">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Notes et évaluations</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_notes_evaluations" value="1" {% if form_data.module_notes_evaluations %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-basic">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Emploi du temps</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_emploi_temps" value="1" {% if form_data.module_emploi_temps %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-basic">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-users"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Gestion du personnel</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_gestion_personnel" value="1" {% if form_data.module_gestion_personnel %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- Modules premium -->
+                <div class="module-card module-premium">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Surveillance et sécurité</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_surveillance" value="1" {% if form_data.module_surveillance %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-premium">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Communication parents</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_communication" value="1" {% if form_data.module_communication %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-premium">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Orientation scolaire</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_orientation" value="1" {% if form_data.module_orientation %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-premium">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-book-reader"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Formation continue</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_formation" value="1" {% if form_data.module_formation %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- Modules optionnels -->
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-bus"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Transport scolaire</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_transport_scolaire" value="1" {% if form_data.module_transport_scolaire %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Gestion de la cantine</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_cantine" value="1" {% if form_data.module_cantine %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-book"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Gestion de la bibliothèque</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_bibliotheque" value="1" {% if form_data.module_bibliotheque %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Suivi médical</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_sante" value="1" {% if form_data.module_sante %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-futbol"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Activités extra-scolaires</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_activites" value="1" {% if form_data.module_activites %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Comptabilité</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_comptabilite" value="1" {% if form_data.module_comptabilite %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="module-card module-optional">
+                  <div class="module-header">
+                    <div class="module-icon">
+                      <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="module-title">
+                      <h4>Censeurs</h4>
+                    </div>
+                    <label class="module-toggle">
+                      <input type="checkbox" name="module_censeurs" value="1" {% if form_data.module_censeurs %}checked{% endif %} />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <a href="{% url 'school_admin:etablissements' %}" class="btn btn-secondary">Annuler</a>
+              <button type="submit" class="btn btn-primary save-teacher-btn">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

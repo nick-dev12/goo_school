@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Espace Administrateur</title>
+    <!-- Intégration de Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Intégration de Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="css/header.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/tables.css" />
+  </head>
+
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+    <!-- Dashboard Overview -->
+    <div class="dashboard-overview">
+      <h2 class="section-title">Vue d'ensemble</h2>
+
+      <div class="key-indicators">
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--primary)">
+            <i class="fas fa-building"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Établissements actifs</h3>
+            <p class="indicator-value">{{ active_etablissements }}</p>
+            <span class="indicator-trend positive"
+              >Sur {{ total_etablissements }} total</span
+            >
+          </div>
+          <a href="#" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+
+        <div class="indicator-card">
+          <div
+            class="indicator-icon"
+            style="background-color: var(--secondary)"
+          >
+            <i class="fas fa-user-graduate"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Nombre d'élèves</h3>
+            <p class="indicator-value">0</p>
+            <span class="indicator-trend">Total des élèves</span>
+          </div>
+          <a href="#" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--accent)">
+            <i class="fas fa-school"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Total d'établissements</h3>
+            <p class="indicator-value">{{ total_etablissements }}</p>
+            <span class="indicator-trend"
+              >{{ active_etablissements }} actifs</span
+            >
+          </div>
+          <a href="#" class="indicator-link"><i class="fas fa-school"></i></a>
+        </div>
+
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--warning)">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Paiements en retard</h3>
+            <p class="indicator-value">87</p>
+            <span class="indicator-trend negative">+12% ce mois-ci</span>
+          </div>
+          <a href="suivi-absences.php" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+
+        {% comment %}
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--success)">
+            <i class="fas fa-book"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Matières enseignées</h3>
+            <p class="indicator-value">18</p>
+            <span class="indicator-trend">Disciplines académiques</span>
+          </div>
+          <a href="gestion-matieres.php" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+        {% endcomment %}
+
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--primary2)">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>En conformité</h3>
+            <p class="indicator-value">5</p>
+            <span class="indicator-trend">Dans les 30 prochains jours</span>
+          </div>
+          <a href="#" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container_box1">
+      <div class="box1">
+        <h3>Établissements par pays</h3>
+        {% for country, count in stats_by_country.items %}
+        <div class="chart">
+          <p>{{ country }} <span>{{ count }}</span></p>
+          <div class="progress-bar">
+            <span data-percentage="{{ count|floatformat:0 }}"></span>
+          </div>
+        </div>
+        {% empty %}
+        <p>Aucune donnée disponible pour le moment.</p>
+        {% endfor %}
+      </div>
+
+      <div class="box1">
+        <h3>Types d'établissements</h3>
+        {% for type, count in stats_by_type.items %}
+        <div class="chart">
+          <p>{{ type }} <span>{{ count }}</span></p>
+          <div class="progress-bar">
+            <span data-percentage="{{ count|floatformat:0 }}"></span>
+          </div>
+        </div>
+        {% empty %}
+        <p>Aucune donnée disponible pour le moment.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Activités récentes et membres d'équipe -->
+    <div class="activities-section">
+      <h2 class="section-title">Activités récentes</h2>
+
+      <div class="activities-container">
+        <!-- Derniers établissements -->
+        <div class="recent-activities">
+          <div class="activities-header">
+            <div class="header-content">
+              <div class="header-icon">
+                <i class="fas fa-school"></i>
+              </div>
+              <div class="header-text">
+                <h3>Derniers établissements</h3>
+                <p class="header-subtitle">
+                  {{ recent_etablissements|length }}
+                  établissement{{recent_etablissements|length|pluralize }}
+                  récent{{recent_etablissements|length|pluralize }}
+                </p>
+              </div>
+            </div>
+            <a
+              href="{% url 'school_admin:etablissements' %}"
+              class="view-all-link"
+            >
+              <span>Voir tout</span>
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="activities-list">
+            {% for etablissement in recent_etablissements %}
+            <div class="activity-item">
+              <div class="activity-icon">
+                <i class="fas fa-school"></i>
+              </div>
+              <div class="activity-content">
+                <div class="activity-main">
+                  <h4 class="activity-title">{{ etablissement.nom }}</h4>
+                  <span class="activity-type"
+                    >{{ etablissement.get_type_etablissement_display }}</span
+                  >
+                </div>
+                <div class="activity-meta">
+                  <span class="activity-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    {{ etablissement.ville }}, {{ etablissement.pays }}
+                  </span>
+                  <span class="activity-time">
+                    <i class="fas fa-clock"></i>
+                    {{ etablissement.date_creation|date:"d F Y à H:i" }}
+                  </span>
+                </div>
+              </div>
+              <div class="activity-status">
+                <span
+                  class="status-badge {% if etablissement.statut == 'actif' %}status-active{% else %}status-inactive{% endif %}"
+                >
+                  {{ etablissement.get_statut_display }}
+                </span>
+              </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-school"></i>
+              </div>
+              <h4>Aucun établissement récent</h4>
+              <p>Les nouveaux établissements apparaîtront ici</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Derniers membres d'équipe -->
+        <div class="team-members">
+          <div class="team-header">
+            <div class="header-content">
+              <div class="header-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="header-text">
+                <h3>Derniers membres</h3>
+                <p class="header-subtitle">
+                  {{ recent_team_members|length }} membre
+                  {{recent_team_members|length|pluralize }}
+                  récent{{recent_team_members|length|pluralize }}
+                </p>
+              </div>
+            </div>
+            <a
+              href="{% url 'school_admin:management_equipes' %}"
+              class="view-all-link"
+            >
+              <span>Voir tout</span>
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="team-list">
+            {% for member in recent_team_members %}
+            <div class="member-item">
+              <div class="member-avatar">
+                <div class="avatar-circle">
+                  {{ member.prenom.0 }}{{ member.nom.0 }}
+                </div>
+                <div
+                  class="member-status {% if member.is_active %}status-online{% else %}status-offline{% endif %}"
+                ></div>
+              </div>
+              <div class="member-content">
+                <div class="member-info">
+                  <h4 class="member-name">
+                    {{ member.prenom }} {{ member.nom }}
+                  </h4>
+                  <p class="member-role">
+                    <i class="fas fa-briefcase"></i>
+                    {{ member.get_fonction_display }}
+                  </p>
+                </div>
+                <div class="member-meta">
+                  <span class="member-department">
+                    <i class="fas fa-building"></i>
+                    {{ member.departement|default:"Non défini" }}
+                  </span>
+                  <span class="member-date">
+                    <i class="fas fa-calendar-plus"></i>
+                    {{ member.date_joined|date:"d F Y" }}
+                  </span>
+                </div>
+              </div>
+              <div class="member-actions">
+                <a href="{% url 'school_admin:commercial_profile' member.id %}">
+                  <button class="action-btn" title="Voir le profil">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </a>
+              </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <h4>Aucun membre récent</h4>
+              <p>Les nouveaux membres apparaîtront ici</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Scripts JavaScript -->
+    <script>
+      // Animation des barres de progression
+      document.addEventListener("DOMContentLoaded", function () {
+        const progressBars = document.querySelectorAll(".progress-bar span");
+        progressBars.forEach((bar) => {
+          const percentage = bar.getAttribute("data-percentage");
+          bar.style.width = "0%";
+          setTimeout(() => {
+            bar.style.width = percentage + "%";
+          }, 500);
+        });
+      });
+    </script>
+  </body>
+</html>

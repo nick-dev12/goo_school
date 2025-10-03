@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Commercial Dashboard - Goo-School{% endblock %}</title>
+    {% load static %}
+    
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- CSS du header commercial -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/commercial/header_commercial.css' %}" />
+    
+    <!-- CSS spécifique à la page -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Meta tags pour le SEO -->
+    <meta name="description" content="{% block description %}Interface commerciale Goo-School - Gestion des établissements et prospection{% endblock %}" />
+    <meta name="keywords" content="commercial, établissement, prospection, éducation, Goo-School" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'school_admin/img/favicon.ico' %}" />
+  </head>
+  <body>
+    <!-- Header Commercial -->
+    {% include 'school_admin/commercial/partials/header.html' %}
+    
+    <!-- Contenu principal -->
+    <main class="main-content">
+      {% block content %}
+      <!-- Le contenu spécifique sera injecté ici -->
+      {% endblock %}
+    </main>
+    
+    <!-- Footer (optionnel) -->
+    {% block footer %}{% endblock %}
+    
+    <!-- Scripts JavaScript -->
+    <script src="{% static 'school_admin/js/commercial/script.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,264 @@
+{% extends 'school_admin/commercial/base.html' %}
+{% load static %}
+
+{% block title %}Liste des Établissements - Goo-School Commercial{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'school_admin/css/commercial/liste_etablissements.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-section">
+        <h1 class="page-title">
+          <i class="fas fa-building"></i>
+          Mes Établissements
+        </h1>
+        <p class="page-subtitle">Gérez votre pipeline de prospection</p>
+      </div>
+      <div class="page-actions">
+        <a href="{% url 'school_admin:commercial_ajouter_etablissement' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i>
+          Nouveau Prospect
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-container">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-building"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.total }}</h3>
+        <p>Total établissements</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-star"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.par_potentiel|length }}</h3>
+        <p>Niveaux de potentiel</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.par_priorite|length }}</h3>
+        <p>Niveaux de priorité</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.par_type|length }}</h3>
+        <p>Types d'établissements</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre de recherche et filtres -->
+  <div class="search-filters-container">
+    <form method="get" class="search-form">
+      <div class="search-bar">
+        <div class="search-input-group">
+          <i class="fas fa-search"></i>
+          <input type="text" name="search" value="{{ search_query }}" placeholder="Rechercher par nom, ville ou adresse..." class="search-input">
+          <button type="submit" class="search-btn">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="filters-row">
+        <div class="filter-group">
+          <label class="filter-label">Type</label>
+          <select name="type" class="filter-select">
+            <option value="">Tous les types</option>
+            <option value="primaire" {% if type_filter == 'primaire' %}selected{% endif %}>École primaire</option>
+            <option value="college" {% if type_filter == 'college' %}selected{% endif %}>Collège</option>
+            <option value="lycee" {% if type_filter == 'lycee' %}selected{% endif %}>Lycée</option>
+            <option value="universite" {% if type_filter == 'universite' %}selected{% endif %}>Université</option>
+            <option value="autre" {% if type_filter == 'autre' %}selected{% endif %}>Autre</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Statut</label>
+          <select name="statut" class="filter-select">
+            <option value="">Tous les statuts</option>
+            <option value="public" {% if statut_filter == 'public' %}selected{% endif %}>Public</option>
+            <option value="prive" {% if statut_filter == 'prive' %}selected{% endif %}>Privé</option>
+            <option value="confessionnel" {% if statut_filter == 'confessionnel' %}selected{% endif %}>Confessionnel</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Potentiel</label>
+          <select name="potentiel" class="filter-select">
+            <option value="">Tous les potentiels</option>
+            <option value="faible" {% if potentiel_filter == 'faible' %}selected{% endif %}>Faible</option>
+            <option value="moyen" {% if potentiel_filter == 'moyen' %}selected{% endif %}>Moyen</option>
+            <option value="eleve" {% if potentiel_filter == 'eleve' %}selected{% endif %}>Élevé</option>
+            <option value="tres_eleve" {% if potentiel_filter == 'tres_eleve' %}selected{% endif %}>Très élevé</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Priorité</label>
+          <select name="priorite" class="filter-select">
+            <option value="">Toutes les priorités</option>
+            <option value="basse" {% if priorite_filter == 'basse' %}selected{% endif %}>Basse</option>
+            <option value="normale" {% if priorite_filter == 'normale' %}selected{% endif %}>Normale</option>
+            <option value="haute" {% if priorite_filter == 'haute' %}selected{% endif %}>Haute</option>
+            <option value="urgente" {% if priorite_filter == 'urgente' %}selected{% endif %}>Urgente</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Pays</label>
+          <select name="pays" class="filter-select">
+            <option value="">Tous les pays</option>
+            <option value="senegal" {% if pays_filter == 'senegal' %}selected{% endif %}>Sénégal</option>
+            <option value="cote_ivoire" {% if pays_filter == 'cote_ivoire' %}selected{% endif %}>Côte d'Ivoire</option>
+            <option value="mali" {% if pays_filter == 'mali' %}selected{% endif %}>Mali</option>
+            <option value="burkina_faso" {% if pays_filter == 'burkina_faso' %}selected{% endif %}>Burkina Faso</option>
+            <option value="niger" {% if pays_filter == 'niger' %}selected{% endif %}>Niger</option>
+            <option value="guinee" {% if pays_filter == 'guinee' %}selected{% endif %}>Guinée</option>
+            <option value="autre" {% if pays_filter == 'autre' %}selected{% endif %}>Autre</option>
+          </select>
+        </div>
+        
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-filter"></i>
+            Filtrer
+          </button>
+          <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="btn btn-secondary">
+            <i class="fas fa-times"></i>
+            Effacer
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Liste des établissements -->
+  <div class="etablissements-container">
+    {% if etablissements %}
+      <div class="etablissements-grid">
+        {% for etablissement in etablissements %}
+          <div class="etablissement-card">
+            <div class="card-header">
+              <div class="etablissement-info">
+                <h3 class="etablissement-nom">{{ etablissement.nom_etablissement }}</h3>
+                <p class="etablissement-location">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {{ etablissement.ville_etablissement }}, {{ etablissement.get_pays_etablissement_display }}
+                </p>
+              </div>
+              <div class="card-actions">
+                <a href="{% url 'school_admin:commercial_detail_etablissement' etablissement.id %}" class="action-btn" title="Voir les détails">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <button class="action-btn" title="Modifier">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn" title="Supprimer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <div class="etablissement-details">
+                <div class="detail-item">
+                  <span class="detail-label">Type:</span>
+                  <span class="detail-value">{{ etablissement.get_type_etablissement_display }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Statut:</span>
+                  <span class="detail-value">{{ etablissement.get_statut_etablissement_display }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Potentiel:</span>
+                  <span class="detail-value potentiel-{{ etablissement.potentiel_etablissement }}">
+                    {{ etablissement.get_potentiel_etablissement_display }}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Priorité:</span>
+                  <span class="detail-value priorite-{{ etablissement.priorite_etablissement }}">
+                    {{ etablissement.get_priorite_etablissement_display }}
+                  </span>
+                </div>
+              </div>
+              
+              {% if etablissement.source_etablissement %}
+                <div class="etablissement-source">
+                  <i class="fas fa-search"></i>
+                  <span>Source: {{ etablissement.get_source_etablissement_display }}</span>
+                </div>
+              {% endif %}
+              
+              {% if etablissement.prochaine_action_etablissement %}
+                <div class="etablissement-action">
+                  <i class="fas fa-tasks"></i>
+                  <span>Prochaine action: {{ etablissement.get_prochaine_action_etablissement_display }}</span>
+                </div>
+              {% endif %}
+              
+              {% if etablissement.notes_commercial %}
+                <div class="etablissement-notes">
+                  <p>{{ etablissement.notes_commercial|truncatechars:100 }}</p>
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="card-footer">
+              <div class="etablissement-date">
+                <i class="fas fa-calendar"></i>
+                <span>Ajouté le {{ etablissement.date_creation|date:"d/m/Y" }}</span>
+              </div>
+              <div class="etablissement-status">
+                <span class="status-badge status-active">Actif</span>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-building"></i>
+        </div>
+        <h3>Aucun établissement trouvé</h3>
+        <p>{% if search_query or type_filter or statut_filter or potentiel_filter or priorite_filter or pays_filter %}
+          Aucun établissement ne correspond à vos critères de recherche.
+        {% else %}
+          Vous n'avez pas encore ajouté d'établissement à votre pipeline de prospection.
+        {% endif %}</p>
+        <a href="{% url 'school_admin:commercial_ajouter_etablissement' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i>
+          Ajouter le premier établissement
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'school_admin/js/commercial/liste_etablissements.js' %}"></script>
+{% endblock %}

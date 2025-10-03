@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diffusion d'annonces - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/annonces.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+    <div class="container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title">
+          <i class="fas fa-bullhorn" style="font-size: 1.8rem; background: var(--gradient-announcement); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+          <h1>Diffusion d'annonces</h1>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-secondary" id="filtersToggle"><i class="fas fa-sliders-h"></i> Filtres</button>
+          <button class="btn btn-announcement" id="createAnnouncementBtn"><i class="fas fa-plus"></i> Nouvelle annonce</button>
+        </div>
+      </div>
+
+      <!-- Main Layout -->
+      <div class="announcements-layout">
+        <!-- Announcements List -->
+        <div class="announcements-container">
+          <!-- Announcements List -->
+          <div class="announcements-list" id="announcementsList">
+            <!-- Announcement Card 1 -->
+            <div class="announcement-card fade-in">
+              <div class="announcement-header">
+                <div>
+                  <h3 class="announcement-title">Mise à jour majeure du système de gestion scolaire</h3>
+                  <div class="announcement-meta">
+                    <span class="announcement-tag tag-important">IMPORTANT</span>
+                    <span class="announcement-date"><i class="far fa-calendar"></i> Publié le 15 Juin 2023</span>
+                    <span class="status-dot published"></span> Publié
+                  </div>
+                </div>
+                <div class="announcement-actions">
+                  <button class="announcement-action-btn" title="Modifier"><i class="fas fa-edit"></i></button>
+                  <button class="announcement-action-btn" title="Dupliquer"><i class="fas fa-copy"></i></button>
+                  <button class="announcement-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="announcement-body">
+                <div class="announcement-content">
+                  <p>Nous sommes heureux de vous annoncer la sortie de la nouvelle version de notre plateforme de gestion scolaire. Cette mise à jour inclut de nombreuses améliorations et nouvelles fonctionnalités :</p>
+                  <ul>
+                    <li>Interface entièrement repensée pour une meilleure expérience utilisateur</li>
+                    <li>Nouveau module de gestion des emplois du temps avec synchronisation automatique</li>
+                    <li>Amélioration des performances et de la stabilité du système</li>
+                    <li>Ajout de l'authentification à deux facteurs pour plus de sécurité</li>
+                    <li>Intégration de nouveaux outils d'analyse et de reporting</li>
+                  </ul>
+                  <p>Cette mise à jour sera déployée automatiquement pour tous les établissements à partir du 1er juillet 2023.</p>
+                </div>
+                <div class="announcement-target">
+                  <div class="target-label">
+                    <i class="fas fa-bullseye"></i> Destinataires
+                  </div>
+                  <div class="target-list">
+                    <span class="target-chip">Tous les établissements</span>
+                    <span class="target-chip">Administrateurs</span>
+                    <span class="target-chip">Directeurs</span>
+                  </div>
+                </div>
+              </div>
+              <div class="announcement-footer">
+                <div class="stats">
+                  <div class="stat">
+                    <i class="fas fa-eye"></i>
+                    <span class="badge badge-views">248 vues</span>
+                  </div>
+                  <div class="stat">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <span class="badge badge-clicks">67 clics</span>
+                  </div>
+                </div>
+                <div>
+                  Publié par <strong>Équipe Technique</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Announcement Card 2 -->
+            <div class="announcement-card fade-in">
+              <div class="announcement-header">
+                <div>
+                  <h3 class="announcement-title">Maintenance prévue le 25 juin 2023</h3>
+                  <div class="announcement-meta">
+                    <span class="announcement-tag tag-maintenance">MAINTENANCE</span>
+                    <span class="announcement-date"><i class="far fa-calendar"></i> Publié le 12 Juin 2023</span>
+                    <span class="status-dot published"></span> Publié
+                  </div>
+                </div>
+                <div class="announcement-actions">
+                  <button class="announcement-action-btn" title="Modifier"><i class="fas fa-edit"></i></button>
+                  <button class="announcement-action-btn" title="Dupliquer"><i class="fas fa-copy"></i></button>
+                  <button class="announcement-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="announcement-body">
+                <div class="announcement-content">
+                  <p>Chers utilisateurs,</p>
+                  <p>Une maintenance planifiée aura lieu le dimanche 25 juin 2023 de 2h00 à 6h00 du matin (heure de Paris). Durant cette période, la plateforme sera temporairement indisponible.</p>
+                  <p>Cette maintenance nous permettra de :</p>
+                  <ul>
+                    <li>Mettre à jour l'infrastructure serveur pour améliorer les performances</li>
+                    <li>Appliquer des correctifs de sécurité essentiels</li>
+                    <li>Préparer le déploiement de la prochaine version majeure</li>
+                  </ul>
+                  <p>Nous vous recommandons de sauvegarder vos travaux en cours avant cette période et de planifier vos activités en conséquence.</p>
+                  <p>Nous nous excusons pour la gêne occasionnée et vous remercions pour votre compréhension.</p>
+                </div>
+                <div class="announcement-target">
+                  <div class="target-label">
+                    <i class="fas fa-bullseye"></i> Destinataires
+                  </div>
+                  <div class="target-list">
+                    <span class="target-chip">Tous les établissements</span>
+                    <span class="target-chip">Tous les utilisateurs</span>
+                  </div>
+                </div>
+              </div>
+              <div class="announcement-footer">
+                <div class="stats">
+                  <div class="stat">
+                    <i class="fas fa-eye"></i>
+                    <span class="badge badge-views">189 vues</span>
+                  </div>
+                  <div class="stat">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <span class="badge badge-clicks">42 clics</span>
+                  </div>
+                </div>
+                <div>
+                  Publié par <strong>Service Infrastructure</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Announcement Card 3 -->
+            <div class="announcement-card fade-in">
+              <div class="announcement-header">
+                <div>
+                  <h3 class="announcement-title">Nouveau module de gestion de la cantine disponible</h3>
+                  <div class="announcement-meta">
+                    <span class="announcement-tag tag-update">NOUVEAUTÉ</span>
+                    <span class="announcement-date"><i class="far fa-calendar"></i> Publié le 8 Juin 2023</span>
+                    <span class="status-dot published"></span> Publié
+                  </div>
+                </div>
+                <div class="announcement-actions">
+                  <button class="announcement-action-btn" title="Modifier"><i class="fas fa-edit"></i></button>
+                  <button class="announcement-action-btn" title="Dupliquer"><i class="fas fa-copy"></i></button>
+                  <button class="announcement-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="announcement-body">
+                <div class="announcement-content">
+                  <p>Nous sommes ravis de vous présenter notre nouveau module de gestion de la cantine, désormais disponible pour tous les établissements scolaires !</p>
+                  <p>Ce module complet vous permet de :</p>
+                  <ul>
+                    <li>Gérer les inscriptions et les régimes alimentaires spécifiques</li>
+                    <li>Planifier les menus mensuels avec un éditeur intuitif</li>
+                    <li>Suivre les paiements et la fréquentation</li>
+                    <li>Générer des rapports nutritionnels et financiers</li>
+                    <li>Communiquer directement avec les parents via la plateforme</li>
+                  </ul>
+                  <p>Pour activer ce module, rendez-vous dans les paramètres de votre établissement ou contactez notre service client.</p>
+                  <p>
+                    <strong>Offre spéciale :</strong> Les 50 premiers établissements à activer ce module bénéficieront d'une période d'essai gratuite de 3 mois !
+                  </p>
+                </div>
+                <div class="announcement-target">
+                  <div class="target-label">
+                    <i class="fas fa-bullseye"></i> Destinataires
+                  </div>
+                  <div class="target-list">
+                    <span class="target-chip">Écoles primaires</span>
+                    <span class="target-chip">Collèges</span>
+                    <span class="target-chip">Lycées</span>
+                    <span class="target-chip">Administrateurs</span>
+                  </div>
+                </div>
+              </div>
+              <div class="announcement-footer">
+                <div class="stats">
+                  <div class="stat">
+                    <i class="fas fa-eye"></i>
+                    <span class="badge badge-views">312 vues</span>
+                  </div>
+                  <div class="stat">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <span class="badge badge-clicks">124 clics</span>
+                  </div>
+                </div>
+                <div>
+                  Publié par <strong>Équipe Produit</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Announcement Card 4 -->
+            <div class="announcement-card fade-in">
+              <div class="announcement-header">
+                <div>
+                  <h3 class="announcement-title">Formation en ligne : Maîtrisez tous les modules de la plateforme</h3>
+                  <div class="announcement-meta">
+                    <span class="announcement-tag tag-information">FORMATION</span>
+                    <span class="announcement-date"><i class="far fa-calendar"></i> Publié le 5 Juin 2023</span>
+                    <span class="status-dot published"></span> Publié
+                  </div>
+                </div>
+                <div class="announcement-actions">
+                  <button class="announcement-action-btn" title="Modifier"><i class="fas fa-edit"></i></button>
+                  <button class="announcement-action-btn" title="Dupliquer"><i class="fas fa-copy"></i></button>
+                  <button class="announcement-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="announcement-body">
+                <div class="announcement-content">
+                  <p>Bonjour à tous,</p>
+                  <p>Nous vous proposons une série de formations en ligne gratuites pour vous aider à tirer le meilleur parti de notre plateforme de gestion scolaire.</p>
+                  <p>
+                    <strong>Programme des formations :</strong>
+                  </p>
+                  <ul>
+                    <li>
+                      <strong>Mardi 13 juin</strong> - 14h-15h30 : Gestion des élèves et des inscriptions
+                    </li>
+                    <li>
+                      <strong>Jeudi 15 juin</strong> - 14h-15h30 : Module emploi du temps avancé
+                    </li>
+                    <li>
+                      <strong>Mardi 20 juin</strong> - 14h-15h30 : Gestion des notes et évaluations
+                    </li>
+                    <li>
+                      <strong>Jeudi 22 juin</strong> - 14h-15h30 : Reporting et analyses de données
+                    </li>
+                    <li>
+                      <strong>Mardi 27 juin</strong> - 14h-15h30 : Personnalisation et intégrations
+                    </li>
+                  </ul>
+                  <p>Chaque session inclut une démonstration pratique, des cas d'utilisation concrets et un temps de questions-réponses avec nos experts.</p>
+                  <p>
+                    <a href="#" style="color: var(--admin-primary); font-weight: 600; text-decoration: none;">Cliquez ici pour vous inscrire aux formations</a>
+                  </p>
+                </div>
+                <div class="announcement-target">
+                  <div class="target-label">
+                    <i class="fas fa-bullseye"></i> Destinataires
+                  </div>
+                  <div class="target-list">
+                    <span class="target-chip">Tous les établissements</span>
+                    <span class="target-chip">Administrateurs</span>
+                    <span class="target-chip">Personnel technique</span>
+                  </div>
+                </div>
+              </div>
+              <div class="announcement-footer">
+                <div class="stats">
+                  <div class="stat">
+                    <i class="fas fa-eye"></i>
+                    <span class="badge badge-views">156 vues</span>
+                  </div>
+                  <div class="stat">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <span class="badge badge-clicks">89 clics</span>
+                  </div>
+                </div>
+                <div>
+                  Publié par <strong>Service Formation</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters Panel -->
+        <div class="filters-panel">
+          <h3 class="filters-title">Filtres et recherche</h3>
+
+          <!-- Search Box -->
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher une annonce..." />
+          </div>
+
+          <!-- Filter by Status -->
+          <div class="filter-section">
+            <div class="filter-section-title">Statut</div>
+            <div class="filter-options">
+              <div class="filter-option active">
+                <input type="radio" name="status" id="status-all" checked />
+                <label for="status-all">Tous les statuts</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="status" id="status-published" />
+                <label for="status-published">Publiés</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="status" id="status-draft" />
+                <label for="status-draft">Brouillons</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="status" id="status-scheduled" />
+                <label for="status-scheduled">Planifiés</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter by Type -->
+          <div class="filter-section">
+            <div class="filter-section-title">Type d'annonce</div>
+            <div class="filter-options">
+              <div class="filter-option active">
+                <input type="radio" name="type" id="type-all" checked />
+                <label for="type-all">Tous les types</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="type" id="type-important" />
+                <label for="type-important">Important</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="type" id="type-information" />
+                <label for="type-information">Information</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="type" id="type-update" />
+                <label for="type-update">Mise à jour</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="type" id="type-maintenance" />
+                <label for="type-maintenance">Maintenance</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter by Date -->
+          <div class="filter-section">
+            <div class="filter-section-title">Période</div>
+            <div class="date-range">
+              <input type="date" id="startDate" placeholder="Date de début" />
+              <input type="date" id="endDate" placeholder="Date de fin" />
+            </div>
+            <div class="filter-options" style="margin-top: 0.75rem;">
+              <div class="filter-option">
+                <input type="radio" name="period" id="period-all" checked />
+                <label for="period-all">Toutes les périodes</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="period" id="period-week" />
+                <label for="period-week">Cette semaine</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="period" id="period-month" />
+                <label for="period-month">Ce mois</label>
+              </div>
+              <div class="filter-option">
+                <input type="radio" name="period" id="period-year" />
+                <label for="period-year">Cette année</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter by Recipients -->
+          <div class="filter-section">
+            <div class="filter-section-title">Destinataires</div>
+            <div class="filter-options">
+              <div class="filter-option">
+                <input type="checkbox" id="recipient-all" />
+                <label for="recipient-all">Tous les établissements</label>
+              </div>
+              <div class="filter-option">
+                <input type="checkbox" id="recipient-lycee" />
+                <label for="recipient-lycee">Lycées</label>
+              </div>
+              <div class="filter-option">
+                <input type="checkbox" id="recipient-college" />
+                <label for="recipient-college">Collèges</label>
+              </div>
+              <div class="filter-option">
+                <input type="checkbox" id="recipient-primaire" />
+                <label for="recipient-primaire">Écoles primaires</label>
+              </div>
+              <div class="filter-option">
+                <input type="checkbox" id="recipient-universite" />
+                <label for="recipient-universite">Universités</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn btn-primary" id="applyFilters"><i class="fas fa-filter"></i> Appliquer les filtres</button>
+            <button class="btn btn-secondary" id="resetFilters"><i class="fas fa-undo"></i> Réinitialiser</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Announcement Modal -->
+    <div class="modal-overlay" id="announcementModal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Créer une nouvelle annonce</div>
+          <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <form id="announcementForm">
+            <div class="form-group">
+              <label class="form-label">Titre de l'annonce</label>
+              <input type="text" class="form-control" placeholder="Entrez un titre percutant..." required />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Type d'annonce</label>
+                <select class="form-control" required>
+                  <option value="">Sélectionnez un type</option>
+                  <option value="important">Important</option>
+                  <option value="information">Information</option>
+                  <option value="update">Mise à jour</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="training">Formation</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Statut</label>
+                <select class="form-control" required>
+                  <option value="published">Publier immédiatement</option>
+                  <option value="scheduled">Planifier</option>
+                  <option value="draft">Enregistrer comme brouillon</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group scheduled-date" style="display: none;">
+              <label class="form-label">Date de publication planifiée</label>
+              <input type="datetime-local" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Contenu de l'annonce</label>
+              <div class="rich-text-editor">
+                <div class="editor-toolbar">
+                  <button type="button" class="editor-btn" title="Gras"><i class="fas fa-bold"></i></button>
+                  <button type="button" class="editor-btn" title="Italique"><i class="fas fa-italic"></i></button>
+                  <button type="button" class="editor-btn" title="Souligné"><i class="fas fa-underline"></i></button>
+                  <button type="button" class="editor-btn" title="Liste à puces"><i class="fas fa-list-ul"></i></button>
+                  <button type="button" class="editor-btn" title="Liste numérotée"><i class="fas fa-list-ol"></i></button>
+                  <button type="button" class="editor-btn" title="Lien"><i class="fas fa-link"></i></button>
+                  <button type="button" class="editor-btn" title="Image"><i class="fas fa-image"></i></button>
+                </div>
+                <div class="editor-content" contenteditable="true">
+                  <p>Commencez à rédiger votre annonce ici...</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Destinataires</label>
+              <div class="target-selection active">
+                <div class="target-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="target-title">Tous les établissements</div>
+                <div class="target-desc">L'annonce sera envoyée à tous les établissements inscrits</div>
+                <div class="target-tags">
+                  <span class="target-tag active">Tous</span>
+                  <span class="target-tag">Lycées</span>
+                  <span class="target-tag">Collèges</span>
+                  <span class="target-tag">Écoles primaires</span>
+                  <span class="target-tag">Universités</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Rôles spécifiques (optionnel)</label>
+              <div class="target-selection">
+                <div class="target-icon">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="target-title">Sélectionner des rôles spécifiques</div>
+                <div class="target-desc">L'annonce sera envoyée uniquement à ces rôles au sein des établissements sélectionnés</div>
+                <div class="target-tags">
+                  <span class="target-tag">Directeurs</span>
+                  <span class="target-tag">Administrateurs</span>
+                  <span class="target-tag">Enseignants</span>
+                  <span class="target-tag">Personnel technique</span>
+                  <span class="target-tag">Comptables</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Options avancées</label>
+              <div style="background: var(--gray-50); padding: 1.5rem; border-radius: var(--radius-md);">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                  <label class="switch">
+                    <input type="checkbox" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Envoyer une notification par email</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                  <label class="switch">
+                    <input type="checkbox" />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Épingler en haut de la liste (jusqu'à 7 jours)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                  <label class="switch">
+                    <input type="checkbox" />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Demander une confirmation de lecture</span>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="saveDraft"><i class="fas fa-save"></i> Enregistrer le brouillon</button>
+          <button class="btn btn-announcement" id="publishAnnouncement"><i class="fas fa-bullhorn"></i> Publier l'annonce</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast toast-success" id="toastNotification">
+      <i class="fas fa-check-circle toast-icon"></i>
+      <div class="toast-content">
+        <div class="toast-title">Succès</div>
+        <div class="toast-message">L'annonce a été publiée avec succès !</div>
+      </div>
+      <button class="toast-close" id="closeToast"><i class="fas fa-times"></i></button>
+    </div>
+
+    <script src="{% static 'school_admin/js/annonces.js' %}"></script>
+  </body>
+</html>

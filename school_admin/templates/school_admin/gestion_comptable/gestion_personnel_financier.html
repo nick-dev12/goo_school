@@ -1,0 +1,779 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion Financière du Personnel - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/gestion_personnel_financier.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <!-- Header Comptable -->
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
+
+    <div class="comptable-container">
+      <!-- Main Content -->
+      <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="header-left">
+            <h1>
+              <i class="fas fa-users"></i> Gestion Financière du Personnel
+            </h1>
+            <p>Gérez les salaires et informations financières du personnel</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="openAddPersonnelModal()">
+              <i class="fas fa-plus"></i> Ajouter Personnel
+            </button>
+            <button class="btn btn-success" onclick="generateSalaryReport()">
+              <i class="fas fa-file-excel"></i> Rapport Salaires
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+          <div class="summary-card">
+            <div class="card-icon neo-blue">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="card-content">
+              <h3>25</h3>
+              <p>Total Personnel</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="card-icon neo-green">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="card-content">
+              <h3>15,750,000 FCFA</h3>
+              <p>Masse Salariale Mensuelle</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="card-icon neo-orange">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="card-content">
+              <h3>630,000 FCFA</h3>
+              <p>Salaire Moyen</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="card-icon neo-purple">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="card-content">
+              <h3>23</h3>
+              <p>Salaires Payés ce Mois</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar">
+          <div class="search-section">
+            <div class="search-input-group">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Rechercher par nom, poste ou département..."
+              />
+            </div>
+            <button class="btn btn-secondary" onclick="clearSearch()">
+              <i class="fas fa-times"></i> Effacer
+            </button>
+          </div>
+          <div class="filter-section">
+            <select id="departmentFilter" class="filter-select">
+              <option value="">Tous les départements</option>
+              <option value="comptabilite">Comptabilité</option>
+              <option value="pedagogie">Pédagogie</option>
+              <option value="administration">Administration</option>
+              <option value="technique">Technique</option>
+            </select>
+            <select id="statusFilter" class="filter-select">
+              <option value="">Tous les statuts</option>
+              <option value="actif">Actif</option>
+              <option value="inactif">Inactif</option>
+              <option value="en_conge">En congé</option>
+            </select>
+            <select id="salaryFilter" class="filter-select">
+              <option value="">Toutes les tranches</option>
+              <option value="0-500000">0 - 500,000 FCFA</option>
+              <option value="500000-1000000">500,000 - 1,000,000 FCFA</option>
+              <option value="1000000+">1,000,000+ FCFA</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button
+              class="tab-btn active"
+              onclick="switchTab('liste-personnel')"
+            >
+              <i class="fas fa-list"></i> Liste du Personnel
+            </button>
+            <button class="tab-btn" onclick="switchTab('salaires')">
+              <i class="fas fa-money-bill-wave"></i> Gestion des Salaires
+            </button>
+            <button class="tab-btn" onclick="switchTab('rapports')">
+              <i class="fas fa-chart-bar"></i> Rapports Financiers
+            </button>
+          </div>
+
+          <!-- Tab 1: Liste du Personnel -->
+          <div id="liste-personnel" class="tab-panel active">
+            <div class="panel-header">
+              <h3>Liste du Personnel</h3>
+              <div class="panel-actions">
+                <button class="btn btn-success" onclick="exportPersonnelList()">
+                  <i class="fas fa-download"></i> Exporter
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th><input type="checkbox" id="selectAllPersonnel" /></th>
+                    <th>Photo</th>
+                    <th>Nom & Prénom</th>
+                    <th>Poste</th>
+                    <th>Département</th>
+                    <th>Salaire de Base</th>
+                    <th>Statut</th>
+                    <th>Date d'embauche</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="checkbox" class="row-checkbox" /></td>
+                    <td>
+                      <div class="personnel-photo">
+                        <i class="fas fa-user"></i>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Marie Nguema</h4>
+                        <p>marie.nguema@goo-school.com</p>
+                      </div>
+                    </td>
+                    <td><span class="poste">Directrice Financière</span></td>
+                    <td>
+                      <span class="department comptabilite">Comptabilité</span>
+                    </td>
+                    <td><span class="salary">1,200,000 FCFA</span></td>
+                    <td><span class="status-badge actif">Actif</span></td>
+                    <td><span class="date">15 Jan 2022</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier salaire"
+                          onclick="editSalary(1)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Voir détails"
+                          onclick="viewPersonnelDetails(1)"
+                        >
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique salaires"
+                          onclick="viewSalaryHistory(1)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" class="row-checkbox" /></td>
+                    <td>
+                      <div class="personnel-photo">
+                        <i class="fas fa-user"></i>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Jean Mballa</h4>
+                        <p>jean.mballa@goo-school.com</p>
+                      </div>
+                    </td>
+                    <td><span class="poste">Comptable Senior</span></td>
+                    <td>
+                      <span class="department comptabilite">Comptabilité</span>
+                    </td>
+                    <td><span class="salary">850,000 FCFA</span></td>
+                    <td><span class="status-badge actif">Actif</span></td>
+                    <td><span class="date">03 Mar 2022</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier salaire"
+                          onclick="editSalary(2)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Voir détails"
+                          onclick="viewPersonnelDetails(2)"
+                        >
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique salaires"
+                          onclick="viewSalaryHistory(2)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" class="row-checkbox" /></td>
+                    <td>
+                      <div class="personnel-photo">
+                        <i class="fas fa-user"></i>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Fatou Diallo</h4>
+                        <p>fatou.diallo@goo-school.com</p>
+                      </div>
+                    </td>
+                    <td><span class="poste">Enseignante</span></td>
+                    <td><span class="department pedagogie">Pédagogie</span></td>
+                    <td><span class="salary">650,000 FCFA</span></td>
+                    <td><span class="status-badge actif">Actif</span></td>
+                    <td><span class="date">10 Sep 2022</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier salaire"
+                          onclick="editSalary(3)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Voir détails"
+                          onclick="viewPersonnelDetails(3)"
+                        >
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique salaires"
+                          onclick="viewSalaryHistory(3)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" class="row-checkbox" /></td>
+                    <td>
+                      <div class="personnel-photo">
+                        <i class="fas fa-user"></i>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Paul Nkeng</h4>
+                        <p>paul.nkeng@goo-school.com</p>
+                      </div>
+                    </td>
+                    <td><span class="poste">Développeur</span></td>
+                    <td><span class="department technique">Technique</span></td>
+                    <td><span class="salary">950,000 FCFA</span></td>
+                    <td><span class="status-badge actif">Actif</span></td>
+                    <td><span class="date">05 Juin 2022</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier salaire"
+                          onclick="editSalary(4)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Voir détails"
+                          onclick="viewPersonnelDetails(4)"
+                        >
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique salaires"
+                          onclick="viewSalaryHistory(4)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" class="row-checkbox" /></td>
+                    <td>
+                      <div class="personnel-photo">
+                        <i class="fas fa-user"></i>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Grace Mvogo</h4>
+                        <p>grace.mvogo@goo-school.com</p>
+                      </div>
+                    </td>
+                    <td><span class="poste">Secrétaire</span></td>
+                    <td>
+                      <span class="department administration"
+                        >Administration</span
+                      >
+                    </td>
+                    <td><span class="salary">450,000 FCFA</span></td>
+                    <td><span class="status-badge en_conge">En congé</span></td>
+                    <td><span class="date">20 Août 2022</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier salaire"
+                          onclick="editSalary(5)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Voir détails"
+                          onclick="viewPersonnelDetails(5)"
+                        >
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique salaires"
+                          onclick="viewSalaryHistory(5)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 2: Gestion des Salaires -->
+          <div id="salaires" class="tab-panel">
+            <div class="panel-header">
+              <h3>Gestion des Salaires</h3>
+              <div class="panel-actions">
+                <button
+                  class="btn btn-primary"
+                  onclick="openSalaryAdjustmentModal()"
+                >
+                  <i class="fas fa-calculator"></i> Ajustement Salarial
+                </button>
+                <button
+                  class="btn btn-success"
+                  onclick="processMonthlySalaries()"
+                >
+                  <i class="fas fa-money-check"></i> Traiter Salaires Mensuels
+                </button>
+              </div>
+            </div>
+
+            <!-- Salary Management Tools -->
+            <div class="salary-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h4>
+                    <i class="fas fa-calculator"></i> Calculatrice de Salaire
+                  </h4>
+                </div>
+                <div class="tool-content">
+                  <div class="form-group">
+                    <label>Salaire de Base</label>
+                    <input
+                      type="number"
+                      id="baseSalary"
+                      placeholder="Salaire de base"
+                      class="form-input"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Prime de Performance (%)</label>
+                    <input
+                      type="number"
+                      id="performanceBonus"
+                      placeholder="0"
+                      class="form-input"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Heures Supplémentaires</label>
+                    <input
+                      type="number"
+                      id="overtimeHours"
+                      placeholder="0"
+                      class="form-input"
+                    />
+                  </div>
+                  <button class="btn btn-primary" onclick="calculateSalary()">
+                    <i class="fas fa-calculator"></i> Calculer
+                  </button>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h4>
+                    <i class="fas fa-chart-pie"></i> Répartition des Coûts
+                  </h4>
+                </div>
+                <div class="tool-content">
+                  <div class="cost-breakdown">
+                    <div class="cost-item">
+                      <span>Salaire de Base</span>
+                      <span>75%</span>
+                    </div>
+                    <div class="cost-item">
+                      <span>Primes</span>
+                      <span>15%</span>
+                    </div>
+                    <div class="cost-item">
+                      <span>Charges Sociales</span>
+                      <span>10%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Salary History Table -->
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Personnel</th>
+                    <th>Salaire Actuel</th>
+                    <th>Dernière Augmentation</th>
+                    <th>Prochaine Évaluation</th>
+                    <th>Statut Paiement</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Marie Nguema</h4>
+                        <p>Directrice Financière</p>
+                      </div>
+                    </td>
+                    <td><span class="salary">1,200,000 FCFA</span></td>
+                    <td><span class="date">Jan 2024 (+5%)</span></td>
+                    <td><span class="date">Jan 2025</span></td>
+                    <td><span class="status-badge paye">Payé</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier"
+                          onclick="editSalary(1)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique"
+                          onclick="viewSalaryHistory(1)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="personnel-info">
+                        <h4>Jean Mballa</h4>
+                        <p>Comptable Senior</p>
+                      </div>
+                    </td>
+                    <td><span class="salary">850,000 FCFA</span></td>
+                    <td><span class="date">Mar 2024 (+3%)</span></td>
+                    <td><span class="date">Mar 2025</span></td>
+                    <td><span class="status-badge paye">Payé</span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          class="btn-action"
+                          title="Modifier"
+                          onclick="editSalary(2)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                          class="btn-action"
+                          title="Historique"
+                          onclick="viewSalaryHistory(2)"
+                        >
+                          <i class="fas fa-history"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 3: Rapports Financiers -->
+          <div id="rapports" class="tab-panel">
+            <div class="panel-header">
+              <h3>Rapports Financiers du Personnel</h3>
+              <div class="panel-actions">
+                <button
+                  class="btn btn-success"
+                  onclick="generatePersonnelReport()"
+                >
+                  <i class="fas fa-file-pdf"></i> Générer Rapport
+                </button>
+              </div>
+            </div>
+
+            <!-- Report Tools -->
+            <div class="report-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h4><i class="fas fa-chart-line"></i> Analyse des Coûts</h4>
+                </div>
+                <div class="tool-content">
+                  <div class="form-group">
+                    <label>Période</label>
+                    <select class="form-input">
+                      <option>Ce mois</option>
+                      <option>3 derniers mois</option>
+                      <option>6 derniers mois</option>
+                      <option>Cette année</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary" onclick="analyzeCosts()">
+                    <i class="fas fa-chart-line"></i> Analyser
+                  </button>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h4>
+                    <i class="fas fa-balance-scale"></i> Comparaison Salariale
+                  </h4>
+                </div>
+                <div class="tool-content">
+                  <div class="form-group">
+                    <label>Département</label>
+                    <select class="form-input">
+                      <option>Tous</option>
+                      <option>Comptabilité</option>
+                      <option>Pédagogie</option>
+                      <option>Administration</option>
+                      <option>Technique</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary" onclick="compareSalaries()">
+                    <i class="fas fa-balance-scale"></i> Comparer
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Summary -->
+            <div class="financial-summary">
+              <h3>Résumé Financier</h3>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <h4>15,750,000 FCFA</h4>
+                  <p>Masse Salariale Totale</p>
+                </div>
+                <div class="summary-item">
+                  <h4>630,000 FCFA</h4>
+                  <p>Salaire Moyen</p>
+                </div>
+                <div class="summary-item">
+                  <h4>1,200,000 FCFA</h4>
+                  <p>Salaire Maximum</p>
+                </div>
+                <div class="summary-item">
+                  <h4>350,000 FCFA</h4>
+                  <p>Salaire Minimum</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Personnel Modal -->
+    <div id="addPersonnelModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Ajouter un Personnel</h3>
+          <span class="close" onclick="closeModal('addPersonnelModal')"
+            >&times;</span
+          >
+        </div>
+        <div class="modal-body">
+          <form class="personnel-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nom</label>
+                <input type="text" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label>Prénom</label>
+                <input type="text" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label>Téléphone</label>
+                <input type="tel" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Poste</label>
+                <input type="text" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label>Département</label>
+                <select class="form-input" required>
+                  <option value="">Sélectionner</option>
+                  <option value="comptabilite">Comptabilité</option>
+                  <option value="pedagogie">Pédagogie</option>
+                  <option value="administration">Administration</option>
+                  <option value="technique">Technique</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Salaire de Base</label>
+                <input type="number" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label>Date d'embauche</label>
+                <input type="date" class="form-input" required />
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('addPersonnelModal')"
+          >
+            Annuler
+          </button>
+          <button class="btn btn-primary" onclick="savePersonnel()">
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Salary Modal -->
+    <div id="editSalaryModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier le Salaire</h3>
+          <span class="close" onclick="closeModal('editSalaryModal')"
+            >&times;</span
+          >
+        </div>
+        <div class="modal-body">
+          <form class="salary-form">
+            <div class="form-group">
+              <label>Personnel</label>
+              <input type="text" class="form-input" readonly />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nouveau Salaire</label>
+                <input type="number" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label>Date d'effet</label>
+                <input type="date" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Raison de l'ajustement</label>
+              <textarea
+                class="form-input"
+                rows="3"
+                placeholder="Ex: Augmentation de performance, promotion..."
+              ></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('editSalaryModal')"
+          >
+            Annuler
+          </button>
+          <button class="btn btn-primary" onclick="saveSalaryChange()">
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/gestion_personnel_financier.js' %}"></script>
+  </body>
+</html>

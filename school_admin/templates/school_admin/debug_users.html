@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Utilisateurs</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Liste des utilisateurs administrateurs</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom d'utilisateur</th>
+                <th>Email</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Actif</th>
+                <th>Staff</th>
+                <th>Date création</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.nom }}</td>
+                <td>{{ user.prenom }}</td>
+                <td>{{ user.is_active|yesno:"Oui,Non" }}</td>
+                <td>{{ user.is_staff|yesno:"Oui,Non" }}</td>
+                <td>{{ user.date_joined }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8">Aucun utilisateur trouvé</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <p><a href="{% url 'connexion_admin' %}">Retour à la connexion</a></p>
+</body>
+</html>

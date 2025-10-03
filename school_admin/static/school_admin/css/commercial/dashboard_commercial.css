@@ -1,0 +1,754 @@
+/* 
+* Dashboard Design System - Espace Commercial
+* Styles pour le tableau de bord
+*/
+
+.dashboard_container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 10px;
+}
+/* Section Titles */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 25px;
+  color: var(--text-main);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  max-width: 1200px;
+  margin: 40px auto !important;
+}
+
+.section-title::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: var(--gradient-header);
+  border-radius: var(--radius-full);
+}
+
+/* Indicateurs clés */
+.key-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 40px;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.indicator-card {
+  background-color: white;
+  width: 330px;
+  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--gray-100);
+  overflow: hidden;
+  position: relative;
+}
+
+.indicator-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-header);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.indicator-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--gray-200);
+}
+
+.indicator-card:hover::before {
+  opacity: 1;
+}
+
+.indicator-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius);
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.indicator-content {
+  flex: 1;
+}
+
+.indicator-content h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
+.indicator-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 5px 0;
+  color: var(--text-main);
+}
+
+.indicator-trend {
+  font-size: 11px;
+  color: var(--text-light);
+  display: block;
+}
+
+.indicator-trend.positive {
+  color: var(--success);
+}
+
+.indicator-trend.negative {
+  color: var(--warning);
+}
+
+.indicator-link {
+  margin-left: 15px;
+  width: 35px;
+  height: 35px;
+  background-color: var(--light-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  text-decoration: none;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.indicator-link:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Statistiques de prospection */
+.prospection-stats-section {
+  margin-bottom: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 20px;
+}
+
+.stats-card {
+  background-color: white;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid var(--gray-100);
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.stats-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.stats-period-selector {
+  display: flex;
+}
+
+.period-button {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.period-button:first-child {
+  border-radius: 5px 0 0 5px;
+}
+
+.period-button:last-child {
+  border-radius: 0 5px 5px 0;
+}
+
+.period-button.active {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Établissements à prospecter */
+.prospect-list {
+  margin-top: 20px;
+}
+
+.prospect-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.prospect-item:last-child {
+  border-bottom: none;
+}
+
+.prospect-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.prospect-content {
+  flex: 1;
+}
+
+.prospect-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.prospect-details {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.prospect-location {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+}
+
+.prospect-location i {
+  margin-right: 5px;
+}
+
+.prospect-type {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+}
+
+.prospect-type i {
+  margin-right: 5px;
+}
+
+.prospect-status {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.prospect-status.new {
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
+.prospect-status.contacted {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.prospect-status.meeting {
+  background-color: var(--accent-light);
+  color: var(--accent);
+}
+
+.prospect-status.proposal {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.prospect-status.signed {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.prospect-status.lost {
+  background-color: var(--gray-100);
+  color: var(--text-light);
+}
+
+.prospect-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.prospect-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--light-bg);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.prospect-action-btn:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Activités récentes */
+.activities-section {
+  margin-bottom: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.activities-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.recent-activities,
+.upcoming-meetings {
+  background-color: white;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid var(--gray-100);
+}
+
+.activities-header,
+.meetings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.activities-header h3,
+.meetings-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.view-all-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.view-all-link:hover {
+  color: var(--secondary);
+}
+
+.view-all-link i {
+  margin-left: 5px;
+}
+
+/* Activity Items */
+.activity-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.activity-text strong {
+  font-weight: 600;
+}
+
+.activity-time {
+  margin: 5px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+/* Meeting Items */
+.meeting-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.meeting-item:last-child {
+  border-bottom: none;
+}
+
+.meeting-date {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background-color: var(--light-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.meeting-day {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.meeting-month {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+
+.meeting-content {
+  flex: 1;
+}
+
+.meeting-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.meeting-details {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.meeting-time {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+}
+
+.meeting-time i {
+  margin-right: 5px;
+}
+
+.meeting-location {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+}
+
+.meeting-location i {
+  margin-right: 5px;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .activities-container {
+    grid-template-columns: 1fr;
+  }
+
+  .prospect-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* Carte de performance */
+.performance-card {
+  background-color: white;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid var(--gray-100);
+  margin-bottom: 20px;
+}
+
+.performance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.performance-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.performance-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.metric-item {
+  flex: 1;
+  min-width: 150px;
+  text-align: center;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 5px;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* Pipeline de vente */
+.pipeline-container {
+  margin-top: 20px;
+}
+
+.pipeline-stage {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.stage-label {
+  width: 120px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.stage-progress {
+  flex: 1;
+  height: 20px;
+  max-width: 600px;
+  background-color: var(--light-bg);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 15px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: width 1s ease-in-out;
+}
+
+.stage-new .progress-fill {
+  background: linear-gradient(90deg, var(--info), var(--info-light));
+}
+
+.stage-contacted .progress-fill {
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+.stage-meeting .progress-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+}
+
+.stage-proposal .progress-fill {
+  background: linear-gradient(90deg, var(--warning), var(--warning-light));
+}
+
+.stage-signed .progress-fill {
+  background: linear-gradient(90deg, var(--success), var(--success-light));
+}
+
+.stage-count {
+  width: 80px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* Formulaire d'ajout rapide */
+.quick-add-form {
+  background-color: white;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid var(--gray-100);
+  margin-top: 20px;
+}
+
+.form-header {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.form-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.form-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-size: 0.9rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color 0.3s;
+}
+
+.form-select:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.btn-submit {
+  padding: 10px 20px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-submit:hover {
+  background-color: var(--secondary);
+}

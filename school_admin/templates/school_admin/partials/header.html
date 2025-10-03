@@ -1,0 +1,197 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+<link rel="stylesheet" href="{% static 'school_admin/css/dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'school_admin/css/Dashboard.css' %}" />
+
+<div class="dashboard">
+  <!-- Main Content -->
+  <main class="main-content full-width" id="mainContent">
+    <!-- Header Horizontal -->
+    <header class="dashboard-header-horizontal">
+      <div class="header-left">
+        <div class="header-logo">
+          <i class="fas fa-school"></i>
+          <span>Goo-School</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-search">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher une classe, un élève..." />
+        </div>
+
+        <button class="header-button">
+          <i class="fas fa-bell"></i>
+        </button>
+
+        <button class="header-button">
+          <i class="fas fa-envelope"></i>
+        </button>
+
+        <a href="{% url 'school_admin:profil_admin' %}">
+          <div class="header-profile">
+            <div class="header-avatar">
+              <img src="{{ user.photo.url }}" alt="Photo de profil" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name">
+                {{ user.nom }} {{ user.prenom }}
+              </div>
+              <div class="header-user-role">{{ user.fonction }}</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </header>
+
+    <!-- Welcome Banner -->
+    <section class="welcome-banner">
+      <div class="banner-content">
+        <h1 class="banner-title">
+          Bienvenue, {{ user.nom }} {{ user.prenom }}
+        </h1>
+        <p class="banner-subtitle">Goo-School - Année scolaire 2023-2024</p>
+      </div>
+      <button class="nav-toggle-btn" id="openNavMenu">
+        menu
+        <i class="fas fa-th"></i>
+      </button>
+    </section>
+
+    <!-- Navigation Overlay -->
+    <div class="navigation-overlay" id="navOverlay"></div>
+
+    <!-- Navigation Cards Section (Hidden by default) -->
+    <section
+      class="section-container navigation-section"
+      id="navigationSection"
+    >
+      <button class="close-btn" id="closeNavMenu">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="nav-menu-header">
+        <h2>Menu de Navigation</h2>
+        <p>Accédez rapidement à toutes les fonctionnalités</p>
+      </div>
+
+      <!-- Section 1: Tableau de bord -->
+      <div class="section-title">
+        <h2>Tableau de bord</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'school_admin:dashboard' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-tachometer-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Vue d'ensemble</h3>
+            <p>Activités récentes</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 2: Gestion des données -->
+      <div class="section-title">
+        <h2>Gestion des données</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'school_admin:etablissements' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-green">
+            <i class="fas fa-chalkboard"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Etablissements</h3>
+            <p>Gestion des établissements</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 4: Communication -->
+      <div class="section-title">
+        <h2>Communication</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Messages</h3>
+            <p>Boîte de réception</p>
+          </div>
+        </a>
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-purple">
+            <i class="fas fa-bullhorn"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Annonces</h3>
+            <p>Diffusion d'informations</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 5: Compte -->
+      <div class="section-title">
+        <h2>Mon profil</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-light-blue">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Mon Profil</h3>
+            <p>Informations personnelles</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:management_equipes' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-gray">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Gestion des équipes</h3>
+            <p>Gestion des équipes</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:parametres_administrateur' %}"
+          class="nav-link-card"
+        >
+          <div class="nav-card-icon neo-gray">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Paramètres</h3>
+            <p>Configuration système</p>
+          </div>
+        </a>
+        <a
+          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+          class="nav-link-card logout-card"
+        >
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Déconnexion</h3>
+            <p>Quitter</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <!-- Le contenu de chaque page sera inséré ici -->
+    </div>
+  </main>
+</div>
+
+<script src="{% static 'school_admin/js/script.js' %}"></script>

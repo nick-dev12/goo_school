@@ -1,0 +1,655 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Suivi des Revenus - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/suivi_revenus.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'
+    %}
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <h1><i class="fas fa-chart-line"></i> Suivi des Revenus</h1>
+          <p>Gestion des entrées et dépenses financières</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary">
+            <i class="fas fa-plus"></i> Nouvelle transaction
+          </button>
+          <button class="btn-secondary">
+            <i class="fas fa-download"></i> Exporter
+          </button>
+        </div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div class="search-filters">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            placeholder="Rechercher un établissement, une transaction..."
+            id="searchInput"
+          />
+        </div>
+        <div class="filters">
+          <select class="filter-select" id="statusFilter">
+            <option value="">Tous les statuts</option>
+            <option value="actif">Actif</option>
+            <option value="en_attente">En attente</option>
+            <option value="en_retard">En retard</option>
+            <option value="termine">Terminé</option>
+          </select>
+          <select class="filter-select" id="monthFilter">
+            <option value="">Tous les mois</option>
+            <option value="decembre">Décembre 2023</option>
+            <option value="novembre">Novembre 2023</option>
+            <option value="octobre">Octobre 2023</option>
+          </select>
+          <button class="btn-filter" id="clearFilters">
+            <i class="fas fa-times"></i> Effacer
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="entrees">
+            <i class="fas fa-arrow-up"></i> Entrées
+            <span class="tab-count">6</span>
+          </button>
+          <button class="tab-btn" data-tab="depenses">
+            <i class="fas fa-arrow-down"></i> Dépenses
+            <span class="tab-count">4</span>
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Entrées Tab -->
+          <div class="tab-panel active" id="entrees">
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+              <div class="summary-card">
+                <div class="card-icon green">
+                  <i class="fas fa-school"></i>
+                </div>
+                <div class="card-info">
+                  <h3>6</h3>
+                  <p>Établissements actifs</p>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon blue">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="card-info">
+                  <h3>5,115</h3>
+                  <p>Total élèves inscrits</p>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon purple">
+                  <i class="fas fa-euro-sign"></i>
+                </div>
+                <div class="card-info">
+                  <h3>49,934,250</h3>
+                  <p>Revenus attendus (FCFA)</p>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon orange">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="card-info">
+                  <h3>6,706,800</h3>
+                  <p>En attente (FCFA)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Etablissements Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-list"></i> Liste des Établissements</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Établissement</th>
+                      <th>Élèves inscrits</th>
+                      <th>Montant total</th>
+                      <th>Premier versement</th>
+                      <th>Montant dû</th>
+                      <th>Statut inscription</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Maternelle Les Gazelles</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">500</span>
+                      </td>
+                      <td>
+                        <span class="amount">4,500,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount paid">1,500,000 FCFA</span>
+                        <small>15 Nov 2023</small>
+                      </td>
+                      <td>
+                        <span class="amount due">3,000,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-cours">En cours</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn-action" title="Envoyer rappel">
+                            <i class="fas fa-bell"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Lycée du Plateau</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">520</span>
+                      </td>
+                      <td>
+                        <span class="amount">20,800,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount paid">10,400,000 FCFA</span>
+                        <small>10 Nov 2023</small>
+                      </td>
+                      <td>
+                        <span class="amount due">10,400,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge termine">Terminé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button
+                            class="btn-action"
+                            title="Télécharger facture"
+                          >
+                            <i class="fas fa-download"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>École Primaire La Savane</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">2,350</span>
+                      </td>
+                      <td>
+                        <span class="amount">17,500,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount paid">17,500,000 FCFA</span>
+                        <small>01 Déc 2023</small>
+                      </td>
+                      <td>
+                        <span class="amount paid">0 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge termine">Terminé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button
+                            class="btn-action"
+                            title="Télécharger facture"
+                          >
+                            <i class="fas fa-download"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>École Maternelle Les Petits Pas</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">1,120</span>
+                      </td>
+                      <td>
+                        <span class="amount">400,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount paid">200,000 FCFA</span>
+                        <small>20 Nov 2023</small>
+                      </td>
+                      <td>
+                        <span class="amount due">200,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-attente">En attente</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn-action" title="Envoyer rappel">
+                            <i class="fas fa-bell"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Collège Saint-Joseph</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">800</span>
+                      </td>
+                      <td>
+                        <span class="amount">6,000,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount paid">2,400,000 FCFA</span>
+                        <small>25 Nov 2023</small>
+                      </td>
+                      <td>
+                        <span class="amount due">3,600,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-retard">En retard</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button
+                            class="btn-action warning"
+                            title="Envoyer relance"
+                          >
+                            <i class="fas fa-exclamation-triangle"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="etablissement-info">
+                          <div class="etablissement-avatar">
+                            <i class="fas fa-school"></i>
+                          </div>
+                          <div>
+                            <h4>Lycée Technique</h4>
+                            <p>Abidjan, Côte d'Ivoire</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-number">625</span>
+                      </td>
+                      <td>
+                        <span class="amount">7,500,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="amount paid">2,500,000 FCFA</span>
+                        <small>30 Nov 2023</small>
+                      </td>
+                      <td>
+                        <span class="amount due">5,000,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-cours">En cours</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn-action" title="Envoyer rappel">
+                            <i class="fas fa-bell"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dépenses Tab -->
+          <div class="tab-panel" id="depenses">
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+              <div class="summary-card">
+                <div class="card-icon red">
+                  <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="card-info">
+                  <h3>2,500,000</h3>
+                  <p>Paiements personnel (FCFA)</p>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon orange">
+                  <i class="fas fa-tools"></i>
+                </div>
+                <div class="card-info">
+                  <h3>450,000</h3>
+                  <p>Maintenance (FCFA)</p>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon purple">
+                  <i class="fas fa-building"></i>
+                </div>
+                <div class="card-info">
+                  <h3>800,000</h3>
+                  <p>Loyer bureau (FCFA)</p>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon blue">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="card-info">
+                  <h3>3,750,000</h3>
+                  <p>Total dépenses (FCFA)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dépenses Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-list"></i> Liste des Dépenses</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Description</th>
+                      <th>Montant</th>
+                      <th>Date</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="expense-type">
+                          <div class="type-icon personnel">
+                            <i class="fas fa-users"></i>
+                          </div>
+                          <span>Personnel</span>
+                        </div>
+                      </td>
+                      <td>
+                        <h4>Salaires du mois de novembre</h4>
+                        <p>Paiement des 6 employés</p>
+                      </td>
+                      <td>
+                        <span class="amount expense">2,500,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">30 Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge termine">Payé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger reçu">
+                            <i class="fas fa-download"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="expense-type">
+                          <div class="type-icon maintenance">
+                            <i class="fas fa-tools"></i>
+                          </div>
+                          <span>Maintenance</span>
+                        </div>
+                      </td>
+                      <td>
+                        <h4>Réparation serveurs</h4>
+                        <p>Maintenance système informatique</p>
+                      </td>
+                      <td>
+                        <span class="amount expense">450,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">28 Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge termine">Payé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button
+                            class="btn-action"
+                            title="Télécharger facture"
+                          >
+                            <i class="fas fa-download"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="expense-type">
+                          <div class="type-icon loyer">
+                            <i class="fas fa-building"></i>
+                          </div>
+                          <span>Loyer</span>
+                        </div>
+                      </td>
+                      <td>
+                        <h4>Loyer bureau principal</h4>
+                        <p>Mois de novembre 2023</p>
+                      </td>
+                      <td>
+                        <span class="amount expense">800,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">25 Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge termine">Payé</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button
+                            class="btn-action"
+                            title="Télécharger quittance"
+                          >
+                            <i class="fas fa-download"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="expense-type">
+                          <div class="type-icon marketing">
+                            <i class="fas fa-bullhorn"></i>
+                          </div>
+                          <span>Marketing</span>
+                        </div>
+                      </td>
+                      <td>
+                        <h4>Campagne publicitaire</h4>
+                        <p>Publicité radio et affichage</p>
+                      </td>
+                      <td>
+                        <span class="amount expense">300,000 FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">20 Nov 2023</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-attente">En attente</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/suivi_revenus.js' %}"></script>
+  </body>
+</html>

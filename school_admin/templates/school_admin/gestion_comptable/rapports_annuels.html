@@ -1,0 +1,933 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rapports Annuels - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/rapports_annuels.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'
+    %}
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <h1><i class="fas fa-chart-pie"></i> Rapports Annuels</h1>
+          <p>Bilan annuel et analyse stratégique complète</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary" id="generateAnnualReport">
+            <i class="fas fa-plus"></i> Nouveau bilan annuel
+          </button>
+          <button class="btn-secondary" id="exportAllAnnualReports">
+            <i class="fas fa-download"></i> Exporter tous
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-icon blue">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="card-info">
+            <h3>3</h3>
+            <p>Bilans annuels</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon green">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="card-info">
+            <h3>+28.5%</h3>
+            <p>Croissance annuelle</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon purple">
+            <i class="fas fa-euro-sign"></i>
+          </div>
+          <div class="card-info">
+            <h3>542,500,000</h3>
+            <p>Revenus annuels (FCFA)</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon orange">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="card-info">
+            <h3>4.2s</h3>
+            <p>Temps de génération</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="bilan-annuel">
+            <i class="fas fa-chart-pie"></i> Bilan annuel
+            <span class="tab-count">3</span>
+          </button>
+          <button class="tab-btn" data-tab="analyse-strategique">
+            <i class="fas fa-chart-line"></i> Analyse stratégique
+            <span class="tab-count">2</span>
+          </button>
+          <button class="tab-btn" data-tab="rapports-executifs">
+            <i class="fas fa-user-tie"></i> Rapports exécutifs
+            <span class="tab-count">4</span>
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Bilan annuel Tab -->
+          <div class="tab-panel active" id="bilan-annuel">
+            <!-- Annual Report Generation Tools -->
+            <div class="annual-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-calendar"></i> Génération de bilan annuel
+                  </h3>
+                  <p>Création d'un bilan annuel complet</p>
+                </div>
+                <div class="tool-content">
+                  <div class="annual-form">
+                    <div class="form-group">
+                      <label>Année du bilan</label>
+                      <select class="form-select" id="reportYear">
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Type de bilan</label>
+                      <select class="form-select" id="reportType">
+                        <option value="complet">Bilan complet</option>
+                        <option value="executif">Bilan exécutif</option>
+                        <option value="financier">
+                          Bilan financier uniquement
+                        </option>
+                        <option value="strategique">Bilan stratégique</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Sections à inclure</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Résumé exécutif
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Données financières
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Analyse des
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Évolution des
+                          revenus
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Graphiques et
+                          tableaux
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Recommandations
+                          stratégiques
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Perspectives
+                          d'avenir
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="generateAnnualReport">
+                      <i class="fas fa-chart-pie"></i> Générer le bilan annuel
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-chart-bar"></i> Analyse comparative
+                    annuelle
+                  </h3>
+                  <p>Comparaison avec les années précédentes</p>
+                </div>
+                <div class="tool-content">
+                  <div class="comparison-form">
+                    <div class="form-group">
+                      <label>Période de comparaison</label>
+                      <select class="form-select" id="comparisonPeriod">
+                        <option value="3-annees">3 dernières années</option>
+                        <option value="5-annees">5 dernières années</option>
+                        <option value="10-annees">10 dernières années</option>
+                        <option value="personnalise">
+                          Période personnalisée
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Métriques à comparer</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Évolution des
+                          revenus
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Croissance des
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Nombre d'élèves
+                          inscrits
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Taux de rétention
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Rentabilité par
+                          établissement
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Nouveaux marchés
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="generateComparison">
+                      <i class="fas fa-chart-bar"></i> Analyser les tendances
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Annual Reports Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-list"></i> Bilans annuels générés</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                  <button class="btn-small primary">
+                    <i class="fas fa-download"></i> Exporter
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Année</th>
+                      <th>Type de bilan</th>
+                      <th>Statut</th>
+                      <th>Date génération</th>
+                      <th>Taille</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="year-info">
+                          <h4>2023</h4>
+                          <p>Bilan annuel complet</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type complet">Complet</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="file-size">8.2 MB</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir bilan">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="year-info">
+                          <h4>2022</h4>
+                          <p>Bilan exécutif</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type executif">Exécutif</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <span class="date">20 Jan 2023</span>
+                      </td>
+                      <td>
+                        <span class="file-size">4.1 MB</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir bilan">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="year-info">
+                          <h4>2021</h4>
+                          <p>Bilan financier uniquement</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type financier">Financier</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <span class="date">18 Jan 2022</span>
+                      </td>
+                      <td>
+                        <span class="file-size">3.7 MB</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir bilan">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger PDF">
+                            <i class="fas fa-file-pdf"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="year-info">
+                          <h4>2020</h4>
+                          <p>Bilan stratégique</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="report-type strategique">Stratégique</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-cours">En cours</span>
+                      </td>
+                      <td>
+                        <span class="date">En cours...</span>
+                      </td>
+                      <td>
+                        <span class="file-size">-</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir progression">
+                            <i class="fas fa-clock"></i>
+                          </button>
+                          <button class="btn-action" title="Annuler">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analyse stratégique Tab -->
+          <div class="tab-panel" id="analyse-strategique">
+            <!-- Strategic Analysis Tools -->
+            <div class="strategic-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-chart-line"></i> Analyse des tendances
+                    stratégiques
+                  </h3>
+                  <p>Analyse des tendances sur plusieurs années</p>
+                </div>
+                <div class="tool-content">
+                  <div class="strategic-form">
+                    <div class="form-group">
+                      <label>Période d'analyse</label>
+                      <select class="form-select" id="analysisPeriod">
+                        <option value="5-annees">5 dernières années</option>
+                        <option value="10-annees">10 dernières années</option>
+                        <option value="depuis-debut">Depuis le début</option>
+                        <option value="personnalise">
+                          Période personnalisée
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Indicateurs stratégiques</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Croissance des
+                          revenus
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Expansion
+                          géographique
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Diversification des
+                          services
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Performance des
+                          établissements
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Taux de satisfaction
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Innovation et
+                          technologie
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="analyzeStrategicTrends">
+                      <i class="fas fa-chart-line"></i> Analyser les tendances
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-bullseye"></i> Analyse de performance
+                  </h3>
+                  <p>Évaluation de la performance stratégique</p>
+                </div>
+                <div class="tool-content">
+                  <div class="performance-form">
+                    <div class="form-group">
+                      <label>Objectifs à évaluer</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Objectifs financiers
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Objectifs
+                          opérationnels
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Objectifs de
+                          croissance
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Objectifs de qualité
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Objectifs
+                          d'innovation
+                        </label>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Période d'évaluation</label>
+                      <select class="form-select" id="evaluationPeriod">
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="toutes">Toutes les années</option>
+                      </select>
+                    </div>
+                    <button class="btn-calculate" id="evaluatePerformance">
+                      <i class="fas fa-bullseye"></i> Évaluer la performance
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Strategic Analysis Results -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-chart-bar"></i> Analyses stratégiques</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nom de l'analyse</th>
+                      <th>Type</th>
+                      <th>Période</th>
+                      <th>Date création</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="analysis-info">
+                          <h4>Analyse stratégique 2023</h4>
+                          <p>Évaluation complète de la performance</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="analysis-type strategique"
+                          >Stratégique</span
+                        >
+                      </td>
+                      <td>
+                        <span class="period">2023</span>
+                      </td>
+                      <td>
+                        <span class="date">20 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Terminée</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir analyse">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="analysis-info">
+                          <h4>Tendances 5 ans - 2019-2023</h4>
+                          <p>Analyse des tendances sur 5 ans</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="analysis-type tendances">Tendances</span>
+                      </td>
+                      <td>
+                        <span class="period">2019-2023</span>
+                      </td>
+                      <td>
+                        <span class="date">15 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Terminée</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir analyse">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rapports exécutifs Tab -->
+          <div class="tab-panel" id="rapports-executifs">
+            <!-- Executive Report Tools -->
+            <div class="executive-tools">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-user-tie"></i> Créer un rapport exécutif
+                  </h3>
+                  <p>Rapport destiné à la direction et aux investisseurs</p>
+                </div>
+                <div class="tool-content">
+                  <div class="executive-form">
+                    <div class="form-group">
+                      <label>Année du rapport</label>
+                      <select class="form-select" id="executiveYear">
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Type de rapport exécutif</label>
+                      <select class="form-select" id="executiveType">
+                        <option value="direction">Rapport direction</option>
+                        <option value="investisseurs">
+                          Rapport investisseurs
+                        </option>
+                        <option value="conseil">
+                          Rapport conseil d'administration
+                        </option>
+                        <option value="actionnaires">
+                          Rapport actionnaires
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Sections à inclure</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Lettre du PDG
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Résumé exécutif
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Performance
+                          financière
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Stratégie et vision
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Défis et
+                          opportunités
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Perspectives
+                          d'avenir
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="createExecutiveReport">
+                      <i class="fas fa-user-tie"></i> Créer le rapport exécutif
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-card">
+                <div class="tool-header">
+                  <h3>
+                    <i class="fas fa-presentation"></i> Présentation exécutive
+                  </h3>
+                  <p>Création d'une présentation pour la direction</p>
+                </div>
+                <div class="tool-content">
+                  <div class="presentation-form">
+                    <div class="form-group">
+                      <label>Type de présentation</label>
+                      <select class="form-select" id="presentationType">
+                        <option value="conseil">
+                          Conseil d'administration
+                        </option>
+                        <option value="investisseurs">
+                          Présentation investisseurs
+                        </option>
+                        <option value="equipe">Présentation équipe</option>
+                        <option value="partenaires">
+                          Présentation partenaires
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Durée de présentation</label>
+                      <select class="form-select" id="presentationDuration">
+                        <option value="15min">15 minutes</option>
+                        <option value="30min">30 minutes</option>
+                        <option value="45min">45 minutes</option>
+                        <option value="60min">1 heure</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Éléments à inclure</label>
+                      <div class="checkbox-group">
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Graphiques clés
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Métriques de
+                          performance
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Témoignages clients
+                        </label>
+                        <label class="checkbox-item">
+                          <input type="checkbox" checked /> Projets futurs
+                        </label>
+                      </div>
+                    </div>
+                    <button class="btn-calculate" id="createPresentation">
+                      <i class="fas fa-presentation"></i> Créer la présentation
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Executive Reports Table -->
+            <div class="table-container">
+              <div class="table-header">
+                <h3><i class="fas fa-user-tie"></i> Rapports exécutifs</h3>
+                <div class="table-actions">
+                  <button class="btn-small">
+                    <i class="fas fa-sort"></i> Trier
+                  </button>
+                  <button class="btn-small">
+                    <i class="fas fa-filter"></i> Filtrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nom du rapport</th>
+                      <th>Type</th>
+                      <th>Année</th>
+                      <th>Date création</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="executive-info">
+                          <h4>Rapport Direction 2023</h4>
+                          <p>Rapport exécutif pour la direction</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="executive-type direction">Direction</span>
+                      </td>
+                      <td>
+                        <span class="year">2023</span>
+                      </td>
+                      <td>
+                        <span class="date">25 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Présenter">
+                            <i class="fas fa-presentation"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="executive-info">
+                          <h4>Rapport Investisseurs Q4 2023</h4>
+                          <p>Présentation pour les investisseurs</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="executive-type investisseurs"
+                          >Investisseurs</span
+                        >
+                      </td>
+                      <td>
+                        <span class="year">2023</span>
+                      </td>
+                      <td>
+                        <span class="date">22 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Présenter">
+                            <i class="fas fa-presentation"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="executive-info">
+                          <h4>Rapport Conseil 2023</h4>
+                          <p>Rapport pour le conseil d'administration</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="executive-type conseil">Conseil</span>
+                      </td>
+                      <td>
+                        <span class="year">2023</span>
+                      </td>
+                      <td>
+                        <span class="date">18 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="status-badge genere">Généré</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir rapport">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn-action" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button class="btn-action" title="Partager">
+                            <i class="fas fa-share"></i>
+                          </button>
+                          <button class="btn-action" title="Présenter">
+                            <i class="fas fa-presentation"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="executive-info">
+                          <h4>Rapport Actionnaires 2023</h4>
+                          <p>Rapport annuel pour les actionnaires</p>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="executive-type actionnaires"
+                          >Actionnaires</span
+                        >
+                      </td>
+                      <td>
+                        <span class="year">2023</span>
+                      </td>
+                      <td>
+                        <span class="date">12 Jan 2024</span>
+                      </td>
+                      <td>
+                        <span class="status-badge en-cours">En cours</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-action" title="Voir progression">
+                            <i class="fas fa-clock"></i>
+                          </button>
+                          <button class="btn-action" title="Annuler">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/rapports_annuels.js' %}"></script>
+  </body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <title>Tableau de bord - Directeur</title>
+  </head>
+  <body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="container">
+      <!-- Dashboard Overview -->
+      <div class="dashboard-overview">
+        <div class="key-indicators">
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--blue)">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Élèves inscrits</h3>
+              <p class="indicator-value">1,245</p>
+              <span class="indicator-trend positive"
+                >+3% depuis l'année dernière</span
+              >
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--purple)">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Enseignants</h3>
+              <p class="indicator-value">87</p>
+              <span class="indicator-trend">Effectif stable</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--green)">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Personnel administratif</h3>
+              <p class="indicator-value">32</p>
+              <span class="indicator-trend positive">+2 cette année</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div
+              class="indicator-icon"
+              style="background-color: var(--secondary)"
+            >
+              <i class="fas fa-school"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Classes actives</h3>
+              <p class="indicator-value">45</p>
+              <span class="indicator-trend">Toutes opérationnelles</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div
+              class="indicator-icon"
+              style="background-color: var(--primary)"
+            >
+              <i class="fas fa-tasks"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Évaluations en cours</h3>
+              <p class="indicator-value">28</p>
+              <span class="indicator-trend">Cette semaine</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--blue)">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Bulletins publiés</h3>
+              <p class="indicator-value">156</p>
+              <span class="indicator-trend">Trimestre en cours</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--yellow)">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Événements à venir</h3>
+              <p class="indicator-value">12</p>
+              <span class="indicator-trend">Dans les 30 prochains jours</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card alert">
+            <div class="indicator-icon" style="background-color: var(--red)">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Alertes</h3>
+              <p class="indicator-value">8</p>
+              <span class="indicator-trend negative"
+                >Nécessitent votre attention</span
+              >
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <!-- Nouvelles cartes ajoutées -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--green)">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Taux de réussite</h3>
+              <p class="indicator-value">92%</p>
+              <span class="indicator-trend positive"
+                >+4% par rapport à l'an dernier</span
+              >
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--purple)">
+              <i class="fas fa-book-reader"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Ressources pédagogiques</h3>
+              <p class="indicator-value">1,850</p>
+              <span class="indicator-trend positive">+120 ce mois-ci</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--yellow)">
+              <i class="fas fa-comments"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Communications</h3>
+              <p class="indicator-value">56</p>
+              <span class="indicator-trend">Messages non lus</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--blue)">
+              <i class="fas fa-medal"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Distinctions</h3>
+              <p class="indicator-value">24</p>
+              <span class="indicator-trend"
+                >Élèves récompensés ce trimestre</span
+              >
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Événements et Agenda -->
+      <div class="events-agenda-section">
+        <h2 class="section-title">Événements récents & Agenda</h2>
+
+        <div class="events-agenda-container">
+          <!-- Mini Calendrier -->
+          <div class="mini-calendar-container">
+            <div class="calendar-header">
+              <button class="calendar-nav-btn">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <h3 class="calendar-month">Octobre 2023</h3>
+              <button class="calendar-nav-btn">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="calendar-weekdays">
+              <span>Lu</span>
+              <span>Ma</span>
+              <span>Me</span>
+              <span>Je</span>
+              <span>Ve</span>
+              <span>Sa</span>
+              <span>Di</span>
+            </div>
+            <div class="calendar-days">
+              <span class="prev-month">25</span>
+              <span class="prev-month">26</span>
+              <span class="prev-month">27</span>
+              <span class="prev-month">28</span>
+              <span class="prev-month">29</span>
+              <span class="prev-month">30</span>
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+              <span>6</span>
+              <span>7</span>
+              <span>8</span>
+              <span>9</span>
+              <span class="event-day">10</span>
+              <span>11</span>
+              <span>12</span>
+              <span>13</span>
+              <span>14</span>
+              <span>15</span>
+              <span class="event-day">16</span>
+              <span>17</span>
+              <span>18</span>
+              <span class="today">19</span>
+              <span>20</span>
+              <span>21</span>
+              <span>22</span>
+              <span>23</span>
+              <span class="event-day">24</span>
+              <span>25</span>
+              <span>26</span>
+              <span>27</span>
+              <span>28</span>
+              <span>29</span>
+              <span>30</span>
+              <span>31</span>
+              <span class="next-month">1</span>
+              <span class="next-month">2</span>
+              <span class="next-month">3</span>
+              <span class="next-month">4</span>
+              <span class="next-month">5</span>
+            </div>
+          </div>
+
+          <!-- Liste des événements -->
+          <div class="events-list-container">
+            <div class="events-list-header">
+              <h3>Prochains événements</h3>
+              <a href="#" class="view-all-link"
+                >Voir tout <i class="fas fa-angle-right"></i
+              ></a>
+            </div>
+
+            <div class="events-list">
+              <div class="event-item">
+                <div class="event-date">
+                  <span class="event-day-num">10</span>
+                  <span class="event-month">Oct</span>
+                </div>
+                <div class="event-content">
+                  <h4 class="event-title">Conseil de classe 3ème A</h4>
+                  <p class="event-details">
+                    <i class="fas fa-clock"></i> 17h00 - 19h00
+                    <i class="fas fa-map-marker-alt"></i> Salle de réunion B
+                  </p>
+                </div>
+                <div class="event-category conseil">
+                  <span>Conseil</span>
+                </div>
+              </div>
+
+              <div class="event-item">
+                <div class="event-date">
+                  <span class="event-day-num">16</span>
+                  <span class="event-month">Oct</span>
+                </div>
+                <div class="event-content">
+                  <h4 class="event-title">Réunion parents-professeurs</h4>
+                  <p class="event-details">
+                    <i class="fas fa-clock"></i> 18h00 - 20h30
+                    <i class="fas fa-map-marker-alt"></i> Hall principal
+                  </p>
+                </div>
+                <div class="event-category reunion">
+                  <span>Réunion</span>
+                </div>
+              </div>
+
+              <div class="event-item">
+                <div class="event-date">
+                  <span class="event-day-num">24</span>
+                  <span class="event-month">Oct</span>
+                </div>
+                <div class="event-content">
+                  <h4 class="event-title">Fin du premier trimestre</h4>
+                  <p class="event-details">
+                    <i class="fas fa-exclamation-circle"></i> Date limite pour
+                    les notes
+                  </p>
+                </div>
+                <div class="event-category echeance">
+                  <span>Échéance</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Échéances importantes -->
+          <div class="deadlines-container">
+            <div class="deadlines-header">
+              <h3>Échéances importantes</h3>
+              <a href="#" class="view-all-link"
+                >Voir tout <i class="fas fa-angle-right"></i
+              ></a>
+            </div>
+
+            <div class="deadlines-list">
+              <div class="deadline-item">
+                <div class="deadline-icon">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="deadline-content">
+                  <h4>Dépôt des bulletins</h4>
+                  <p>27 octobre 2023</p>
+                  <div class="progress-bar">
+                    <div class="progress" style="width: 65%"></div>
+                  </div>
+                  <span class="days-left">8 jours restants</span>
+                </div>
+              </div>
+
+              <div class="deadline-item">
+                <div class="deadline-icon">
+                  <i class="fas fa-clipboard-check"></i>
+                </div>
+                <div class="deadline-content">
+                  <h4>Validation du projet d'établissement</h4>
+                  <p>15 novembre 2023</p>
+                  <div class="progress-bar">
+                    <div class="progress" style="width: 40%"></div>
+                  </div>
+                  <span class="days-left">27 jours restants</span>
+                </div>
+              </div>
+
+              <div class="deadline-item">
+                <div class="deadline-icon">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="deadline-content">
+                  <h4>Rapport d'activité trimestriel</h4>
+                  <p>30 octobre 2023</p>
+                  <div class="progress-bar">
+                    <div class="progress" style="width: 55%"></div>
+                  </div>
+                  <span class="days-left">11 jours restants</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dernières activités -->
+      <div class="latest-activities-section">
+        <h2 class="section-title">Dernières activités</h2>
+
+        <div class="activities-container">
+          <div class="activity-card">
+            <div class="activity-header">
+              <div class="activity-icon" style="background-color: var(--green)">
+                <i class="fas fa-user-graduate"></i>
+              </div>
+              <h3>Derniers élèves inscrits</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <img
+                    src="{% static 'director_management/img/avatars/student1.jpg' %}"
+                    alt="Avatar"
+                  />
+                </div>
+                <div class="activity-details">
+                  <h4>Sophie Martin</h4>
+                  <p>Classe de 3ème A</p>
+                  <span class="activity-time">Il y a 2 heures</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <img
+                    src="{% static 'director_management/img/avatars/student2.jpg' %}"
+                    alt="Avatar"
+                  />
+                </div>
+                <div class="activity-details">
+                  <h4>Lucas Dubois</h4>
+                  <p>Classe de 5ème B</p>
+                  <span class="activity-time">Il y a 1 jour</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir tous les élèves <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-header">
+              <div class="activity-icon" style="background-color: var(--blue)">
+                <i class="fas fa-user-tie"></i>
+              </div>
+              <h3>Derniers personnels ajoutés</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <img
+                    src="{% static 'director_management/img/avatars/staff1.jpg' %}"
+                    alt="Avatar"
+                  />
+                </div>
+                <div class="activity-details">
+                  <h4>Marie Leroy</h4>
+                  <p>Professeur de Mathématiques</p>
+                  <span class="activity-time">Il y a 3 jours</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <img
+                    src="{% static 'director_management/img/avatars/staff2.jpg' %}"
+                    alt="Avatar"
+                  />
+                </div>
+                <div class="activity-details">
+                  <h4>Thomas Bernard</h4>
+                  <p>Agent d'entretien</p>
+                  <span class="activity-time">Il y a 5 jours</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir tout le personnel <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-header">
+              <div
+                class="activity-icon"
+                style="background-color: var(--orange)"
+              >
+                <i class="fas fa-star"></i>
+              </div>
+              <h3>Dernières notes publiées</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-book"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Français - 4ème C</h4>
+                  <p>Moyenne de classe: 14,5/20</p>
+                  <span class="activity-time">Il y a 1 jour</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-calculator"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Mathématiques - 6ème A</h4>
+                  <p>Moyenne de classe: 12,8/20</p>
+                  <span class="activity-time">Il y a 2 jours</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir toutes les notes <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-header">
+              <div
+                class="activity-icon"
+                style="background-color: var(--purple)"
+              >
+                <i class="fas fa-tasks"></i>
+              </div>
+              <h3>Derniers devoirs déposés</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-flask"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Sciences - 5ème B</h4>
+                  <p>Rapport de laboratoire</p>
+                  <span class="activity-time">Il y a 5 heures</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-globe-europe"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Histoire - 3ème A</h4>
+                  <p>Dissertation sur la Révolution</p>
+                  <span class="activity-time">Il y a 1 jour</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir tous les devoirs <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Raccourcis rapides -->
+      <div class="quick-shortcuts-section">
+        <h2 class="section-title">Raccourcis rapides</h2>
+
+        <div class="shortcuts-container">
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Ajouter un élève</h3>
+              <p>Inscrire un nouvel élève dans l'établissement</p>
+            </div>
+            <div class="shortcut-badge">➕</div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Ajouter un enseignant</h3>
+              <p>Recruter un nouveau membre du corps enseignant</p>
+            </div>
+            <div class="shortcut-badge">➕</div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Générer un rapport PDF</h3>
+              <p>Créer des rapports personnalisés pour l'établissement</p>
+            </div>
+            <div class="shortcut-badge">📥</div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-calendar-plus"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Planifier un événement</h3>
+              <p>Organiser une nouvelle activité dans le calendrier</p>
+            </div>
+            <div class="shortcut-badge">📆</div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-bullhorn"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Envoyer une annonce</h3>
+              <p>Diffuser une information importante à la communauté</p>
+            </div>
+            <div class="shortcut-badge">✉️</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Alertes et notifications importantes -->
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/dashboard_directeur.js' %}"></script>
+  </body>
+</html>

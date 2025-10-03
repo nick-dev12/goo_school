@@ -1,0 +1,336 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Gestion Comptable - Goo-School{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
+      <!-- KPIs Section -->
+      <div class="kpis-section">
+        <div class="kpi-card">
+          <div class="kpi-icon purple">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <div class="kpi-content">
+            <h3>6</h3>
+            <p>Écoles actives</p>
+            <span class="kpi-trend positive">+2 ce mois</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon green">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="kpi-content">
+            <h3>5,115</h3>
+            <p>Total élèves</p>
+            <span class="kpi-trend positive">+12% ce mois</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon purple">
+            <i class="fas fa-euro-sign"></i>
+          </div>
+          <div class="kpi-content">
+            <h3>43 227 450 FCFA</h3>
+            <p>Revenus totaux</p>
+            <span class="kpi-trend positive">+8% ce mois</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon orange">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="kpi-content">
+            <h3>6 706 800 FCFA</h3>
+            <p>En attente</p>
+            <span class="kpi-trend warning">2 inscriptions en retard</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="main-grid">
+        <!-- Left Column -->
+        <div class="left-column">
+          <!-- Vue Financière -->
+          <div class="card financial-view">
+            <div class="card-header">
+              <h2><i class="fas fa-euro-sign"></i> Vue financière</h2>
+            </div>
+            <div class="card-content">
+              <div class="financial-metrics">
+                <div class="metric">
+                  <h3 class="metric-value green">43 227 450 FCFA</h3>
+                  <p class="metric-label">Revenus collectés</p>
+                </div>
+                <div class="metric">
+                  <h3 class="metric-value orange">6 706 800 FCFA</h3>
+                  <p class="metric-label">En attente</p>
+                </div>
+                <div class="metric">
+                  <h3 class="metric-value blue">0 FCFA</h3>
+                  <p class="metric-label">Ce mois</p>
+                </div>
+              </div>
+
+              <div class="collection-rate">
+                <div class="rate-info">
+                  <p>43 227 450 FCFA collectés sur 49 934 250 FCFA attendus</p>
+                  <span class="rate-trend positive"
+                    >+12% par rapport au mois dernier</span
+                  >
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 86.6%"></div>
+                </div>
+                <div class="rate-percentage">86.6%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- État des écoles -->
+          <div class="card schools-status">
+            <div class="card-header">
+              <h2><i class="fas fa-graduation-cap"></i> État des écoles (6)</h2>
+            </div>
+            <div class="card-content">
+              <div class="schools-list">
+                <div class="school-item">
+                  <div class="school-info">
+                    <h4>Maternelle Les Gazelles</h4>
+                    <p>500 élèves • 4 500 000 FCFA</p>
+                  </div>
+                  <div class="school-status">
+                    <span class="status-badge active">Actif</span>
+                    <span class="amount-due">1 500 000 FCFA dû</span>
+                  </div>
+                </div>
+
+                <div class="school-item">
+                  <div class="school-info">
+                    <h4>Lycée du Plateau</h4>
+                    <p>520 élèves • 20 800 000 FCFA</p>
+                  </div>
+                  <div class="school-status">
+                    <span class="status-badge active">Actif</span>
+                    <span class="amount-due">5 200 000 FCFA dû</span>
+                  </div>
+                </div>
+
+                <div class="school-item">
+                  <div class="school-info">
+                    <h4>École Primaire La Savane</h4>
+                    <p>2 350 élèves • 17 500 000 FCFA</p>
+                  </div>
+                  <div class="school-status">
+                    <span class="status-badge active">Actif</span>
+                  </div>
+                </div>
+
+                <div class="school-item">
+                  <div class="school-info">
+                    <h4>École Maternelle Les Petits Pas</h4>
+                    <p>1 120 élèves • 400 000 FCFA</p>
+                  </div>
+                  <div class="school-status">
+                    <span class="status-badge active">Actif</span>
+                    <span class="amount-due">3 000 FCFA dû</span>
+                  </div>
+                </div>
+
+                <div class="school-item">
+                  <div class="school-info">
+                    <h4>Collège Saint-Joseph</h4>
+                    <p>800 élèves • 6 000 000 FCFA</p>
+                  </div>
+                  <div class="school-status">
+                    <span class="status-badge active">Actif</span>
+                    <span class="amount-due">1 200 000 FCFA dû</span>
+                  </div>
+                </div>
+
+                <div class="school-item">
+                  <div class="school-info">
+                    <h4>Lycée Technique</h4>
+                    <p>625 élèves • 7 500 000 FCFA</p>
+                  </div>
+                  <div class="school-status">
+                    <span class="status-badge active">Actif</span>
+                    <span class="amount-due">2 500 000 FCFA dû</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+          <!-- Activité récente -->
+          <div class="card recent-activity">
+            <div class="card-header">
+              <h2><i class="fas fa-chart-line"></i> Activité récente</h2>
+            </div>
+            <div class="card-content">
+              <div class="activity-list">
+                <div class="activity-item">
+                  <div class="activity-icon green">
+                    <i class="fas fa-arrow-up"></i>
+                  </div>
+                  <div class="activity-info">
+                    <h4>École Primaire La Savane</h4>
+                    <p>01 déc. • 17 500 000 FCFA</p>
+                  </div>
+                  <span class="status-badge completed">Terminé</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-icon green">
+                    <i class="fas fa-arrow-up"></i>
+                  </div>
+                  <div class="activity-info">
+                    <h4>Aïssatou Diallo</h4>
+                    <p>01 déc. • 680 000 FCFA</p>
+                  </div>
+                  <span class="status-badge completed">Terminé</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-icon green">
+                    <i class="fas fa-arrow-up"></i>
+                  </div>
+                  <div class="activity-info">
+                    <h4>Lycée du Plateau</h4>
+                    <p>15 nov. • 10 400 000 FCFA</p>
+                  </div>
+                  <span class="status-badge completed">Terminé</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-icon green">
+                    <i class="fas fa-arrow-up"></i>
+                  </div>
+                  <div class="activity-info">
+                    <h4>École Primaire Saint-Thomas</h4>
+                    <p>01 déc. • 12 250 FCFA</p>
+                  </div>
+                  <span class="status-badge completed">Terminé</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-icon blue">
+                    <i class="fas fa-arrow-down"></i>
+                  </div>
+                  <div class="activity-info">
+                    <h4>Paiement Personnel</h4>
+                    <p>30 nov. • 2 500 000 FCFA</p>
+                  </div>
+                  <span class="status-badge completed">Terminé</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-icon blue">
+                    <i class="fas fa-arrow-down"></i>
+                  </div>
+                  <div class="activity-info">
+                    <h4>Frais de Maintenance</h4>
+                    <p>28 nov. • 450 000 FCFA</p>
+                  </div>
+                  <span class="status-badge completed">Terminé</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inscriptions en retard -->
+          <div class="card delayed-registrations">
+            <div class="card-header warning">
+              <h2>
+                <i class="fas fa-exclamation-triangle"></i> Inscriptions en
+                retard
+              </h2>
+            </div>
+            <div class="card-content">
+              <p>2 écoles ont des inscriptions en retard</p>
+              <button class="action-btn">Action requise</button>
+            </div>
+          </div>
+
+          <!-- Personnel -->
+          <div class="card personnel">
+            <div class="card-header">
+              <h2><i class="fas fa-users"></i> Personnel</h2>
+            </div>
+            <div class="card-content">
+              <div class="personnel-metrics">
+                <div class="metric">
+                  <h3>6</h3>
+                  <p>Employés actifs</p>
+                </div>
+                <div class="metric">
+                  <h3>6</h3>
+                  <p>Total employés</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bénéfices -->
+          <div class="card benefits">
+            <div class="card-header">
+              <h2><i class="fas fa-chart-pie"></i> Bénéfices</h2>
+            </div>
+            <div class="card-content">
+              <div class="benefit-info">
+                <h3 class="benefit-amount">8 500 000 FCFA</h3>
+                <p>Total des bénéfices</p>
+                <span class="benefit-trend positive">+15% ce mois</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Paiements personnel -->
+          <div class="card personnel-payments">
+            <div class="card-header">
+              <h2><i class="fas fa-credit-card"></i> Paiements personnel</h2>
+            </div>
+            <div class="card-content">
+              <div class="payment-info">
+                <h3>2 500 000 FCFA</h3>
+                <p>Montant total</p>
+                <div class="payment-dates">
+                  <p><strong>Dernier paiement:</strong> 30 novembre 2023</p>
+                  <p><strong>Prochain paiement:</strong> 30 décembre 2023</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/dashboard_comptable.js' %}"></script>
+  </body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Messages commerciaux - Goo-School Commercial</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/messages.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+    <div class="page-container">
+      <!-- Messages -->
+      {% if messages %}
+      <div class="message-container">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i
+              class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"
+            ></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Header de la page -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-info">
+            <div class="page-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="page-details">
+              <h1 class="page-title">Messages commerciaux</h1>
+              <p class="page-subtitle">Gestion de votre boîte de réception et des tickets</p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <a
+              href="{% url 'school_admin:commercial_liste_etablissements' %}"
+              class="btn btn-outline"
+            >
+              <i class="fas fa-arrow-left"></i>
+              Retour
+            </a>
+            <a
+              href="{% url 'school_admin:commercial_liste_etablissements' %}"
+              class="btn btn-primary"
+            >
+              <i class="fas fa-plus"></i>
+              Nouveau message
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Onglets de navigation -->
+      <div class="tabs-section">
+        <div class="tabs-container">
+          <div class="tabs-nav">
+            <a
+              href="?section=admin"
+              class="tab-link {% if section == 'admin' %}active{% endif %}"
+            >
+              <i class="fas fa-user-tie"></i>
+              Messages Administrateurs
+              <span class="tab-badge">2</span>
+            </a>
+            <a
+              href="?section=etablissement"
+              class="tab-link {% if section == 'etablissement' %}active{% endif %}"
+            >
+              <i class="fas fa-ticket-alt"></i>
+              Tickets Établissements
+              <span class="tab-badge">5</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres et recherche -->
+      <div class="filters-section">
+        <div class="filters-container">
+          <div class="search-group">
+            <div class="search-input-group">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Rechercher un message..."
+                class="search-input"
+                value="{{ search_query }}"
+              />
+            </div>
+          </div>
+          <div class="filters-row">
+            <div class="filter-group">
+              <label for="type-filter" class="filter-label">Type de message</label>
+              <select id="type-filter" class="filter-select">
+                <option value="">Tous les types</option>
+                <option value="demande_info" {% if type_filter == 'demande_info' %}selected{% endif %}>Demande d'information</option>
+                <option value="proposition" {% if type_filter == 'proposition' %}selected{% endif %}>Proposition commerciale</option>
+                <option value="suivi" {% if type_filter == 'suivi' %}selected{% endif %}>Suivi de prospection</option>
+                <option value="rendez_vous" {% if type_filter == 'rendez_vous' %}selected{% endif %}>Rendez-vous</option>
+                <option value="devis" {% if type_filter == 'devis' %}selected{% endif %}>Devis</option>
+                <option value="contrat" {% if type_filter == 'contrat' %}selected{% endif %}>Contrat</option>
+                <option value="support" {% if type_filter == 'support' %}selected{% endif %}>Support technique</option>
+                <option value="autre" {% if type_filter == 'autre' %}selected{% endif %}>Autre</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="priorite-filter" class="filter-label">Priorité</label>
+              <select id="priorite-filter" class="filter-select">
+                <option value="">Toutes les priorités</option>
+                <option value="urgente" {% if priorite_filter == 'urgente' %}selected{% endif %}>Urgente</option>
+                <option value="haute" {% if priorite_filter == 'haute' %}selected{% endif %}>Haute</option>
+                <option value="normale" {% if priorite_filter == 'normale' %}selected{% endif %}>Normale</option>
+                <option value="basse" {% if priorite_filter == 'basse' %}selected{% endif %}>Basse</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="statut-filter" class="filter-label">Statut</label>
+              <select id="statut-filter" class="filter-select">
+                <option value="">Tous les statuts</option>
+                <option value="non_lu" {% if statut_filter == 'non_lu' %}selected{% endif %}>Non lu</option>
+                <option value="lu" {% if statut_filter == 'lu' %}selected{% endif %}>Lu</option>
+                <option value="repondu" {% if statut_filter == 'repondu' %}selected{% endif %}>Répondu</option>
+                <option value="archive" {% if statut_filter == 'archive' %}selected{% endif %}>Archivé</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="etablissement-filter" class="filter-label">Établissement</label>
+              <select id="etablissement-filter" class="filter-select">
+                <option value="">Tous les établissements</option>
+                {% for etablissement in etablissements %}
+                <option value="{{ etablissement.id }}" {% if etablissement_filter == etablissement.id|stringformat:"s" %}selected{% endif %}>
+                  {{ etablissement.nom_etablissement }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="stats-section">
+        <div class="stats-container">
+          {% if section == 'admin' %}
+          <!-- Statistiques pour les messages administrateurs -->
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-content">
+              <h3>2</h3>
+              <p>Total des messages</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-envelope-open"></i>
+            </div>
+            <div class="stat-content">
+              <h3>1</h3>
+              <p>Non lus</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+              <h3>1</h3>
+              <p>Urgents</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="stat-content">
+              <h3>1</h3>
+              <p>Aujourd'hui</p>
+            </div>
+          </div>
+          {% else %}
+          <!-- Statistiques pour les tickets établissements -->
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-content">
+              <h3>5</h3>
+              <p>Total des tickets</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-folder-open"></i>
+            </div>
+            <div class="stat-content">
+              <h3>2</h3>
+              <p>Tickets ouverts</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-user-cog"></i>
+            </div>
+            <div class="stat-content">
+              <h3>2</h3>
+              <p>En cours</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+              <h3>2</h3>
+              <p>Fermés</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Liste des établissements avec leurs derniers messages -->
+      <div class="messages-section">
+        <!-- Données statiques pour démonstration -->
+        <div class="etablissements-list">
+          {% if section == 'admin' %}
+          <!-- Messages administrateurs statiques -->
+          <div class="etablissement-item unread priority-haute" data-etablissement="administration" data-type="autre" data-priorite="haute" data-statut="non_lu">
+            <div class="etablissement-avatar">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">Administration Goo-School</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-haute">Haute</div>
+                  <div class="message-status status-non_lu">Non lu</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Nouvelle directive commerciale concernant la prospection des établissements du secondaire...</p>
+                <span class="message-time">15/12/2024 à 09:30</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="etablissement-item priority-normale" data-etablissement="administration" data-type="autre" data-priorite="normale" data-statut="lu">
+            <div class="etablissement-avatar">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">Administration RH</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-normale">Normale</div>
+                  <div class="message-status status-lu">Lu</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Formation sur les nouveaux outils de prospection organisée la semaine prochaine...</p>
+                <span class="message-time">14/12/2024 à 14:15</span>
+              </div>
+            </div>
+          </div>
+
+          {% else %}
+          <!-- Tickets établissements statiques -->
+          <a href="{% url 'school_admin:commercial_conversation_etablissement' %}">
+            <div class="etablissement-item unread priority-urgente ticket-ouvert" data-etablissement="lycée victor hugo" data-type="support" data-priorite="urgente" data-statut="non_lu" data-ticket-statut="ouvert">
+                <div class="etablissement-avatar">
+                  <i class="fas fa-building"></i>
+                </div>
+                <div class="etablissement-content">
+                  <div class="etablissement-header">
+                    <h3 class="etablissement-name">Lycée Victor Hugo</h3>
+                    <div class="message-meta">
+                      <div class="message-priority priority-urgente">Urgente</div>
+                      <div class="message-status status-non_lu">Non lu</div>
+                      <div class="ticket-status ticket-ouvert">Ouvert</div>
+                    </div>
+                  </div>
+                  <div class="last-message">
+                    <p class="message-preview">URGENT - Problème critique avec la connexion à votre plateforme depuis ce matin...</p>
+                    <span class="message-time">15/12/2024 à 08:45</span>
+                  </div>
+                </div>
+              </div>
+    
+         </a>
+
+         <a href="{% url 'school_admin:commercial_conversation_etablissement' %}">
+          <div class="etablissement-item priority-normale ticket-en_cours" data-etablissement="collège rosa parks" data-type="demande_info" data-priorite="normale" data-statut="lu" data-ticket-statut="en_cours">
+            <div class="etablissement-avatar">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">Collège Rosa Parks</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-normale">Normale</div>
+                  <div class="message-status status-lu">Lu</div>
+                  <div class="ticket-status ticket-en_cours">En cours</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Demande de formation pour l'équipe administrative...</p>
+                <span class="message-time">14/12/2024 à 10:30</span>
+                <span class="assigned-to">Pris en charge par Pierre Martin</span>
+              </div>
+            </div>
+
+          </div>
+          </a>
+
+          <a href="{% url 'school_admin:commercial_conversation_etablissement' %}">
+          <div class="etablissement-item priority-basse ticket-ferme" data-etablissement="école primaire jean jaurès" data-type="autre" data-priorite="basse" data-statut="repondu" data-ticket-statut="ferme">
+            <div class="etablissement-avatar">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">École Primaire Jean Jaurès</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-basse">Basse</div>
+                  <div class="message-status status-repondu">Répondu</div>
+                  <div class="ticket-status ticket-ferme">Fermé</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Question sur la facturation et les frais supplémentaires...</p>
+                <span class="message-time">13/12/2024 à 15:20</span>
+                <span class="assigned-to">Pris en charge par Sophie Dubois</span>
+              </div>
+            </div>
+          
+          </div>
+
+          <div class="etablissement-item priority-haute ticket-ouvert" data-etablissement="lycée marie curie" data-type="support" data-priorite="haute" data-statut="non_lu" data-ticket-statut="ouvert">
+            <div class="etablissement-avatar">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">Lycée Marie Curie</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-haute">Haute</div>
+                  <div class="message-status status-non_lu">Non lu</div>
+                  <div class="ticket-status ticket-ouvert">Ouvert</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Problème avec l'import des données d'élèves. Le fichier CSV ne semble pas être reconnu...</p>
+                <span class="message-time">15/12/2024 à 11:15</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="etablissement-item priority-normale ticket-en_cours" data-etablissement="université sciences appliquées" data-type="devis" data-priorite="normale" data-statut="lu" data-ticket-statut="en_cours">
+            <div class="etablissement-avatar">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">Université Sciences Appliquées</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-normale">Normale</div>
+                  <div class="message-status status-lu">Lu</div>
+                  <div class="ticket-status ticket-en_cours">En cours</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Demande de devis pour extension de l'abonnement avec le module de gestion des absences...</p>
+                <span class="message-time">14/12/2024 à 16:45</span>
+                <span class="assigned-to">Pris en charge par Alexandre Moreau</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="etablissement-item priority-basse ticket-ferme" data-etablissement="collège international" data-type="autre" data-priorite="basse" data-statut="lu" data-ticket-statut="ferme">
+            <div class="etablissement-avatar">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="etablissement-content">
+              <div class="etablissement-header">
+                <h3 class="etablissement-name">Collège International</h3>
+                <div class="message-meta">
+                  <div class="message-priority priority-basse">Basse</div>
+                  <div class="message-status status-lu">Lu</div>
+                  <div class="ticket-status ticket-ferme">Fermé</div>
+                </div>
+              </div>
+              <div class="last-message">
+                <p class="message-preview">Félicitations pour la qualité du service fourni. Votre équipe a été très réactive...</p>
+                <span class="message-time">12/12/2024 à 14:30</span>
+                <span class="assigned-to">Pris en charge par Claire Bernard</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Version dynamique (commentée pour l'instant) -->
+        <!--
+        {% if messages_list %}
+        <div class="messages-list">
+          {% for message in messages_list %}
+          <div
+            class="message-card {% if message.statut == 'non_lu' %}unread{% endif %} priority-{{ message.priorite }} ticket-{{ message.ticket_statut }}"
+            data-etablissement="{{ message.etablissement.nom_etablissement|lower }}"
+            data-type="{{ message.type_message }}"
+            data-priorite="{{ message.priorite }}"
+            data-statut="{{ message.statut }}"
+            data-ticket-statut="{{ message.ticket_statut }}"
+          >
+            <div class="card-header">
+              <div class="message-info">
+                <div class="message-avatar">
+                  <i class="fas fa-building"></i>
+                </div>
+                <div class="message-details">
+                  <h3 class="message-subject">
+                    {{ message.sujet }}
+                  </h3>
+                  <p class="message-preview">
+                    {{ message.contenu|truncatewords:20 }}
+                  </p>
+                </div>
+              </div>
+              <div class="message-meta">
+                <div class="message-priority priority-{{ message.priorite }}">
+                  {{ message.get_priorite_display }}
+                </div>
+                <div class="message-status status-{{ message.statut }}">
+                  {{ message.get_statut_display }}
+                </div>
+                {% if message.expediteur_type == 'etablissement' %}
+                <div class="ticket-status ticket-{{ message.ticket_statut }}">
+                  {{ message.get_ticket_statut_display }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="message-info-grid">
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-building"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Établissement</span>
+                    <span class="info-value">{{ message.etablissement.nom_etablissement }}</span>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-tag"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Type</span>
+                    <span class="info-value">{{ message.get_type_message_display }}</span>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Date d'envoi</span>
+                    <span class="info-value">{{ message.date_envoi|date:"d/m/Y à H:i" }}</span>
+                  </div>
+                </div>
+                {% if message.date_lecture %}
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-eye"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Lu le</span>
+                    <span class="info-value">{{ message.date_lecture|date:"d/m/Y à H:i" }}</span>
+                  </div>
+                </div>
+                {% endif %}
+                {% if message.expediteur_type == 'etablissement' and message.pris_en_charge_par %}
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-user-cog"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Pris en charge par</span>
+                    <span class="info-value">{{ message.pris_en_charge_par.nom }} {{ message.pris_en_charge_par.prenom }}</span>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+              
+              <div class="card-buttons">
+                <a
+                  href="{% url 'school_admin:commercial_detail_message' message.id %}"
+                  class="btn-card btn-details"
+                >
+                  <i class="fas fa-eye"></i>
+                  Voir le message
+                </a>
+                <a
+                  href="{% url 'school_admin:commercial_detail_etablissement' message.etablissement.id %}"
+                  class="btn-card btn-secondary"
+                >
+                  <i class="fas fa-building"></i>
+                  Voir l'établissement
+                </a>
+                {% if message.expediteur_type == 'etablissement' and message.ticket_statut == 'ouvert' %}
+                <form method="post" action="{% url 'school_admin:commercial_detail_message' message.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="prendre_en_charge">
+                  <button type="submit" class="btn-card btn-ticket">
+                    <i class="fas fa-hand-paper"></i>
+                    Prendre en charge
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="creation-info">
+                <i class="fas fa-user"></i>
+                <span>De {{ message.expediteur.nom }} {{ message.expediteur.prenom }}</span>
+              </div>
+              <div class="message-actions">
+                <a
+                  href="{% url 'school_admin:commercial_detail_message' message.id %}"
+                  class="action-btn"
+                  title="Voir le message"
+                >
+                  <i class="fas fa-eye"></i>
+                </a>
+                {% if message.statut == 'non_lu' %}
+                <form method="post" action="{% url 'school_admin:commercial_detail_message' message.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="marquer_lu">
+                  <button type="submit" class="action-btn" title="Marquer comme lu">
+                    <i class="fas fa-envelope-open"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-envelope-open"></i>
+          </div>
+          <h3>Aucun message trouvé</h3>
+          <p>Vous n'avez pas encore de messages ou ils correspondent aux filtres appliqués.</p>
+          <a
+            href="{% url 'school_admin:commercial_liste_etablissements' %}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-plus"></i>
+            Créer un message
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <script>
+      // Auto-close messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(".message");
+        messages.forEach((message) => {
+          setTimeout(() => {
+            if (message.parentElement) {
+              message.style.animation = "slideOutRight 0.3s ease";
+              setTimeout(() => {
+                if (message.parentElement) {
+                  message.remove();
+                }
+              }, 300);
+            }
+          }, 4000);
+        });
+
+        // Filtres
+        const searchInput = document.getElementById("search-input");
+        const typeFilter = document.getElementById("type-filter");
+        const prioriteFilter = document.getElementById("priorite-filter");
+        const statutFilter = document.getElementById("statut-filter");
+        const etablissementFilter = document.getElementById("etablissement-filter");
+        const messageCards = document.querySelectorAll(".message-card");
+
+        function filterMessages() {
+          const searchTerm = searchInput.value.toLowerCase();
+          const selectedType = typeFilter.value;
+          const selectedPriorite = prioriteFilter.value;
+          const selectedStatut = statutFilter.value;
+          const selectedEtablissement = etablissementFilter.value;
+
+          messageCards.forEach((card) => {
+            const etablissement = card.dataset.etablissement;
+            const type = card.dataset.type;
+            const priorite = card.dataset.priorite;
+            const statut = card.dataset.statut;
+            const etablissementId = card.querySelector('.btn-card[href*="detail_etablissement"]')?.href.split("/").slice(-2, -1)[0];
+
+            let show = true;
+
+            // Filtre par recherche
+            if (searchTerm && !etablissement.includes(searchTerm)) {
+              show = false;
+            }
+
+            // Filtre par type
+            if (selectedType && type !== selectedType) {
+              show = false;
+            }
+
+            // Filtre par priorité
+            if (selectedPriorite && priorite !== selectedPriorite) {
+              show = false;
+            }
+
+            // Filtre par statut
+            if (selectedStatut && statut !== selectedStatut) {
+              show = false;
+            }
+
+            // Filtre par établissement
+            if (selectedEtablissement && etablissementId !== selectedEtablissement) {
+              show = false;
+            }
+
+            card.style.display = show ? "block" : "none";
+          });
+        }
+
+        searchInput.addEventListener("input", filterMessages);
+        typeFilter.addEventListener("change", filterMessages);
+        prioriteFilter.addEventListener("change", filterMessages);
+        statutFilter.addEventListener("change", filterMessages);
+        etablissementFilter.addEventListener("change", filterMessages);
+      });
+    </script>
+  </body>
+</html>

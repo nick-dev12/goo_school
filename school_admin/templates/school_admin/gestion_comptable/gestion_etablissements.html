@@ -1,0 +1,501 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Établissements - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/gestion_etablissements.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
+
+    <div class="dashboard-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <h1><i class="fas fa-chalkboard"></i> Gestion des Établissements</h1>
+          <p>Gestion des établissements et facturation</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" onclick="refreshData()">
+            <i class="fas fa-sync-alt"></i> Actualiser
+          </button>
+          <button class="btn btn-primary" onclick="exportAllData()">
+            <i class="fas fa-download"></i> Exporter tout
+          </button>
+          <button class="btn btn-success" onclick="generateAllInvoices()">
+            <i class="fas fa-file-invoice"></i> Générer toutes les factures
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-icon">
+            <i class="fas fa-school"></i>
+          </div>
+          <div class="card-content">
+            <h3>Total Établissements</h3>
+            <div class="card-value">24</div>
+            <div class="card-change positive">+3 ce mois</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="card-content">
+            <h3>En Règle</h3>
+            <div class="card-value">18</div>
+            <div class="card-change positive">75%</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="card-content">
+            <h3>Non en Règle</h3>
+            <div class="card-value">6</div>
+            <div class="card-change negative">25%</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">
+            <i class="fas fa-file-invoice"></i>
+          </div>
+          <div class="card-content">
+            <h3>Factures Générées</h3>
+            <div class="card-value">22</div>
+            <div class="card-change positive">92%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search and Filter Bar -->
+      <div class="search-filter-bar">
+        <div class="search-section">
+          <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Rechercher un établissement..."
+            />
+          </div>
+          <div class="filter-select">
+            <select id="statusFilter">
+              <option value="">Tous les statuts</option>
+              <option value="en_regle">En règle</option>
+              <option value="non_en_regle">Non en règle</option>
+              <option value="en_attente">En attente</option>
+            </select>
+          </div>
+          <div class="filter-select">
+            <select id="typeFilter">
+              <option value="">Tous les types</option>
+              <option value="prive">Privé</option>
+              <option value="public">Public</option>
+              <option value="semi_prive">Semi-privé</option>
+            </select>
+          </div>
+        </div>
+        <div class="action-section">
+          <button class="btn btn-outline" onclick="selectAll()">
+            <i class="fas fa-check-square"></i> Tout sélectionner
+          </button>
+          <button class="btn btn-outline" onclick="clearSelection()">
+            <i class="fas fa-square"></i> Désélectionner
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs Container -->
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="etablissements-en-regle">
+            <i class="fas fa-check-circle"></i> Établissements en Règle
+          </button>
+          <button class="tab-btn" data-tab="etablissements-non-en-regle">
+            <i class="fas fa-exclamation-triangle"></i> Non en Règle
+          </button>
+          <button class="tab-btn" data-tab="factures">
+            <i class="fas fa-file-invoice"></i> Factures
+          </button>
+        </div>
+
+        <!-- Tab: Établissements en Règle -->
+        <div id="etablissements-en-regle" class="tab-panel active">
+          <div class="panel-header">
+            <h3>Établissements en Règle</h3>
+            <div class="panel-actions">
+              <button
+                class="btn btn-success"
+                onclick="generateInvoicesForSelected()"
+              >
+                <i class="fas fa-file-invoice"></i> Générer factures
+                sélectionnées
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAllEnRegle" /></th>
+                  <th>Établissement</th>
+                  <th>Type</th>
+                  <th>Élèves</th>
+                  <th>Montant Total</th>
+                  <th>Dernier Paiement</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Lycée Moderne de Douala</h4>
+                      <p>Douala, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="type-badge prive">Privé</span></td>
+                  <td><span class="student-count">450</span></td>
+                  <td><span class="amount">1,350,000 FCFA</span></td>
+                  <td><span class="date">15 Jan 2024</span></td>
+                  <td><span class="status-badge en-regle">En règle</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a
+                        href="{% url 'school_admin:details_financiers_etablissement'%}"
+                      >
+                        <button class="btn-action" title="Voir détails">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
+                      <button class="btn-action" title="Générer facture">
+                        <i class="fas fa-file-invoice"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer facture">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Collège Saint-Joseph</h4>
+                      <p>Yaoundé, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="type-badge prive">Privé</span></td>
+                  <td><span class="student-count">320</span></td>
+                  <td><span class="amount">960,000 FCFA</span></td>
+                  <td><span class="date">10 Jan 2024</span></td>
+                  <td><span class="status-badge en-regle">En règle</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a
+                        href="{% url 'school_admin:details_financiers_etablissement'%}"
+                      >
+                        <button class="btn-action" title="Voir détails">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
+                      <button class="btn-action" title="Générer facture">
+                        <i class="fas fa-file-invoice"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer facture">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>École Publique de Bafoussam</h4>
+                      <p>Bafoussam, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="type-badge public">Public</span></td>
+                  <td><span class="student-count">280</span></td>
+                  <td><span class="amount">840,000 FCFA</span></td>
+                  <td><span class="date">12 Jan 2024</span></td>
+                  <td><span class="status-badge en-regle">En règle</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a
+                        href="{% url 'school_admin:details_financiers_etablissement'%}"
+                      >
+                        <button class="btn-action" title="Voir détails">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
+                      <button class="btn-action" title="Générer facture">
+                        <i class="fas fa-file-invoice"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer facture">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Établissements Non en Règle -->
+        <div id="etablissements-non-en-regle" class="tab-panel">
+          <div class="panel-header">
+            <h3>Établissements Non en Règle</h3>
+            <div class="panel-actions">
+              <button class="btn btn-warning" onclick="sendReminders()">
+                <i class="fas fa-bell"></i> Envoyer relances
+              </button>
+              <button class="btn btn-danger" onclick="escalateToLegal()">
+                <i class="fas fa-gavel"></i> Escalader
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAllNonEnRegle" /></th>
+                  <th>Établissement</th>
+                  <th>Type</th>
+                  <th>Élèves</th>
+                  <th>Montant Dû</th>
+                  <th>Retard</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="urgent">
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Institut Technique de Garoua</h4>
+                      <p>Garoua, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="type-badge semi_prive">Semi-privé</span></td>
+                  <td><span class="student-count">180</span></td>
+                  <td><span class="amount">540,000 FCFA</span></td>
+                  <td><span class="delay-badge critical">45 jours</span></td>
+                  <td><span class="status-badge en-retard">En retard</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer relance">
+                        <i class="fas fa-bell"></i>
+                      </button>
+                      <button class="btn-action" title="Contacter">
+                        <i class="fas fa-phone"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Lycée de Bertoua</h4>
+                      <p>Bertoua, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="type-badge public">Public</span></td>
+                  <td><span class="student-count">220</span></td>
+                  <td><span class="amount">660,000 FCFA</span></td>
+                  <td><span class="delay-badge warning">15 jours</span></td>
+                  <td><span class="status-badge en-retard">En retard</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer relance">
+                        <i class="fas fa-bell"></i>
+                      </button>
+                      <button class="btn-action" title="Contacter">
+                        <i class="fas fa-phone"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Factures -->
+        <div id="factures" class="tab-panel">
+          <div class="panel-header">
+            <h3>Gestion des Factures</h3>
+            <div class="panel-actions">
+              <button class="btn btn-success" onclick="sendSelectedInvoices()">
+                <i class="fas fa-paper-plane"></i> Envoyer factures
+                sélectionnées
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAllFactures" /></th>
+                  <th>Facture</th>
+                  <th>Établissement</th>
+                  <th>Montant Total</th>
+                  <th>Montant Payé</th>
+                  <th>Reste à Payer</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>FAC-2024-001</h4>
+                      <p>Janvier 2024</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Lycée Moderne de Douala</h4>
+                      <p>Douala, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="amount">1,350,000 FCFA</span></td>
+                  <td><span class="amount paid">1,350,000 FCFA</span></td>
+                  <td><span class="amount remaining">0 FCFA</span></td>
+                  <td><span class="status-badge paye">Payée</span></td>
+                  <td><span class="date">15 Jan 2024</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="{% url 'school_admin:facture_etablissement' %}">
+                        <button class="btn-action" title="Voir facture">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
+
+                      <button class="btn-action" title="Télécharger PDF">
+                        <i class="fas fa-download"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>FAC-2024-002</h4>
+                      <p>Janvier 2024</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Collège Saint-Joseph</h4>
+                      <p>Yaoundé, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="amount">960,000 FCFA</span></td>
+                  <td><span class="amount paid">500,000 FCFA</span></td>
+                  <td><span class="amount remaining">460,000 FCFA</span></td>
+                  <td>
+                    <span class="status-badge partiel">Paiement partiel</span>
+                  </td>
+                  <td><span class="date">10 Jan 2024</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="{% url 'school_admin:facture_etablissement' %}">
+                        <button class="btn-action" title="Voir facture">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
+                      <button class="btn-action" title="Marquer comme payée">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer relance">
+                        <i class="fas fa-bell"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="row-checkbox" /></td>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>FAC-2024-003</h4>
+                      <p>Janvier 2024</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="etablissement-info">
+                      <h4>Institut Technique de Garoua</h4>
+                      <p>Garoua, Cameroun</p>
+                    </div>
+                  </td>
+                  <td><span class="amount">540,000 FCFA</span></td>
+                  <td><span class="amount paid">0 FCFA</span></td>
+                  <td>
+                    <span class="amount remaining urgent">540,000 FCFA</span>
+                  </td>
+                  <td><span class="status-badge impaye">Impayée</span></td>
+                  <td><span class="date">05 Jan 2024</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="{% url 'school_admin:facture_etablissement' %}">
+                        <button class="btn-action" title="Voir facture">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
+                      <button class="btn-action" title="Marquer comme payée">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer relance">
+                        <i class="fas fa-bell"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/gestion_etablissements.js' %}"></script>
+  </body>
+</html>

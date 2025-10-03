@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <title>Etablissement</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/etablissement.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <!-- Messages d'erreur généraux -->
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <section class="section1">
+      <div>
+        <h1>Gestion des Établissements</h1>
+        {% if total_etablissements %}
+          <p class="etablissement-count">{{ total_etablissements }} établissement{% if total_etablissements > 1 %}s{% endif %} au total</p>
+        {% endif %}
+      </div>
+      <a href="{% url 'school_admin:ajout_etablissement' %}"><i class="fas fa-plus"></i> Ajouter un Établissement</a>
+    </section>
+
+    <section class="section2">
+      <div class="content-container">
+        <!-- Filtres et recherche -->
+        <div class="filters-container">
+          <form id="filter-form" method="GET" action="{% url 'school_admin:etablissements' %}">
+            <div class="search-container">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" name="search" placeholder="Rechercher un établissement..." class="search-input" value="{{ search_query }}" />
+            </div>
+            <div class="filters">
+              <div class="filter-item">
+                <label for="filter-type">Type d'établissement:</label>
+                <select id="filter-type" name="type" class="filter-select" onchange="document.getElementById('filter-form').submit()">
+                  <option value="">Tous</option>
+                  <option value="primary" {% if type_filter == 'primary' %}selected{% endif %}>École Primaire</option>
+                  <option value="collège" {% if type_filter == 'collège' %}selected{% endif %}>Collège</option>
+                  <option value="lycée" {% if type_filter == 'lycée' %}selected{% endif %}>Lycée</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-status">Statut:</label>
+                <select id="filter-status" name="status" class="filter-select" onchange="document.getElementById('filter-form').submit()">
+                  <option value="">Tous</option>
+                  <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Actif</option>
+                  <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactif</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-filter"></i> Filtrer
+                </button>
+                {% if search_query or type_filter or status_filter %}
+                  <a href="{% url 'school_admin:etablissements' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Réinitialiser
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Message pour les résultats de recherche -->
+        {% if search_query or type_filter or status_filter %}
+        <div class="search-results">
+          <p>
+            {% if total_etablissements > 0 %}
+              <i class="fas fa-search"></i> {{ total_etablissements }} résultat{% if total_etablissements > 1 %}s{% endif %} trouvé{% if total_etablissements > 1 %}s{% endif %}
+              {% if search_query %} pour "<strong>{{ search_query }}</strong>"{% endif %}
+              {% if type_filter %}
+                {% if type_filter == 'primary' %} dans les <strong>Écoles Primaires</strong>{% endif %}
+                {% if type_filter == 'collège' %} dans les <strong>Collèges</strong>{% endif %}
+                {% if type_filter == 'lycée' %} dans les <strong>Lycées</strong>{% endif %}
+              {% endif %}
+              {% if status_filter %}
+                {% if status_filter == 'active' %} avec statut <strong>Actif</strong>{% endif %}
+                {% if status_filter == 'inactive' %} avec statut <strong>Inactif</strong>{% endif %}
+              {% endif %}
+            {% else %}
+              <i class="fas fa-exclamation-circle"></i> Aucun résultat trouvé pour votre recherche.
+            {% endif %}
+          </p>
+        </div>
+        {% endif %}
+        
+        <!-- Tableau des établissements -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Établissement</th>
+                <th>Directeur</th>
+                <th>Contact</th>
+                <th>Effectifs</th>
+                <th>Pays</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if etablissements %}
+                {% for etablissement in etablissements %}
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <div class="teacher-avatar">{{ etablissement.nom|slice:":1" }}</div>
+                      <div>
+                        <div class="teacher-name">{{ etablissement.nom }}</div>
+                        <div class="teacher-email">{{ etablissement.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}</td>
+                  <td>
+                    <div class="teacher-subjects">
+                      {% if etablissement.telephone %}
+                        <span class="subject-tag">{{ etablissement.telephone }}</span>
+                      {% else %}
+                        <span class="subject-tag">Non renseigné</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>Non disponible</td>
+                  <td>{{ etablissement.pays }}</td>
+                  <td>
+                    {% if etablissement.actif %}
+                      <span class="teacher-status status-active">Actif</span>
+                    {% else %}
+                      <span class="teacher-status status-inactive">Inactif</span>
+                    {% endif %}
+                  </td>
+                  <td class="actions-cell">
+                    <a href="{% url 'school_admin:detaille_etablissement' %}?id={{ etablissement.id }}"><button class="action-btn view-btn" title="Voir les détails"><i class="fas fa-eye"></i></button></a>
+                    <button class="action-btn edit-btn" title="Modifier"><i class="fas fa-edit"></i></button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 30px;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                      <i class="fas fa-school" style="font-size: 3rem; color: var(--gray-300);"></i>
+                      <div>
+                        <p style="font-weight: 500; margin-bottom: 5px;">Aucun établissement trouvé</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Ajoutez votre premier établissement en cliquant sur le bouton "Ajouter un Etablissement"</p>
+                      </div>
+                      <a href="{% url 'school_admin:ajout_etablissement' %}" class="btn btn-primary" style="margin-top: 10px;">
+                        <i class="fas fa-plus"></i> Ajouter un établissement
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if etablissements.paginator.num_pages > 1 %}
+        <div class="pagination">
+          {% if etablissements.has_previous %}
+            <a href="?page={{ etablissements.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+          {% else %}
+            <button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
+          {% endif %}
+          
+          {% for i in etablissements.paginator.page_range %}
+            {% if etablissements.number == i %}
+              <button class="pagination-btn active">{{ i }}</button>
+            {% elif i > etablissements.number|add:"-3" and i < etablissements.number|add:"3" %}
+              <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">{{ i }}</a>
+            {% endif %}
+          {% endfor %}
+          
+          {% if etablissements.has_next %}
+            <a href="?page={{ etablissements.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
+          {% else %}
+            <button class="pagination-btn" disabled><i class="fas fa-chevron-right"></i></button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal pour ajouter/modifier un enseignant -->
+    </section>
+  </body>
+</html>

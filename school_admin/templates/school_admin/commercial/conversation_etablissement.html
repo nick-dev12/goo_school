@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conversation - Lycée Victor Hugo - Goo-School Commercial</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/messages.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+    <div class="page-container">
+      <!-- Messages -->
+      {% if messages %}
+      <div class="message-container">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i
+              class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"
+            ></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Header de la conversation -->
+      <div class="conversation-header">
+        <div class="conversation-info">
+          <div class="etablissement-avatar">
+            <i class="fas fa-building"></i>
+          </div>
+          <div class="conversation-details">
+            <h1>Messages de Lycée Victor Hugo</h1>
+            <p class="conversation-subtitle">
+              5 messages reçus • Dernier message le 15/12/2024 à 08:45
+            </p>
+          </div>
+        </div>
+        <div class="conversation-actions">
+          <a
+            href="{% url 'school_admin:commercial_messages' %}"
+            class="btn btn-outline"
+          >
+            <i class="fas fa-arrow-left"></i>
+            Retour aux messages
+          </a>
+          <a href="#" class="btn btn-secondary">
+            <i class="fas fa-building"></i>
+            Voir l'établissement
+          </a>
+        </div>
+      </div>
+
+      <!-- Messages reçus de l'établissement -->
+      <div class="conversation-messages">
+        <!-- Message 1 - Demande d'information -->
+        <div class="message-item received">
+          <div class="message-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">M. Dupont (Directeur)</span>
+              <span class="message-time">12/12/2024 à 14:30</span>
+            </div>
+            <div class="message-body">
+              <p><strong>Demande d'information sur vos services</strong></p>
+              <p>Bonjour,</p>
+              <p>
+                J'aimerais avoir des informations sur vos services de gestion
+                scolaire. Nous sommes un lycée de 800 élèves et nous cherchons
+                une solution complète.
+              </p>
+              <p>Pourriez-vous nous envoyer une documentation détaillée ?</p>
+              <p>Cordialement,<br />M. Dupont</p>
+            </div>
+            <div class="message-meta">
+              <div class="message-priority priority-normale">Normale</div>
+              <div class="message-status status-lu">Lu</div>
+              <div class="ticket-status ticket-ferme">Traité</div>
+            </div>
+            <div class="ticket-assignment">
+              <i class="fas fa-user-cog"></i>
+              <span>Pris en charge par Pierre Martin</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message 2 - Demande de démonstration -->
+        <div class="message-item received">
+          <div class="message-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">M. Dupont (Directeur)</span>
+              <span class="message-time">13/12/2024 à 09:20</span>
+            </div>
+            <div class="message-body">
+              <p><strong>Demande de démonstration</strong></p>
+              <p>Bonjour,</p>
+              <p>
+                Suite à notre échange précédent, nous aimerions programmer une
+                démonstration de votre solution. Quand seriez-vous disponible la
+                semaine prochaine ?
+              </p>
+              <p>Cordialement,<br />M. Dupont</p>
+            </div>
+            <div class="message-meta">
+              <div class="message-priority priority-haute">Haute</div>
+              <div class="message-status status-lu">Lu</div>
+              <div class="ticket-status ticket-en_cours">En cours</div>
+            </div>
+            <div class="ticket-assignment">
+              <i class="fas fa-user-cog"></i>
+              <span>Pris en charge par Pierre Martin</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message 3 - Question sur la facturation -->
+        <div class="message-item received">
+          <div class="message-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">Mme Leroy (Comptable)</span>
+              <span class="message-time">14/12/2024 à 11:15</span>
+            </div>
+            <div class="message-body">
+              <p><strong>Question sur la facturation</strong></p>
+              <p>Bonjour,</p>
+              <p>
+                J'ai une question concernant notre dernière facture. Pouvez-vous
+                m'expliquer les frais supplémentaires qui apparaissent ?
+              </p>
+              <p>Merci d'avance,<br />Mme Leroy</p>
+            </div>
+            <div class="message-meta">
+              <div class="message-priority priority-basse">Basse</div>
+              <div class="message-status status-lu">Lu</div>
+              <div class="ticket-status ticket-ouvert">Ouvert</div>
+            </div>
+            <div class="message-actions">
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="prendre_en_charge" />
+                <input type="hidden" name="message_id" value="3" />
+                <button type="submit" class="btn btn-warning">
+                  <i class="fas fa-hand-paper"></i>
+                  Prendre en charge ce ticket
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message 4 - Problème technique -->
+        <div class="message-item received">
+          <div class="message-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">M. Bernard (Responsable IT)</span>
+              <span class="message-time">14/12/2024 à 16:30</span>
+            </div>
+            <div class="message-body">
+              <p><strong>Problème avec l'import des données</strong></p>
+              <p>Bonjour,</p>
+              <p>
+                Nous avons des difficultés avec l'import de nos données
+                d'élèves. Le fichier CSV ne semble pas être reconnu par votre
+                système.
+              </p>
+              <p>Pouvez-vous nous aider ?</p>
+              <p>Cordialement,<br />M. Bernard</p>
+            </div>
+            <div class="message-meta">
+              <div class="message-priority priority-haute">Haute</div>
+              <div class="message-status status-lu">Lu</div>
+              <div class="ticket-status ticket-ouvert">Ouvert</div>
+            </div>
+            <div class="message-actions">
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="prendre_en_charge" />
+                <input type="hidden" name="message_id" value="4" />
+                <button type="submit" class="btn btn-warning">
+                  <i class="fas fa-hand-paper"></i>
+                  Prendre en charge ce ticket
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message 5 - URGENT -->
+        <div class="message-item received priority-urgente">
+          <div class="message-avatar">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">M. Dupont (Directeur)</span>
+              <span class="message-time">15/12/2024 à 08:45</span>
+            </div>
+            <div class="message-body">
+              <p><strong>URGENT - Problème de connexion</strong></p>
+              <p>Bonjour,</p>
+              <p>
+                Nous rencontrons un problème critique avec la connexion à votre
+                plateforme depuis ce matin. Aucun enseignant ne peut accéder au
+                système. Cela bloque complètement nos activités.
+              </p>
+              <p>Pouvez-vous intervenir en urgence ?</p>
+              <p>Cordialement,<br />M. Dupont</p>
+            </div>
+            <div class="message-meta">
+              <div class="message-priority priority-urgente">Urgente</div>
+              <div class="message-status status-non_lu">Non lu</div>
+              <div class="ticket-status ticket-ouvert">Ticket ouvert</div>
+            </div>
+            <div class="message-actions">
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="prendre_en_charge" />
+                <input type="hidden" name="message_id" value="5" />
+                <button type="submit" class="btn btn-warning">
+                  <i class="fas fa-hand-paper"></i>
+                  Prendre en charge ce ticket
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Résumé des tickets -->
+      <div class="tickets-summary">
+        <h3 class="section-title">
+          <i class="fas fa-chart-bar"></i>
+          Résumé des tickets de cet établissement
+        </h3>
+        <div class="summary-stats">
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="summary-content">
+              <h4>5</h4>
+              <p>Messages reçus</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="fas fa-folder-open"></i>
+            </div>
+            <div class="summary-content">
+              <h4>2</h4>
+              <p>Tickets ouverts</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="fas fa-user-cog"></i>
+            </div>
+            <div class="summary-content">
+              <h4>1</h4>
+              <p>En cours</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="summary-content">
+              <h4>2</h4>
+              <p>Traités</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Auto-close messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(".message");
+        messages.forEach((message) => {
+          setTimeout(() => {
+            if (message.parentElement) {
+              message.style.animation = "slideOutRight 0.3s ease";
+              setTimeout(() => {
+                if (message.parentElement) {
+                  message.remove();
+                }
+              }, 300);
+            }
+          }, 4000);
+        });
+      });
+    </script>
+  </body>
+</html>

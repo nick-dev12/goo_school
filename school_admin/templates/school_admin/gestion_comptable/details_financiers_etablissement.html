@@ -1,0 +1,506 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détails Financiers - Goo-School</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/details_financiers_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
+
+    <div class="dashboard-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <button class="btn btn-outline" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i> Retour
+          </button>
+          <div class="header-title">
+            <h1><i class="fas fa-chart-line"></i> Détails Financiers</h1>
+            <p>Lycée Moderne de Douala - ID: {{ etablissement_id }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" onclick="refreshData()">
+            <i class="fas fa-sync-alt"></i> Actualiser
+          </button>
+          <button class="btn btn-primary" onclick="exportData()">
+            <i class="fas fa-download"></i> Exporter
+          </button>
+          <button class="btn btn-success" onclick="generateInvoice()">
+            <i class="fas fa-file-invoice"></i> Générer Facture
+          </button>
+        </div>
+      </div>
+
+      <!-- Établissement Info Card -->
+      <div class="etablissement-card">
+        <div class="etablissement-header">
+          <div class="etablissement-avatar">
+            <i class="fas fa-school"></i>
+          </div>
+          <div class="etablissement-info">
+            <h2>Lycée Moderne de Douala</h2>
+            <p><i class="fas fa-map-marker-alt"></i> Douala, Cameroun</p>
+            <div class="etablissement-meta">
+              <span class="type-badge prive">Privé</span>
+              <span class="status-badge en-regle">En règle</span>
+              <span class="student-count">450 élèves</span>
+            </div>
+          </div>
+        </div>
+        <div class="etablissement-stats">
+          <div class="stat-item">
+            <div class="stat-value">1,350,000 FCFA</div>
+            <div class="stat-label">Montant Total</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">1,200,000 FCFA</div>
+            <div class="stat-label">Montant Payé</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">150,000 FCFA</div>
+            <div class="stat-label">Reste à Payer</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">89%</div>
+            <div class="stat-label">Taux de Paiement</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Overview Cards -->
+      <div class="overview-cards">
+        <div class="overview-card">
+          <div class="card-icon">
+            <i class="fas fa-money-bill-wave"></i>
+          </div>
+          <div class="card-content">
+            <h3>Revenus Mensuels</h3>
+            <div class="card-value">1,350,000 FCFA</div>
+            <div class="card-change positive">+5.2% vs mois dernier</div>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="card-icon">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <div class="card-content">
+            <h3>Dernier Paiement</h3>
+            <div class="card-value">15 Jan 2024</div>
+            <div class="card-change positive">À jour</div>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="card-icon">
+            <i class="fas fa-file-invoice"></i>
+          </div>
+          <div class="card-content">
+            <h3>Factures Générées</h3>
+            <div class="card-value">12</div>
+            <div class="card-change positive">Cette année</div>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="card-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="card-content">
+            <h3>Retards</h3>
+            <div class="card-value">0</div>
+            <div class="card-change positive">Aucun retard</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs Container -->
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="historique-paiements">
+            <i class="fas fa-history"></i> Historique des Paiements
+          </button>
+          <button class="tab-btn" data-tab="factures">
+            <i class="fas fa-file-invoice"></i> Factures
+          </button>
+          <button class="tab-btn" data-tab="statistiques">
+            <i class="fas fa-chart-bar"></i> Statistiques
+          </button>
+          <button class="tab-btn" data-tab="documents">
+            <i class="fas fa-folder"></i> Documents
+          </button>
+        </div>
+
+        <!-- Tab: Historique des Paiements -->
+        <div id="historique-paiements" class="tab-panel active">
+          <div class="panel-header">
+            <h3>Historique des Paiements</h3>
+            <div class="panel-actions">
+              <button class="btn btn-primary" onclick="addPayment()">
+                <i class="fas fa-plus"></i> Ajouter Paiement
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type de Paiement</th>
+                  <th>Montant</th>
+                  <th>Méthode</th>
+                  <th>Référence</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="date">15 Jan 2024</span></td>
+                  <td><span class="payment-type mensuel">Mensuel</span></td>
+                  <td><span class="amount">1,350,000 FCFA</span></td>
+                  <td><span class="payment-method virement">Virement</span></td>
+                  <td><span class="reference">VIR-2024-001</span></td>
+                  <td><span class="status-badge paye">Payé</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Télécharger reçu">
+                        <i class="fas fa-download"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="date">15 Déc 2023</span></td>
+                  <td><span class="payment-type mensuel">Mensuel</span></td>
+                  <td><span class="amount">1,350,000 FCFA</span></td>
+                  <td><span class="payment-method cheque">Chèque</span></td>
+                  <td><span class="reference">CHQ-2023-156</span></td>
+                  <td><span class="status-badge paye">Payé</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Télécharger reçu">
+                        <i class="fas fa-download"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="date">15 Nov 2023</span></td>
+                  <td><span class="payment-type mensuel">Mensuel</span></td>
+                  <td><span class="amount">1,200,000 FCFA</span></td>
+                  <td><span class="payment-method especes">Espèces</span></td>
+                  <td><span class="reference">ESP-2023-089</span></td>
+                  <td><span class="status-badge paye">Payé</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Télécharger reçu">
+                        <i class="fas fa-download"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Factures -->
+        <div id="factures" class="tab-panel">
+          <div class="panel-header">
+            <h3>Factures</h3>
+            <div class="panel-actions">
+              <button class="btn btn-success" onclick="generateNewInvoice()">
+                <i class="fas fa-file-invoice"></i> Nouvelle Facture
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>N° Facture</th>
+                  <th>Période</th>
+                  <th>Montant</th>
+                  <th>Statut</th>
+                  <th>Date d'émission</th>
+                  <th>Échéance</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>FAC-2024-001</h4>
+                      <p>Janvier 2024</p>
+                    </div>
+                  </td>
+                  <td><span class="period">Jan 2024</span></td>
+                  <td><span class="amount">1,350,000 FCFA</span></td>
+                  <td><span class="status-badge paye">Payée</span></td>
+                  <td><span class="date">01 Jan 2024</span></td>
+                  <td><span class="date">15 Jan 2024</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir facture">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Télécharger PDF">
+                        <i class="fas fa-download"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>FAC-2023-156</h4>
+                      <p>Décembre 2023</p>
+                    </div>
+                  </td>
+                  <td><span class="period">Déc 2023</span></td>
+                  <td><span class="amount">1,350,000 FCFA</span></td>
+                  <td><span class="status-badge paye">Payée</span></td>
+                  <td><span class="date">01 Déc 2023</span></td>
+                  <td><span class="date">15 Déc 2023</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir facture">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Télécharger PDF">
+                        <i class="fas fa-download"></i>
+                      </button>
+                      <button class="btn-action" title="Envoyer">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>FAC-2023-155</h4>
+                      <p>Novembre 2023</p>
+                    </div>
+                  </td>
+                  <td><span class="period">Nov 2023</span></td>
+                  <td><span class="amount">1,200,000 FCFA</span></td>
+                  <td>
+                    <span class="status-badge partiel">Paiement partiel</span>
+                  </td>
+                  <td><span class="date">01 Nov 2023</span></td>
+                  <td><span class="date">15 Nov 2023</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="Voir facture">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-action" title="Télécharger PDF">
+                        <i class="fas fa-download"></i>
+                      </button>
+                      <button class="btn-action" title="Marquer comme payée">
+                        <i class="fas fa-check"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Statistiques -->
+        <div id="statistiques" class="tab-panel">
+          <div class="panel-header">
+            <h3>Statistiques Financières</h3>
+            <div class="panel-actions">
+              <button class="btn btn-primary" onclick="generateReport()">
+                <i class="fas fa-chart-line"></i> Générer Rapport
+              </button>
+            </div>
+          </div>
+
+          <!-- Charts Container -->
+          <div class="charts-container">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4>Évolution des Paiements</h4>
+                <div class="chart-period">
+                  <select id="chartPeriod">
+                    <option value="6mois">6 derniers mois</option>
+                    <option value="1an">1 an</option>
+                    <option value="2ans">2 ans</option>
+                  </select>
+                </div>
+              </div>
+              <div class="chart-content">
+                <div class="chart-placeholder">
+                  <i class="fas fa-chart-line"></i>
+                  <p>Graphique d'évolution des paiements</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4>Méthodes de Paiement</h4>
+              </div>
+              <div class="chart-content">
+                <div class="payment-methods-stats">
+                  <div class="method-stat">
+                    <div class="method-icon virement">
+                      <i class="fas fa-university"></i>
+                    </div>
+                    <div class="method-info">
+                      <div class="method-name">Virement</div>
+                      <div class="method-percentage">60%</div>
+                    </div>
+                  </div>
+                  <div class="method-stat">
+                    <div class="method-icon cheque">
+                      <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <div class="method-info">
+                      <div class="method-name">Chèque</div>
+                      <div class="method-percentage">25%</div>
+                    </div>
+                  </div>
+                  <div class="method-stat">
+                    <div class="method-icon especes">
+                      <i class="fas fa-money-bill"></i>
+                    </div>
+                    <div class="method-info">
+                      <div class="method-name">Espèces</div>
+                      <div class="method-percentage">15%</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial Summary -->
+          <div class="financial-summary">
+            <div class="summary-card">
+              <h4>Résumé Financier</h4>
+              <div class="summary-stats">
+                <div class="summary-stat">
+                  <div class="stat-label">Total Facturé</div>
+                  <div class="stat-value">16,200,000 FCFA</div>
+                </div>
+                <div class="summary-stat">
+                  <div class="stat-label">Total Payé</div>
+                  <div class="stat-value">14,850,000 FCFA</div>
+                </div>
+                <div class="summary-stat">
+                  <div class="stat-label">En Attente</div>
+                  <div class="stat-value">1,350,000 FCFA</div>
+                </div>
+                <div class="summary-stat">
+                  <div class="stat-label">Taux de Recouvrement</div>
+                  <div class="stat-value">91.7%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Documents -->
+        <div id="documents" class="tab-panel">
+          <div class="panel-header">
+            <h3>Documents</h3>
+            <div class="panel-actions">
+              <button class="btn btn-primary" onclick="uploadDocument()">
+                <i class="fas fa-upload"></i> Télécharger Document
+              </button>
+            </div>
+          </div>
+
+          <div class="documents-grid">
+            <div class="document-card">
+              <div class="document-icon">
+                <i class="fas fa-file-pdf"></i>
+              </div>
+              <div class="document-info">
+                <h4>Contrat de Service</h4>
+                <p>Contrat signé le 15 Jan 2023</p>
+                <div class="document-actions">
+                  <button class="btn-action" title="Télécharger">
+                    <i class="fas fa-download"></i>
+                  </button>
+                  <button class="btn-action" title="Voir">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="document-card">
+              <div class="document-icon">
+                <i class="fas fa-file-excel"></i>
+              </div>
+              <div class="document-info">
+                <h4>Liste des Élèves</h4>
+                <p>Mise à jour du 15 Jan 2024</p>
+                <div class="document-actions">
+                  <button class="btn-action" title="Télécharger">
+                    <i class="fas fa-download"></i>
+                  </button>
+                  <button class="btn-action" title="Voir">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="document-card">
+              <div class="document-icon">
+                <i class="fas fa-file-image"></i>
+              </div>
+              <div class="document-info">
+                <h4>Reçu de Paiement</h4>
+                <p>Paiement du 15 Jan 2024</p>
+                <div class="document-actions">
+                  <button class="btn-action" title="Télécharger">
+                    <i class="fas fa-download"></i>
+                  </button>
+                  <button class="btn-action" title="Voir">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/details_financiers_etablissement.js' %}"></script>
+  </body>
+</html>

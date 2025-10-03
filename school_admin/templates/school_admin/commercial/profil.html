@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon Profil - Goo-School Commercial</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/messages.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+    <div class="page-container">
+      <!-- Messages -->
+      {% if messages %}
+      <div class="message-container">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i
+              class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"
+            ></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Header de la page -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-info">
+            <div class="page-icon">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="page-details">
+              <h1 class="page-title">Mon Profil</h1>
+              <p class="page-subtitle">
+                Gérez vos informations personnelles et votre mot de passe
+              </p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <a
+              href="{% url 'school_admin:dashboard_commercial' %}"
+              class="btn btn-outline"
+            >
+              <i class="fas fa-arrow-left"></i>
+              Retour au tableau de bord
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenu principal -->
+      <div class="profil-content">
+        <!-- Informations personnelles -->
+        <div class="profil-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-user"></i>
+              Informations personnelles
+            </h2>
+          </div>
+
+          <div class="profil-card">
+            <form method="post" class="profil-form">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="update_profile" />
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nom" class="form-label">
+                    <i class="fas fa-user"></i>
+                    Nom *
+                  </label>
+                  <input
+                    type="text"
+                    id="nom"
+                    name="nom"
+                    class="form-input"
+                    value="{{ commercial.nom }}"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="prenom" class="form-label">
+                    <i class="fas fa-user"></i>
+                    Prénom *
+                  </label>
+                  <input
+                    type="text"
+                    id="prenom"
+                    name="prenom"
+                    class="form-input"
+                    value="{{ commercial.prenom }}"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="email" class="form-label">
+                    <i class="fas fa-envelope"></i>
+                    Email professionnel *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-input"
+                    value="{{ commercial.email }}"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="telephone" class="form-label">
+                    <i class="fas fa-phone"></i>
+                    Téléphone
+                  </label>
+                  <input
+                    type="tel"
+                    id="telephone"
+                    name="telephone"
+                    class="form-input"
+                    value="{{ commercial.telephone }}"
+                  />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="date_naissance" class="form-label">
+                    <i class="fas fa-calendar"></i>
+                    Date de naissance
+                  </label>
+                  <input
+                    type="date"
+                    id="date_naissance"
+                    name="date_naissance"
+                    class="form-input"
+                    value="{{ commercial.date_naissance|date:'Y-m-d' }}"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="username" class="form-label">
+                    <i class="fas fa-at"></i>
+                    Nom d'utilisateur
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    class="form-input"
+                    value="{{ commercial.username }}"
+                    disabled
+                  />
+                  <small class="form-help"
+                    >Le nom d'utilisateur ne peut pas être modifié</small
+                  >
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="fonction" class="form-label">
+                    <i class="fas fa-briefcase"></i>
+                    Fonction
+                  </label>
+                  <input
+                    type="text"
+                    id="fonction"
+                    name="fonction"
+                    class="form-input"
+                    value="{{ commercial.get_fonction_display }}"
+                    disabled
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="departement" class="form-label">
+                    <i class="fas fa-building"></i>
+                    Département
+                  </label>
+                  <input
+                    type="text"
+                    id="departement"
+                    name="departement"
+                    class="form-input"
+                    value="{{ commercial.get_departement_display }}"
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Sauvegarder les modifications
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline"
+                  onclick="resetForm()"
+                >
+                  <i class="fas fa-undo"></i>
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Changement de mot de passe -->
+        <div class="profil-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-lock"></i>
+              Sécurité - Mot de passe
+            </h2>
+          </div>
+
+          <div class="profil-card">
+            <form method="post" class="profil-form">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="change_password" />
+
+              <div class="form-group">
+                <label for="ancien_mot_de_passe" class="form-label">
+                  <i class="fas fa-key"></i>
+                  Ancien mot de passe *
+                </label>
+                <input
+                  type="password"
+                  id="ancien_mot_de_passe"
+                  name="ancien_mot_de_passe"
+                  class="form-input"
+                  required
+                />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nouveau_mot_de_passe" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Nouveau mot de passe *
+                  </label>
+                  <input
+                    type="password"
+                    id="nouveau_mot_de_passe"
+                    name="nouveau_mot_de_passe"
+                    class="form-input"
+                    required
+                    minlength="8"
+                  />
+                  <small class="form-help">Minimum 8 caractères</small>
+                </div>
+                <div class="form-group">
+                  <label for="confirmer_mot_de_passe" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Confirmer le nouveau mot de passe *
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmer_mot_de_passe"
+                    name="confirmer_mot_de_passe"
+                    class="form-input"
+                    required
+                    minlength="8"
+                  />
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-warning">
+                  <i class="fas fa-key"></i>
+                  Modifier le mot de passe
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline"
+                  onclick="resetPasswordForm()"
+                >
+                  <i class="fas fa-undo"></i>
+                  Effacer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Informations du compte -->
+        <div class="profil-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-info-circle"></i>
+              Informations du compte
+            </h2>
+          </div>
+
+          <div class="profil-card">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-icon">
+                  <i class="fas fa-calendar-plus"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Date de création du compte</span>
+                  <span class="info-value"
+                    >{{ commercial.date_joined|date:"d/m/Y à H:i" }}</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Dernière connexion</span>
+                  <span class="info-value"
+                    >{{ commercial.last_login|date:"d/m/Y à
+                    H:i"|default:"Jamais" }}</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Type de compte</span>
+                  <span class="info-value"
+                    >{{ commercial.get_type_compte_display }}</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Statut du compte</span>
+                  <span class="info-value">
+                    {% if commercial.is_active %}
+                    <span class="status-active">Actif</span>
+                    {% else %}
+                    <span class="status-inactive">Inactif</span>
+                    {% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Auto-close messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(".message");
+        messages.forEach((message) => {
+          setTimeout(() => {
+            if (message.parentElement) {
+              message.style.animation = "slideOutRight 0.3s ease";
+              setTimeout(() => {
+                if (message.parentElement) {
+                  message.remove();
+                }
+              }, 300);
+            }
+          }, 4000);
+        });
+      });
+
+      // Fonction pour réinitialiser le formulaire de profil
+      function resetForm() {
+        if (confirm("Êtes-vous sûr de vouloir annuler les modifications ?")) {
+          location.reload();
+        }
+      }
+
+      // Fonction pour réinitialiser le formulaire de mot de passe
+      function resetPasswordForm() {
+        document.getElementById("ancien_mot_de_passe").value = "";
+        document.getElementById("nouveau_mot_de_passe").value = "";
+        document.getElementById("confirmer_mot_de_passe").value = "";
+      }
+
+      // Validation du mot de passe en temps réel
+      document
+        .getElementById("confirmer_mot_de_passe")
+        .addEventListener("input", function () {
+          const nouveau = document.getElementById("nouveau_mot_de_passe").value;
+          const confirmer = this.value;
+
+          if (nouveau && confirmer) {
+            if (nouveau === confirmer) {
+              this.style.borderColor = "var(--success)";
+              this.style.backgroundColor = "rgba(34, 197, 94, 0.1)";
+            } else {
+              this.style.borderColor = "var(--danger)";
+              this.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+            }
+          } else {
+            this.style.borderColor = "";
+            this.style.backgroundColor = "";
+          }
+        });
+    </script>
+  </body>
+</html>

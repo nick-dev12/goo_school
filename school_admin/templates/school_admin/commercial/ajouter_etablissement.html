@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ajout d'un établissement</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/commercial/ajouter_etablissement.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/commercial/header_commercial.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+    
+<!-- Messages de succès/erreur -->
+{% if messages %}
+  <div class="message-container">
+    {% for message in messages %}
+      <div class="message message-{{ message.tags }}" id="message-{{ forloop.counter }}">
+        <div class="message-content">
+          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+          <span>{{ message }}</span>
+        </div>
+        <button class="message-close" onclick="closeMessage('message-{{ forloop.counter }}')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-section">
+        <h1 class="page-title">
+          <i class="fas fa-plus-circle"></i>
+          Nouveau Prospect
+        </h1>
+        <p class="page-subtitle">Ajouter un nouvel établissement à prospecter</p>
+      </div>
+      <div class="page-actions">
+        <a href="#" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i>
+          Retour
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Steps -->
+  <div class="progress-steps">
+    <div class="step active" data-step="1">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h3>Informations de l'établissement</h3>
+        <p>Données de base</p>
+      </div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h3>Détails commerciaux</h3>
+        <p>Potentiel et notes</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Container -->
+  <div class="form-container">
+    <form id="etablissementForm" class="etablissement-form" method="post" enctype="multipart/form-data" action="{% url 'school_admin:commercial_ajouter_etablissement' %}">
+      {% csrf_token %}
+      
+      <!-- Step 1: Informations de base -->
+      <div class="form-step active" id="step1">
+        <div class="step-header">
+          <h2><i class="fas fa-school"></i> Informations de l'établissement</h2>
+          <p>Renseignez les informations de base de l'établissement à prospecter</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="nom_etablissement" class="form-label required">
+              <i class="fas fa-building"></i>
+              Nom de l'établissement
+            </label>
+            <input type="text" id="nom_etablissement" name="nom_etablissement" class="form-input" required placeholder="Ex: Lycée Blaise Diagne" value="{% if form_data.nom_etablissement %}{{ form_data.nom_etablissement }}{% endif %}">
+            {% if field_errors.nom_etablissement %}
+              <div class="field-error">{{ field_errors.nom_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="type_etablissement" class="form-label required">
+              <i class="fas fa-graduation-cap"></i>
+              Type d'établissement
+            </label>
+            <select id="type_etablissement" name="type_etablissement" class="form-select" required>
+              <option value="">Sélectionner un type</option>
+              <option value="primaire" {% if form_data.type_etablissement == 'primaire' %}selected{% endif %}>École primaire</option>
+              <option value="college" {% if form_data.type_etablissement == 'college' %}selected{% endif %}>Collège</option>
+              <option value="lycee" {% if form_data.type_etablissement == 'lycee' %}selected{% endif %}>Lycée</option>
+              <option value="universite" {% if form_data.type_etablissement == 'universite' %}selected{% endif %}>Université</option>
+              <option value="autre" {% if form_data.type_etablissement == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+            {% if field_errors.type_etablissement %}
+              <div class="field-error">{{ field_errors.type_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          
+          <div class="form-group">
+            <label for="statut" class="form-label required">
+              <i class="fas fa-check-circle"></i>
+              Genre
+            </label>
+            <select id="genre" name="genre_etablissement" class="form-select" required>
+              <option value="">Sélectionner un genre</option>
+              <option value="public" {% if form_data.genre_etablissement == 'public' %}selected{% endif %}>Public</option>
+              <option value="prive" {% if form_data.genre_etablissement == 'prive' %}selected{% endif %}>Privé</option>
+              <option value="confessionnel" {% if form_data.genre_etablissement == 'confessionnel' %}selected{% endif %}>Confessionnel</option>
+            </select>
+            {% if field_errors.genre_etablissement %}
+              <div class="field-error">{{ field_errors.genre_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="statut" class="form-label required">
+              <i class="fas fa-check-circle"></i>
+              Statut
+            </label>
+            <select id="statut" name="statut_etablissement" class="form-select" required>
+              <option value="">Sélectionner un statut</option>
+              <option value="public" {% if form_data.statut_etablissement == 'public' %}selected{% endif %}>Public</option>
+              <option value="prive" {% if form_data.statut_etablissement == 'prive' %}selected{% endif %}>Privé</option>
+              <option value="confessionnel" {% if form_data.statut_etablissement == 'confessionnel' %}selected{% endif %}>Confessionnel</option>
+            </select>
+            {% if field_errors.statut_etablissement %}
+              <div class="field-error">{{ field_errors.statut_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="ville" class="form-label required">
+              <i class="fas fa-city"></i>
+              Ville
+            </label>
+            <input type="text" id="ville" name="ville_etablissement" class="form-input" required placeholder="Ex: Dakar" value="{% if form_data.ville_etablissement %}{{ form_data.ville_etablissement }}{% endif %}">
+            {% if field_errors.ville_etablissement %}
+              <div class="field-error">{{ field_errors.ville_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="pays" class="form-label required">
+              <i class="fas fa-globe"></i>
+              Pays
+            </label>
+            <select id="pays" name="pays_etablissement" class="form-select" required>
+              <option value="">Sélectionner un pays</option>
+              <option value="senegal" {% if form_data.pays_etablissement == 'senegal' %}selected{% endif %}>Sénégal</option>
+              <option value="cote_ivoire" {% if form_data.pays_etablissement == 'cote_ivoire' %}selected{% endif %}>Côte d'Ivoire</option>
+              <option value="mali" {% if form_data.pays_etablissement == 'mali' %}selected{% endif %}>Mali</option>
+              <option value="burkina_faso" {% if form_data.pays_etablissement == 'burkina_faso' %}selected{% endif %}>Burkina Faso</option>
+              <option value="niger" {% if form_data.pays_etablissement == 'niger' %}selected{% endif %}>Niger</option>
+              <option value="guinee" {% if form_data.pays_etablissement == 'guinee' %}selected{% endif %}>Guinée</option>
+              <option value="autre" {% if form_data.pays_etablissement == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+            {% if field_errors.pays_etablissement %}
+              <div class="field-error">{{ field_errors.pays_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group full-width">
+            <label for="adresse" class="form-label required">
+              <i class="fas fa-map-marker-alt"></i>
+              Adresse complète
+            </label>
+            <textarea id="adresse" name="adresse_etablissement" class="form-textarea" rows="2" required placeholder="Rue, ville, région, pays">{% if form_data.adresse_etablissement %}{{ form_data.adresse_etablissement }}{% endif %}</textarea>
+            {% if field_errors.adresse_etablissement %}
+              <div class="field-error">{{ field_errors.adresse_etablissement }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Détails commerciaux -->
+      <div class="form-step" id="step2">
+        <div class="step-header">
+          <h2><i class="fas fa-chart-line"></i> Détails commerciaux</h2>
+          <p>Évaluez le potentiel commercial et planifiez vos actions</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="potentiel_commercial" class="form-label required">
+              <i class="fas fa-star"></i>
+              Potentiel commercial
+            </label>
+            <select id="potentiel_commercial" name="potentiel_etablissement" class="form-select" required>
+              <option value="">Évaluer le potentiel</option>
+              <option value="faible" {% if form_data.potentiel_etablissement == 'faible' %}selected{% endif %}>Faible</option>
+              <option value="moyen" {% if form_data.potentiel_etablissement == 'moyen' %}selected{% endif %}>Moyen</option>
+              <option value="eleve" {% if form_data.potentiel_etablissement == 'eleve' %}selected{% endif %}>Élevé</option>
+              <option value="tres_eleve" {% if form_data.potentiel_etablissement == 'tres_eleve' %}selected{% endif %}>Très élevé</option>
+            </select>
+            {% if field_errors.potentiel_etablissement %}
+              <div class="field-error">{{ field_errors.potentiel_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="priorite" class="form-label required">
+              <i class="fas fa-exclamation-triangle"></i>
+              Priorité
+            </label>
+            <select id="priorite" name="priorite_etablissement" class="form-select" required>
+              <option value="">Définir la priorité</option>
+              <option value="basse" {% if form_data.priorite_etablissement == 'basse' %}selected{% endif %}>Basse</option>
+              <option value="normale" {% if form_data.priorite_etablissement == 'normale' %}selected{% endif %}>Normale</option>
+              <option value="haute" {% if form_data.priorite_etablissement == 'haute' %}selected{% endif %}>Haute</option>
+              <option value="urgente" {% if form_data.priorite_etablissement == 'urgente' %}selected{% endif %}>Urgente</option>
+            </select>
+            {% if field_errors.priorite_etablissement %}
+              <div class="field-error">{{ field_errors.priorite_etablissement }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="source_prospection" class="form-label">
+              <i class="fas fa-search"></i>
+              Comment avez-vous trouvé cet établissement ?
+            </label>
+            <select id="source_prospection" name="source_etablissement" class="form-select">
+              <option value="">Sélectionner une source</option>
+              <option value="recommandation" {% if form_data.source_etablissement == 'recommandation' %}selected{% endif %}>Recommandation</option>
+              <option value="site_web" {% if form_data.source_etablissement == 'site_web' %}selected{% endif %}>Site web</option>
+              <option value="reseau_social" {% if form_data.source_etablissement == 'reseau_social' %}selected{% endif %}>Réseau social</option>
+              <option value="salon" {% if form_data.source_etablissement == 'salon' %}selected{% endif %}>Salon/Événement</option>
+              <option value="appel_froid" {% if form_data.source_etablissement == 'appel_froid' %}selected{% endif %}>Appel froid</option>
+              <option value="autre" {% if form_data.source_etablissement == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="prochaine_action" class="form-label">
+              <i class="fas fa-tasks"></i>
+              Prochaine action prévue
+            </label>
+            <select id="prochaine_action" name="prochaine_action_etablissement" class="form-select">
+              <option value="">Planifier l'action</option>
+              <option value="recherche_contact" {% if form_data.prochaine_action_etablissement == 'recherche_contact' %}selected{% endif %}>Rechercher les contacts</option>
+              <option value="appel_telephonique" {% if form_data.prochaine_action_etablissement == 'appel_telephonique' %}selected{% endif %}>Appel téléphonique</option>
+              <option value="email" {% if form_data.prochaine_action_etablissement == 'email' %}selected{% endif %}>Envoi d'email</option>
+              <option value="visite" {% if form_data.prochaine_action_etablissement == 'visite' %}selected{% endif %}>Visite sur site</option>
+              <option value="presentation" {% if form_data.prochaine_action_etablissement == 'presentation' %}selected{% endif %}>Présentation</option>
+            </select>
+          </div>
+          
+          <div class="form-group full-width">
+            <label for="notes_commerciales" class="form-label">
+              <i class="fas fa-sticky-note"></i>
+              Notes et observations
+            </label>
+            <textarea id="notes_commerciales" name="notes_commercial" class="form-textarea" rows="3" placeholder="Informations importantes, contexte, observations sur l'établissement...">{% if form_data.notes_commercial %}{{ form_data.notes_commercial }}{% endif %}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" id="prevBtn" class="btn btn-secondary" style="display: none;">
+          <i class="fas fa-arrow-left"></i>
+          Précédent
+        </button>
+        <button type="button" id="nextBtn" class="btn btn-primary">
+          Suivant
+          <i class="fas fa-arrow-right"></i>
+        </button>
+        <button type="submit" id="submitBtn" class="btn btn-success" style="display: none;">
+          <i class="fas fa-save"></i>
+          Ajouter l'établissement
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{% static 'school_admin/js/commercial/ajouter_etablissement.js' %}"></script>
+<script>
+// Gestion des messages
+function closeMessage(messageId) {
+    const message = document.getElementById(messageId);
+    if (message) {
+        message.classList.add('hide');
+        setTimeout(() => {
+            message.remove();
+        }, 300);
+    }
+}
+
+// Auto-fermeture des messages après 4 secondes
+document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(message => {
+        setTimeout(() => {
+            if (message && !message.classList.contains('hide')) {
+                closeMessage(message.id);
+            }
+        }, 4000);
+    });
+});
+</script>
+
+</body>
+</html>

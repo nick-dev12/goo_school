@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détail du message - Goo-School Commercial</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/messages.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+    <div class="page-container">
+      <!-- Messages -->
+      {% if messages %}
+      <div class="message-container">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i
+              class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"
+            ></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Header de la page -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-info">
+            <div class="page-icon">
+              <i class="fas fa-envelope-open"></i>
+            </div>
+            <div class="page-details">
+              <h1 class="page-title">{{ message.sujet }}</h1>
+              <p class="page-subtitle">{{ etablissement.nom_etablissement }}</p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <a
+              href="{% url 'school_admin:commercial_messages' %}"
+              class="btn btn-outline"
+            >
+              <i class="fas fa-arrow-left"></i>
+              Retour
+            </a>
+            <div class="message-actions-header">
+              {% if message.statut == 'non_lu' %}
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="marquer_lu" />
+                <button type="submit" class="btn btn-secondary">
+                  <i class="fas fa-envelope-open"></i>
+                  Marquer comme lu
+                </button>
+              </form>
+              {% else %}
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="marquer_non_lu" />
+                <button type="submit" class="btn btn-secondary">
+                  <i class="fas fa-envelope"></i>
+                  Marquer comme non lu
+                </button>
+              </form>
+              {% endif %}
+
+              <!-- Actions spécifiques aux tickets -->
+              {% if message.expediteur_type == 'etablissement' %} {% if
+              message.ticket_statut == 'ouvert' %}
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="prendre_en_charge" />
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-hand-paper"></i>
+                  Prendre en charge
+                </button>
+              </form>
+              {% elif message.ticket_statut == 'en_cours' and
+              message.pris_en_charge_par == user %}
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="fermer_ticket" />
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-check"></i>
+                  Fermer le ticket
+                </button>
+              </form>
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="liberer_ticket" />
+                <button type="submit" class="btn btn-warning">
+                  <i class="fas fa-unlock"></i>
+                  Libérer le ticket
+                </button>
+              </form>
+              {% endif %} {% endif %}
+
+              <form method="post" style="display: inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="archiver" />
+                <button
+                  type="submit"
+                  class="btn btn-warning"
+                  onclick="return confirm('Êtes-vous sûr de vouloir archiver ce message ?')"
+                >
+                  <i class="fas fa-archive"></i>
+                  Archiver
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenu du message -->
+      <div class="message-detail-section">
+        <div class="message-detail-card">
+          <div class="message-header">
+            <div class="message-meta">
+              <div class="meta-item">
+                <i class="fas fa-building"></i>
+                <span>{{ etablissement.nom_etablissement }}</span>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-tag"></i>
+                <span>{{ message.get_type_message_display }}</span>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="priority-{{ message.priorite }}"
+                  >{{ message.get_priorite_display }}</span
+                >
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-info-circle"></i>
+                <span class="status-{{ message.statut }}"
+                  >{{ message.get_statut_display }}</span
+                >
+              </div>
+              {% if message.expediteur_type == 'etablissement' %}
+              <div class="meta-item">
+                <i class="fas fa-ticket-alt"></i>
+                <span class="ticket-{{ message.ticket_statut }}"
+                  >{{ message.get_ticket_statut_display }}</span
+                >
+              </div>
+              {% endif %}
+            </div>
+            <div class="message-dates">
+              <div class="date-item">
+                <i class="fas fa-paper-plane"></i>
+                <span
+                  >Envoyé le {{ message.date_envoi|date:"d/m/Y à H:i" }}</span
+                >
+              </div>
+              {% if message.date_lecture %}
+              <div class="date-item">
+                <i class="fas fa-eye"></i>
+                <span>Lu le {{ message.date_lecture|date:"d/m/Y à H:i" }}</span>
+              </div>
+              {% endif %} {% if message.date_reponse %}
+              <div class="date-item">
+                <i class="fas fa-reply"></i>
+                <span
+                  >Répondu le {{ message.date_reponse|date:"d/m/Y à H:i"
+                  }}</span
+                >
+              </div>
+              {% endif %} {% if message.expediteur_type == 'etablissement' and
+              message.date_prise_en_charge %}
+              <div class="date-item">
+                <i class="fas fa-hand-paper"></i>
+                <span
+                  >Pris en charge le {{ message.date_prise_en_charge|date:"d/m/Y
+                  à H:i" }}</span
+                >
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="message-content">
+            <div class="content-header">
+              <h3>Contenu du message</h3>
+            </div>
+            <div class="content-body">{{ message.contenu|linebreaks }}</div>
+          </div>
+
+          <div class="message-sender">
+            <div class="sender-info">
+              <div class="sender-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="sender-details">
+                <h4>
+                  {{ message.expediteur.nom }} {{ message.expediteur.prenom }}
+                </h4>
+                <p>{{ message.expediteur.fonction|title }}</p>
+                {% if message.expediteur_type == 'etablissement' and
+                message.pris_en_charge_par %}
+                <div class="ticket-assignment">
+                  <i class="fas fa-user-cog"></i>
+                  <span
+                    >Pris en charge par {{ message.pris_en_charge_par.nom }} {{
+                    message.pris_en_charge_par.prenom }}</span
+                  >
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Réponses -->
+        {% if reponses %}
+        <div class="reponses-section">
+          <h3 class="section-title">
+            <i class="fas fa-reply"></i>
+            Réponses ({{ reponses.count }})
+          </h3>
+          <div class="reponses-list">
+            {% for reponse in reponses %}
+            <div class="reponse-card">
+              <div class="reponse-header">
+                <div class="reponse-sender">
+                  <div class="sender-avatar">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div class="sender-details">
+                    <h4>
+                      {{ reponse.expediteur.nom }} {{ reponse.expediteur.prenom
+                      }}
+                    </h4>
+                    <p>{{ reponse.date_envoi|date:"d/m/Y à H:i" }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="reponse-content">
+                {{ reponse.contenu|linebreaks }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Formulaire de réponse -->
+        <div class="reponse-form-section">
+          <h3 class="section-title">
+            <i class="fas fa-paper-plane"></i>
+            Répondre au message
+          </h3>
+          <form method="post" class="reponse-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="repondre" />
+            <div class="form-group">
+              <label for="contenu_reponse" class="form-label">
+                <i class="fas fa-comment"></i>
+                Votre réponse
+              </label>
+              <textarea
+                id="contenu_reponse"
+                name="contenu_reponse"
+                class="form-textarea"
+                rows="6"
+                placeholder="Tapez votre réponse ici..."
+                required
+              ></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-paper-plane"></i>
+                Envoyer la réponse
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline"
+                onclick="document.getElementById('contenu_reponse').value = ''"
+              >
+                <i class="fas fa-times"></i>
+                Effacer
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="quick-actions">
+          <h3 class="section-title">
+            <i class="fas fa-bolt"></i>
+            Actions rapides
+          </h3>
+          <div class="actions-grid">
+            <a
+              href="{% url 'school_admin:commercial_detail_etablissement' etablissement.id %}"
+              class="action-card"
+            >
+              <div class="action-icon">
+                <i class="fas fa-building"></i>
+              </div>
+              <div class="action-content">
+                <h4>Voir l'établissement</h4>
+                <p>
+                  Consulter les détails de {{ etablissement.nom_etablissement }}
+                </p>
+              </div>
+            </a>
+            <a
+              href="{% url 'school_admin:commercial_rendez_vous' %}"
+              class="action-card"
+            >
+              <div class="action-icon">
+                <i class="fas fa-calendar"></i>
+              </div>
+              <div class="action-content">
+                <h4>Programmer un RDV</h4>
+                <p>Planifier un rendez-vous avec cet établissement</p>
+              </div>
+            </a>
+            <a
+              href="{% url 'school_admin:commercial_creer_rapport' %}"
+              class="action-card"
+            >
+              <div class="action-icon">
+                <i class="fas fa-file-alt"></i>
+              </div>
+              <div class="action-content">
+                <h4>Créer un rapport</h4>
+                <p>Rédiger un compte rendu de visite</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Auto-close messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(".message");
+        messages.forEach((message) => {
+          setTimeout(() => {
+            if (message.parentElement) {
+              message.style.animation = "slideOutRight 0.3s ease";
+              setTimeout(() => {
+                if (message.parentElement) {
+                  message.remove();
+                }
+              }, 300);
+            }
+          }, 4000);
+        });
+      });
+    </script>
+  </body>
+</html>

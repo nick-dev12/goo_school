@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/message_etablissement.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+    <title>Détails des messages</title>
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+    <div class="container">
+      <div class="messages-panel">
+        <div class="messages-header">
+          <div class="selected-school">
+            <div class="school-avatar">LP</div>
+            <div class="selected-school-info">
+              <div class="selected-school-name">Lycée International de Paris</div>
+              <div class="selected-school-stats">
+                <div class="message-stats">
+                  <i class="fas fa-envelope"></i> 24 messages
+                </div>
+                <div class="message-stats">
+                  <i class="fas fa-user"></i> Jean Dupont (Directeur)
+                </div>
+                <div class="message-stats">
+                  <span class="status-dot online"></span> En ligne
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="messages-actions">
+            <select class="filter-select" id="messageFilter">
+              <option value="">Tous les messages</option>
+              <option value="unread">Non lus</option>
+              <option value="high">Priorité élevée</option>
+              <option value="medium">Priorité moyenne</option>
+              <option value="low">Priorité basse</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div class="messages-container" id="messagesContainer">
+          <!-- Message Item 1 -->
+          <div class="message-item" data-priority="high" data-read="false">
+            <div class="message-header">
+              <div class="message-subject">Urgent : Problème d'accès au système de notation</div>
+              <div class="message-meta">
+                <div class="message-date">12 Juin 2023, 14:32</div>
+                <div class="message-priority priority-high">Haute priorité</div>
+              </div>
+            </div>
+            <div class="message-content">
+              Bonjour,<br /><br />
+              Nous rencontrons un problème critique avec le système de notation. Depuis ce matin, aucun enseignant ne peut accéder à l'interface de saisie des notes. Cela impacte directement la clôture du trimestre prévue pour vendredi.<br /><br />
+              Pourriez-vous intervenir en urgence ?<br /><br />
+              Cordialement,<br />
+              M. Jean Dupont<br />
+              Directeur du Lycée International de Paris
+            </div>
+            <div class="message-footer">
+              <div class="sender-info">
+                <div class="sender-avatar">JD</div>
+                <div class="sender-details">
+                  <div class="sender-name">Jean Dupont</div>
+                  <div class="sender-role">Directeur</div>
+                </div>
+              </div>
+              <div class="message-actions">
+                <button class="message-action-btn" title="Marquer comme lu/non lu"><i class="fas fa-envelope-open"></i></button>
+                <button class="message-action-btn" title="Répondre"><i class="fas fa-reply"></i></button>
+                <button class="message-action-btn" title="Archiver"><i class="fas fa-archive"></i></button>
+                <button class="message-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Message Item 2 -->
+          <div class="message-item read" data-priority="medium" data-read="true">
+            <div class="message-header">
+              <div class="message-subject">Demande d'assistance pour la mise à jour</div>
+              <div class="message-meta">
+                <div class="message-date">10 Juin 2023, 09:15</div>
+                <div class="message-priority priority-medium">Priorité moyenne</div>
+              </div>
+            </div>
+            <div class="message-content">
+              Bonjour l'équipe technique,<br /><br />
+              Nous avons installé la dernière mise à jour de votre plateforme, mais nous rencontrons quelques difficultés avec le nouveau module d'emploi du temps. Serait-il possible d'organiser une session de formation pour notre équipe administrative ?<br /><br />
+              Nous sommes disponibles en début de semaine prochaine.<br /><br />
+              Merci d'avance pour votre aide.<br /><br />
+              Cordialement,<br />
+              Mme Sophie Martin<br />
+              Responsable administrative
+            </div>
+            <div class="message-footer">
+              <div class="sender-info">
+                <div class="sender-avatar">SM</div>
+                <div class="sender-details">
+                  <div class="sender-name">Sophie Martin</div>
+                  <div class="sender-role">Responsable administrative</div>
+                </div>
+              </div>
+              <div class="message-actions">
+                <button class="message-action-btn" title="Marquer comme lu/non lu"><i class="fas fa-envelope"></i></button>
+                <button class="message-action-btn" title="Répondre"><i class="fas fa-reply"></i></button>
+                <button class="message-action-btn" title="Archiver"><i class="fas fa-archive"></i></button>
+                <button class="message-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Message Item 3 -->
+          <div class="message-item read" data-priority="low" data-read="true">
+            <div class="message-header">
+              <div class="message-subject">Félicitations pour la nouvelle interface !</div>
+              <div class="message-meta">
+                <div class="message-date">05 Juin 2023, 16:47</div>
+                <div class="message-priority priority-low">Basse priorité</div>
+              </div>
+            </div>
+            <div class="message-content">
+              Bonjour,<br /><br />
+              Je tenais à vous féliciter pour la nouvelle interface de votre plateforme. Nos enseignants et administrateurs trouvent le nouveau design beaucoup plus intuitif et agréable à utiliser.<br /><br />
+              Continuez comme ça !<br /><br />
+              Bien cordialement,<br />
+              M. Pierre Laurent<br />
+              Directeur adjoint
+            </div>
+            <div class="message-footer">
+              <div class="sender-info">
+                <div class="sender-avatar">PL</div>
+                <div class="sender-details">
+                  <div class="sender-name">Pierre Laurent</div>
+                  <div class="sender-role">Directeur adjoint</div>
+                </div>
+              </div>
+              <div class="message-actions">
+                <button class="message-action-btn" title="Marquer comme lu/non lu"><i class="fas fa-envelope"></i></button>
+                <button class="message-action-btn" title="Répondre"><i class="fas fa-reply"></i></button>
+                <button class="message-action-btn" title="Archiver"><i class="fas fa-archive"></i></button>
+                <button class="message-action-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

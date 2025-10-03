@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détail de l'établissement</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/commercial/detail_etablissement.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+<div class="page-container">
+  <!-- Messages -->
+  {% if messages %}
+    <div class="message-container">
+      {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Header de la page -->
+  <div class="page-header">
+    <div class="header-background"></div>
+    <div class="header-content">
+      <div class="header-info">
+        <div class="etablissement-avatar">
+          <i class="fas fa-building"></i>
+        </div>
+        <div class="etablissement-details">
+          <h1 class="etablissement-name">{{ etablissement.nom_etablissement }}</h1>
+          <p class="etablissement-subtitle">
+            <i class="fas fa-graduation-cap"></i>
+            {{ etablissement.get_type_etablissement_display }}
+            <span class="separator">•</span>
+            <i class="fas fa-map-marker-alt"></i>
+            {{ etablissement.ville_etablissement }}, {{ etablissement.get_pays_etablissement_display }}
+          </p>
+          <div class="status-badges">
+            <span class="badge status-{{ etablissement.statut_etablissement }}">
+              {{ etablissement.get_statut_etablissement_display }}
+            </span>
+            <span class="badge potentiel-{{ etablissement.potentiel_etablissement }}">
+              {{ etablissement.get_potentiel_etablissement_display }}
+            </span>
+            <span class="badge priorite-{{ etablissement.priorite_etablissement }}">
+              {{ etablissement.get_priorite_etablissement_display }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="{% url 'school_admin:commercial_liste_etablissements' %}" class="btn btn-outline">
+          <i class="fas fa-arrow-left"></i>
+          Retour
+        </a>
+        <a href="{% url 'school_admin:commercial_ajouter_etablissement' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i>
+          Nouveau prospect
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Informations principales -->
+  <div class="info-section">
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="card-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="card-content">
+          <h3>Informations générales</h3>
+          <div class="info-item">
+            <span class="label">Type</span>
+            <span class="value">{{ etablissement.get_type_etablissement_display }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Statut</span>
+            <span class="value status-{{ etablissement.statut_etablissement }}">
+              {{ etablissement.get_statut_etablissement_display }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Potentiel</span>
+            <span class="value potentiel-{{ etablissement.potentiel_etablissement }}">
+              {{ etablissement.get_potentiel_etablissement_display }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Priorité</span>
+            <span class="value priorite-{{ etablissement.priorite_etablissement }}">
+              {{ etablissement.get_priorite_etablissement_display }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="card-icon">
+          <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="card-content">
+          <h3>Localisation</h3>
+          <div class="info-item">
+            <span class="label">Ville</span>
+            <span class="value">{{ etablissement.ville_etablissement }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Pays</span>
+            <span class="value">{{ etablissement.get_pays_etablissement_display }}</span>
+          </div>
+          <div class="info-item full">
+            <span class="label">Adresse</span>
+            <span class="value">{{ etablissement.adresse_etablissement }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="card-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="card-content">
+          <h3>Prospection</h3>
+          {% if etablissement.source_etablissement %}
+          <div class="info-item">
+            <span class="label">Source</span>
+            <span class="value">{{ etablissement.get_source_etablissement_display }}</span>
+          </div>
+          {% endif %}
+          {% if etablissement.prochaine_action_etablissement %}
+          <div class="info-item">
+            <span class="label">Prochaine action</span>
+            <span class="value">{{ etablissement.get_prochaine_action_etablissement_display }}</span>
+          </div>
+          {% endif %}
+          <div class="info-item">
+            <span class="label">Ajouté le</span>
+            <span class="value">{{ etablissement.date_creation|date:"d/m/Y à H:i" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Modifié le</span>
+            <span class="value">{{ etablissement.date_modification|date:"d/m/Y à H:i" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions rapides -->
+  <div class="quick-actions-section">
+    <div class="quick-actions-grid">
+      <button class="quick-action-btn" id="toggle-status-form">
+        <i class="fas fa-edit"></i>
+        <span>Modifier le statut</span>
+      </button>
+      <button class="quick-action-btn" id="toggle-priority-form">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Modifier la priorité</span>
+      </button>
+      <button class="quick-action-btn" id="toggle-general-form">
+        <i class="fas fa-info-circle"></i>
+        <span>Modifier les infos</span>
+      </button>
+      <button class="quick-action-btn" id="toggle-location-form">
+        <i class="fas fa-map-marker-alt"></i>
+        <span>Modifier l'adresse</span>
+      </button>
+      <button class="quick-action-btn" id="toggle-meeting-form">
+        <i class="fas fa-calendar-plus"></i>
+        <span>Nouveau rendez-vous</span>
+      </button>
+      <button class="quick-action-btn" id="toggle-notes-form">
+        <i class="fas fa-sticky-note"></i>
+        <span>Ajouter une note</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulaires cachés -->
+  <div class="forms-section">
+    <!-- Formulaire de modification du statut -->
+    <div class="form-container" id="status-form" style="display: none;">
+      <div class="form-card">
+        <div class="form-header">
+          <h3><i class="fas fa-edit"></i> Modifier le statut</h3>
+          <button class="close-btn" onclick="toggleForm('status-form')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'school_admin:commercial_update_status' etablissement.id %}" class="form-content">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="nouveau_statut" class="form-label">Nouveau statut</label>
+            <select name="nouveau_statut" id="nouveau_statut" class="form-select" required>
+              <option value="">Sélectionner un statut</option>
+              <option value="prospect" {% if etablissement.statut_etablissement == 'prospect' %}selected{% endif %}>Prospect</option>
+              <option value="contacte" {% if etablissement.statut_etablissement == 'contacte' %}selected{% endif %}>Contacté</option>
+              <option value="interesse" {% if etablissement.statut_etablissement == 'interesse' %}selected{% endif %}>Intéressé</option>
+              <option value="non_interesse" {% if etablissement.statut_etablissement == 'non_interesse' %}selected{% endif %}>Non intéressé</option>
+              <option value="rendez_vous" {% if etablissement.statut_etablissement == 'rendez_vous' %}selected{% endif %}>Rendez-vous programmé</option>
+              <option value="devis_envoye" {% if etablissement.statut_etablissement == 'devis_envoye' %}selected{% endif %}>Devis envoyé</option>
+              <option value="negociation" {% if etablissement.statut_etablissement == 'negociation' %}selected{% endif %}>En négociation</option>
+              <option value="contrat_signe" {% if etablissement.statut_etablissement == 'contrat_signe' %}selected{% endif %}>Contrat signé</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              Mettre à jour
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="toggleForm('status-form')">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulaire de modification de la priorité -->
+    <div class="form-container" id="priority-form" style="display: none;">
+      <div class="form-card">
+        <div class="form-header">
+          <h3><i class="fas fa-exclamation-triangle"></i> Modifier la priorité</h3>
+          <button class="close-btn" onclick="toggleForm('priority-form')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'school_admin:commercial_update_priority' etablissement.id %}" class="form-content">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="nouvelle_priorite" class="form-label">Nouvelle priorité</label>
+            <select name="nouvelle_priorite" id="nouvelle_priorite" class="form-select" required>
+              <option value="">Sélectionner une priorité</option>
+              <option value="basse" {% if etablissement.priorite_etablissement == 'basse' %}selected{% endif %}>Basse</option>
+              <option value="normale" {% if etablissement.priorite_etablissement == 'normale' %}selected{% endif %}>Normale</option>
+              <option value="haute" {% if etablissement.priorite_etablissement == 'haute' %}selected{% endif %}>Haute</option>
+              <option value="urgente" {% if etablissement.priorite_etablissement == 'urgente' %}selected{% endif %}>Urgente</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              Mettre à jour
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="toggleForm('priority-form')">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulaire de modification des informations générales -->
+    <div class="form-container" id="general-form" style="display: none;">
+      <div class="form-card">
+        <div class="form-header">
+          <h3><i class="fas fa-info-circle"></i> Modifier les informations générales</h3>
+          <button class="close-btn" onclick="toggleForm('general-form')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'school_admin:commercial_update_general_info' etablissement.id %}" class="form-content">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="nom_etablissement" class="form-label">Nom de l'établissement</label>
+            <input type="text" name="nom_etablissement" id="nom_etablissement" class="form-input" value="{{ etablissement.nom_etablissement }}" required>
+          </div>
+          <div class="form-group">
+            <label for="type_etablissement" class="form-label">Type d'établissement</label>
+            <select name="type_etablissement" id="type_etablissement" class="form-select" required>
+              <option value="">Sélectionner un type</option>
+              <option value="primaire" {% if etablissement.type_etablissement == 'primaire' %}selected{% endif %}>École primaire</option>
+              <option value="college" {% if etablissement.type_etablissement == 'college' %}selected{% endif %}>Collège</option>
+              <option value="lycee" {% if etablissement.type_etablissement == 'lycee' %}selected{% endif %}>Lycée</option>
+              <option value="universite" {% if etablissement.type_etablissement == 'universite' %}selected{% endif %}>Université</option>
+              <option value="autre" {% if etablissement.type_etablissement == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              Enregistrer
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="toggleForm('general-form')">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulaire de modification de la localisation -->
+    <div class="form-container" id="location-form" style="display: none;">
+      <div class="form-card">
+        <div class="form-header">
+          <h3><i class="fas fa-map-marker-alt"></i> Modifier la localisation</h3>
+          <button class="close-btn" onclick="toggleForm('location-form')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'school_admin:commercial_update_location' etablissement.id %}" class="form-content">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="ville_etablissement" class="form-label">Ville</label>
+            <input type="text" name="ville_etablissement" id="ville_etablissement" class="form-input" value="{{ etablissement.ville_etablissement }}" required>
+          </div>
+          <div class="form-group">
+            <label for="pays_etablissement" class="form-label">Pays</label>
+            <select name="pays_etablissement" id="pays_etablissement" class="form-select" required>
+              <option value="">Sélectionner un pays</option>
+              <option value="senegal" {% if etablissement.pays_etablissement == 'senegal' %}selected{% endif %}>Sénégal</option>
+              <option value="cote_ivoire" {% if etablissement.pays_etablissement == 'cote_ivoire' %}selected{% endif %}>Côte d'Ivoire</option>
+              <option value="mali" {% if etablissement.pays_etablissement == 'mali' %}selected{% endif %}>Mali</option>
+              <option value="burkina_faso" {% if etablissement.pays_etablissement == 'burkina_faso' %}selected{% endif %}>Burkina Faso</option>
+              <option value="niger" {% if etablissement.pays_etablissement == 'niger' %}selected{% endif %}>Niger</option>
+              <option value="guinee" {% if etablissement.pays_etablissement == 'guinee' %}selected{% endif %}>Guinée</option>
+              <option value="autre" {% if etablissement.pays_etablissement == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="adresse_etablissement" class="form-label">Adresse complète</label>
+            <textarea name="adresse_etablissement" id="adresse_etablissement" class="form-textarea" rows="3" required>{{ etablissement.adresse_etablissement }}</textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              Enregistrer
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="toggleForm('location-form')">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulaire de rendez-vous -->
+    <div class="form-container" id="meeting-form" style="display: none;">
+      <div class="form-card">
+        <div class="form-header">
+          <h3><i class="fas fa-calendar-plus"></i> Programmer un rendez-vous</h3>
+          <button type="button" class="close-btn" id="close-meeting-form">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'school_admin:commercial_schedule_meeting' etablissement.id %}" class="form-content">
+          {% csrf_token %}
+          <div class="form-row">
+            <div class="form-group">
+              <label for="date_rdv" class="form-label">Date</label>
+              <input type="date" name="date_rdv" id="date_rdv" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="heure_rdv" class="form-label">Heure</label>
+              <input type="time" name="heure_rdv" id="heure_rdv" class="form-input" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="type_rdv" class="form-label">Type de rendez-vous</label>
+            <select name="type_rdv" id="type_rdv" class="form-select" required>
+              <option value="">Sélectionner un type</option>
+              <option value="appel_telephonique">Appel téléphonique</option>
+              <option value="visite_site">Visite sur site</option>
+              <option value="presentation_online">Présentation en ligne</option>
+              <option value="dejeuner_affaires">Déjeuner d'affaires</option>
+              <option value="salon_rencontre">Salon/Rencontre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="notes_rdv" class="form-label">Notes (optionnel)</label>
+            <textarea name="notes_rdv" id="notes_rdv" class="form-textarea" rows="2" placeholder="Notes sur le rendez-vous..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-calendar-check"></i>
+              Programmer
+            </button>
+            <button type="button" class="btn btn-secondary" id="cancel-meeting-form">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulaire de notes -->
+    <div class="form-container" id="notes-form" style="display: none;">
+      <div class="form-card">
+        <div class="form-header">
+          <h3><i class="fas fa-sticky-note"></i> Ajouter une note</h3>
+          <button class="close-btn" onclick="toggleForm('notes-form')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'school_admin:commercial_add_notes' etablissement.id %}" class="form-content">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="notes" class="form-label">Note commerciale</label>
+            <textarea name="notes" id="notes" class="form-textarea" rows="4" placeholder="Ajoutez vos notes sur cet établissement..." required></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              Ajouter la note
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="toggleForm('notes-form')">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rendez-vous programmés -->
+  <div class="meetings-section">
+    <h2 class="section-title">
+      <i class="fas fa-calendar-alt"></i>
+      Rendez-vous programmés
+    </h2>
+    
+    {% if rendez_vous_list %}
+    <div class="meetings-grid">
+      {% for rdv in rendez_vous_list %}
+      <div class="meeting-card">
+        <div class="meeting-icon">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="meeting-content">
+          <h4>{{ rdv.get_type_rdv_display }}</h4>
+          <div class="meeting-details">
+            <div class="meeting-date">
+              <i class="fas fa-calendar"></i>
+              <span>{{ rdv.date_rdv|date:"d/m/Y" }}</span>
+            </div>
+            <div class="meeting-time">
+              <i class="fas fa-clock"></i>
+              <span>{{ rdv.heure_rdv|time:"H:i" }}</span>
+            </div>
+            {% if rdv.notes_rdv %}
+            <div class="meeting-notes">
+              <i class="fas fa-sticky-note"></i>
+              <span>{{ rdv.notes_rdv }}</span>
+            </div>
+            {% endif %}
+            <div class="meeting-created">
+              <i class="fas fa-plus-circle"></i>
+              <span>Créé le {{ rdv.date_creation|date:"d/m/Y à H:i" }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="meeting-actions">
+          <form method="post" action="{% url 'school_admin:commercial_delete_meeting' etablissement.id %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="meeting_id" value="{{ rdv.id }}">
+            <button type="submit" class="action-btn" title="Supprimer ce rendez-vous" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <!-- Message si aucun rendez-vous -->
+    <div class="empty-state">
+      <i class="fas fa-calendar-times"></i>
+      <h3>Aucun rendez-vous programmé</h3>
+      <p>Cliquez sur "Nouveau rendez-vous" pour en programmer un.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Notes commerciales -->
+  <div class="notes-section">
+    <h2 class="section-title">
+      <i class="fas fa-sticky-note"></i>
+      Notes commerciales
+    </h2>
+    
+    {% if notes_commercial_list %}
+    <div class="notes-list">
+      {% for note in notes_commercial_list %}
+      <div class="note-card">
+        <div class="note-header">
+          <i class="fas fa-sticky-note"></i>
+          <span class="note-date">{{ note.date_creation|date:"d/m/Y à H:i" }}</span>
+          <form method="post" action="{% url 'school_admin:commercial_delete_note' etablissement.id %}" style="display: inline; margin-left: auto;">
+            {% csrf_token %}
+            <input type="hidden" name="note_id" value="{{ note.id }}">
+            <button type="submit" class="action-btn" title="Supprimer cette note" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette note ?')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+        </div>
+        <div class="note-content">
+          {{ note.contenu|linebreaks }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-sticky-note"></i>
+      <h3>Aucune note commerciale</h3>
+      <p>Cliquez sur "Ajouter une note" pour commencer à documenter cet établissement.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+// Fonction simple pour basculer l'affichage des formulaires
+function toggleForm(formId) {
+  const form = document.getElementById(formId);
+  if (form) {
+    const isHidden = form.style.display === 'none' || form.style.display === '';
+    form.style.display = isHidden ? 'block' : 'none';
+    
+    if (form.style.display === 'block') {
+      // Focus sur le premier champ
+      const firstInput = form.querySelector('input, select, textarea');
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
+      }
+    }
+  }
+}
+
+// Gestion des boutons d'actions rapides - Navigation uniquement
+document.addEventListener('DOMContentLoaded', function() {
+  const actionButtons = {
+    'toggle-status-form': 'status-form',
+    'toggle-priority-form': 'priority-form',
+    'toggle-general-form': 'general-form',
+    'toggle-location-form': 'location-form',
+    'toggle-meeting-form': 'meeting-form',
+    'toggle-notes-form': 'notes-form'
+  };
+
+  // Attacher les événements de navigation
+  Object.entries(actionButtons).forEach(([buttonId, formId]) => {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Fermer tous les autres formulaires
+        Object.values(actionButtons).forEach(id => {
+          if (id !== formId) {
+            const form = document.getElementById(id);
+            if (form) {
+              form.style.display = 'none';
+            }
+          }
+        });
+        
+        // Ouvrir le formulaire sélectionné
+        toggleForm(formId);
+      });
+    }
+  });
+
+  // Auto-close messages after 4 seconds
+  const messages = document.querySelectorAll('.message');
+  messages.forEach(message => {
+    setTimeout(() => {
+      if (message.parentElement) {
+        message.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+          if (message.parentElement) {
+            message.remove();
+          }
+        }, 300);
+      }
+    }, 4000);
+  });
+});
+</script>
+</body>
+</html>

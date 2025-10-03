@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Messages des établissements - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/message_etablissement.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+    <div class="container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title">
+          <i class="fas fa-envelope" style="font-size: 1.8rem; background: var(--gradient-header); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+          <h1>Messages des établissements</h1>
+        </div>
+        <div class="action-buttons">
+          <a href="#" class="btn btn-primary"><i class="fas fa-plus"></i> Nouveau message</a>
+        </div>
+      </div>
+
+      <!-- Main Layout -->
+      <div class="messages-layout">
+        <!-- Schools List Panel -->
+        <div class="schools-list">
+          <div class="list-header">
+            <div class="list-title">Établissements</div>
+
+            <!-- Search and Filter -->
+            <div class="search-filter">
+              <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Rechercher un établissement..." />
+              </div>
+              <div class="filter-row">
+                <select class="filter-select" id="typeFilter">
+                  <option value="">Tous les types</option>
+                  <option value="lycee">Lycée</option>
+                  <option value="college">Collège</option>
+                  <option value="primaire">École primaire</option>
+                  <option value="universite">Université</option>
+                </select>
+                <select class="filter-select" id="statusFilter">
+                  <option value="">Tous les statuts</option>
+                  <option value="active">Actif</option>
+                  <option value="inactive">Inactif</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schools List -->
+          <div class="schools-container" id="schoolsList">
+            <!-- School Item 1 -->
+            <div class="school-item active" data-id="1" data-type="lycee" data-status="active">
+              <a href="{% url 'detail_message' %}">
+                <div class="school-info">
+                  <div class="school-avatar">LP</div>
+                  <div class="school-details">
+                    <div class="school-name">Lycée International de Paris</div>
+                    <div class="school-type">Lycée</div>
+                  </div>
+                  <div class="school-stats">
+                    <div class="unread-count">3</div>
+                    <div class="last-message">Demande d'assistance pour la mise à jour</div>
+                    <div class="timestamp">Il y a 2 heures</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <!-- School Item 2 -->
+            <div class="school-item" data-id="2" data-type="college" data-status="active">
+              <div class="school-info">
+                <div class="school-avatar">CS</div>
+                <div class="school-details">
+                  <div class="school-name">Collège Saint-Exupéry</div>
+                  <div class="school-type">Collège</div>
+                </div>
+                <div class="school-stats">
+                  <div class="unread-count">1</div>
+                  <div class="last-message">Problème avec l'import des emplois du temps</div>
+                  <div class="timestamp">Il y a 5 heures</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Item 3 -->
+            <div class="school-item" data-id="3" data-type="primaire" data-status="active">
+              <div class="school-info">
+                <div class="school-avatar">EM</div>
+                <div class="school-details">
+                  <div class="school-name">École Maternelle Les Petits Écoliers</div>
+                  <div class="school-type">École primaire</div>
+                </div>
+                <div class="school-stats">
+                  <div class="last-message">Demande de formation pour les nouveaux enseignants</div>
+                  <div class="timestamp">Hier</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Item 4 -->
+            <div class="school-item" data-id="4" data-type="universite" data-status="active">
+              <div class="school-info">
+                <div class="school-avatar">US</div>
+                <div class="school-details">
+                  <div class="school-name">Université de Sciences Appliquées</div>
+                  <div class="school-type">Université</div>
+                </div>
+                <div class="school-stats">
+                  <div class="unread-count">5</div>
+                  <div class="last-message">Urgent : Problème d'accès au système de notation</div>
+                  <div class="timestamp">Il y a 1 jour</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Item 5 -->
+            <div class="school-item" data-id="5" data-type="lycee" data-status="inactive">
+              <div class="school-info">
+                <div class="school-avatar">LV</div>
+                <div class="school-details">
+                  <div class="school-name">Lycée Victor Hugo</div>
+                  <div class="school-type">Lycée</div>
+                </div>
+                <div class="school-stats">
+                  <div class="last-message">Demande de renouvellement de l'abonnement</div>
+                  <div class="timestamp">Il y a 3 jours</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Item 6 -->
+            <div class="school-item" data-id="6" data-type="college" data-status="active">
+              <div class="school-info">
+                <div class="school-avatar">CR</div>
+                <div class="school-details">
+                  <div class="school-name">Collège Rosa Parks</div>
+                  <div class="school-type">Collège</div>
+                </div>
+                <div class="school-stats">
+                  <div class="last-message">Félicitations pour la nouvelle interface !</div>
+                  <div class="timestamp">Il y a 4 jours</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Item 7 -->
+            <div class="school-item" data-id="7" data-type="primaire" data-status="active">
+              <div class="school-info">
+                <div class="school-avatar">EP</div>
+                <div class="school-details">
+                  <div class="school-name">École Primaire Jean Jaurès</div>
+                  <div class="school-type">École primaire</div>
+                </div>
+                <div class="school-stats">
+                  <div class="unread-count">2</div>
+                  <div class="last-message">Question sur les fonctionnalités de la cantine</div>
+                  <div class="timestamp">Il y a 5 jours</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Item 8 -->
+            <div class="school-item" data-id="8" data-type="lycee" data-status="active">
+              <div class="school-info">
+                <div class="school-avatar">LM</div>
+                <div class="school-details">
+                  <div class="school-name">Lycée Marie Curie</div>
+                  <div class="school-type">Lycée</div>
+                </div>
+                <div class="school-stats">
+                  <div class="last-message">Retour d'expérience sur le module d'évaluation</div>
+                  <div class="timestamp">Il y a 1 semaine</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Panel -->
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // School selection functionality
+        const schoolItems = document.querySelectorAll('.school-item')
+        const messagesContainer = document.getElementById('messagesContainer')
+        const selectedSchoolName = document.querySelector('.selected-school-name')
+        const selectedSchoolStats = document.querySelectorAll('.selected-school-stats .message-stats')
+      
+        schoolItems.forEach((item) => {
+          item.addEventListener('click', function () {
+            // Remove active class from all schools
+            schoolItems.forEach((school) => school.classList.remove('active'))
+            // Add active class to clicked school
+            this.classList.add('active')
+      
+            // Update selected school info
+            const schoolName = this.querySelector('.school-name').textContent
+            selectedSchoolName.textContent = schoolName
+      
+            // In a real app, you would fetch messages for the selected school
+            // For demo purposes, we'll just show/hide messages based on school ID
+            const schoolId = this.getAttribute('data-id')
+            updateMessagesForSchool(schoolId)
+          })
+        })
+      
+        // Search functionality
+        const searchInput = document.getElementById('searchInput')
+        searchInput.addEventListener('input', function () {
+          const searchTerm = this.value.toLowerCase()
+          const typeFilter = document.getElementById('typeFilter').value
+          const statusFilter = document.getElementById('statusFilter').value
+      
+          filterSchools(searchTerm, typeFilter, statusFilter)
+        })
+      
+        // Filter functionality
+        const typeFilter = document.getElementById('typeFilter')
+        const statusFilter = document.getElementById('statusFilter')
+      
+        typeFilter.addEventListener('change', function () {
+          const searchTerm = searchInput.value.toLowerCase()
+          const statusValue = statusFilter.value
+          filterSchools(searchTerm, this.value, statusValue)
+        })
+      
+        statusFilter.addEventListener('change', function () {
+          const searchTerm = searchInput.value.toLowerCase()
+          const typeValue = typeFilter.value
+          filterSchools(searchTerm, typeValue, this.value)
+        })
+      
+        // Message filter functionality
+        const messageFilter = document.getElementById('messageFilter')
+        messageFilter.addEventListener('change', function () {
+          filterMessages(this.value)
+        })
+      
+        // Message action buttons
+        const messageActionBtns = document.querySelectorAll('.message-action-btn')
+        messageActionBtns.forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const icon = this.querySelector('i')
+            const messageItem = this.closest('.message-item')
+      
+            if (icon.classList.contains('fa-envelope') || icon.classList.contains('fa-envelope-open')) {
+              // Toggle read/unread
+              if (messageItem.classList.contains('read')) {
+                messageItem.classList.remove('read')
+                icon.classList.remove('fa-envelope')
+                icon.classList.add('fa-envelope-open')
+              } else {
+                messageItem.classList.add('read')
+                icon.classList.remove('fa-envelope-open')
+                icon.classList.add('fa-envelope')
+              }
+      
+              // Update unread count for the school
+              updateUnreadCount()
+            } else if (icon.classList.contains('fa-reply')) {
+              alert('Réponse au message')
+            } else if (icon.classList.contains('fa-archive')) {
+              if (confirm('Êtes-vous sûr de vouloir archiver ce message ?')) {
+                messageItem.style.opacity = '0.5'
+                messageItem.style.transform = 'translateX(-10px)'
+                setTimeout(() => {
+                  messageItem.remove()
+                  alert('Message archivé avec succès')
+                }, 300)
+              }
+            } else if (icon.classList.contains('fa-trash')) {
+              if (confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) {
+                messageItem.style.opacity = '0'
+                messageItem.style.transform = 'translateX(100px)'
+                setTimeout(() => {
+                  messageItem.remove()
+                  alert('Message supprimé avec succès')
+                }, 300)
+              }
+            }
+          })
+        })
+      
+        // Functions
+        function filterSchools(searchTerm, typeValue, statusValue) {
+          schoolItems.forEach((item) => {
+            const schoolName = item.querySelector('.school-name').textContent.toLowerCase()
+            const schoolType = item.getAttribute('data-type')
+            const schoolStatus = item.getAttribute('data-status')
+      
+            const matchesSearch = schoolName.includes(searchTerm)
+            const matchesType = typeValue === '' || schoolType === typeValue
+            const matchesStatus = statusValue === '' || schoolStatus === statusValue
+      
+            if (matchesSearch && matchesType && matchesStatus) {
+              item.style.display = 'block'
+            } else {
+              item.style.display = 'none'
+            }
+          })
+        }
+      
+        function filterMessages(filterValue) {
+          const messages = document.querySelectorAll('.message-item')
+      
+          messages.forEach((message) => {
+            const priority = message.getAttribute('data-priority')
+            const isRead = message.getAttribute('data-read') === 'true'
+      
+            let showMessage = true
+      
+            if (filterValue === 'unread' && isRead) {
+              showMessage = false
+            } else if (filterValue === 'high' && priority !== 'high') {
+              showMessage = false
+            } else if (filterValue === 'medium' && priority !== 'medium') {
+              showMessage = false
+            } else if (filterValue === 'low' && priority !== 'low') {
+              showMessage = false
+            }
+      
+            if (showMessage) {
+              message.style.display = 'block'
+              message.style.animation = 'fadeIn 0.5s ease forwards'
+            } else {
+              message.style.display = 'none'
+            }
+          })
+        }
+      
+        function updateMessagesForSchool(schoolId) {
+          // In a real app, this would fetch messages from the server
+          // For this demo, we'll just show all messages (you could customize this based on schoolId)
+          const messages = document.querySelectorAll('.message-item')
+          messages.forEach((message) => {
+            message.style.display = 'block'
+          })
+      
+          // Reset the message filter
+          messageFilter.value = ''
+        }
+      
+        function updateUnreadCount() {
+          // This function would update the unread count for the active school
+          // In a real app, this would involve server communication
+          const activeSchool = document.querySelector('.school-item.active')
+          const unreadMessages = document.querySelectorAll('.message-item:not(.read)').length
+      
+          // Update the unread count display
+          const unreadCountElement = activeSchool.querySelector('.unread-count')
+          if (unreadMessages > 0) {
+            if (unreadCountElement) {
+              unreadCountElement.textContent = unreadMessages
+            } else {
+              // Create the unread count element if it doesn't exist
+              const schoolStats = activeSchool.querySelector('.school-stats')
+              const newUnreadCount = document.createElement('div')
+              newUnreadCount.className = 'unread-count'
+              newUnreadCount.textContent = unreadMessages
+              schoolStats.insertBefore(newUnreadCount, schoolStats.firstChild)
+            }
+          } else {
+            // Remove the unread count if there are no unread messages
+            if (unreadCountElement) {
+              unreadCountElement.remove()
+            }
+          }
+        }
+      
+        // Add fade-in animation to elements
+        const fadeElements = document.querySelectorAll('.fade-in')
+        fadeElements.forEach((element) => {
+          element.style.opacity = '0'
+          element.style.transform = 'translateY(20px)'
+          element.style.transition = 'opacity 0.5s ease, transform 0.5s ease'
+      
+          // Trigger animation
+          setTimeout(() => {
+            element.style.opacity = '1'
+            element.style.transform = 'translateY(0)'
+          }, 100)
+        })
+      
+        // Simulate real-time updates
+        setInterval(() => {
+          // In a real app, this would check for new messages from the server
+          // For demo purposes, we'll randomly add a "new" indicator to a school
+          const randomSchool = document.querySelectorAll('.school-item:not(.active)')[Math.floor(Math.random() * (document.querySelectorAll('.school-item:not(.active)').length - 1))]
+          if (randomSchool) {
+            let unreadCount = randomSchool.querySelector('.unread-count')
+            if (!unreadCount) {
+              unreadCount = document.createElement('div')
+              unreadCount.className = 'unread-count'
+              unreadCount.textContent = '1'
+              randomSchool.querySelector('.school-stats').insertBefore(unreadCount, randomSchool.querySelector('.school-stats').firstChild)
+            } else {
+              const currentCount = parseInt(unreadCount.textContent)
+              unreadCount.textContent = currentCount + 1
+            }
+          }
+        }, 30000) // Every 30 seconds
+      })
+    </script>
+  </body>
+</html>

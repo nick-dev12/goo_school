@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil Commercial - {{ commercial.nom_complet }}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial_profile.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <div class="container">
+      <!-- Header du profil -->
+      <div class="profile-header">
+        <div class="profile-info">
+          <div class="profile-avatar">
+            {% if commercial.photo %}
+            <img
+              src="{{ commercial.photo.url }}"
+              alt="{{ commercial.nom_complet }}"
+            />
+            {% else %}
+            <div class="avatar-placeholder">{{ commercial.initiales }}</div>
+            {% endif %}
+            <div class="status-indicator online"></div>
+          </div>
+          <div class="profile-details">
+            <h1 class="profile-name">{{ commercial.nom_complet }}</h1>
+            <p class="profile-role">{{ commercial.fonction }}</p>
+            <p class="profile-department">{{ commercial.departement }}</p>
+            <div class="profile-contact">
+              <span
+                ><i class="fas fa-envelope"></i> {{ commercial.email }}</span
+              >
+              <span
+                ><i class="fas fa-phone"></i> {{
+                commercial.telephone|default:"Non renseigné" }}</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn btn-secondary">
+            <i class="fas fa-edit"></i> Modifier le profil
+          </button>
+          <button class="btn btn-primary">
+            <i class="fas fa-envelope"></i> Contacter
+          </button>
+          <button class="btn btn-outline">
+            <i class="fas fa-download"></i> Exporter données
+          </button>
+        </div>
+      </div>
+
+      <!-- Statistiques rapides -->
+      <div class="stats-overview">
+        <div class="stat-card">
+          <div class="stat-icon prospects">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.total_prospects }}</div>
+            <div class="stat-label">Prospects totaux</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon contracts">
+            <i class="fas fa-file-contract"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.contrats_signes }}</div>
+            <div class="stat-label">Contrats signés</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon conversion">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.taux_conversion }}%</div>
+            <div class="stat-label">Taux de conversion</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon rating">
+            <i class="fas fa-star"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">4.8</div>
+            <div class="stat-label">Note globale</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation par onglets -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab active" data-tab="overview">
+            <i class="fas fa-chart-pie"></i> Vue d'ensemble
+          </button>
+          <button class="tab" data-tab="activities">
+            <i class="fas fa-history"></i> Activités
+          </button>
+          <button class="tab" data-tab="tickets">
+            <i class="fas fa-ticket-alt"></i> Tickets
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenu des onglets -->
+
+      <!-- Onglet Vue d'ensemble -->
+      <div class="tab-content active" id="overview-tab">
+        <div class="overview-sections">
+          <!-- Section Rendez-vous programmés -->
+          <div class="section-card">
+            <div class="section-header">
+              <h3><i class="fas fa-calendar"></i> Rendez-vous programmés</h3>
+              <span class="section-count"
+                >{{ rendez_vous_programmes|length }}</span
+              >
+            </div>
+            <div class="section-content">
+              <!-- Debug: {{ rendez_vous_programmes|length }} rendez-vous trouvés -->
+              {% for rdv in rendez_vous_programmes %}
+              <div class="rdv-item">
+                <div class="rdv-date">
+                  <span class="rdv-day">{{ rdv.date_rdv|date:"d" }}</span>
+                  <span class="rdv-month">{{ rdv.date_rdv|date:"M" }}</span>
+                </div>
+                <div class="rdv-details">
+                  <h4>{{ rdv.etablissement.nom_etablissement }}</h4>
+                  <p>{{ rdv.get_type_rdv_display }} - {{ rdv.heure_rdv }}</p>
+                  {% if rdv.notes_rdv %}
+                  <small class="rdv-notes"
+                    >{{ rdv.notes_rdv|truncatechars:50 }}</small
+                  >
+                  {% endif %}
+                </div>
+                <div class="rdv-status">
+                  <span class="status-badge upcoming">À venir</span>
+                </div>
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>Aucun rendez-vous programmé</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Section Établissements à prospecter -->
+          <div class="section-card">
+            <div class="section-header">
+              <h3>
+                <i class="fas fa-building"></i> Établissements à prospecter
+              </h3>
+              <span class="section-count"
+                >{{ etablissements_recents|length }}</span
+              >
+            </div>
+            <div class="section-content">
+              <!-- Debug: {{ etablissements_recents|length }} établissements trouvés -->
+              {% for etablissement in etablissements_recents %}
+              <div class="etablissement-item">
+                <div class="etablissement-info">
+                  <h4>{{ etablissement.nom_etablissement }}</h4>
+                  <p class="etablissement-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    {{ etablissement.ville_etablissement }},
+                    {{etablissement.pays_etablissement }}
+                  </p>
+                  <p class="etablissement-type">
+                    {{ etablissement.get_type_etablissement_display }}
+                  </p>
+                </div>
+                <div class="etablissement-status">
+                  <span
+                    class="status-badge status-{{ etablissement.statut_etablissement }}"
+                  >
+                    {{ etablissement.get_statut_etablissement_display }}
+                  </span>
+                  <span
+                    class="priority-badge priority-{{ etablissement.priorite_etablissement }}"
+                  >
+                    {{ etablissement.get_priorite_etablissement_display }}
+                  </span>
+                </div>
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <i class="fas fa-building"></i>
+                <p>Aucun établissement à prospecter</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Section Notes récentes -->
+          <div class="section-card">
+            <div class="section-header">
+              <h3><i class="fas fa-sticky-note"></i> Notes récentes</h3>
+              <span class="section-count">{{ notes_vue_ensemble|length }}</span>
+            </div>
+            <div class="section-content">
+              {% for note in notes_vue_ensemble %}
+              <div class="note-item-small">
+                <div class="note-header">
+                  <span class="note-author">{{ note.author }}</span>
+                  <span class="note-date">{{ note.date|date:"d/m H:i" }}</span>
+                </div>
+                <p class="note-content">{{ note.content|truncatechars:100 }}</p>
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <i class="fas fa-sticky-note"></i>
+                <p>Aucune note récente</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Onglet Activités -->
+      <div class="tab-content" id="activities-tab">
+        <div class="activities-section">
+          <div class="section-header">
+            <h2>Historique des activités</h2>
+          </div>
+
+          <!-- Section Prospects -->
+          <div class="activity-section">
+            <h3><i class="fas fa-users"></i> Prospects</h3>
+            <div class="activities-timeline">
+              {% for activity in activities_prospects %}
+              <div class="timeline-item">
+                <div class="timeline-marker {{ activity.color }}">
+                  <i class="{{ activity.icon }}"></i>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h4>{{ activity.title }}</h4>
+                    <span class="timeline-date"
+                      >{{ activity.date|date:"d/m/Y H:i" }}</span
+                    >
+                  </div>
+                  <p>{{ activity.description }}</p>
+                  <div class="timeline-actions">
+                    <button class="btn btn-sm btn-outline">
+                      Voir prospect
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="timeline-item">
+                <div class="timeline-content">
+                  <p class="text-center text-muted">Aucun prospect ajouté</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Section Rendez-vous -->
+          <div class="activity-section">
+            <h3><i class="fas fa-calendar"></i> Rendez-vous</h3>
+            <div class="activities-timeline">
+              {% for activity in activities_rendez_vous %}
+              <div class="timeline-item">
+                <div class="timeline-marker {{ activity.color }}">
+                  <i class="{{ activity.icon }}"></i>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h4>{{ activity.title }}</h4>
+                    <span class="timeline-date"
+                      >{{ activity.date|date:"d/m/Y H:i" }}</span
+                    >
+                  </div>
+                  <p>{{ activity.description }}</p>
+                  <div class="timeline-actions">
+                    <button class="btn btn-sm btn-outline">Voir RDV</button>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="timeline-item">
+                <div class="timeline-content">
+                  <p class="text-center text-muted">
+                    Aucun rendez-vous programmé
+                  </p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Section Comptes rendus -->
+          <div class="activity-section">
+            <h3><i class="fas fa-file-alt"></i> Comptes rendus</h3>
+            <div class="activities-timeline">
+              {% for activity in activities_comptes_rendus %}
+              <div class="timeline-item">
+                <div class="timeline-marker {{ activity.color }}">
+                  <i class="{{ activity.icon }}"></i>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h4>{{ activity.title }}</h4>
+                    <span class="timeline-date"
+                      >{{ activity.date|date:"d/m/Y H:i" }}</span
+                    >
+                  </div>
+                  <p>{{ activity.description }}</p>
+                  <div class="timeline-actions">
+                    <button class="btn btn-sm btn-outline">Voir rapport</button>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="timeline-item">
+                <div class="timeline-content">
+                  <p class="text-center text-muted">Aucun compte rendu créé</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Section Notes -->
+          <div class="activity-section">
+            <h3><i class="fas fa-sticky-note"></i> Notes</h3>
+            <div class="activities-timeline">
+              {% for activity in activities_notes %}
+              <div class="timeline-item">
+                <div class="timeline-marker {{ activity.color }}">
+                  <i class="{{ activity.icon }}"></i>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h4>{{ activity.title }}</h4>
+                    <span class="timeline-date"
+                      >{{ activity.date|date:"d/m/Y H:i" }}</span
+                    >
+                  </div>
+                  <p>{{ activity.description }}</p>
+                  <div class="timeline-actions">
+                    <button class="btn btn-sm btn-outline">Voir note</button>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="timeline-item">
+                <div class="timeline-content">
+                  <p class="text-center text-muted">Aucune note ajoutée</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Onglet Tickets -->
+      <div class="tab-content" id="tickets-tab">
+        <div class="tickets-section">
+          <div class="section-header">
+            <h2>Tickets de prise en charge</h2>
+            <button class="btn btn-primary">
+              <i class="fas fa-plus"></i> Nouveau ticket
+            </button>
+          </div>
+
+          <div class="tickets-grid">
+            {% for ticket in tickets_prise_charge %}
+            <div class="ticket-card">
+              <div class="ticket-header">
+                <div class="ticket-id">{{ ticket.id }}</div>
+                <div class="ticket-priority priority-{{ ticket.priorite }}">
+                  {{ ticket.priorite|title }}
+                </div>
+              </div>
+              <div class="ticket-body">
+                <h3 class="ticket-title">{{ ticket.sujet }}</h3>
+                <p class="ticket-etablissement">
+                  <i class="fas fa-building"></i> {{ ticket.etablissement }}
+                </p>
+                <p class="ticket-description">{{ ticket.description }}</p>
+                <div class="ticket-dates">
+                  <div class="ticket-date">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span
+                      >Créé: {{ ticket.date_creation|date:"d/m/Y H:i" }}</span
+                    >
+                  </div>
+                  {% if ticket.date_prise_charge %}
+                  <div class="ticket-date">
+                    <i class="fas fa-hand-paper"></i>
+                    <span
+                      >Pris en charge: {{ ticket.date_prise_charge|date:"d/m/Y
+                      H:i" }}</span
+                    >
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="ticket-footer">
+                <div class="ticket-status status-{{ ticket.statut }}">
+                  {% if ticket.statut == 'en_attente' %}
+                  <i class="fas fa-clock"></i> En attente {% elif ticket.statut
+                  == 'en_cours' %} <i class="fas fa-spinner"></i> En cours {%
+                  elif ticket.statut == 'resolu' %}
+                  <i class="fas fa-check-circle"></i> Résolu {% endif %}
+                </div>
+                <div class="ticket-actions">
+                  <button class="btn btn-sm btn-outline">Voir détails</button>
+                  {% if ticket.statut == 'en_attente' %}
+                  <button class="btn btn-sm btn-primary">
+                    Prendre en charge
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="ticket-card">
+              <div class="ticket-body text-center">
+                <i
+                  class="fas fa-ticket-alt"
+                  style="
+                    font-size: 3rem;
+                    color: var(--secondary-color);
+                    margin-bottom: 1rem;
+                  "
+                ></i>
+                <p class="text-muted">Aucun ticket de prise en charge</p>
+                <button class="btn btn-primary">
+                  <i class="fas fa-plus"></i> Créer le premier ticket
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages de notification -->
+    {% if messages %}
+    <div class="notifications-container">
+      {% for message in messages %}
+      <div class="toast toast-{{ message.tags|default:'info' }} show">
+        <div class="toast-icon">
+          {% if message.tags == 'success' %}
+          <i class="fas fa-check-circle"></i>
+          {% elif message.tags == 'error' %}
+          <i class="fas fa-times-circle"></i>
+          {% elif message.tags == 'warning' %}
+          <i class="fas fa-exclamation-triangle"></i>
+          {% else %}
+          <i class="fas fa-info-circle"></i>
+          {% endif %}
+        </div>
+        <div class="toast-content">
+          <div class="toast-message">{{ message }}</div>
+        </div>
+        <button
+          class="toast-close"
+          onclick="this.parentElement.classList.remove('show'); setTimeout(() => this.parentElement.remove(), 500);"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    <script>
+      // Auto-hide messages after 7 seconds
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(
+          ".notifications-container .toast"
+        );
+        messages.forEach((message) => {
+          setTimeout(() => {
+            message.classList.remove("show");
+            setTimeout(() => message.remove(), 500);
+          }, 7000);
+        });
+      });
+    </script>
+    {% endif %}
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'school_admin/js/commercial_profile.js' %}"></script>
+  </body>
+</html>

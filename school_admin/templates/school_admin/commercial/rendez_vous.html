@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rendez-vous programmés - Goo-School Commercial</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/commercial/rendez_vous.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/commercial/partials/header.html' %}
+
+    <div class="page-container">
+      <!-- Messages -->
+      {% if messages %}
+      <div class="message-container">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">
+          <div class="message-content">
+            <i
+              class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"
+            ></i>
+            <span>{{ message }}</span>
+          </div>
+          <button class="message-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Header de la page -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-info">
+            <div class="page-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="page-details">
+              <h1 class="page-title">Rendez-vous programmés</h1>
+              <p class="page-subtitle">
+                Gestion de votre calendrier commercial
+              </p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <a
+              href="{% url 'school_admin:commercial_liste_etablissements' %}"
+              class="btn btn-outline"
+            >
+              <i class="fas fa-arrow-left"></i>
+              Retour
+            </a>
+            <a
+              href="{% url 'school_admin:commercial_ajouter_etablissement' %}"
+              class="btn btn-primary"
+            >
+              <i class="fas fa-plus"></i>
+              Nouveau prospect
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres et recherche -->
+      <div class="filters-section">
+        <div class="filters-container">
+          <div class="search-group">
+            <div class="search-input-group">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Rechercher un établissement..."
+                class="search-input"
+              />
+            </div>
+          </div>
+          <div class="filters-row">
+            <div class="filter-group">
+              <label for="type-filter" class="filter-label"
+                >Type de rendez-vous</label
+              >
+              <select id="type-filter" class="filter-select">
+                <option value="">Tous les types</option>
+                <option value="appel_telephonique">Appel téléphonique</option>
+                <option value="visite_site">Visite sur site</option>
+                <option value="presentation_online">
+                  Présentation en ligne
+                </option>
+                <option value="dejeuner_affaires">Déjeuner d'affaires</option>
+                <option value="salon_rencontre">Salon/Rencontre</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="date-filter" class="filter-label">Période</label>
+              <select id="date-filter" class="filter-select">
+                <option value="">Toutes les dates</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="upcoming">À venir</option>
+                <option value="past">Passés</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="etablissement-filter" class="filter-label"
+                >Établissement</label
+              >
+              <select id="etablissement-filter" class="filter-select">
+                <option value="">Tous les établissements</option>
+                {% for etablissement in etablissements %}
+                <option value="{{ etablissement.id }}">
+                  {{ etablissement.nom_etablissement }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="stats-section">
+        <div class="stats-container">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ total_rendez_vous }}</h3>
+              <p>Total des rendez-vous</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ rendez_vous_aujourd_hui }}</h3>
+              <p>Aujourd'hui</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-calendar-week"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ rendez_vous_semaine }}</h3>
+              <p>Cette semaine</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-content">
+              <h3>{{ etablissements_avec_rdv }}</h3>
+              <p>Établissements</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste des rendez-vous -->
+      <div class="rendez-vous-section">
+        {% if rendez_vous_list %}
+        <div class="rendez-vous-list">
+          {% for rdv in rendez_vous_list %}
+          <div
+            class="rendez-vous-card"
+            data-etablissement="{{ rdv.etablissement.nom_etablissement|lower }}"
+            data-type="{{ rdv.type_rdv }}"
+            data-date="{{ rdv.date_rdv|date:'Y-m-d' }}"
+          >
+            <div class="card-header">
+              <div class="etablissement-info">
+                <div class="etablissement-avatar">
+                  <i class="fas fa-building"></i>
+                </div>
+                <div class="etablissement-details">
+                  <h3 class="etablissement-name">
+                    {{ rdv.etablissement.nom_etablissement }}
+                  </h3>
+                  <p class="etablissement-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ rdv.etablissement.ville_etablissement }}</span>,
+                    <span>{{ rdv.etablissement.pays_etablissement }}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                class="action-btn delete-btn"
+                title="Supprimer"
+                onclick="deleteRendezVous({{ rdv.id }})"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="rendez-vous-info">
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-calendar"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Date</span>
+                    <span class="info-value"
+                      >{{ rdv.date_rdv|date:"d/m/Y" }}</span
+                    >
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Heure</span>
+                    <span class="info-value"
+                      >{{ rdv.heure_rdv|time:"H:i" }}</span
+                    >
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <i class="fas fa-tag"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Type</span>
+                    <span class="info-value type-{{ rdv.type_rdv }}"
+                      >{{ rdv.get_type_rdv_display }}</span
+                    >
+                  </div>
+                </div>
+                {% if rdv.notes_rdv %}
+                <div class="info-item full-width">
+                  <div class="info-icon">
+                    <i class="fas fa-sticky-note"></i>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Notes</span>
+                    <span class="info-value">{{ rdv.notes_rdv }}</span>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="card-buttons">
+                <a
+                  href="{% url 'school_admin:commercial_detail_etablissement' rdv.etablissement.id %}"
+                  class="btn-card btn-details"
+                >
+                  <i class="fas fa-eye"></i>
+                  Voir les détails
+                </a>
+                <a
+                  href="{% url 'school_admin:commercial_creer_rapport' rdv.id %}"
+                  class="btn-card btn-rapport"
+                >
+                  <i class="fas fa-file-alt"></i>
+                  Créer un rapport
+                </a>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="creation-info">
+                <i class="fas fa-plus-circle"></i>
+                <span>Créé le {{ rdv.date_creation|date:"d/m/Y à H:i" }}</span>
+              </div>
+              <div
+                class="status-badge status-{{ rdv.etablissement.statut_etablissement }}"
+              >
+                {{ rdv.etablissement.get_statut_etablissement_display }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-calendar-times"></i>
+          </div>
+          <h3>Aucun rendez-vous programmé</h3>
+          <p>Commencez par programmer des rendez-vous avec vos prospects.</p>
+          <a
+            href="{% url 'school_admin:commercial_liste_etablissements' %}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-list"></i>
+            Voir mes établissements
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Formulaire de suppression caché -->
+    <form id="delete-form" method="post" style="display: none">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_meeting" />
+      <input type="hidden" name="meeting_id" id="delete-meeting-id" />
+    </form>
+
+    <script>
+      // Auto-close messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const messages = document.querySelectorAll(".message");
+        messages.forEach((message) => {
+          setTimeout(() => {
+            if (message.parentElement) {
+              message.style.animation = "slideOutRight 0.3s ease";
+              setTimeout(() => {
+                if (message.parentElement) {
+                  message.remove();
+                }
+              }, 300);
+            }
+          }, 4000);
+        });
+
+        // Filtres
+        const searchInput = document.getElementById("search-input");
+        const typeFilter = document.getElementById("type-filter");
+        const dateFilter = document.getElementById("date-filter");
+        const etablissementFilter = document.getElementById(
+          "etablissement-filter"
+        );
+        const rendezVousCards = document.querySelectorAll(".rendez-vous-card");
+
+        function filterRendezVous() {
+          const searchTerm = searchInput.value.toLowerCase();
+          const selectedType = typeFilter.value;
+          const selectedDate = dateFilter.value;
+          const selectedEtablissement = etablissementFilter.value;
+          const today = new Date();
+          const todayStr = today.toISOString().split("T")[0];
+
+          rendezVousCards.forEach((card) => {
+            const etablissement = card.dataset.etablissement;
+            const type = card.dataset.type;
+            const date = card.dataset.date;
+            const etablissementId = card
+              .querySelector('.action-btn[href*="detail_etablissement"]')
+              .href.split("/")
+              .slice(-2, -1)[0];
+
+            let show = true;
+
+            // Filtre par recherche
+            if (searchTerm && !etablissement.includes(searchTerm)) {
+              show = false;
+            }
+
+            // Filtre par type
+            if (selectedType && type !== selectedType) {
+              show = false;
+            }
+
+            // Filtre par établissement
+            if (
+              selectedEtablissement &&
+              etablissementId !== selectedEtablissement
+            ) {
+              show = false;
+            }
+
+            // Filtre par date
+            if (selectedDate) {
+              const cardDate = new Date(date);
+              switch (selectedDate) {
+                case "today":
+                  if (date !== todayStr) show = false;
+                  break;
+                case "week":
+                  const weekAgo = new Date(today);
+                  weekAgo.setDate(today.getDate() - 7);
+                  if (cardDate < weekAgo || cardDate > today) show = false;
+                  break;
+                case "month":
+                  const monthAgo = new Date(today);
+                  monthAgo.setMonth(today.getMonth() - 1);
+                  if (cardDate < monthAgo || cardDate > today) show = false;
+                  break;
+                case "upcoming":
+                  if (cardDate < today) show = false;
+                  break;
+                case "past":
+                  if (cardDate >= today) show = false;
+                  break;
+              }
+            }
+
+            card.style.display = show ? "block" : "none";
+          });
+        }
+
+        searchInput.addEventListener("input", filterRendezVous);
+        typeFilter.addEventListener("change", filterRendezVous);
+        dateFilter.addEventListener("change", filterRendezVous);
+        etablissementFilter.addEventListener("change", filterRendezVous);
+      });
+
+      function deleteRendezVous(meetingId) {
+        if (confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous ?")) {
+          document.getElementById("delete-meeting-id").value = meetingId;
+          document.getElementById("delete-form").submit();
+        }
+      }
+    </script>
+  </body>
+</html>

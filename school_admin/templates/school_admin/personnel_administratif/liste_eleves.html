@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liste des Élèves - Personnel Administratif</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/dashboard_personnel_administratif.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="dashboard">
+      <main class="main-content full-width" id="mainContent">
+        <!-- Header Horizontal -->
+        <header class="dashboard-header-horizontal">
+          <div class="header-left">
+            <div class="header-logo">
+              <i class="fas fa-school"></i>
+              <span>Acadeflex</span>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <div class="header-profile">
+              <div class="header-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="header-user-info">
+                <div class="header-user-name">{{ personnel.nom_complet }}</div>
+                <div class="header-user-role">
+                  {{ personnel.get_fonction_display }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Welcome Banner -->
+        <section class="welcome-banner">
+          <div class="banner-content">
+            <h1 class="banner-title">Liste des Élèves</h1>
+            <p class="banner-subtitle">
+              Gestion des élèves de {{ etablissement.nom }}
+            </p>
+          </div>
+          <a
+            href="{% url 'personnel_administratif:dashboard_personnel_administratif' %}"
+            class="nav-toggle-btn"
+          >
+            <i class="fas fa-arrow-left"></i>
+            Retour
+          </a>
+        </section>
+
+        <!-- Main Content Container -->
+        <div class="content-container">
+          <div class="container">
+            <!-- Liste des élèves -->
+            <div class="dashboard-overview">
+              <div class="section-title">
+                <i class="fas fa-user-graduate"></i>
+                Élèves inscrits
+              </div>
+
+              {% if eleves %}
+              <div class="eleves-grid">
+                {% for eleve in eleves %}
+                <div class="eleve-card">
+                  <div class="eleve-avatar">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div class="eleve-info">
+                    <h3>{{ eleve.nom_complet }}</h3>
+                    <p>{{ eleve.classe }}</p>
+                    <span class="eleve-status">{{ eleve.statut }}</span>
+                  </div>
+                  <div class="eleve-actions">
+                    <a href="#" class="btn-action">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-user-graduate"></i>
+                </div>
+                <h3>Aucun élève trouvé</h3>
+                <p>
+                  Il n'y a pas encore d'élèves inscrits dans cet établissement.
+                </p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/dashboard_administrateur_etablissement.js' %}"></script>
+  </body>
+</html>

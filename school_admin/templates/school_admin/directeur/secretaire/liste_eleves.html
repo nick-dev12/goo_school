@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liste des Élèves - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_secretaire.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/liste_eleves.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title-section">
+          <h1 class="page-title">
+            <i class="fas fa-users"></i>
+            Liste des Élèves
+          </h1>
+          <p class="page-subtitle">
+            Gestion des élèves inscrits dans {{ etablissement.nom }}
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
+            <i class="fas fa-user-plus"></i>
+            <span>Nouvel élève</span>
+          </a>
+          <a href="{% url 'secretaire:dashboard_secretaire' %}" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour au tableau de bord</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Cartes de vue d'ensemble -->
+      <div class="overview-cards">
+        <div class="overview-card">
+          <div class="card-icon total-students">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Élèves inscrits</h3>
+            <p class="card-number">{{ stats_generales.total_eleves }}</p>
+            <p class="card-subtitle">+{{ stats_generales.nouveaux_eleves }} cette année</p>
+          </div>
+          <div class="card-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <div class="card-icon total-classes">
+            <i class="fas fa-chalkboard-teacher"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Classes actives</h3>
+            <p class="card-number">{{ stats_generales.total_classes }}</p>
+            <p class="card-subtitle">Toutes opérationnelles</p>
+          </div>
+          <div class="card-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <div class="card-icon occupation-rate">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Taux d'occupation</h3>
+            <p class="card-number">{{ stats_generales.taux_occupation_global }}%</p>
+            <p class="card-subtitle">Capacité globale</p>
+          </div>
+          <div class="card-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <div class="card-icon new-students">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Nouveaux élèves</h3>
+            <p class="card-number">{{ stats_generales.nouveaux_eleves }}</p>
+            <p class="card-subtitle">Inscriptions récentes</p>
+          </div>
+          <div class="card-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <div class="card-icon transfer-students">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Transferts</h3>
+            <p class="card-number">{{ stats_generales.transferts }}</p>
+            <p class="card-subtitle">Cette année</p>
+          </div>
+          <div class="card-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <div class="card-icon reenroll-students">
+            <i class="fas fa-redo"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Réinscriptions</h3>
+            <p class="card-number">{{ stats_generales.reinscriptions }}</p>
+            <p class="card-subtitle">Cette année</p>
+          </div>
+          <div class="card-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Système d'onglets -->
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <div class="tabs-nav">
+            {% for classe_data in classes_data %}
+              <button class="tab-button {% if forloop.first %}active{% endif %}" 
+                      data-tab="classe-{{ classe_data.classe.id }}">
+                <div class="tab-content">
+                  <div class="tab-icon">
+                    <i class="fas fa-chalkboard"></i>
+                  </div>
+                  <div class="tab-info">
+                    <h4 class="tab-title">{{ classe_data.classe.nom }}</h4>
+                    <p class="tab-subtitle">{{ classe_data.classe.get_niveau_display }}</p>
+                  </div>
+                  <div class="tab-stats">
+                    <span class="students-count">{{ classe_data.stats.total_eleves }}</span>
+                    <span class="students-label">élèves</span>
+                  </div>
+                </div>
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Contenu des onglets -->
+        <div class="tabs-content">
+          {% for classe_data in classes_data %}
+            <div class="tab-panel {% if forloop.first %}active{% endif %}" 
+                 id="classe-{{ classe_data.classe.id }}">
+              
+              <!-- En-tête de la classe -->
+              <div class="class-header">
+                <div class="class-info">
+                  <h2 class="class-title">
+                    <i class="fas fa-chalkboard"></i>
+                    {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                  </h2>
+                  <p class="class-description">{{ classe_data.classe.description|default:"Aucune description" }}</p>
+                </div>
+                
+                <div class="class-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Capacité</span>
+                    <span class="stat-value">{{ classe_data.classe.capacite_max }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Inscrits</span>
+                    <span class="stat-value">{{ classe_data.stats.total_eleves }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Disponibles</span>
+                    <span class="stat-value">{{ classe_data.stats.places_disponibles }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Occupation</span>
+                    <span class="stat-value">{{ classe_data.stats.taux_occupation }}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Statistiques détaillées de la classe -->
+              <div class="class-detail-stats">
+                <div class="detail-stat-card">
+                  <div class="detail-stat-icon new">
+                    <i class="fas fa-user-plus"></i>
+                  </div>
+                  <div class="detail-stat-content">
+                    <span class="detail-stat-number">{{ classe_data.stats.nouveaux_eleves }}</span>
+                    <span class="detail-stat-label">Nouvelles inscriptions</span>
+                  </div>
+                </div>
+
+                <div class="detail-stat-card">
+                  <div class="detail-stat-icon transfer">
+                    <i class="fas fa-exchange-alt"></i>
+                  </div>
+                  <div class="detail-stat-content">
+                    <span class="detail-stat-number">{{ classe_data.stats.transferts }}</span>
+                    <span class="detail-stat-label">Transferts</span>
+                  </div>
+                </div>
+
+                <div class="detail-stat-card">
+                  <div class="detail-stat-icon reenroll">
+                    <i class="fas fa-redo"></i>
+                  </div>
+                  <div class="detail-stat-content">
+                    <span class="detail-stat-number">{{ classe_data.stats.reinscriptions }}</span>
+                    <span class="detail-stat-label">Réinscriptions</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Liste des élèves -->
+              <div class="students-section">
+                <div class="section-header">
+                  <h3 class="section-title">
+                    <i class="fas fa-list"></i>
+                    Liste des élèves ({{ classe_data.eleves.count }})
+                  </h3>
+                  <div class="section-actions">
+                    <button class="btn-filter" onclick="toggleFilter()">
+                      <i class="fas fa-filter"></i>
+                      Filtrer
+                    </button>
+                    <button class="btn-export" onclick="exportStudents()">
+                      <i class="fas fa-download"></i>
+                      Exporter
+                    </button>
+                  </div>
+                </div>
+
+                {% if classe_data.eleves %}
+                  <div class="students-list">
+                    <div class="list-header">
+                      <div class="list-cell header-cell">Élève</div>
+                      <div class="list-cell header-cell">Numéro</div>
+                      <div class="list-cell header-cell">Âge</div>
+                      <div class="list-cell header-cell">Statut</div>
+                      <div class="list-cell header-cell">Responsable</div>
+                      <div class="list-cell header-cell">Inscription</div>
+                      <div class="list-cell header-cell">Actions</div>
+                    </div>
+                    
+                    {% for eleve in classe_data.eleves %}
+                      <div class="list-row">
+                        <div class="list-cell student-cell">
+                          <div class="student-avatar-small">
+                            <i class="fas fa-user"></i>
+                          </div>
+                          <div class="student-info-compact">
+                            <h4 class="student-name">{{ eleve.nom_complet }}</h4>
+                            <p class="student-email">{{ eleve.email|default:"Aucun email" }}</p>
+                          </div>
+                        </div>
+                        
+                        <div class="list-cell" data-label="Numéro">
+                          <span class="student-number">{{ eleve.numero_eleve }}</span>
+                        </div>
+                        
+                        <div class="list-cell" data-label="Âge">
+                          <span class="student-age">{{ eleve.age }} ans</span>
+                        </div>
+                        
+                        <div class="list-cell" data-label="Statut">
+                          <span class="status-badge status-{{ eleve.statut }}">
+                            {{ eleve.get_statut_display }}
+                          </span>
+                        </div>
+                        
+                        <div class="list-cell" data-label="Responsable">
+                          <span class="responsable-type">{{ eleve.get_type_responsable_display }}</span>
+                        </div>
+                        
+                        <div class="list-cell" data-label="Inscription">
+                          <span class="inscription-date">{{ eleve.date_inscription|date:"d/m/Y" }}</span>
+                        </div>
+                        
+                        <div class="list-cell" data-label="Actions">
+                          <div class="student-actions-compact">
+                            <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-small btn-view" title="Voir détails">
+                              <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-small btn-edit" title="Modifier">
+                              <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn-action-small btn-delete" onclick="deleteStudent({{ eleve.id }})" title="Supprimer">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <i class="fas fa-user-slash"></i>
+                    </div>
+                    <h3 class="empty-title">Aucun élève inscrit</h3>
+                    <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                    <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
+                      <i class="fas fa-user-plus"></i>
+                      Inscrire un élève
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts JavaScript -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Gestion des onglets
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            const targetTab = button.getAttribute('data-tab');
+            
+            // Retirer la classe active de tous les boutons et panneaux
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabPanels.forEach(panel => panel.classList.remove('active'));
+            
+            // Ajouter la classe active au bouton cliqué et au panneau correspondant
+            button.classList.add('active');
+            document.getElementById(targetTab).classList.add('active');
+          });
+        });
+
+        // Animation des cartes
+        const cards = document.querySelectorAll('.student-card');
+        cards.forEach((card, index) => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          
+          setTimeout(() => {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, index * 100);
+        });
+      });
+
+      function toggleFilter() {
+        // Fonction pour afficher/masquer les filtres
+        console.log('Filtres à implémenter');
+      }
+
+      function exportStudents() {
+        // Fonction pour exporter la liste des élèves
+        console.log('Export à implémenter');
+      }
+
+      function viewStudent(studentId) {
+        // Fonction pour voir les détails d'un élève
+        console.log('Voir élève:', studentId);
+      }
+
+      function editStudent(studentId) {
+        // Fonction pour modifier un élève
+        console.log('Modifier élève:', studentId);
+      }
+
+      function deleteStudent(studentId) {
+        // Fonction pour supprimer un élève
+        if (confirm('Êtes-vous sûr de vouloir supprimer cet élève ?')) {
+          console.log('Supprimer élève:', studentId);
+        }
+      }
+    </script>
+  </body>
+</html>

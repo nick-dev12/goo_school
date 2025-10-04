@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de bord - Administrateur d'établissement</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/dashboard_administrateur_etablissement.css' %}"
+    />
+  </head>
+
+  <body>
+    
+    {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+
+    <div class="container">
+      <!-- Dashboard Overview -->
+      <div class="dashboard-overview">
+        <div class="key-indicators">
+          <!-- Gestion des Classes -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--blue)">
+              <i class="fas fa-chalkboard"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Classes actives</h3>
+              <p class="indicator-value">45</p>
+              <span class="indicator-trend positive">+2 cette année</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <!-- Gestion des Enseignants -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--purple)">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Enseignants</h3>
+              <p class="indicator-value">87</p>
+              <span class="indicator-trend">Effectif stable</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <!-- Gestion des Élèves -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--green)">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Élèves inscrits</h3>
+              <p class="indicator-value">1,245</p>
+              <span class="indicator-trend positive"
+                >+3% depuis l'année dernière</span
+              >
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <!-- Gestion des Matières -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--orange)">
+              <i class="fas fa-book"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Matières enseignées</h3>
+              <p class="indicator-value">28</p>
+              <span class="indicator-trend">Programme complet</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <!-- Gestion des Salles -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--teal)">
+              <i class="fas fa-door-open"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Salles disponibles</h3>
+              <p class="indicator-value">52</p>
+              <span class="indicator-trend">Toutes opérationnelles</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <!-- Gestion des Codes d'accès -->
+          <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--red)">
+              <i class="fas fa-key"></i>
+            </div>
+            <div class="indicator-content">
+              <h3>Codes d'accès</h3>
+              <p class="indicator-value">1,380</p>
+              <span class="indicator-trend">Utilisateurs actifs</span>
+            </div>
+            <a href="#" class="indicator-link">
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+        
+
+        
+        </div>
+      </div>
+
+      <!-- Gestion de la Structure -->
+      <div class="structure-management-section">
+        <h2 class="section-title">Gestion de la Structure</h2>
+
+        <div class="structure-grid">
+          <!-- Gestion des Classes -->
+          <div class="structure-card">
+            <div class="structure-header">
+              <div class="structure-icon" style="background-color: var(--blue)">
+                <i class="fas fa-chalkboard"></i>
+              </div>
+              <h3>Classes</h3>
+            </div>
+            <div class="structure-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total</span>
+                <span class="stat-value">45</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Actives</span>
+                <span class="stat-value">43</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Nouvelles</span>
+                <span class="stat-value">2</span>
+              </div>
+            </div>
+            <div class="structure-actions">
+              <a href="#" class="action-btn primary">
+                <i class="fas fa-plus"></i>
+                <span>Ajouter</span>
+              </a>
+              <a href="#" class="action-btn secondary">
+                <i class="fas fa-list"></i>
+                <span>Lister</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Gestion des Enseignants -->
+          <div class="structure-card">
+            <div class="structure-header">
+              <div
+                class="structure-icon"
+                style="background-color: var(--purple)"
+              >
+                <i class="fas fa-chalkboard-teacher"></i>
+              </div>
+              <h3>Enseignants</h3>
+            </div>
+            <div class="structure-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total</span>
+                <span class="stat-value">87</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Actifs</span>
+                <span class="stat-value">85</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Nouveaux</span>
+                <span class="stat-value">3</span>
+              </div>
+            </div>
+            <div class="structure-actions">
+              <a href="#" class="action-btn primary">
+                <i class="fas fa-plus"></i>
+                <span>Ajouter</span>
+              </a>
+              <a href="#" class="action-btn secondary">
+                <i class="fas fa-list"></i>
+                <span>Lister</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Gestion des Matières -->
+          <div class="structure-card">
+            <div class="structure-header">
+              <div
+                class="structure-icon"
+                style="background-color: var(--orange)"
+              >
+                <i class="fas fa-book"></i>
+              </div>
+              <h3>Matières</h3>
+            </div>
+            <div class="structure-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total</span>
+                <span class="stat-value">28</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Obligatoires</span>
+                <span class="stat-value">20</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Optionnelles</span>
+                <span class="stat-value">8</span>
+              </div>
+            </div>
+            <div class="structure-actions">
+              <a href="#" class="action-btn primary">
+                <i class="fas fa-plus"></i>
+                <span>Ajouter</span>
+              </a>
+              <a href="#" class="action-btn secondary">
+                <i class="fas fa-list"></i>
+                <span>Lister</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Gestion des Salles -->
+          <div class="structure-card">
+            <div class="structure-header">
+              <div class="structure-icon" style="background-color: var(--teal)">
+                <i class="fas fa-door-open"></i>
+              </div>
+              <h3>Salles</h3>
+            </div>
+            <div class="structure-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total</span>
+                <span class="stat-value">52</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Disponibles</span>
+                <span class="stat-value">48</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">En maintenance</span>
+                <span class="stat-value">4</span>
+              </div>
+            </div>
+            <div class="structure-actions">
+              <a href="#" class="action-btn primary">
+                <i class="fas fa-plus"></i>
+                <span>Ajouter</span>
+              </a>
+              <a href="#" class="action-btn secondary">
+                <i class="fas fa-list"></i>
+                <span>Lister</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dernières activités -->
+      <div class="latest-activities-section">
+        <h2 class="section-title">Dernières activités</h2>
+
+        <div class="activities-container">
+          <div class="activity-card">
+            <div class="activity-header">
+              <div class="activity-icon" style="background-color: var(--green)">
+                <i class="fas fa-user-graduate"></i>
+              </div>
+              <h3>Derniers élèves inscrits</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Sophie Martin</h4>
+                  <p>Classe de 3ème A</p>
+                  <span class="activity-time">Il y a 2 heures</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Lucas Dubois</h4>
+                  <p>Classe de 5ème B</p>
+                  <span class="activity-time">Il y a 1 jour</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir tous les élèves <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-header">
+              <div class="activity-icon" style="background-color: var(--blue)">
+                <i class="fas fa-chalkboard-teacher"></i>
+              </div>
+              <h3>Derniers enseignants ajoutés</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Marie Leroy</h4>
+                  <p>Professeur de Mathématiques</p>
+                  <span class="activity-time">Il y a 3 jours</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-avatar">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Thomas Bernard</h4>
+                  <p>Professeur de Français</p>
+                  <span class="activity-time">Il y a 5 jours</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir tous les enseignants <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-header">
+              <div
+                class="activity-icon"
+                style="background-color: var(--orange)"
+              >
+                <i class="fas fa-book"></i>
+              </div>
+              <h3>Nouvelles matières</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-flask"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Sciences Physiques</h4>
+                  <p>Nouvelle matière ajoutée</p>
+                  <span class="activity-time">Il y a 1 semaine</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-palette"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>Arts Plastiques</h4>
+                  <p>Matière optionnelle</p>
+                  <span class="activity-time">Il y a 2 semaines</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir toutes les matières <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-header">
+              <div class="activity-icon" style="background-color: var(--teal)">
+                <i class="fas fa-calendar-alt"></i>
+              </div>
+              <h3>Emplois du temps</h3>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>3ème A - Lundi</h4>
+                  <p>Emploi du temps modifié</p>
+                  <span class="activity-time">Il y a 2 jours</span>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-subject">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="activity-details">
+                  <h4>5ème B - Mercredi</h4>
+                  <p>Nouvel emploi du temps</p>
+                  <span class="activity-time">Il y a 4 jours</span>
+                </div>
+              </div>
+            </div>
+            <a href="#" class="activity-link"
+              >Voir tous les emplois du temps
+              <i class="fas fa-chevron-right"></i
+            ></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Raccourcis rapides -->
+      <div class="quick-shortcuts-section">
+        <h2 class="section-title">Raccourcis rapides</h2>
+
+        <div class="shortcuts-container">
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-chalkboard"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Gestion des Classes</h3>
+              <p>Créer, modifier et organiser les classes</p>
+            </div>
+            <div class="shortcut-badge">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Gestion des Enseignants</h3>
+              <p>Ajouter et gérer le personnel enseignant</p>
+            </div>
+            <div class="shortcut-badge">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-book"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Gestion des Matières</h3>
+              <p>Configurer le programme scolaire</p>
+            </div>
+            <div class="shortcut-badge">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-key"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Codes d'accès</h3>
+              <p>Gérer les identifiants utilisateurs</p>
+            </div>
+            <div class="shortcut-badge">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Emplois du temps</h3>
+              <p>Planifier les cours et activités</p>
+            </div>
+            <div class="shortcut-badge">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="#" class="shortcut-card">
+            <div class="shortcut-icon">
+              <i class="fas fa-door-open"></i>
+            </div>
+            <div class="shortcut-content">
+              <h3>Gestion des Salles</h3>
+              <p>Organiser les espaces d'enseignement</p>
+            </div>
+            <div class="shortcut-badge">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/dashboard_administrateur_etablissement.js' %}"></script>
+  </body>
+</html>

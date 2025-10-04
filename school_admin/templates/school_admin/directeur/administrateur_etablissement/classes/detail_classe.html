@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détails de la Classe - {{ classe.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/classes.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-chalkboard"></i>
+              Détails de la Classe
+            </h1>
+            <p class="page-subtitle">
+              {{ classe.nom_complet }} - {{ etablissement.nom }}
+            </p>
+          </div>
+          <div class="page-actions">
+            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-back">
+              <i class="fas fa-arrow-left"></i>
+              <span>Retour à la liste</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Détails de la classe -->
+        <div class="classe-detail-container">
+          <div class="classe-main-card">
+            <div class="classe-header">
+              <div class="classe-icon">
+                <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+              </div>
+              <div class="classe-info">
+                <h2 class="classe-nom">{{ classe.nom }}</h2>
+                <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
+                <div class="classe-badge niveau-{{ classe.niveau }}">
+                  <span>{{ classe.get_niveau_display }}</span>
+                </div>
+              </div>
+              <div class="classe-status">
+                <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+                  <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+                  <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="classe-details">
+              <div class="detail-section">
+                <h3 class="section-title">
+                  <i class="fas fa-info-circle"></i>
+                  Informations Générales
+                </h3>
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <i class="fas fa-code"></i>
+                    <span class="detail-label">Code de la classe:</span>
+                    <span class="detail-value">{{ classe.code_classe }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-users"></i>
+                    <span class="detail-label">Capacité maximale:</span>
+                    <span class="detail-value">{{ classe.capacite_max }} élèves</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <span class="detail-label">Élèves inscrits:</span>
+                    <span class="detail-value">{{ classe.nombre_eleves }} élèves</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="detail-label">Taux d'occupation:</span>
+                    <span class="detail-value">{{ classe.taux_occupation }}%</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span class="detail-label">Date de création:</span>
+                    <span class="detail-value">{{ classe.date_creation|date:"d/m/Y" }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-calendar-edit"></i>
+                    <span class="detail-label">Dernière modification:</span>
+                    <span class="detail-value">{{ classe.date_modification|date:"d/m/Y" }}</span>
+                  </div>
+                </div>
+              </div>
+
+              {% if classe.description %}
+                <div class="detail-section">
+                  <h3 class="section-title">
+                    <i class="fas fa-align-left"></i>
+                    Description
+                  </h3>
+                  <div class="description-content">
+                    <p>{{ classe.description }}</p>
+                  </div>
+                </div>
+              {% endif %}
+
+              <div class="detail-section">
+                <h3 class="section-title">
+                  <i class="fas fa-school"></i>
+                  Établissement
+                </h3>
+                <div class="etablissement-info">
+                  <div class="etablissement-card">
+                    <div class="etablissement-icon">
+                      <i class="fas fa-school"></i>
+                    </div>
+                    <div class="etablissement-details">
+                      <h4>{{ etablissement.nom }}</h4>
+                      <p>{{ etablissement.get_type_etablissement_display }}</p>
+                      <span class="etablissement-code">{{ etablissement.code_etablissement }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="classe-actions">
+              <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-action btn-back">
+                <i class="fas fa-arrow-left"></i>
+                <span>Retour à la liste</span>
+              </a>
+              <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
+                <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+                <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/classes.js' %}"></script>
+  </body>
+</html>

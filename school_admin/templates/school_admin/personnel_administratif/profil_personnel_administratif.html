@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon Profil - Personnel Administratif</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/dashboard_personnel_administratif.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="dashboard">
+      <main class="main-content full-width" id="mainContent">
+        <!-- Header Horizontal -->
+        <header class="dashboard-header-horizontal">
+          <div class="header-left">
+            <div class="header-logo">
+              <i class="fas fa-school"></i>
+              <span>Acadeflex</span>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <div class="header-profile">
+              <div class="header-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="header-user-info">
+                <div class="header-user-name">{{ personnel.nom_complet }}</div>
+                <div class="header-user-role">
+                  {{ personnel.get_fonction_display }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Welcome Banner -->
+        <section class="welcome-banner">
+          <div class="banner-content">
+            <h1 class="banner-title">Mon Profil</h1>
+            <p class="banner-subtitle">Gérer mes informations personnelles</p>
+          </div>
+          <a
+            href="{% url 'personnel_administratif:dashboard_personnel_administratif' %}"
+            class="nav-toggle-btn"
+          >
+            <i class="fas fa-arrow-left"></i>
+            Retour
+          </a>
+        </section>
+
+        <!-- Main Content Container -->
+        <div class="content-container">
+          <div class="container">
+            <!-- Messages Django -->
+            {% if messages %} {% for message in messages %}
+            <div
+              class="alert alert-{{ message.tags }} alert-dismissible fade show"
+              role="alert"
+            >
+              <i
+                class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"
+              ></i>
+              {{ message }}
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+              ></button>
+            </div>
+            {% endfor %} {% endif %}
+
+            <!-- Profil Form -->
+            <div class="dashboard-overview">
+              <form method="post" class="profil-form">
+                {% csrf_token %}
+
+                <!-- Informations personnelles -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="fas fa-user"></i>
+                    Informations Personnelles
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="nom">Nom *</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="nom"
+                          name="nom"
+                          value="{{ personnel.nom }}"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="prenom">Prénom *</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="prenom"
+                          name="prenom"
+                          value="{{ personnel.prenom }}"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="email"
+                          >Email professionnel *</label
+                        >
+                        <input
+                          type="email"
+                          class="form-control"
+                          id="email"
+                          name="email"
+                          value="{{ personnel.email }}"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="telephone"
+                          >Téléphone *</label
+                        >
+                        <input
+                          type="tel"
+                          class="form-control"
+                          id="telephone"
+                          name="telephone"
+                          value="{{ personnel.telephone }}"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Informations professionnelles -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="fas fa-briefcase"></i>
+                    Informations Professionnelles
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="fonction"
+                          >Fonction</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="fonction"
+                          value="{{ personnel.get_fonction_display }}"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="numero_employe"
+                          >Numéro d'employé</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="numero_employe"
+                          value="{{ personnel.numero_employe|default:'N/A' }}"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="etablissement"
+                          >Établissement</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="etablissement"
+                          value="{{ personnel.etablissement.nom }}"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="date_creation"
+                          >Date de création</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="date_creation"
+                          value="{{ personnel.date_creation|date:'d/m/Y' }}"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sécurité -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="fas fa-lock"></i>
+                    Sécurité
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="password"
+                          >Nouveau mot de passe</label
+                        >
+                        <input
+                          type="password"
+                          class="form-control"
+                          id="password"
+                          name="password"
+                          placeholder="Laissez vide pour ne pas changer"
+                        />
+                        <small class="form-text text-muted"
+                          >Minimum 8 caractères</small
+                        >
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label class="form-label" for="username"
+                          >Nom d'utilisateur</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="username"
+                          value="{{ personnel.username }}"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="form-actions">
+                  <a
+                    href="{% url 'personnel_administratif:dashboard_personnel_administratif' %}"
+                    class="btn-cancel"
+                  >
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                  </a>
+                  <button type="submit" class="btn-submit">
+                    <i class="fas fa-save"></i>
+                    <span>Enregistrer</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

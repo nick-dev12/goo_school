@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion du Personnel Administratif</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="{% static 'school_admin/css/dashboard.css' %}"
+      rel="stylesheet"
+    />
+    <link
+      href="{% static 'school_admin/css/directeur/liste_personnel.css' %}"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="personnel-page-container">
+      <div class="personnel-header-section">
+        <div class="personnel-header-content">
+          <div class="personnel-title-section">
+            <h1 class="personnel-main-title">
+              <i class="fas fa-users"></i>
+              Gestion du Personnel Administratif
+            </h1>
+            <p class="personnel-subtitle">
+              Gérez les membres de votre équipe administrative
+            </p>
+          </div>
+          <div class="personnel-actions">
+            <a
+              href="{% url 'personnel:ajouter_personnel' %}"
+              class="btn-add-personnel"
+            >
+              <i class="fas fa-plus"></i>
+              <span>Ajouter un membre</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="personnel-stats-section">
+        <div class="stats-grid">
+          <div class="stat-card stat-primary">
+            <div class="stat-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number">{{ stats.total }}</div>
+              <div class="stat-label">Total Personnel</div>
+            </div>
+          </div>
+          <div class="stat-card stat-success">
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number">{{ stats.actifs }}</div>
+              <div class="stat-label">Actifs</div>
+            </div>
+          </div>
+          <div class="stat-card stat-warning">
+            <div class="stat-icon">
+              <i class="fas fa-pause-circle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number">{{ stats.inactifs }}</div>
+              <div class="stat-label">Inactifs</div>
+            </div>
+          </div>
+          <div class="stat-card stat-info">
+            <div class="stat-icon">
+              <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number">{{ stats.par_role|length }}</div>
+              <div class="stat-label">Rôles</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste du personnel -->
+      <div class="personnel-list-section">
+        {% if personnel %}
+        <div class="personnel-grid">
+          {% for membre in personnel %}
+          <div class="personnel-card">
+            <div class="personnel-card-header">
+              <div class="personnel-avatar">
+                {% if membre.photo %}
+                <img
+                  src="{{ membre.photo.url }}"
+                  alt="{{ membre.nom_complet }}"
+                  class="avatar-image"
+                />
+                {% else %}
+                <div class="avatar-placeholder">
+                  <i class="fas fa-user"></i>
+                </div>
+                {% endif %}
+              </div>
+              <div class="personnel-info">
+                <h3 class="personnel-name">{{ membre.nom_complet }}</h3>
+                <p class="personnel-role">{{ membre.get_fonction_display }}</p>
+                <div class="role-badge role-{{ membre.fonction }}">
+                  <i
+                    class="fas fa-{% if membre.fonction == 'secretaire' %}user-tie{% elif membre.fonction == 'surveillant_general' %}shield-alt{% elif membre.fonction == 'censeur' %}graduation-cap{% elif membre.fonction == 'administrateur' %}cogs{% else %}user{% endif %}"
+                  ></i>
+                  <span>{{ membre.get_fonction_display }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="personnel-details">
+              <div class="detail-row">
+                <div class="detail-item">
+                  <div class="detail-item-content">
+                    <i class="fas fa-id-badge"></i>
+                    <span class="detail-label">ID:</span>
+                  </div>
+                  <span class="detail-value">{{ membre.numero_employe }}</span>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-item-content">
+                    <i class="fas fa-envelope"></i>
+                    <span class="detail-label">Email:</span>
+                  </div>
+                  <span class="detail-value">{{ membre.email }}</span>
+                </div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-item">
+                  <div class="detail-item-content">
+                    <i class="fas fa-phone"></i>
+                    <span class="detail-label">Tél:</span>
+                  </div>
+                  <span class="detail-value">{{ membre.telephone }}</span>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-item-content">
+                    <i class="fas fa-calendar"></i>
+                    <span class="detail-label">Créé:</span>
+                  </div>
+                  <span class="detail-value"
+                    >{{ membre.date_creation|date:"d/m/Y" }}</span
+                  >
+                </div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-item">
+                  <div class="detail-item-content">
+                    <i class="fas fa-building"></i>
+                    <span class="detail-label">Établissement:</span>
+                  </div>
+                  <span class="detail-value"
+                    >{{ membre.etablissement.nom|truncatechars:15 }}</span
+                  >
+                </div>
+                <div class="detail-item status-item">
+                  <i
+                    class="fas fa-{% if membre.actif %}check-circle{% else %}times-circle{% endif %} status-{% if membre.actif %}active{% else %}inactive{% endif %}"
+                  ></i>
+                  <span class="detail-label">Statut:</span>
+                  <span
+                    class="detail-value status-{% if membre.actif %}active{% else %}inactive{% endif %}"
+                  >
+                    {% if membre.actif %}Actif{% else %}Inactif{% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="personnel-actions">
+              <a
+                href="{% url 'personnel:detail_personnel' membre.id %}"
+                class="btn-action btn-detail"
+              >
+                <i class="fas fa-eye"></i>
+                <span>Détails</span>
+              </a>
+              <a
+                href="{% url 'personnel:toggle_actif' membre.id %}"
+                class="btn-action btn-toggle {% if membre.actif %}active{% endif %}"
+              >
+                <i
+                  class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"
+                ></i>
+                <span>
+                  {% if membre.actif %}Désactiver{% else %}Activer{% endif%}
+                </span>
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3>Aucun personnel administratif</h3>
+          <p>Commencez par ajouter des membres à votre équipe administrative</p>
+          <a
+            href="{% url 'personnel:ajouter_personnel' %}"
+            class="btn-add-personnel"
+          >
+            <i class="fas fa-plus"></i>
+            <span>Ajouter le premier membre</span>
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<!-- Messages Template Partial -->
+{% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
+      <div class="message message-{{ message.tags }}">
+        <div class="message-icon">
+          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% elif message.tags == 'info' %}info-circle{% else %}info-circle{% endif %}"></i>
+        </div>
+        <div class="message-content">
+          <div class="message-text">{{ message }}</div>
+        </div>
+        <button type="button" class="message-close" onclick="closeMessage(this)" title="Fermer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<script>
+  function closeMessage(button) {
+    const message = button.closest('.message');
+    message.style.opacity = '0';
+    message.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      message.remove();
+    }, 300);
+  }
+
+  // Auto-close success messages after 5 seconds
+  document.addEventListener('DOMContentLoaded', function() {
+    const successMessages = document.querySelectorAll('.message-success');
+    successMessages.forEach(message => {
+      setTimeout(() => {
+        if (message.parentNode) {
+          const closeButton = message.querySelector('.message-close');
+          if (closeButton) {
+            closeButton.click();
+          }
+        }
+      }, 5000);
+    });
+  });
+</script>

@@ -4,6 +4,8 @@ from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.hashers import check_password
 from .model.compte_user import CompteUser
 from .model.etablissement_model import Etablissement
+from .model.personnel_administratif_model import PersonnelAdministratif
+from .model.eleve_model import Eleve
 
 
 class MultiUserBackend(BaseBackend):
@@ -36,6 +38,22 @@ class MultiUserBackend(BaseBackend):
         except Etablissement.DoesNotExist:
             pass
         
+        # Essayer avec PersonnelAdministratif
+        try:
+            personnel = PersonnelAdministratif.objects.get(username=username)
+            if personnel.check_password(password):
+                return personnel
+        except PersonnelAdministratif.DoesNotExist:
+            pass
+        
+        # Essayer avec Eleve
+        try:
+            eleve = Eleve.objects.get(username=username)
+            if eleve.check_password(password):
+                return eleve
+        except Eleve.DoesNotExist:
+            pass
+        
         return None
     
     def get_user(self, user_id):
@@ -52,6 +70,18 @@ class MultiUserBackend(BaseBackend):
         try:
             return Etablissement.objects.get(pk=user_id)
         except Etablissement.DoesNotExist:
+            pass
+        
+        # Essayer avec PersonnelAdministratif
+        try:
+            return PersonnelAdministratif.objects.get(pk=user_id)
+        except PersonnelAdministratif.DoesNotExist:
+            pass
+        
+        # Essayer avec Eleve
+        try:
+            return Eleve.objects.get(pk=user_id)
+        except Eleve.DoesNotExist:
             pass
         
         return None

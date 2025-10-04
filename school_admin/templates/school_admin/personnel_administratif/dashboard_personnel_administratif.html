@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de bord - Personnel Administratif</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/dashboard_personnel_administratif.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="dashboard">
+      <main class="main-content full-width" id="mainContent">
+        <!-- Header Horizontal -->
+        <header class="dashboard-header-horizontal">
+          <div class="header-left">
+            <div class="header-logo">
+              <i class="fas fa-school"></i>
+              <span>Acadeflex</span>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <div class="header-search">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="Rechercher un élève, un enseignant..."
+              />
+            </div>
+
+            <button class="header-button">
+              <i class="fas fa-bell"></i>
+              <span class="notification-badge">3</span>
+            </button>
+
+            <button class="header-button">
+              <i class="fas fa-envelope"></i>
+              <span class="notification-badge">5</span>
+            </button>
+
+            <div class="header-profile">
+              <div class="header-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="header-user-info">
+                <div class="header-user-name">{{ personnel.nom_complet }}</div>
+                <div class="header-user-role">
+                  {{ personnel.get_fonction_display }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Welcome Banner -->
+        <section class="welcome-banner">
+          <div class="banner-content">
+            <h1 class="banner-title">Bienvenue, {{ personnel.prenom }}</h1>
+            <p class="banner-subtitle">
+              {{ etablissement.nom }} - {{ personnel.get_fonction_display }}
+            </p>
+          </div>
+          <button class="nav-toggle-btn" id="openNavMenu">
+            menu
+            <i class="fas fa-th"></i>
+          </button>
+        </section>
+
+        <!-- Navigation Overlay -->
+        <div class="navigation-overlay" id="navOverlay"></div>
+
+        <!-- Navigation Cards Section -->
+        <section
+          class="section-container navigation-section"
+          id="navigationSection"
+        >
+          <button class="close-btn" id="closeNavMenu">
+            <i class="fas fa-times"></i>
+          </button>
+
+          <div class="nav-menu-header">
+            <h2>Menu de Navigation</h2>
+            <p>Accédez rapidement à toutes les fonctionnalités</p>
+          </div>
+
+          <!-- Section 1: Tableau de bord -->
+          <div class="section-title">
+            <h2>Tableau de bord</h2>
+          </div>
+          <div class="nav-cards-row">
+            <a
+              href="{% url 'personnel_administratif:dashboard_personnel_administratif' %}"
+              class="nav-link-card"
+            >
+              <div class="nav-card-icon neo-blue">
+                <i class="fas fa-tachometer-alt"></i>
+              </div>
+              <div class="nav-link-content">
+                <h3>Vue d'ensemble</h3>
+                <p>Activités récentes</p>
+              </div>
+            </a>
+          </div>
+
+          <!-- Section 2: Gestion des données -->
+          <div class="section-title">
+            <h2>Gestion des données</h2>
+          </div>
+          <div class="nav-cards-row">
+            <a
+              href="{% url 'personnel_administratif:liste_eleves' %}"
+              class="nav-link-card"
+            >
+              <div class="nav-card-icon neo-green">
+                <i class="fas fa-user-graduate"></i>
+              </div>
+              <div class="nav-link-content">
+                <h3>Élèves</h3>
+                <p>Gestion des élèves</p>
+              </div>
+            </a>
+            <a
+              href="{% url 'personnel_administratif:liste_enseignants' %}"
+              class="nav-link-card"
+            >
+              <div class="nav-card-icon neo-teal">
+                <i class="fas fa-chalkboard-teacher"></i>
+              </div>
+              <div class="nav-link-content">
+                <h3>Enseignants</h3>
+                <p>Gestion du personnel enseignant</p>
+              </div>
+            </a>
+          </div>
+
+          <!-- Section 3: Mon profil -->
+          <div class="section-title">
+            <h2>Mon profil</h2>
+          </div>
+          <div class="nav-cards-row">
+            <a
+              href="{% url 'personnel_administratif:profil' %}"
+              class="nav-link-card"
+            >
+              <div class="nav-card-icon neo-light-blue">
+                <i class="fas fa-user-circle"></i>
+              </div>
+              <div class="nav-link-content">
+                <h3>Mon Profil</h3>
+                <p>Informations personnelles</p>
+              </div>
+            </a>
+
+            <a href="#" class="nav-link-card logout-card">
+              <div class="nav-card-icon neo-red">
+                <i class="fas fa-sign-out-alt"></i>
+              </div>
+              <div class="nav-link-content">
+                <h3>Déconnexion</h3>
+                <p>Quitter</p>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Main Content Container -->
+        <div class="content-container">
+          <div class="container">
+            <!-- Dashboard Overview -->
+            <div class="dashboard-overview">
+              <div class="key-indicators">
+                <!-- Informations personnelles -->
+                <div class="indicator-card">
+                  <div
+                    class="indicator-icon"
+                    style="background-color: var(--blue)"
+                  >
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div class="indicator-content">
+                    <h3>Mon Profil</h3>
+                    <p class="indicator-value">{{ personnel.nom_complet }}</p>
+                    <span class="indicator-trend"
+                      >{{ personnel.get_fonction_display }}</span
+                    >
+                  </div>
+                  <a
+                    href="{% url 'personnel_administratif:profil' %}"
+                    class="indicator-link"
+                  >
+                    <i class="fas fa-arrow-right"></i>
+                  </a>
+                </div>
+
+                <!-- Établissement -->
+                <div class="indicator-card">
+                  <div
+                    class="indicator-icon"
+                    style="background-color: var(--purple)"
+                  >
+                    <i class="fas fa-school"></i>
+                  </div>
+                  <div class="indicator-content">
+                    <h3>Établissement</h3>
+                    <p class="indicator-value">
+                      {{ etablissement.nom|truncatechars:15 }}
+                    </p>
+                    <span class="indicator-trend"
+                      >{{ etablissement.ville }}</span
+                    >
+                  </div>
+                  <a href="#" class="indicator-link">
+                    <i class="fas fa-arrow-right"></i>
+                  </a>
+                </div>
+
+                <!-- Numéro d'employé -->
+                <div class="indicator-card">
+                  <div
+                    class="indicator-icon"
+                    style="background-color: var(--green)"
+                  >
+                    <i class="fas fa-id-badge"></i>
+                  </div>
+                  <div class="indicator-content">
+                    <h3>Numéro d'employé</h3>
+                    <p class="indicator-value">
+                      {{ personnel.numero_employe|default:"N/A" }}
+                    </p>
+                    <span class="indicator-trend">Identifiant unique</span>
+                  </div>
+                  <a href="#" class="indicator-link">
+                    <i class="fas fa-arrow-right"></i>
+                  </a>
+                </div>
+
+                <!-- Statut -->
+                <div class="indicator-card">
+                  <div
+                    class="indicator-icon"
+                    style="background-color: var(--orange)"
+                  >
+                    <i
+                      class="fas fa-{% if personnel.actif %}check-circle{% else %}times-circle{% endif %}"
+                    ></i>
+                  </div>
+                  <div class="indicator-content">
+                    <h3>Statut</h3>
+                    <p class="indicator-value">
+                      {% if personnel.actif %}Actif{% else %}Inactif{% endif %}
+                    </p>
+                    <span class="indicator-trend"
+                      >{% if personnel.actif %}En service{% else %}Hors
+                      service{% endif %}</span
+                    >
+                  </div>
+                  <a href="#" class="indicator-link">
+                    <i class="fas fa-arrow-right"></i>
+                  </a>
+                </div>
+
+                <!-- Date de création -->
+                <div class="indicator-card">
+                  <div
+                    class="indicator-icon"
+                    style="background-color: var(--teal)"
+                  >
+                    <i class="fas fa-calendar-plus"></i>
+                  </div>
+                  <div class="indicator-content">
+                    <h3>Membre depuis</h3>
+                    <p class="indicator-value">
+                      {{ personnel.date_creation|date:"M Y" }}
+                    </p>
+                    <span class="indicator-trend"
+                      >{{ personnel.date_creation|timesince }}</span
+                    >
+                  </div>
+                  <a href="#" class="indicator-link">
+                    <i class="fas fa-arrow-right"></i>
+                  </a>
+                </div>
+
+                <!-- Email -->
+                <div class="indicator-card">
+                  <div
+                    class="indicator-icon"
+                    style="background-color: var(--cyan)"
+                  >
+                    <i class="fas fa-envelope"></i>
+                  </div>
+                  <div class="indicator-content">
+                    <h3>Email</h3>
+                    <p class="indicator-value">
+                      {{ personnel.email|truncatechars:20 }}
+                    </p>
+                    <span class="indicator-trend">Contact professionnel</span>
+                  </div>
+                  <a href="mailto:{{ personnel.email }}" class="indicator-link">
+                    <i class="fas fa-arrow-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Raccourcis rapides -->
+            <div class="quick-shortcuts-section">
+              <h2 class="section-title">Raccourcis rapides</h2>
+
+              <div class="shortcuts-container">
+                <a
+                  href="{% url 'personnel_administratif:liste_eleves' %}"
+                  class="shortcut-card"
+                >
+                  <div class="shortcut-icon">
+                    <i class="fas fa-user-graduate"></i>
+                  </div>
+                  <div class="shortcut-content">
+                    <h3>Gestion des Élèves</h3>
+                    <p>Consulter et gérer les élèves</p>
+                  </div>
+                  <div class="shortcut-badge">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                </a>
+
+                <a
+                  href="{% url 'personnel_administratif:liste_enseignants' %}"
+                  class="shortcut-card"
+                >
+                  <div class="shortcut-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                  </div>
+                  <div class="shortcut-content">
+                    <h3>Gestion des Enseignants</h3>
+                    <p>Consulter et gérer les enseignants</p>
+                  </div>
+                  <div class="shortcut-badge">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                </a>
+
+                <a
+                  href="{% url 'personnel_administratif:profil' %}"
+                  class="shortcut-card"
+                >
+                  <div class="shortcut-icon">
+                    <i class="fas fa-user-circle"></i>
+                  </div>
+                  <div class="shortcut-content">
+                    <h3>Mon Profil</h3>
+                    <p>Modifier mes informations</p>
+                  </div>
+                  <div class="shortcut-badge">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                </a>
+
+                <a href="#" class="shortcut-card">
+                  <div class="shortcut-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                  </div>
+                  <div class="shortcut-content">
+                    <h3>Emplois du temps</h3>
+                    <p>Consulter les plannings</p>
+                  </div>
+                  <div class="shortcut-badge">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                </a>
+
+                <a href="#" class="shortcut-card">
+                  <div class="shortcut-icon">
+                    <i class="fas fa-clipboard-check"></i>
+                  </div>
+                  <div class="shortcut-content">
+                    <h3>Évaluations</h3>
+                    <p>Gérer les évaluations</p>
+                  </div>
+                  <div class="shortcut-badge">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                </a>
+
+                <a href="#" class="shortcut-card">
+                  <div class="shortcut-icon">
+                    <i class="fas fa-file-alt"></i>
+                  </div>
+                  <div class="shortcut-content">
+                    <h3>Rapports</h3>
+                    <p>Générer des rapports</p>
+                  </div>
+                  <div class="shortcut-badge">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/dashboard_administrateur_etablissement.js' %}"></script>
+  </body>
+</html>

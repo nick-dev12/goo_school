@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reçu d'Inscription - {{ eleve_info.nom_complet }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Actions d'impression et navigation -->
+    <div class="print-actions">
+      <button class="btn-print" onclick="window.print()">Imprimer</button>
+      <a href="{% url 'secretaire:liste_eleves' %}" class="btn-back">Retour à la liste</a>
+    </div>
+
+    <!-- Reçu Container -->
+    <div class="receipt-container">
+      <!-- En-tête du reçu -->
+      <div class="receipt-header">
+        <div class="ministry-info">
+          <div class="ministry-name">MINISTÈRE DE L'ÉDUCATION NATIONALE</div>
+          <div class="regional-directorate">DIRECTION RÉGIONALE DE {{ etablissement_info.ville|upper }}</div>
+          <div class="school-name">{{ etablissement_info.nom|upper }}</div>
+          <div class="school-address">{{ etablissement_info.adresse }} - {{ etablissement_info.ville }}</div>
+          <div class="school-contact">
+            Tél.: {{ etablissement_info.telephone|default:"Non renseigné" }} / {{ etablissement_info.email }}
+          </div>
+        </div>
+        <div class="receipt-info">
+          <div class="academic-year">Année Scolaire 2024-2025</div>
+          <div class="receipt-title">REÇU D'INSCRIPTION N°</div>
+          <div class="receipt-number">{{ eleve_info.numero_eleve }}</div>
+          <div class="receipt-date">Édition du {{ "now"|date:"d/m/Y H:i:s" }}</div>
+        </div>
+      </div>
+
+      <!-- Informations de l'élève -->
+      <div class="student-info-box">
+        <div class="student-header">
+          <span class="student-label">M.</span>
+          <span class="student-label">l'élève</span>
+          <span class="student-name">{{ eleve_info.nom_complet|upper }}</span>
+          <span class="student-label">a effectué une inscription pour</span>
+        </div>
+        <div class="student-details">
+          <div class="detail-row">
+            <span class="label">Classe:</span>
+            <span class="value">{{ eleve_info.classe }}</span>
+            <span class="label">Matric:</span>
+            <span class="value">{{ eleve_info.numero_eleve }}</span>
+            <span class="label">Statut:</span>
+            <span class="value">{{ eleve.statut|upper }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Date:</span>
+            <span class="value">{{ "now"|date:"d/m/Y H:i:s" }}</span>
+            <span class="label">Enregistré par:</span>
+            <span class="value">SECRÉTAIRE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informations personnelles de l'élève -->
+      <div class="student-details-section">
+        <div class="section-title">Informations Personnelles</div>
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="label">Date de naissance:</span>
+            <span class="value">{{ eleve_info.date_naissance|date:"d/m/Y" }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Lieu de naissance:</span>
+            <span class="value">{{ eleve_info.lieu_naissance }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Sexe:</span>
+            <span class="value">{{ eleve_info.sexe }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Nationalité:</span>
+            <span class="value">{{ eleve_info.nationalite }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Adresse:</span>
+            <span class="value">{{ eleve_info.adresse }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Téléphone:</span>
+            <span class="value">{{ eleve_info.telephone|default:"Non renseigné" }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Email:</span>
+            <span class="value">{{ eleve_info.email|default:"Non renseigné" }}</span>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Informations de connexion -->
+      <div class="login-section">
+        <div class="login-title">Informations de Connexion</div>
+        <div class="login-details">
+          <div class="login-item">
+            <span class="login-label">Nom d'utilisateur:</span>
+            <span class="login-value">{{ eleve_info.numero_eleve }}</span>
+          </div>
+          <div class="login-item">
+            <span class="login-label">Mot de passe provisoire:</span>
+            <span class="login-value password-value">{{ eleve_info.mot_de_passe_provisoire }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pied de page simple -->
+      <div class="receipt-footer">
+        <div class="footer-text">Ce reçu confirme l'inscription de l'élève dans notre établissement.</div>
+        <div class="footer-date">Émis le {{ "now"|date:"d/m/Y à H:i" }}</div>
+      </div>
+    </div>
+
+  </body>
+</html>

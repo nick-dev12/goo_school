@@ -114,6 +114,15 @@
             <p>Gestion de l'équipe pédagogique</p>
           </div>
         </a>
+        <a href="{% url 'personnel:liste_personnel' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-green">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>personnel administratif</h3>
+            <p>Gestion du personnel administratif</p>
+          </div>
+        </a>
         <a href="#" class="nav-link-card">
           <div class="nav-card-icon neo-green">
             <i class="fas fa-calendar-week"></i>
@@ -177,49 +186,6 @@
         </a>
       </div>
 
-      <!-- Section 4: Gestion du personnel -->
-      <div class="section-title">
-        <h2>Gestion du personnel</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-user-plus"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Ajouter un personnel</h3>
-            <p>Nouveau membre de l'équipe</p>
-          </div>
-        </a>
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Liste & rôles</h3>
-            <p>Organigramme de l'établissement</p>
-          </div>
-        </a>
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-teal">
-            <i class="fas fa-clipboard-list"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Affectations par classe</h3>
-            <p>Attribution des responsabilités</p>
-          </div>
-        </a>
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-lock"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Comptes & accès</h3>
-            <p>Gestion des autorisations</p>
-          </div>
-        </a>
-      </div>
-
       <!-- Section 5: Établissement -->
       <div class="section-title">
         <h2>Établissement</h2>
@@ -277,15 +243,6 @@
             <p>Communication interne</p>
           </div>
         </a>
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-pink">
-            <i class="fas fa-bell"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Notifications</h3>
-            <p>Alertes et rappels</p>
-          </div>
-        </a>
       </div>
 
       <!-- Section 7: Analyses -->
@@ -309,15 +266,6 @@
           <div class="nav-link-content">
             <h3>Absences / Présences</h3>
             <p>Statistiques d'assiduité</p>
-          </div>
-        </a>
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-orange">
-            <i class="fas fa-file-export"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Rapports PDF / Excel</h3>
-            <p>Export de documents</p>
           </div>
         </a>
       </div>
@@ -345,7 +293,10 @@
             <p>Gérer vos accès</p>
           </div>
         </a>
-        <a href="#" class="nav-link-card logout-card">
+        <a
+          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+          class="nav-link-card logout-card"
+        >
           <div class="nav-card-icon neo-red">
             <i class="fas fa-sign-out-alt"></i>
           </div>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ classe.nom }} - Détails de la Classe</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% load static %}
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_secretaire.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_classe.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+    
+    <!-- Messages -->
+    {% include 'school_admin/partials/messages.html' %}
+    
+    <!-- Main Content -->
+        <div class="content-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="{% url 'secretaire:gestion_classes' %}" class="breadcrumb-link">
+                        <i class="fas fa-chalkboard"></i>
+                        Classes
+                    </a>
+                    <i class="fas fa-chevron-right"></i>
+                    <span class="breadcrumb-current">{{ classe.nom }}</span>
+                </div>
+                
+                <div class="page-title-section">
+                    <h1 class="page-title">
+                        <i class="fas fa-chalkboard"></i>
+                        {{ classe.nom }}
+                    </h1>
+                    <p class="page-subtitle">{{ classe.get_niveau_display }} - {{ etablissement.nom }}</p>
+                </div>
+                
+                <div class="page-actions">
+                    <a href="{% url 'secretaire:imprimer_liste_eleves' classe.id %}" class="btn-action btn-primary" target="_blank">
+                        <i class="fas fa-print"></i>
+                        Imprimer Liste
+                    </a>
+                    <a href="{% url 'secretaire:gestion_classes' %}" class="btn-action btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Class Overview -->
+            <div class="class-overview">
+                <div class="class-info-card">
+                    <div class="class-header">
+                        <div class="class-title">
+                            <h2 class="class-name">{{ classe.nom }}</h2>
+                            <span class="class-level">{{ classe.get_niveau_display }}</span>
+                        </div>
+                        <div class="class-status">
+                            {% if stats_classe.places_disponibles == 0 %}
+                                <span class="status-badge status-full">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    Classe Pleine
+                                </span>
+                            {% elif stats_classe.places_disponibles == stats_classe.capacite_max %}
+                                <span class="status-badge status-empty">
+                                    <i class="fas fa-check-circle"></i>
+                                    Classe Vide
+                                </span>
+                            {% else %}
+                                <span class="status-badge status-partial">
+                                    <i class="fas fa-info-circle"></i>
+                                    Classe Partielle
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="class-stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-icon neo-blue">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 class="stat-number">{{ stats_classe.total_eleves }}</h3>
+                                <p class="stat-label">Élèves Inscrits</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                            <div class="stat-icon neo-green">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 class="stat-number">{{ stats_classe.places_disponibles }}</h3>
+                                <p class="stat-label">Places Disponibles</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                            <div class="stat-icon neo-orange">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 class="stat-number">{{ stats_classe.taux_occupation }}%</h3>
+                                <p class="stat-label">Taux d'Occupation</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                            <div class="stat-icon neo-purple">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 class="stat-number">{{ stats_classe.capacite_max }}</h3>
+                                <p class="stat-label">Capacité Maximale</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="class-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Occupation de la classe</span>
+                            <span class="progress-text">{{ stats_classe.total_eleves }}/{{ stats_classe.capacite_max }}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ stats_classe.taux_occupation }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Students Statistics -->
+            <div class="students-stats">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon neo-green">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number">{{ stats_classe.nouveaux_eleves }}</h3>
+                            <p class="stat-label">Nouveaux Élèves</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon neo-blue">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number">{{ stats_classe.transferts }}</h3>
+                            <p class="stat-label">Transferts</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon neo-orange">
+                            <i class="fas fa-redo"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number">{{ stats_classe.reinscriptions }}</h3>
+                            <p class="stat-label">Réinscriptions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon neo-purple">
+                            <i class="fas fa-venus-mars"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number">{{ stats_sexe.masculin }}/{{ stats_sexe.feminin }}</h3>
+                            <p class="stat-label">Garçons/Filles</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Students List -->
+            <div class="students-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-users"></i>
+                        Liste des Élèves ({{ eleves.count }})
+                    </h2>
+                    <div class="section-actions">
+                        <a href="{% url 'secretaire:imprimer_liste_eleves' classe.id %}" class="btn-action btn-primary" target="_blank">
+                            <i class="fas fa-print"></i>
+                            Imprimer
+                        </a>
+                    </div>
+                </div>
+                
+                {% if eleves %}
+                    <div class="students-list">
+                        <div class="list-header">
+                            <div class="list-cell">Nom Complet</div>
+                            <div class="list-cell">Matricule</div>
+                            <div class="list-cell">Sexe</div>
+                            <div class="list-cell">Statut</div>
+                            <div class="list-cell">Date Inscription</div>
+                            <div class="list-cell">Actions</div>
+                        </div>
+                        
+                        {% for eleve in eleves %}
+                            <div class="list-row">
+                                <div class="list-cell">
+                                    <div class="student-info">
+                                        <div class="student-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="student-details">
+                                            <span class="student-name">{{ eleve.nom_complet }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="list-cell">
+                                    <span class="matricule">{{ eleve.numero_eleve }}</span>
+                                </div>
+                                <div class="list-cell">
+                                    <span class="sexe-badge sexe-{{ eleve.sexe|lower }}">
+                                        <i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                                        {{ eleve.get_sexe_display }}
+                                    </span>
+                                </div>
+                                <div class="list-cell">
+                                    <span class="statut-badge statut-{{ eleve.statut }}">
+                                        {% if eleve.statut == 'nouvelle' %}
+                                            <i class="fas fa-user-plus"></i>
+                                        {% elif eleve.statut == 'transfert' %}
+                                            <i class="fas fa-exchange-alt"></i>
+                                        {% else %}
+                                            <i class="fas fa-redo"></i>
+                                        {% endif %}
+                                        {{ eleve.get_statut_display }}
+                                    </span>
+                                </div>
+                                <div class="list-cell">
+                                    <span class="date-inscription">{{ eleve.date_inscription|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="list-cell">
+                                    <div class="action-buttons">
+                                        <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-small btn-view" title="Voir détails">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3 class="empty-title">Aucun élève dans cette classe</h3>
+                        <p class="empty-message">Il n'y a actuellement aucun élève inscrit dans cette classe.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Animation des cartes au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.stat-card, .stat-item');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+        
+        // Animation des compteurs
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-number');
+            counters.forEach(counter => {
+                const target = parseInt(counter.textContent);
+                if (!isNaN(target)) {
+                    const increment = target / 50;
+                    let current = 0;
+                    
+                    const timer = setInterval(() => {
+                        current += increment;
+                        if (current >= target) {
+                            counter.textContent = target;
+                            clearInterval(timer);
+                        } else {
+                            counter.textContent = Math.floor(current);
+                        }
+                    }, 30);
+                }
+            });
+        }
+        
+        // Démarrer l'animation des compteurs
+        setTimeout(animateCounters, 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+{% load static %}
+
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+/>
+<div class="dashboard">
+  <!-- Main Content -->
+  <main class="main-content full-width" id="mainContent">
+    <!-- Header Horizontal -->
+    <header class="dashboard-header-horizontal">
+      <div class="header-left">
+        <div class="header-logo">
+          <i class="fas fa-school"></i>
+          <span>Goo-School</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-search">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher une classe, un élève..." />
+        </div>
+
+        <button class="header-button">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge">3</span>
+        </button>
+
+        <button class="header-button">
+          <i class="fas fa-envelope"></i>
+          <span class="notification-badge">5</span>
+        </button>
+
+        <div class="header-profile">
+          <div class="header-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="header-user-info">
+            <div class="header-user-name">{{ user.nom_complet }}</div>
+            <div class="header-user-role">{{ user.get_fonction_display }}</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Welcome Banner -->
+    <section class="welcome-banner">
+      <div class="banner-content">
+        <h1 class="banner-title">Bienvenue, {{ user.prenom }}</h1>
+        <p class="banner-subtitle">
+          {{ etablissement.nom }} - {{ user.get_fonction_display }}
+        </p>
+      </div>
+      <button class="nav-toggle-btn" id="openNavMenu">
+        menu
+        <i class="fas fa-th"></i>
+      </button>
+    </section>
+
+    <!-- Navigation Overlay -->
+    <div class="navigation-overlay" id="navOverlay"></div>
+
+    <!-- Navigation Cards Section (Hidden by default) -->
+    <section
+      class="section-container navigation-section"
+      id="navigationSection"
+    >
+      <button class="close-btn" id="closeNavMenu">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="nav-menu-header">
+        <h2>Menu de Navigation</h2>
+        <p>Accédez rapidement à toutes les fonctionnalités</p>
+      </div>
+
+      <!-- Section 1: Tableau de bord -->
+      <div class="section-title">
+        <h2>Tableau de bord</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-tachometer-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Vue d'ensemble</h3>
+            <p>Activités récentes</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 2: Gestion des données -->
+      <div class="section-title">
+        <h2>Gestion des données</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-green">
+            <i class="fas fa-chalkboard"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Classes</h3>
+            <p>Gestion des classes</p>
+          </div>
+        </a>
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-teal">
+            <i class="fas fa-chalkboard-teacher"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Enseignants</h3>
+            <p>Gestion du personnel enseignant</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 3: Administration -->
+      <div class="section-title">
+        <h2>Administration</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-orange">
+            <i class="fas fa-book"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Matières</h3>
+            <p>Gestion des matières</p>
+          </div>
+        </a>
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-key"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Codes d'accès</h3>
+            <p>Gestion des utilisateurs</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 4: Communication -->
+      <div class="section-title">
+        <h2>Communication</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Messages</h3>
+            <p>Boîte de réception</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 5: Compte -->
+      <div class="section-title">
+        <h2>Mon profil</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="#" class="nav-link-card">
+          <div class="nav-card-icon neo-light-blue">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Mon Profil</h3>
+            <p>Informations personnelles</p>
+          </div>
+        </a>
+
+        <a href="{% url 'school_admin:deconnexion_compte_administrateur' %}" class="nav-link-card logout-card">
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Déconnexion</h3>
+            <p>Quitter</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <!-- Le contenu de chaque page sera inséré ici -->
+    </div>
+  </main>
+</div>
+
+<!-- Scripts JavaScript -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Éléments du DOM
+    const openNavBtn = document.getElementById("openNavMenu");
+    const closeNavBtn = document.getElementById("closeNavMenu");
+    const navOverlay = document.getElementById("navOverlay");
+    const navigationSection = document.getElementById("navigationSection");
+
+    // Ouvrir le menu de navigation
+    openNavBtn.addEventListener("click", function () {
+      navOverlay.classList.add("active");
+      navigationSection.classList.add("active");
+      document.body.style.overflow = "hidden"; // Empêcher le défilement
+    });
+
+    // Fermer le menu de navigation
+    function closeNavigation() {
+      navOverlay.classList.remove("active");
+      navigationSection.classList.remove("active");
+      document.body.style.overflow = ""; // Réactiver le défilement
+    }
+
+    closeNavBtn.addEventListener("click", closeNavigation);
+    navOverlay.addEventListener("click", closeNavigation);
+
+    // Fermer le menu lors d'un clic sur un lien de navigation
+    const navLinks = document.querySelectorAll(".nav-link-card");
+    navLinks.forEach((link) => {
+      link.addEventListener("click", function () {
+        // Petite temporisation pour permettre l'effet visuel avant la redirection
+        setTimeout(closeNavigation, 100);
+      });
+    });
+
+    // Mettre en évidence le lien actif
+    const currentPage = window.location.pathname.split("/").pop();
+    navLinks.forEach((link) => {
+      const href = link.getAttribute("href");
+      if (href === currentPage) {
+        link.classList.add("active");
+      }
+    });
+  });
+</script>

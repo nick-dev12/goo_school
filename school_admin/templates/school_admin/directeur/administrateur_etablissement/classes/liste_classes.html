@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Classes - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/classes.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-chalkboard"></i>
+              Gestion des Classes
+            </h1>
+            <p class="page-subtitle">
+              Gérez les classes de {{ etablissement.nom }}
+            </p>
+          </div>
+          <div class="page-actions">
+            <button class="btn-add-classe" id="addClasseBtn">
+              <i class="fas fa-plus"></i>
+              <span>Ajouter une classe</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Statistiques -->
+        <div class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card stat-primary">
+              <div class="stat-icon">
+                <i class="fas fa-chalkboard"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.total }}</div>
+                <div class="stat-label">Total Classes</div>
+              </div>
+            </div>
+            <div class="stat-card stat-success">
+              <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.actives }}</div>
+                <div class="stat-label">Actives</div>
+              </div>
+            </div>
+            <div class="stat-card stat-warning">
+              <div class="stat-icon">
+                <i class="fas fa-pause-circle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.inactives }}</div>
+                <div class="stat-label">Inactives</div>
+              </div>
+            </div>
+            <div class="stat-card stat-info">
+              <div class="stat-icon">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.par_niveau|length }}</div>
+                <div class="stat-label">Niveaux</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des classes -->
+        <div class="classes-section">
+          {% if classes %}
+            <div class="classes-grid">
+              {% for classe in classes %}
+                <div class="classe-card">
+                  <div class="classe-header">
+                    <div class="classe-icon">
+                      <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                    </div>
+                    <div class="classe-info">
+                      <h3 class="classe-nom">{{ classe.nom }}</h3>
+                      <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
+                      <div class="classe-badge niveau-{{ classe.niveau }}">
+                        <span>{{ classe.get_niveau_display }}</span>
+                      </div>
+                    </div>
+                    <div class="classe-status">
+                      <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+                        <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+                        <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="classe-details">
+                    <div class="detail-row">
+                      <div class="detail-item">
+                        <i class="fas fa-code"></i>
+                        <span class="detail-label">Code:</span>
+                        <span class="detail-value">{{ classe.code_classe }}</span>
+                      </div>
+                      <div class="detail-item">
+                        <i class="fas fa-users"></i>
+                        <span class="detail-label">Capacité:</span>
+                        <span class="detail-value">{{ classe.capacite_max }} élèves</span>
+                      </div>
+                    </div>
+                    <div class="detail-row">
+                      <div class="detail-item">
+                        <i class="fas fa-user-graduate"></i>
+                        <span class="detail-label">Élèves:</span>
+                        <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
+                      </div>
+                      <div class="detail-item">
+                        <i class="fas fa-chart-pie"></i>
+                        <span class="detail-label">Occupation:</span>
+                        <span class="detail-value">{{ classe.taux_occupation }}%</span>
+                      </div>
+                    </div>
+                    {% if classe.description %}
+                      <div class="detail-row">
+                        <div class="detail-item full-width">
+                          <i class="fas fa-info-circle"></i>
+                          <span class="detail-label">Description:</span>
+                          <span class="detail-value">{{ classe.description|truncatechars:50 }}</span>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="classe-actions">
+                    <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail">
+                      <i class="fas fa-eye"></i>
+                      <span>Détails</span>
+                    </a>
+                    <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
+                      <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+                      <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-chalkboard"></i>
+              </div>
+              <h3>Aucune classe trouvée</h3>
+              <p>Commencez par ajouter des classes à votre établissement</p>
+              <button class="btn-add-classe" id="addClasseBtnEmpty">
+                <i class="fas fa-plus"></i>
+                <span>Ajouter la première classe</span>
+              </button>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal d'ajout de classe -->
+    <div class="modal-overlay {% if show_modal %}active{% endif %}" id="addClasseModal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 class="modal-title">
+            <i class="fas fa-plus"></i>
+            Ajouter une nouvelle classe
+          </h2>
+          <button class="modal-close" id="closeModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form method="post" action="{% url 'administrateur_etablissement:ajouter_classe' %}" class="modal-form" id="addClasseForm">
+          {% csrf_token %}
+          
+          <!-- Messages d'erreur généraux -->
+          {% if field_errors %}
+            <div class="alert alert-error">
+              <i class="fas fa-exclamation-triangle"></i>
+              <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+            </div>
+          {% endif %}
+          
+          <div class="form-group">
+            <label class="form-label" for="nom">Nom de la classe *</label>
+            <input type="text" 
+                   class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
+                   id="nom" 
+                   name="nom" 
+                   value="{{ form_data.nom }}"
+                   placeholder="Ex: 6ème A, Terminale S, etc."
+                   required>
+            {% if field_errors.nom %}
+              <div class="invalid-feedback">{{ field_errors.nom }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="niveau">Niveau *</label>
+            <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" id="niveau" name="niveau" required>
+              <option value="">Sélectionnez un niveau</option>
+              <option value="maternelle" {% if form_data.niveau == 'maternelle' %}selected{% endif %}>Maternelle</option>
+              <option value="primaire" {% if form_data.niveau == 'primaire' %}selected{% endif %}>Primaire</option>
+              <option value="college" {% if form_data.niveau == 'college' %}selected{% endif %}>Collège</option>
+              <option value="lycee" {% if form_data.niveau == 'lycee' %}selected{% endif %}>Lycée</option>
+              <option value="superieur" {% if form_data.niveau == 'superieur' %}selected{% endif %}>Supérieur</option>
+            </select>
+            {% if field_errors.niveau %}
+              <div class="invalid-feedback">{{ field_errors.niveau }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="capacite_max">Capacité maximale *</label>
+            <input type="number" 
+                   class="form-control {% if field_errors.capacite_max %}is-invalid{% endif %}" 
+                   id="capacite_max" 
+                   name="capacite_max" 
+                   value="{{ form_data.capacite_max }}"
+                   min="1" 
+                   max="100" 
+                   placeholder="30"
+                   required>
+            {% if field_errors.capacite_max %}
+              <div class="invalid-feedback">{{ field_errors.capacite_max }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="description">Description (optionnel)</label>
+            <textarea class="form-control" 
+                      id="description" 
+                      name="description" 
+                      rows="3"
+                      placeholder="Description de la classe...">{{ form_data.description }}</textarea>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelAdd">
+              <i class="fas fa-times"></i>
+              <span>Annuler</span>
+            </button>
+            <button type="submit" class="btn-submit">
+              <i class="fas fa-save"></i>
+              <span>Ajouter la classe</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/classes.js' %}"></script>
+  </body>
+</html>

@@ -12,6 +12,8 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from ..model.etablissement_model import Etablissement
+from ..model.personnel_administratif_model import PersonnelAdministratif
+from ..model.eleve_model import Eleve
 
 
 class CompteUserController:
@@ -191,9 +193,13 @@ class CompteUserController:
                     if next_url:
                         return None, redirect(next_url)
                     else:
-                        # Vérifier si c'est un établissement (directeur)
+                        # Vérifier le type d'utilisateur et rediriger selon sa fonction
                         if isinstance(user, Etablissement):
                             return None, redirect('directeur:dashboard_directeur')
+                        elif isinstance(user, PersonnelAdministratif):
+                            return None, CompteUserController._redirect_personnel_administratif(user.fonction)
+                        elif isinstance(user, Eleve):
+                            return None, redirect('eleve:dashboard_eleve')
                         else:
                             # Redirection basée sur la fonction de l'utilisateur (CompteUser)
                             return None, CompteUserController._redirect_based_on_function(user.fonction)
@@ -223,3 +229,15 @@ class CompteUserController:
         
         # Par défaut, rediriger vers le dashboard principal
         return redirect(redirect_mapping.get(fonction, 'school_admin:dashboard'))
+    @staticmethod
+    def _redirect_personnel_administratif(fonction):
+        """
+        Redirige le personnel administratif vers le bon tableau de bord selon sa fonction.
+        """
+        redirect_mapping = {
+            'secretaire': 'secretaire:dashboard_secretaire',
+            'surveillant_general': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+            'censeur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+            'administrateur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+            }
+        return redirect(redirect_mapping.get(fonction, 'administrateur_etablissement:dashboard_administrateur_etablissement'))

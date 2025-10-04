@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Détails de l'élève - {{ eleve.nom_complet }}</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="{% static 'school_admin/css/directeur/header_secretaire.css' %}"
+  />
+  <link
+    rel="stylesheet"
+    href="{% static 'school_admin/css/directeur/detail_eleve.css' %}"
+  />
+  <link
+    rel="stylesheet"
+    href="{% static 'school_admin/css/partials/messages.css' %}"
+  />
+</head>
+<body>
+  <!-- Header -->
+  {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+
+  <!-- Main Content -->
+    <div class="content-container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-actions">
+            <a href="{% url 'secretaire:liste_eleves' %}" class="btn-secondary">
+              <i class="fas fa-arrow-left"></i>
+              Retour à la liste
+            </a>
+            <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="btn-primary">
+              <i class="fas fa-print"></i>
+              Imprimer le reçu
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      {% include 'school_admin/partials/messages.html' %}
+    
+
+      <!-- Student Information Display -->
+      <div class="student-profile-container">
+        <!-- Student Header Card -->
+        <div class="student-header-card">
+          <div class="student-avatar-large">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="student-header-info">
+            <h1 class="student-full-name">{{ eleve.nom_complet }}</h1>
+            <div class="student-identifiers">
+              <span class="student-matricule">{{ eleve.numero_eleve }}</span>
+              <span class="student-class-badge">{{ eleve.classe.nom }} - {{ eleve.classe.get_niveau_display }}</span>
+            </div>
+            <div class="student-status-info">
+              <span class="status-badge status-{{ eleve.statut }}">{{ eleve.get_statut_display }}</span>
+              <span class="age-info">{{ eleve.age }} ans</span>
+              <span class="enrollment-date">Inscrit le {{ eleve.date_inscription|date:"d/m/Y" }}</span>
+            </div>
+          </div>
+          <div class="student-actions-header">
+            <button type="button" class="btn-action btn-edit" onclick="toggleEditForm()">
+              <i class="fas fa-edit"></i>
+              Modifier
+            </button>
+            <button type="button" class="btn-action btn-transfer" onclick="toggleTransferForm()">
+              <i class="fas fa-exchange-alt"></i>
+              Transférer
+            </button>
+          </div>
+        </div>
+
+        <!-- Information Tabs -->
+        <div class="info-tabs-container">
+          <div class="info-tabs">
+            <button class="tab-button active" onclick="showTab('personal')">
+              <i class="fas fa-user"></i>
+              Personnel
+            </button>
+            <button class="tab-button" onclick="showTab('academic')">
+              <i class="fas fa-graduation-cap"></i>
+              Académique
+            </button>
+            <button class="tab-button" onclick="showTab('contact')">
+              <i class="fas fa-address-book"></i>
+              Contact
+            </button>
+            <button class="tab-button" onclick="showTab('responsible')">
+              <i class="fas fa-users"></i>
+              Responsable
+            </button>
+            <button class="tab-button" onclick="showTab('documents')">
+              <i class="fas fa-file-alt"></i>
+              Documents
+            </button>
+            <button class="tab-button" onclick="showTab('login')">
+              <i class="fas fa-key"></i>
+              Connexion
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Personal Information Tab -->
+          <div id="personal-tab" class="tab-panel active">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-user"></i>
+                Informations personnelles
+              </h3>
+              <div class="info-grid">
+                <div class="info-field">
+                  <label class="field-label">Nom complet</label>
+                  <div class="field-value">{{ eleve.nom_complet }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Date de naissance</label>
+                  <div class="field-value">{{ eleve.date_naissance|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Lieu de naissance</label>
+                  <div class="field-value">{{ eleve.lieu_naissance }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Sexe</label>
+                  <div class="field-value">{{ eleve.get_sexe_display }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Nationalité</label>
+                  <div class="field-value">{{ eleve.nationalite }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Âge</label>
+                  <div class="field-value">{{ eleve.age }} ans</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Academic Information Tab -->
+          <div id="academic-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-graduation-cap"></i>
+                Informations académiques
+              </h3>
+              <div class="info-grid">
+                <div class="info-field highlight-field">
+                  <label class="field-label">Matricule</label>
+                  <div class="field-value matricule-display">{{ eleve.numero_eleve }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Classe actuelle</label>
+                  <div class="field-value">{{ eleve.classe.nom }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Niveau</label>
+                  <div class="field-value">{{ eleve.classe.get_niveau_display }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Statut d'inscription</label>
+                  <div class="field-value">
+                    <span class="status-badge status-{{ eleve.statut }}">{{ eleve.get_statut_display }}</span>
+                  </div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Date d'inscription</label>
+                  <div class="field-value">{{ eleve.date_inscription|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Capacité de la classe</label>
+                  <div class="field-value">{{ eleve.classe.capacite_max }} élèves</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Information Tab -->
+          <div id="contact-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-address-book"></i>
+                Informations de contact
+              </h3>
+              <div class="info-grid">
+                <div class="info-field full-width">
+                  <label class="field-label">Adresse</label>
+                  <div class="field-value">{{ eleve.adresse|default:"Non renseignée" }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Téléphone</label>
+                  <div class="field-value">{{ eleve.telephone|default:"Non renseigné" }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Email</label>
+                  <div class="field-value">{{ eleve.email|default:"Non renseigné" }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Responsible Information Tab -->
+          <div id="responsible-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-users"></i>
+                Responsable légal
+              </h3>
+              {% if eleve.type_responsable == 'parents' %}
+                <div class="responsible-type">
+                  <span class="type-badge parents-badge">Parents</span>
+                </div>
+                <div class="info-grid">
+                  {% if eleve.nom_pere %}
+                    <div class="info-field">
+                      <label class="field-label">Père</label>
+                      <div class="field-value">{{ eleve.nom_pere }}</div>
+                    </div>
+                    {% if eleve.telephone_pere %}
+                      <div class="info-field">
+                        <label class="field-label">Téléphone père</label>
+                        <div class="field-value">{{ eleve.telephone_pere }}</div>
+                      </div>
+                    {% endif %}
+                    {% if eleve.email_pere %}
+                      <div class="info-field">
+                        <label class="field-label">Email père</label>
+                        <div class="field-value">{{ eleve.email_pere }}</div>
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                  {% if eleve.nom_mere %}
+                    <div class="info-field">
+                      <label class="field-label">Mère</label>
+                      <div class="field-value">{{ eleve.nom_mere }}</div>
+                    </div>
+                    {% if eleve.telephone_mere %}
+                      <div class="info-field">
+                        <label class="field-label">Téléphone mère</label>
+                        <div class="field-value">{{ eleve.telephone_mere }}</div>
+                      </div>
+                    {% endif %}
+                    {% if eleve.email_mere %}
+                      <div class="info-field">
+                        <label class="field-label">Email mère</label>
+                        <div class="field-value">{{ eleve.email_mere }}</div>
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              {% elif eleve.type_responsable == 'tuteur' %}
+                <div class="responsible-type">
+                  <span class="type-badge tuteur-badge">Tuteur légal</span>
+                </div>
+                <div class="info-grid">
+                  <div class="info-field">
+                    <label class="field-label">Nom complet</label>
+                    <div class="field-value">{{ eleve.tuteur_prenom }} {{ eleve.tuteur_nom }}</div>
+                  </div>
+                  {% if eleve.tuteur_telephone %}
+                    <div class="info-field">
+                      <label class="field-label">Téléphone</label>
+                      <div class="field-value">{{ eleve.tuteur_telephone }}</div>
+                    </div>
+                  {% endif %}
+                  {% if eleve.tuteur_email %}
+                    <div class="info-field">
+                      <label class="field-label">Email</label>
+                      <div class="field-value">{{ eleve.tuteur_email }}</div>
+                    </div>
+                  {% endif %}
+                  {% if eleve.tuteur_adresse %}
+                    <div class="info-field full-width">
+                      <label class="field-label">Adresse</label>
+                      <div class="field-value">{{ eleve.tuteur_adresse }}</div>
+                    </div>
+                  {% endif %}
+                  {% if eleve.tuteur_profession %}
+                    <div class="info-field">
+                      <label class="field-label">Profession</label>
+                      <div class="field-value">{{ eleve.tuteur_profession }}</div>
+                    </div>
+                  {% endif %}
+                  {% if eleve.tuteur_lien %}
+                    <div class="info-field">
+                      <label class="field-label">Lien avec l'élève</label>
+                      <div class="field-value">{{ eleve.get_tuteur_lien_display }}</div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Documents Information Tab -->
+          <div id="documents-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-file-alt"></i>
+                Documents fournis
+                <span class="documents-progress">{{ eleve.nombre_documents_fournis }}/12</span>
+              </h3>
+              {% if eleve.documents_fournis_liste %}
+                <div class="documents-categories">
+                  <div class="document-category">
+                    <h4 class="category-title">Documents d'identité</h4>
+                    <div class="documents-list">
+                      {% for document in eleve.documents_fournis_liste %}
+                        {% if "Acte de naissance" in document or "CNI" in document or "Passeport" in document %}
+                          <div class="document-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{{ document }}</span>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="document-category">
+                    <h4 class="category-title">Documents scolaires</h4>
+                    <div class="documents-list">
+                      {% for document in eleve.documents_fournis_liste %}
+                        {% if "Bulletin" in document or "Certificat" in document or "Livret" in document %}
+                          <div class="document-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{{ document }}</span>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="document-category">
+                    <h4 class="category-title">Documents médicaux</h4>
+                    <div class="documents-list">
+                      {% for document in eleve.documents_fournis_liste %}
+                        {% if "médical" in document or "vaccination" in document or "assurance" in document %}
+                          <div class="document-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{{ document }}</span>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="document-category">
+                    <h4 class="category-title">Documents administratifs</h4>
+                    <div class="documents-list">
+                      {% for document in eleve.documents_fournis_liste %}
+                        {% if "domicile" in document or "photo" in document or "autorisation" in document %}
+                          <div class="document-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{{ document }}</span>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="no-documents">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <span>Aucun document fourni</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Login Information Tab -->
+          <div id="login-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-key"></i>
+                Informations de connexion
+              </h3>
+              <div class="info-grid">
+                <div class="info-field">
+                  <label class="field-label">Nom d'utilisateur</label>
+                  <div class="field-value">{{ eleve.username }}</div>
+                </div>
+                <div class="info-field highlight-field">
+                  <label class="field-label">Mot de passe provisoire</label>
+                  <div class="field-value password-display">{{ eleve.mot_de_passe_provisoire }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Statut du compte</label>
+                  <div class="field-value">
+                    <span class="status-badge status-{% if eleve.is_active %}active{% else %}inactive{% endif %}">
+                      {% if eleve.is_active %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transfer Form -->
+      <div class="transfer-form-container" id="transferForm" style="display: none;">
+        <div class="transfer-form-content">
+          <div class="transfer-form-header">
+            <h3>
+              <i class="fas fa-exchange-alt"></i>
+              Transférer l'élève vers une autre classe
+            </h3>
+            <button type="button" class="btn-close" onclick="toggleTransferForm()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <form method="POST" action="{% url 'secretaire:transfer_eleve' eleve.id %}" class="transfer-form">
+            {% csrf_token %}
+            <div class="form-group">
+              <label class="form-label" for="current_class">Classe actuelle</label>
+              <input
+                type="text"
+                id="current_class"
+                class="form-input"
+                value="{{ eleve.classe.nom }} - {{ eleve.classe.get_niveau_display }}"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new_class">Nouvelle classe <span class="required-label">*</span></label>
+              <select
+                id="new_class"
+                name="new_class"
+                class="form-select"
+                required
+              >
+                <option value="">Sélectionner une classe</option>
+                {% for classe in classes %}
+                  {% if classe.id != eleve.classe.id %}
+                    <option value="{{ classe.id }}" {% if classe.places_disponibles <= 0 %}disabled{% endif %}>
+                      {{ classe.nom }} - {{ classe.get_niveau_display }} 
+                      {% if classe.places_disponibles <= 0 %}
+                        (CLASSE PLEINE - {{ classe.capacite_max }}/{{ classe.capacite_max }})
+                      {% else %}
+                        ({{ classe.places_disponibles }} places disponibles)
+                      {% endif %}
+                    </option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="transfer_reason">Raison du transfert</label>
+              <textarea
+                id="transfer_reason"
+                name="transfer_reason"
+                class="form-textarea"
+                rows="3"
+                placeholder="Expliquez la raison du transfert..."
+              ></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="toggleTransferForm()">
+                <i class="fas fa-times"></i>
+                Annuler
+              </button>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-exchange-alt"></i>
+                Transférer l'élève
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Edit Form -->
+      <div class="edit-form-container" id="editForm" style="display: none;">
+        <div class="edit-form-content">
+          <div class="edit-form-header">
+            <h3>
+              <i class="fas fa-edit"></i>
+              Modifier les informations de l'élève
+            </h3>
+            <button type="button" class="btn-close" onclick="toggleEditForm()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <form method="POST" class="edit-form">
+            {% csrf_token %}
+          
+          <!-- Personal Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="fas fa-user"></i>
+              Informations personnelles
+            </h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="nom">Nom de famille <span class="required-label">*</span></label>
+                <input
+                  type="text"
+                  id="nom"
+                  name="nom"
+                  class="form-input {% if field_errors.nom %}error{% endif %}"
+                  value="{{ form_data.nom }}"
+                  required
+                />
+                {% if field_errors.nom %}
+                  <span class="error-message">{{ field_errors.nom }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="prenom">Prénom <span class="required-label">*</span></label>
+                <input
+                  type="text"
+                  id="prenom"
+                  name="prenom"
+                  class="form-input {% if field_errors.prenom %}error{% endif %}"
+                  value="{{ form_data.prenom }}"
+                  required
+                />
+                {% if field_errors.prenom %}
+                  <span class="error-message">{{ field_errors.prenom }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="date_naissance">Date de naissance <span class="required-label">*</span></label>
+                <input
+                  type="date"
+                  id="date_naissance"
+                  name="date_naissance"
+                  class="form-input {% if field_errors.date_naissance %}error{% endif %}"
+                  value="{{ form_data.date_naissance }}"
+                  required
+                />
+                {% if field_errors.date_naissance %}
+                  <span class="error-message">{{ field_errors.date_naissance }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="lieu_naissance">Lieu de naissance <span class="required-label">*</span></label>
+                <input
+                  type="text"
+                  id="lieu_naissance"
+                  name="lieu_naissance"
+                  class="form-input {% if field_errors.lieu_naissance %}error{% endif %}"
+                  value="{{ form_data.lieu_naissance }}"
+                  required
+                />
+                {% if field_errors.lieu_naissance %}
+                  <span class="error-message">{{ field_errors.lieu_naissance }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="sexe">Sexe <span class="required-label">*</span></label>
+                <select
+                  id="sexe"
+                  name="sexe"
+                  class="form-select {% if field_errors.sexe %}error{% endif %}"
+                  required
+                >
+                  <option value="">Sélectionner le sexe</option>
+                  <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
+                  <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
+                </select>
+                {% if field_errors.sexe %}
+                  <span class="error-message">{{ field_errors.sexe }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="nationalite">Nationalité <span class="required-label">*</span></label>
+                <input
+                  type="text"
+                  id="nationalite"
+                  name="nationalite"
+                  class="form-input {% if field_errors.nationalite %}error{% endif %}"
+                  value="{{ form_data.nationalite }}"
+                  required
+                />
+                {% if field_errors.nationalite %}
+                  <span class="error-message">{{ field_errors.nationalite }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="fas fa-address-book"></i>
+              Informations de contact
+            </h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="adresse">Adresse</label>
+                <textarea
+                  id="adresse"
+                  name="adresse"
+                  class="form-textarea {% if field_errors.adresse %}error{% endif %}"
+                  rows="3"
+                >{{ form_data.adresse }}</textarea>
+                {% if field_errors.adresse %}
+                  <span class="error-message">{{ field_errors.adresse }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="telephone">Téléphone</label>
+                <input
+                  type="tel"
+                  id="telephone"
+                  name="telephone"
+                  class="form-input {% if field_errors.telephone %}error{% endif %}"
+                  value="{{ form_data.telephone }}"
+                />
+                {% if field_errors.telephone %}
+                  <span class="error-message">{{ field_errors.telephone }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="form-input {% if field_errors.email %}error{% endif %}"
+                  value="{{ form_data.email }}"
+                />
+                {% if field_errors.email %}
+                  <span class="error-message">{{ field_errors.email }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Responsible Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="fas fa-users"></i>
+              Informations du responsable
+            </h3>
+            
+            <div class="form-group">
+              <label class="form-label">Type de responsable <span class="required-label">*</span></label>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="type_responsable"
+                    value="parents"
+                    {% if form_data.type_responsable == 'parents' %}checked{% endif %}
+                    onchange="toggleResponsableFields()"
+                  />
+                  <span class="radio-label">Parents</span>
+                </label>
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="type_responsable"
+                    value="tuteur"
+                    {% if form_data.type_responsable == 'tuteur' %}checked{% endif %}
+                    onchange="toggleResponsableFields()"
+                  />
+                  <span class="radio-label">Tuteur légal</span>
+                </label>
+              </div>
+              {% if field_errors.type_responsable %}
+                <span class="error-message">{{ field_errors.type_responsable }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Parents Fields -->
+            <div id="parents-fields" class="responsable-section" style="{% if form_data.type_responsable != 'parents' %}display: none;{% endif %}">
+              <h4 class="subsection-title">Informations des Parents</h4>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="nom_pere">Nom du père <span class="required-label">*</span></label>
+                  <input
+                    type="text"
+                    id="nom_pere"
+                    name="nom_pere"
+                    class="form-input {% if field_errors.nom_pere %}error{% endif %}"
+                    value="{{ form_data.nom_pere }}"
+                  />
+                  {% if field_errors.nom_pere %}
+                    <span class="error-message">{{ field_errors.nom_pere }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="nom_mere">Nom de la mère <span class="optional-label">(optionnel si père renseigné)</span></label>
+                  <input
+                    type="text"
+                    id="nom_mere"
+                    name="nom_mere"
+                    class="form-input {% if field_errors.nom_mere %}error{% endif %}"
+                    value="{{ form_data.nom_mere }}"
+                  />
+                  {% if field_errors.nom_mere %}
+                    <span class="error-message">{{ field_errors.nom_mere }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="telephone_pere">Téléphone du père <span class="required-label">*</span></label>
+                  <input
+                    type="tel"
+                    id="telephone_pere"
+                    name="telephone_pere"
+                    class="form-input {% if field_errors.telephone_pere %}error{% endif %}"
+                    value="{{ form_data.telephone_pere }}"
+                  />
+                  {% if field_errors.telephone_pere %}
+                    <span class="error-message">{{ field_errors.telephone_pere }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="telephone_mere">Téléphone de la mère <span class="optional-label">(optionnel si père renseigné)</span></label>
+                  <input
+                    type="tel"
+                    id="telephone_mere"
+                    name="telephone_mere"
+                    class="form-input {% if field_errors.telephone_mere %}error{% endif %}"
+                    value="{{ form_data.telephone_mere }}"
+                  />
+                  {% if field_errors.telephone_mere %}
+                    <span class="error-message">{{ field_errors.telephone_mere }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="email_pere">Email du père <span class="optional-label">(optionnel)</span></label>
+                  <input
+                    type="email"
+                    id="email_pere"
+                    name="email_pere"
+                    class="form-input {% if field_errors.email_pere %}error{% endif %}"
+                    value="{{ form_data.email_pere }}"
+                  />
+                  {% if field_errors.email_pere %}
+                    <span class="error-message">{{ field_errors.email_pere }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="email_mere">Email de la mère <span class="optional-label">(optionnel)</span></label>
+                  <input
+                    type="email"
+                    id="email_mere"
+                    name="email_mere"
+                    class="form-input {% if field_errors.email_mere %}error{% endif %}"
+                    value="{{ form_data.email_mere }}"
+                  />
+                  {% if field_errors.email_mere %}
+                    <span class="error-message">{{ field_errors.email_mere }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Tuteur Fields -->
+            <div id="tuteur-fields" class="responsable-section" style="{% if form_data.type_responsable != 'tuteur' %}display: none;{% endif %}">
+              <h4 class="subsection-title">Informations du Tuteur Légal</h4>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_nom">Nom du tuteur <span class="required-label">*</span></label>
+                  <input
+                    type="text"
+                    id="tuteur_nom"
+                    name="tuteur_nom"
+                    class="form-input {% if field_errors.tuteur_nom %}error{% endif %}"
+                    value="{{ form_data.tuteur_nom }}"
+                  />
+                  {% if field_errors.tuteur_nom %}
+                    <span class="error-message">{{ field_errors.tuteur_nom }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_prenom">Prénom du tuteur <span class="required-label">*</span></label>
+                  <input
+                    type="text"
+                    id="tuteur_prenom"
+                    name="tuteur_prenom"
+                    class="form-input {% if field_errors.tuteur_prenom %}error{% endif %}"
+                    value="{{ form_data.tuteur_prenom }}"
+                  />
+                  {% if field_errors.tuteur_prenom %}
+                    <span class="error-message">{{ field_errors.tuteur_prenom }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_telephone">Téléphone du tuteur <span class="required-label">*</span></label>
+                  <input
+                    type="tel"
+                    id="tuteur_telephone"
+                    name="tuteur_telephone"
+                    class="form-input {% if field_errors.tuteur_telephone %}error{% endif %}"
+                    value="{{ form_data.tuteur_telephone }}"
+                  />
+                  {% if field_errors.tuteur_telephone %}
+                    <span class="error-message">{{ field_errors.tuteur_telephone }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_email">Email du tuteur <span class="optional-label">(optionnel)</span></label>
+                  <input
+                    type="email"
+                    id="tuteur_email"
+                    name="tuteur_email"
+                    class="form-input {% if field_errors.tuteur_email %}error{% endif %}"
+                    value="{{ form_data.tuteur_email }}"
+                  />
+                  {% if field_errors.tuteur_email %}
+                    <span class="error-message">{{ field_errors.tuteur_email }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_adresse">Adresse du tuteur <span class="required-label">*</span></label>
+                  <textarea
+                    id="tuteur_adresse"
+                    name="tuteur_adresse"
+                    class="form-textarea {% if field_errors.tuteur_adresse %}error{% endif %}"
+                    rows="3"
+                  >{{ form_data.tuteur_adresse }}</textarea>
+                  {% if field_errors.tuteur_adresse %}
+                    <span class="error-message">{{ field_errors.tuteur_adresse }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_profession">Profession du tuteur</label>
+                  <input
+                    type="text"
+                    id="tuteur_profession"
+                    name="tuteur_profession"
+                    class="form-input {% if field_errors.tuteur_profession %}error{% endif %}"
+                    value="{{ form_data.tuteur_profession }}"
+                  />
+                  {% if field_errors.tuteur_profession %}
+                    <span class="error-message">{{ field_errors.tuteur_profession }}</span>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="tuteur_lien">Lien avec l'élève <span class="required-label">*</span></label>
+                  <select
+                    id="tuteur_lien"
+                    name="tuteur_lien"
+                    class="form-select {% if field_errors.tuteur_lien %}error{% endif %}"
+                  >
+                    <option value="">Sélectionner le lien</option>
+                    <option value="grand_parent" {% if form_data.tuteur_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
+                    <option value="oncle_tante" {% if form_data.tuteur_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
+                    <option value="frere_soeur" {% if form_data.tuteur_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
+                    <option value="autre" {% if form_data.tuteur_lien == 'autre' %}selected{% endif %}>Autre</option>
+                  </select>
+                  {% if field_errors.tuteur_lien %}
+                    <span class="error-message">{{ field_errors.tuteur_lien }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="fas fa-file-alt"></i>
+              Documents fournis
+            </h3>
+            <div class="documents-grid">
+              <div class="document-category">
+                <h4 class="category-title">Documents d'identité</h4>
+                <div class="checkbox-group">
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_acte_naissance"
+                      value="true"
+                      {% if form_data.document_acte_naissance %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Acte de naissance</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_cni"
+                      value="true"
+                      {% if form_data.document_cni %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">CNI</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_passeport"
+                      value="true"
+                      {% if form_data.document_passeport %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Passeport</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="document-category">
+                <h4 class="category-title">Documents scolaires</h4>
+                <div class="checkbox-group">
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_bulletin_precedent"
+                      value="true"
+                      {% if form_data.document_bulletin_precedent %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Bulletin précédent</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_certificat_scolarite"
+                      value="true"
+                      {% if form_data.document_certificat_scolarite %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Certificat de scolarité</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_livret_scolaire"
+                      value="true"
+                      {% if form_data.document_livret_scolaire %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Livret scolaire</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="document-category">
+                <h4 class="category-title">Documents médicaux</h4>
+                <div class="checkbox-group">
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_certificat_medical"
+                      value="true"
+                      {% if form_data.document_certificat_medical %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Certificat médical</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_carnet_vaccination"
+                      value="true"
+                      {% if form_data.document_carnet_vaccination %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Carnet de vaccination</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_assurance_maladie"
+                      value="true"
+                      {% if form_data.document_assurance_maladie %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Assurance maladie</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="document-category">
+                <h4 class="category-title">Documents administratifs</h4>
+                <div class="checkbox-group">
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_justificatif_domicile"
+                      value="true"
+                      {% if form_data.document_justificatif_domicile %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Justificatif de domicile</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_photo_identite"
+                      value="true"
+                      {% if form_data.document_photo_identite %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Photo d'identité</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input
+                      type="checkbox"
+                      name="document_autorisation_parentale"
+                      value="true"
+                      {% if form_data.document_autorisation_parentale %}checked{% endif %}
+                    />
+                    <span class="checkbox-label">Autorisation parentale</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="toggleEditForm()">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Sauvegarder les modifications
+            </button>
+          </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  <script>
+    function toggleEditForm() {
+      const form = document.getElementById('editForm');
+      const toggleBtn = document.querySelector('.btn-toggle-form');
+      
+      if (form.style.display === 'none') {
+        form.style.display = 'flex';
+        toggleBtn.innerHTML = '<i class="fas fa-times"></i> Annuler';
+        toggleBtn.classList.add('btn-secondary');
+        toggleBtn.classList.remove('btn-primary');
+      } else {
+        form.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-edit"></i> Modifier';
+        toggleBtn.classList.add('btn-primary');
+        toggleBtn.classList.remove('btn-secondary');
+      }
+    }
+
+    function toggleTransferForm() {
+      const form = document.getElementById('transferForm');
+      const toggleBtn = document.querySelector('.btn-transfer');
+      
+      if (form.style.display === 'none') {
+        form.style.display = 'flex';
+        toggleBtn.innerHTML = '<i class="fas fa-times"></i> Annuler';
+        toggleBtn.classList.add('btn-secondary');
+        toggleBtn.classList.remove('btn-primary');
+      } else {
+        form.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-exchange-alt"></i> Transférer';
+        toggleBtn.classList.add('btn-primary');
+        toggleBtn.classList.remove('btn-secondary');
+      }
+    }
+
+    function toggleResponsableFields() {
+      const typeResponsable = document.querySelector('input[name="type_responsable"]:checked');
+      const parentsFields = document.getElementById('parents-fields');
+      const tuteurFields = document.getElementById('tuteur-fields');
+      
+      if (typeResponsable) {
+        if (typeResponsable.value === 'parents') {
+          parentsFields.style.display = 'block';
+          tuteurFields.style.display = 'none';
+        } else if (typeResponsable.value === 'tuteur') {
+          parentsFields.style.display = 'none';
+          tuteurFields.style.display = 'block';
+        }
+      }
+    }
+
+    // Close modals when clicking on background
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('edit-form-container')) {
+        toggleEditForm();
+      }
+      if (e.target.classList.contains('transfer-form-container')) {
+        toggleTransferForm();
+      }
+    });
+
+    // Prevent modal content clicks from closing the modal
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.edit-form-content') || e.target.closest('.transfer-form-content')) {
+        e.stopPropagation();
+      }
+    });
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const editForm = document.getElementById('editForm');
+        const transferForm = document.getElementById('transferForm');
+        
+        if (editForm.style.display === 'flex') {
+          toggleEditForm();
+        }
+        if (transferForm.style.display === 'flex') {
+          toggleTransferForm();
+        }
+      }
+    });
+
+    // Tab functionality
+    function showTab(tabName) {
+      // Hide all tab panels
+      const tabPanels = document.querySelectorAll('.tab-panel');
+      tabPanels.forEach(panel => {
+        panel.classList.remove('active');
+      });
+      
+      // Remove active class from all tab buttons
+      const tabButtons = document.querySelectorAll('.tab-button');
+      tabButtons.forEach(button => {
+        button.classList.remove('active');
+      });
+      
+      // Show selected tab panel
+      const selectedPanel = document.getElementById(tabName + '-tab');
+      if (selectedPanel) {
+        selectedPanel.classList.add('active');
+      }
+      
+      // Add active class to clicked tab button
+      const clickedButton = event.target.closest('.tab-button');
+      if (clickedButton) {
+        clickedButton.classList.add('active');
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      toggleResponsableFields();
+    });
+  </script>
+</body>
+</html>

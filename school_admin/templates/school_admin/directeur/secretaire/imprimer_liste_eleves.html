@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Élèves - {{ classe.nom }}</title>
+    
+    {% load static %}
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/imprimer_liste_eleves.css' %}">
+</head>
+<body>
+    <!-- Header -->
+    <div class="document-header">
+        <div class="header-left">
+            <div class="school-logo">
+                <div class="logo-text">{{ etablissement_info.nom }}</div>
+                <div class="logo-subtitle">{{ etablissement_info.type }}</div>
+            </div>
+        </div>
+        <div class="header-center">
+            <h1 class="document-title">LISTE DES ÉLÈVES</h1>
+        </div>
+        <div class="header-right">
+            <div class="class-info">
+                <div class="class-name">{{ classe_info.nom }}</div>
+                <div class="class-level">{{ classe_info.niveau }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Information Fields -->
+    <div class="info-fields">
+        <div class="field-row">
+            <div class="field-left">
+                <span class="field-label">CLASSE :</span>
+                <span class="field-line">{{ classe_info.nom }} - {{ classe_info.niveau }}</span>
+            </div>
+            <div class="field-right">
+                <span class="field-label">ANNÉE :</span>
+                <span class="field-line">{{ "now"|date:"Y" }}-{{ "now"|date:"Y"|add:"1" }}</span>
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field-left">
+                <span class="field-label">ÉTABLISSEMENT :</span>
+                <span class="field-line">{{ etablissement_info.nom }}</span>
+            </div>
+            <div class="field-right">
+                <span class="field-label">DATE :</span>
+                <span class="field-line">{{ "now"|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field-left">
+                <span class="field-label">TOTAL ÉLÈVES :</span>
+                <span class="field-line">{{ classe_info.total_eleves }}/{{ classe_info.capacite_max }}</span>
+            </div>
+            <div class="field-right">
+                <span class="field-label">TOTAL ÉLÈVES :</span>
+                <span class="field-line">{{ classe_info.total_eleves }}/{{ classe_info.capacite_max }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Students Table -->
+    <div class="table-container">
+        <table class="students-table">
+            <thead>
+                <tr>
+                    <th class="col-num">N°</th>
+                    <th class="col-nom">NOM ET PRÉNOM</th>
+                    <th class="col-matricule">MATRICULE</th>
+                    <th class="col-sexe">SEXE</th>
+                    <th class="col-signature">SIGNATURE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if eleves %}
+                    {% for eleve in eleves %}
+                        <tr class="student-row">
+                            <td class="col-num">{{ forloop.counter }}</td>
+                            <td class="col-nom">{{ eleve.nom_complet }}</td>
+                            <td class="col-matricule">{{ eleve.numero_eleve }}</td>
+                            <td class="col-sexe">{{ eleve.get_sexe_display }}</td>
+                            <td class="col-signature"></td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-message">Aucun élève dans cette classe</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Footer -->
+    <div class="document-footer">
+        <div class="footer-left">
+            <div class="footer-info">
+                <p><strong>Établissement:</strong> {{ etablissement_info.nom }}</p>
+                <p><strong>Adresse:</strong> {{ etablissement_info.adresse }}, {{ etablissement_info.ville }}</p>
+                <p><strong>Tél:</strong> {{ etablissement_info.telephone }} | <strong>Email:</strong> {{ etablissement_info.email }}</p>
+            </div>
+        </div>
+        <div class="footer-right">
+            <div class="signature-section">
+                <div class="signature-line">
+                    <span class="signature-label">Signature du Directeur:</span>
+                    <div class="signature-space"></div>
+                </div>
+                <div class="signature-line">
+                    <span class="signature-label">Date:</span>
+                    <div class="signature-space"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Print Actions -->
+    <div class="print-actions">
+        <button onclick="window.print()" class="btn-print">Imprimer</button>
+        <button onclick="window.close()" class="btn-close">Fermer</button>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Auto-print when page loads
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                window.print();
+            }, 1000);
+        });
+        
+        // Print button functionality
+        document.querySelector('.btn-print').addEventListener('click', function() {
+            window.print();
+        });
+        
+        // Close button functionality
+        document.querySelector('.btn-close').addEventListener('click', function() {
+            window.close();
+        });
+        
+        // Hide print actions when printing
+        window.addEventListener('beforeprint', function() {
+            document.querySelector('.print-actions').style.display = 'none';
+        });
+        
+        window.addEventListener('afterprint', function() {
+            document.querySelector('.print-actions').style.display = 'flex';
+        });
+    </script>
+</body>
+</html>

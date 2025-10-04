@@ -23,6 +23,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('school_admin.urls', namespace='school_admin')),
     path('', include('school_admin.personal_url.directeur_url', namespace='directeur')),
+    path('', include('school_admin.personal_url.personnel_url', namespace='personnel')),
+    path('', include('school_admin.personal_url.administrateur_etablissement_url', namespace='administrateur_etablissement')),
+    path('', include('school_admin.personal_url.personnel_administratif_url', namespace='personnel_administratif')),
+    path('', include('school_admin.personal_url.secretaire_url', namespace='secretaire')),
 ]
 
 # Servir les fichiers média en mode développement

@@ -149,6 +149,34 @@
               </div>
             </div>
 
+            <!-- Configuration de facturation -->
+            <div class="form-row">
+              <h3>Configuration de facturation</h3>
+              <div class="box">
+                <div class="form-group {% if field_errors.type_facturation %}has-error{% endif %}">
+                  <label for="type-facturation" class="required">Type de facturation</label>
+                  <select name="type_facturation" id="type-facturation" required>
+                    <option value="mensuel" {% if form_data.type_facturation == 'mensuel' %}selected{% endif %}>Facturation mensuelle</option>
+                    <option value="annuel" {% if form_data.type_facturation == 'annuel' %}selected{% endif %}>Facturation annuelle</option>
+                  </select>
+                  <span class="form-text">Choisissez la fréquence de facturation pour cet établissement</span>
+                  {% if field_errors.type_facturation %}
+                    <span class="error-message">{{ field_errors.type_facturation }}</span>
+                  {% endif %}
+                </div>
+                <div class="form-group {% if field_errors.montant_par_eleve %}has-error{% endif %}">
+                  <label for="montant-par-eleve" class="required">Montant par élève (FCFA)</label>
+                  <input type="number" id="montant-par-eleve" name="montant_par_eleve" 
+                         placeholder="3000" value="{{ form_data.montant_par_eleve|default:'3000' }}" 
+                         min="0" step="0.01" required />
+                  <span class="form-text">Montant facturé pour chaque élève inscrit</span>
+                  {% if field_errors.montant_par_eleve %}
+                    <span class="error-message">{{ field_errors.montant_par_eleve }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
             <!-- Modules à activer -->
             <div class="form-row">
               <h3>Modules à activer</h3>

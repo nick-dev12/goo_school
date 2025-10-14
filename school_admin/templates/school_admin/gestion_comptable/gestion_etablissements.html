@@ -49,7 +49,7 @@
           </div>
           <div class="card-content">
             <h3>Total Établissements</h3>
-            <div class="card-value">24</div>
+            <div class="card-value">{{ total_etablissements }}</div>
             <div class="card-change positive">+3 ce mois</div>
           </div>
         </div>
@@ -59,8 +59,8 @@
           </div>
           <div class="card-content">
             <h3>En Règle</h3>
-            <div class="card-value">18</div>
-            <div class="card-change positive">75%</div>
+            <div class="card-value">{{ nombre_en_regle }}</div>
+            <div class="card-change positive">{{ pourcentage_en_regle }}%</div>
           </div>
         </div>
         <div class="summary-card">
@@ -69,8 +69,8 @@
           </div>
           <div class="card-content">
             <h3>Non en Règle</h3>
-            <div class="card-value">6</div>
-            <div class="card-change negative">25%</div>
+            <div class="card-value">{{ nombre_non_en_regle }}</div>
+            <div class="card-change negative">{{ pourcentage_non_en_regle }}%</div>
           </div>
         </div>
         <div class="summary-card">
@@ -79,8 +79,8 @@
           </div>
           <div class="card-content">
             <h3>Factures Générées</h3>
-            <div class="card-value">22</div>
-            <div class="card-change positive">92%</div>
+            <div class="card-value">{{ factures_generees }}</div>
+            <div class="card-change positive">{{ pourcentage_factures }}%</div>
           </div>
         </div>
       </div>
@@ -166,24 +166,45 @@
                 </tr>
               </thead>
               <tbody>
+                {% for etablissement in etablissements_en_regle_detailed %}
                 <tr>
                   <td><input type="checkbox" class="row-checkbox" /></td>
                   <td>
                     <div class="etablissement-info">
-                      <h4>Lycée Moderne de Douala</h4>
-                      <p>Douala, Cameroun</p>
+                      <h4>{{ etablissement.etablissement.nom }}</h4>
+                      <p>{{ etablissement.etablissement.ville }}, {{ etablissement.etablissement.pays }}</p>
                     </div>
                   </td>
-                  <td><span class="type-badge prive">Privé</span></td>
-                  <td><span class="student-count">450</span></td>
-                  <td><span class="amount">1,350,000 FCFA</span></td>
-                  <td><span class="date">15 Jan 2024</span></td>
-                  <td><span class="status-badge en-regle">En règle</span></td>
+                  <td><span class="type-badge 
+                    {% if etablissement.etablissement.type_etablissement == 'primary' %}prive
+                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}semi_prive
+                    {% else %}public{% endif %}">
+                    {% if etablissement.etablissement.type_etablissement == 'primary' %}Privé
+                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}Semi-privé
+                    {% else %}Public{% endif %}
+                  </span></td>
+                  <td><span class="student-count">{{ etablissement.nombre_eleves }}</span></td>
+                  <td><span class="amount">{{ etablissement.montant_total|floatformat:0 }} FCFA</span></td>
+                  <td><span class="date">
+                    {% if etablissement.date_dernier_paiement %}
+                      {{ etablissement.date_dernier_paiement|date:"d M Y" }}
+                    {% else %}
+                      Aucun paiement
+                    {% endif %}
+                  </span></td>
+                  <td>
+                    <span class="status-badge 
+                      {% if etablissement.statut_display == 'En règle' %}en-regle
+                      {% elif etablissement.statut_display == 'Paiement en attente' %}en-attente
+                      {% elif etablissement.statut_display == 'Paiement en retard' %}en-retard
+                      {% elif etablissement.statut_display == 'Non en règle' %}non-en-regle
+                      {% else %}en-regle{% endif %}">
+                      {{ etablissement.statut_display }}
+                    </span>
+                  </td>
                   <td>
                     <div class="action-buttons">
-                      <a
-                        href="{% url 'school_admin:details_financiers_etablissement'%}"
-                      >
+                      <a href="{% url 'school_admin:details_financiers_etablissement' etablissement.etablissement.id %}">
                         <button class="btn-action" title="Voir détails">
                           <i class="fas fa-eye"></i>
                         </button>
@@ -197,68 +218,17 @@
                     </div>
                   </td>
                 </tr>
+                {% empty %}
                 <tr>
-                  <td><input type="checkbox" class="row-checkbox" /></td>
-                  <td>
-                    <div class="etablissement-info">
-                      <h4>Collège Saint-Joseph</h4>
-                      <p>Yaoundé, Cameroun</p>
-                    </div>
-                  </td>
-                  <td><span class="type-badge prive">Privé</span></td>
-                  <td><span class="student-count">320</span></td>
-                  <td><span class="amount">960,000 FCFA</span></td>
-                  <td><span class="date">10 Jan 2024</span></td>
-                  <td><span class="status-badge en-regle">En règle</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <a
-                        href="{% url 'school_admin:details_financiers_etablissement'%}"
-                      >
-                        <button class="btn-action" title="Voir détails">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                      </a>
-                      <button class="btn-action" title="Générer facture">
-                        <i class="fas fa-file-invoice"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer facture">
-                        <i class="fas fa-paper-plane"></i>
-                      </button>
+                  <td colspan="8" style="text-align: center; padding: 2rem;">
+                    <div style="color: var(--text-secondary);">
+                      <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; color: var(--success-color);"></i>
+                      <p>Aucun établissement en règle</p>
+                      <small>Tous les établissements ont des paiements en attente</small>
                     </div>
                   </td>
                 </tr>
-                <tr>
-                  <td><input type="checkbox" class="row-checkbox" /></td>
-                  <td>
-                    <div class="etablissement-info">
-                      <h4>École Publique de Bafoussam</h4>
-                      <p>Bafoussam, Cameroun</p>
-                    </div>
-                  </td>
-                  <td><span class="type-badge public">Public</span></td>
-                  <td><span class="student-count">280</span></td>
-                  <td><span class="amount">840,000 FCFA</span></td>
-                  <td><span class="date">12 Jan 2024</span></td>
-                  <td><span class="status-badge en-regle">En règle</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <a
-                        href="{% url 'school_admin:details_financiers_etablissement'%}"
-                      >
-                        <button class="btn-action" title="Voir détails">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                      </a>
-                      <button class="btn-action" title="Générer facture">
-                        <i class="fas fa-file-invoice"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer facture">
-                        <i class="fas fa-paper-plane"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
@@ -292,19 +262,37 @@
                 </tr>
               </thead>
               <tbody>
-                <tr class="urgent">
+                {% for etablissement in etablissements_non_en_regle_detailed %}
+                <tr class="{% if etablissement.jours_retard > 30 %}urgent{% endif %}">
                   <td><input type="checkbox" class="row-checkbox" /></td>
                   <td>
                     <div class="etablissement-info">
-                      <h4>Institut Technique de Garoua</h4>
-                      <p>Garoua, Cameroun</p>
+                      <h4>{{ etablissement.etablissement.nom }}</h4>
+                      <p>{{ etablissement.etablissement.ville }}, {{ etablissement.etablissement.pays }}</p>
                     </div>
                   </td>
-                  <td><span class="type-badge semi_prive">Semi-privé</span></td>
-                  <td><span class="student-count">180</span></td>
-                  <td><span class="amount">540,000 FCFA</span></td>
-                  <td><span class="delay-badge critical">45 jours</span></td>
-                  <td><span class="status-badge en-retard">En retard</span></td>
+                  <td><span class="type-badge 
+                    {% if etablissement.etablissement.type_etablissement == 'primary' %}prive
+                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}semi_prive
+                    {% else %}public{% endif %}">
+                    {% if etablissement.etablissement.type_etablissement == 'primary' %}Privé
+                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}Semi-privé
+                    {% else %}Public{% endif %}
+                  </span></td>
+                  <td><span class="student-count">{{ etablissement.nombre_eleves }}</span></td>
+                  <td><span class="amount {% if etablissement.montant_du > 1000000 %}urgent{% endif %}">{{ etablissement.montant_du|floatformat:0 }} FCFA</span></td>
+                  <td><span class="delay-badge 
+                    {% if etablissement.jours_retard > 30 %}critical
+                    {% elif etablissement.jours_retard > 15 %}warning
+                    {% else %}info{% endif %}">
+                    {{ etablissement.jours_retard }} jours
+                  </span></td>
+                  <td><span class="status-badge 
+                    {% if etablissement.etablissement.statut_paiement == 'en_retard' %}en-retard
+                    {% elif etablissement.etablissement.statut_paiement == 'en_attente' %}en-attente
+                    {% else %}annule{% endif %}">
+                    {{ etablissement.etablissement.get_statut_paiement_display }}
+                  </span></td>
                   <td>
                     <div class="action-buttons">
                       <button class="btn-action" title="Voir détails">
@@ -319,33 +307,17 @@
                     </div>
                   </td>
                 </tr>
+                {% empty %}
                 <tr>
-                  <td><input type="checkbox" class="row-checkbox" /></td>
-                  <td>
-                    <div class="etablissement-info">
-                      <h4>Lycée de Bertoua</h4>
-                      <p>Bertoua, Cameroun</p>
-                    </div>
-                  </td>
-                  <td><span class="type-badge public">Public</span></td>
-                  <td><span class="student-count">220</span></td>
-                  <td><span class="amount">660,000 FCFA</span></td>
-                  <td><span class="delay-badge warning">15 jours</span></td>
-                  <td><span class="status-badge en-retard">En retard</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <button class="btn-action" title="Voir détails">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer relance">
-                        <i class="fas fa-bell"></i>
-                      </button>
-                      <button class="btn-action" title="Contacter">
-                        <i class="fas fa-phone"></i>
-                      </button>
+                  <td colspan="8" style="text-align: center; padding: 2rem;">
+                    <div style="color: var(--text-secondary);">
+                      <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; color: var(--success-color);"></i>
+                      <p>Aucun établissement en retard</p>
+                      <small>Tous les établissements sont en règle</small>
                     </div>
                   </td>
                 </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
@@ -368,127 +340,120 @@
               <thead>
                 <tr>
                   <th><input type="checkbox" id="selectAllFactures" /></th>
-                  <th>Facture</th>
+                  <th>Numéro Facture</th>
                   <th>Établissement</th>
+                  <th>Type Facture</th>
                   <th>Montant Total</th>
                   <th>Montant Payé</th>
                   <th>Reste à Payer</th>
                   <th>Statut</th>
-                  <th>Date</th>
+                  <th>Date Échéance</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
+                {% for facture in factures_detailed %}
+                <tr class="{% if facture.facture.statut in 'en_retard,impaye,contentieux' %}urgent-row{% endif %}">
                   <td><input type="checkbox" class="row-checkbox" /></td>
                   <td>
                     <div class="invoice-info">
-                      <h4>FAC-2024-001</h4>
-                      <p>Janvier 2024</p>
+                      <h4>{{ facture.facture.numero_facture }}</h4>
+                      <p>Créée le {{ facture.date_creation|date:"d M Y" }}</p>
+                      {% if facture.paiement_partiel %}
+                      <small class="partial-payment-indicator">⚠️ Paiement partiel</small>
+                      {% endif %}
                     </div>
                   </td>
                   <td>
                     <div class="etablissement-info">
-                      <h4>Lycée Moderne de Douala</h4>
-                      <p>Douala, Cameroun</p>
+                      <h4>{{ facture.facture.etablissement.nom }}</h4>
+                      <p>{{ facture.facture.etablissement.ville }}, {{ facture.facture.etablissement.pays }}</p>
+                      <small>{{ facture.facture.etablissement.get_type_etablissement_display }}</small>
                     </div>
                   </td>
-                  <td><span class="amount">1,350,000 FCFA</span></td>
-                  <td><span class="amount paid">1,350,000 FCFA</span></td>
-                  <td><span class="amount remaining">0 FCFA</span></td>
-                  <td><span class="status-badge paye">Payée</span></td>
-                  <td><span class="date">15 Jan 2024</span></td>
+                  <td>
+                    <div class="facture-type">
+                      <span class="type-badge 
+                        {% if facture.facture.type_facture == 'frais_service_mensuel' %}mensuel
+                        {% elif facture.facture.type_facture == 'frais_service_annuel' %}annuel
+                        {% else %}module{% endif %}">
+                        {{ facture.type_facture_display }}
+                      </span>
+                    </div>
+                  </td>
+                  <td><span class="amount">{{ facture.montant_total|floatformat:0 }} FCFA</span></td>
+                  <td><span class="amount paid">{{ facture.montant_paye|floatformat:0 }} FCFA</span></td>
+                  <td>
+                    <span class="amount remaining {% if facture.montant_restant > 0 %}urgent{% endif %}">
+                      {{ facture.reste_a_payer|floatformat:0 }} FCFA
+                    </span>
+                    {% if facture.paiement_partiel and facture.date_echeance_reste %}
+                    <br><small class="echeance-reste">Échéance: {{ facture.date_echeance_reste|date:"d M Y" }}</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="status-badge {{ facture.statut_color }}">
+                      {{ facture.statut_display }}
+                    </span>
+                    {% if facture.statut_envoi %}
+                    <br><small class="sent-indicator">📧 Envoyée</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="date {% if facture.facture.statut in 'en_retard,impaye,contentieux' %}overdue{% endif %}">
+                      {{ facture.date_echeance|date:"d M Y" }}
+                    </span>
+                    {% if facture.facture.statut in 'en_retard,impaye,contentieux' %}
+                    <br><small class="overdue-indicator">⚠️ En retard</small>
+                    {% endif %}
+                  </td>
                   <td>
                     <div class="action-buttons">
-                      <a href="{% url 'school_admin:facture_etablissement' %}">
+                      <a href="{% url 'school_admin:facture_etablissement' %}?facture_id={{ facture.facture.numero_facture }}&etablissement_id={{ facture.facture.etablissement.id }}" target="_blank">
                         <button class="btn-action" title="Voir facture">
                           <i class="fas fa-eye"></i>
                         </button>
                       </a>
-
+                      {% if facture.facture.statut == 'paye' %}
                       <button class="btn-action" title="Télécharger PDF">
                         <i class="fas fa-download"></i>
                       </button>
-                      <button class="btn-action" title="Envoyer">
-                        <i class="fas fa-paper-plane"></i>
+                      {% if not facture.statut_envoi %}
+                      <form method="POST" action="{% url 'school_admin:envoyer_facture' facture.facture.numero_facture facture.facture.etablissement.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action" title="Marquer comme envoyée">
+                          <i class="fas fa-paper-plane"></i>
+                        </button>
+                      </form>
+                      {% else %}
+                      <button class="btn-action success" title="Facture envoyée" disabled>
+                        <i class="fas fa-check-circle"></i>
                       </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><input type="checkbox" class="row-checkbox" /></td>
-                  <td>
-                    <div class="invoice-info">
-                      <h4>FAC-2024-002</h4>
-                      <p>Janvier 2024</p>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="etablissement-info">
-                      <h4>Collège Saint-Joseph</h4>
-                      <p>Yaoundé, Cameroun</p>
-                    </div>
-                  </td>
-                  <td><span class="amount">960,000 FCFA</span></td>
-                  <td><span class="amount paid">500,000 FCFA</span></td>
-                  <td><span class="amount remaining">460,000 FCFA</span></td>
-                  <td>
-                    <span class="status-badge partiel">Paiement partiel</span>
-                  </td>
-                  <td><span class="date">10 Jan 2024</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <a href="{% url 'school_admin:facture_etablissement' %}">
-                        <button class="btn-action" title="Voir facture">
-                          <i class="fas fa-eye"></i>
+                      {% endif %}
+                      {% else %}
+                      <a href="{% url 'school_admin:details_financiers_etablissement' facture.facture.etablissement.id %}">
+                        <button class="btn-action" title="Marquer comme payée">
+                          <i class="fas fa-check"></i>
                         </button>
                       </a>
-                      <button class="btn-action" title="Marquer comme payée">
-                        <i class="fas fa-check"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer relance">
+                      <button class="btn-action warning" title="Envoyer relance">
                         <i class="fas fa-bell"></i>
                       </button>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
+                {% empty %}
                 <tr>
-                  <td><input type="checkbox" class="row-checkbox" /></td>
-                  <td>
-                    <div class="invoice-info">
-                      <h4>FAC-2024-003</h4>
-                      <p>Janvier 2024</p>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="etablissement-info">
-                      <h4>Institut Technique de Garoua</h4>
-                      <p>Garoua, Cameroun</p>
-                    </div>
-                  </td>
-                  <td><span class="amount">540,000 FCFA</span></td>
-                  <td><span class="amount paid">0 FCFA</span></td>
-                  <td>
-                    <span class="amount remaining urgent">540,000 FCFA</span>
-                  </td>
-                  <td><span class="status-badge impaye">Impayée</span></td>
-                  <td><span class="date">05 Jan 2024</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <a href="{% url 'school_admin:facture_etablissement' %}">
-                        <button class="btn-action" title="Voir facture">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                      </a>
-                      <button class="btn-action" title="Marquer comme payée">
-                        <i class="fas fa-check"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer relance">
-                        <i class="fas fa-bell"></i>
-                      </button>
+                  <td colspan="10" style="text-align: center; padding: 2rem;">
+                    <div style="color: var(--text-secondary);">
+                      <i class="fas fa-file-invoice" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                      <p>Aucune facture générée</p>
+                      <small>Les factures apparaîtront ici une fois créées</small>
                     </div>
                   </td>
                 </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>

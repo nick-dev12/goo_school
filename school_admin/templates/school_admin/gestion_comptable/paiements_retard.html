@@ -89,7 +89,7 @@
             <i class="fas fa-exclamation-triangle"></i>
           </div>
           <div class="card-info">
-            <h3>8</h3>
+            <h3>{{ nombre_etablissements_retard }}</h3>
             <p>Établissements en retard</p>
           </div>
         </div>
@@ -98,7 +98,7 @@
             <i class="fas fa-clock"></i>
           </div>
           <div class="card-info">
-            <h3>15.2</h3>
+            <h3>{{ jours_retard_moyen }}</h3>
             <p>Jours de retard moyen</p>
           </div>
         </div>
@@ -107,7 +107,7 @@
             <i class="fas fa-euro-sign"></i>
           </div>
           <div class="card-info">
-            <h3>12,450,000</h3>
+            <h3>{{ montant_total_impaye|floatformat:0 }}</h3>
             <p>Montant total impayé (FCFA)</p>
           </div>
         </div>
@@ -116,7 +116,7 @@
             <i class="fas fa-percentage"></i>
           </div>
           <div class="card-info">
-            <h3>24.9%</h3>
+            <h3>{{ taux_impayes }}%</h3>
             <p>Taux d'impayés</p>
           </div>
         </div>
@@ -127,15 +127,15 @@
         <div class="tabs">
           <button class="tab-btn active" data-tab="liste-retard">
             <i class="fas fa-list"></i> Liste des retards
-            <span class="tab-count">8</span>
+            <span class="tab-count">{{ nombre_etablissements_retard }}</span>
           </button>
           <button class="tab-btn" data-tab="relances">
             <i class="fas fa-paper-plane"></i> Relances envoyées
-            <span class="tab-count">12</span>
+            <span class="tab-count">{{ relances_envoyees|length }}</span>
           </button>
           <button class="tab-btn" data-tab="contentieux">
             <i class="fas fa-gavel"></i> Contentieux
-            <span class="tab-count">2</span>
+            <span class="tab-count">{{ contentieux|length }}</span>
           </button>
         </div>
 
@@ -180,406 +180,95 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr class="urgent-row">
+                    {% for retard in etablissements_retard_detailed %}
+                    <tr class="{% if retard.jours_retard > 30 %}urgent-row{% endif %}">
                       <td>
                         <input type="checkbox" class="row-checkbox" />
                       </td>
                       <td>
                         <div class="etablissement-info">
-                          <div class="etablissement-avatar urgent">
+                          <div class="etablissement-avatar {% if retard.jours_retard > 30 %}urgent{% endif %}">
                             <i class="fas fa-school"></i>
                           </div>
                           <div>
-                            <h4>Collège Saint-Joseph</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 12 34 56</small>
+                            <h4>{{ retard.etablissement.nom }}</h4>
+                            <p>{{ retard.etablissement.ville }}, {{ retard.etablissement.pays }}</p>
+                            <small>Contact: {{ retard.etablissement.telephone|default:"Non renseigné" }}</small>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="amount urgent">3,600,000 FCFA</span>
+                        <span class="amount {% if retard.montant_du > 1000000 %}urgent{% endif %}">{{ retard.montant_du|floatformat:0 }} FCFA</span>
                       </td>
                       <td>
-                        <span class="date overdue">25 Nov 2023</span>
+                        <span class="date overdue">
+                          {% if retard.date_echeance %}
+                            {{ retard.date_echeance|date:"d M Y" }}
+                          {% else %}
+                            Non définie
+                          {% endif %}
+                        </span>
                       </td>
                       <td>
-                        <span class="delay-badge critical">45 jours</span>
+                        <span class="delay-badge 
+                          {% if retard.jours_retard > 30 %}critical
+                          {% elif retard.jours_retard > 15 %}warning
+                          {% else %}info{% endif %}">
+                          {{ retard.jours_retard }} jours
+                        </span>
                       </td>
                       <td>
-                        <span class="status-badge mise-en-demeure"
-                          >Mise en demeure</span
-                        >
+                        <span class="status-badge {{ retard.statut_relance }}">
+                          {% if retard.statut_relance == 'contentieux' %}Contentieux
+                          {% elif retard.statut_relance == 'mise_en_demeure' %}Mise en demeure
+                          {% elif retard.statut_relance == 'relance_envoyee' %}Relance envoyée
+                          {% else %}En retard{% endif %}
+                        </span>
                       </td>
                       <td>
-                        <span class="last-action"
-                          >Relance envoyée le 20 Déc</span
-                        >
+                        <span class="last-action">{{ retard.derniere_action }}</span>
                       </td>
                       <td>
                         <div class="action-buttons">
                           <button class="btn-action" title="Voir détails">
                             <i class="fas fa-eye"></i>
                           </button>
-                          <button class="btn-action" title="Envoyer relance">
-                            <i class="fas fa-paper-plane"></i>
-                          </button>
-                          <button
-                            class="btn-action warning"
-                            title="Mise en demeure"
-                          >
-                            <i class="fas fa-gavel"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr class="urgent-row">
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar urgent">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>Lycée Technique</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 23 45 67</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount urgent">5,000,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">30 Nov 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge critical">40 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge contentieux"
-                          >Contentieux</span
-                        >
-                      </td>
-                      <td>
-                        <span class="last-action"
-                          >Mise en demeure le 15 Déc</span
-                        >
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
+                          {% if retard.statut_relance == 'contentieux' %}
                           <button class="btn-action" title="Voir contentieux">
                             <i class="fas fa-gavel"></i>
                           </button>
-                          <button
-                            class="btn-action danger"
-                            title="Suspendre service"
-                          >
+                          <button class="btn-action danger" title="Suspendre service">
                             <i class="fas fa-ban"></i>
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>École Maternelle Les Petits Pas</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 34 56 78</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount">200,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">20 Nov 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge warning">30 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge relance-envoyee"
-                          >Relance envoyée</span
-                        >
-                      </td>
-                      <td>
-                        <span class="last-action"
-                          >Relance envoyée le 18 Déc</span
-                        >
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
+                          {% elif retard.statut_relance == 'mise_en_demeure' %}
                           <button class="btn-action" title="Envoyer relance">
                             <i class="fas fa-paper-plane"></i>
                           </button>
-                          <button class="btn-action" title="Appeler">
-                            <i class="fas fa-phone"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>Maternelle Les Gazelles</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 45 67 89</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount">3,000,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">15 Nov 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge warning">25 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge en-retard">En retard</span>
-                      </td>
-                      <td>
-                        <span class="last-action">Aucune action</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Envoyer relance">
-                            <i class="fas fa-paper-plane"></i>
-                          </button>
-                          <button class="btn-action" title="Appeler">
-                            <i class="fas fa-phone"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>École Primaire La Savane</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 56 78 90</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount">500,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">10 Déc 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge info">10 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge relance-envoyee"
-                          >Relance envoyée</span
-                        >
-                      </td>
-                      <td>
-                        <span class="last-action"
-                          >Relance envoyée le 15 Déc</span
-                        >
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Envoyer relance">
-                            <i class="fas fa-paper-plane"></i>
-                          </button>
-                          <button class="btn-action" title="Appeler">
-                            <i class="fas fa-phone"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>Lycée du Plateau</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 67 89 01</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount">10,400,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">10 Nov 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge critical">50 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge contentieux"
-                          >Contentieux</span
-                        >
-                      </td>
-                      <td>
-                        <span class="last-action"
-                          >Assignation envoyée le 10 Déc</span
-                        >
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Voir contentieux">
+                          <button class="btn-action warning" title="Mise en demeure">
                             <i class="fas fa-gavel"></i>
                           </button>
-                          <button
-                            class="btn-action danger"
-                            title="Suspendre service"
-                          >
-                            <i class="fas fa-ban"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>École Internationale</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 78 90 12</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount">150,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">05 Déc 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge info">15 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge en-retard">En retard</span>
-                      </td>
-                      <td>
-                        <span class="last-action">Aucune action</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
+                          {% else %}
                           <button class="btn-action" title="Envoyer relance">
                             <i class="fas fa-paper-plane"></i>
                           </button>
                           <button class="btn-action" title="Appeler">
                             <i class="fas fa-phone"></i>
                           </button>
+                          {% endif %}
                         </div>
                       </td>
                     </tr>
-
+                    {% empty %}
                     <tr>
-                      <td>
-                        <input type="checkbox" class="row-checkbox" />
-                      </td>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>Collège Moderne</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                            <small>Contact: +225 07 89 01 23</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount">750,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date overdue">28 Nov 2023</span>
-                      </td>
-                      <td>
-                        <span class="delay-badge warning">22 jours</span>
-                      </td>
-                      <td>
-                        <span class="status-badge relance-envoyee"
-                          >Relance envoyée</span
-                        >
-                      </td>
-                      <td>
-                        <span class="last-action"
-                          >Relance envoyée le 12 Déc</span
-                        >
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Envoyer relance">
-                            <i class="fas fa-paper-plane"></i>
-                          </button>
-                          <button class="btn-action" title="Appeler">
-                            <i class="fas fa-phone"></i>
-                          </button>
+                      <td colspan="8" style="text-align: center; padding: 2rem;">
+                        <div style="color: var(--text-secondary);">
+                          <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; color: var(--success-color);"></i>
+                          <p>Aucun établissement en retard de paiement</p>
+                          <small>Tous les établissements sont à jour dans leurs paiements</small>
                         </div>
                       </td>
                     </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>
@@ -616,6 +305,8 @@
                     </tr>
                   </thead>
                   <tbody>
+                    {% for relance in relances_envoyees %}
+                    {% if relance.etablissement %}
                     <tr>
                       <td>
                         <div class="etablissement-info">
@@ -623,114 +314,66 @@
                             <i class="fas fa-school"></i>
                           </div>
                           <div>
-                            <h4>Collège Saint-Joseph</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
+                            <h4>{{ relance.etablissement.nom }}</h4>
+                            <p>{{ relance.etablissement.ville }}, {{ relance.etablissement.pays }}</p>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="relance-type mise-en-demeure"
-                          >Mise en demeure</span
-                        >
+                        <span class="relance-type 
+                          {% if relance.type_relance == 'Mise en demeure' %}mise-en-demeure
+                          {% else %}relance-simple{% endif %}">
+                          {{ relance.type_relance }}
+                        </span>
                       </td>
                       <td>
-                        <span class="date">20 Déc 2023</span>
+                        <span class="date">{{ relance.date_envoi }}</span>
                       </td>
                       <td>
-                        <span class="status-badge envoye">Envoyée</span>
+                        <span class="status-badge 
+                          {% if relance.statut == 'Envoyée' %}envoye
+                          {% elif relance.statut == 'Lue' %}lue
+                          {% else %}en-cours{% endif %}">
+                          {{ relance.statut }}
+                        </span>
                       </td>
                       <td>
-                        <span class="response">Aucune réponse</span>
+                        <span class="response 
+                          {% if relance.reponse == 'Promesse de paiement' %}positive
+                          {% elif relance.reponse == 'Aucune réponse' %}negative
+                          {% endif %}">
+                          {{ relance.reponse }}
+                        </span>
                       </td>
                       <td>
                         <div class="action-buttons">
                           <button class="btn-action" title="Voir relance">
                             <i class="fas fa-eye"></i>
                           </button>
+                          {% if relance.statut == 'Envoyée' %}
                           <button class="btn-action" title="Renvoyer">
                             <i class="fas fa-redo"></i>
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>Lycée Technique</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="relance-type relance-simple"
-                          >Relance simple</span
-                        >
-                      </td>
-                      <td>
-                        <span class="date">15 Déc 2023</span>
-                      </td>
-                      <td>
-                        <span class="status-badge envoye">Envoyée</span>
-                      </td>
-                      <td>
-                        <span class="response">Aucune réponse</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir relance">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Renvoyer">
-                            <i class="fas fa-redo"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>École Maternelle Les Petits Pas</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="relance-type relance-simple"
-                          >Relance simple</span
-                        >
-                      </td>
-                      <td>
-                        <span class="date">18 Déc 2023</span>
-                      </td>
-                      <td>
-                        <span class="status-badge lue">Lue</span>
-                      </td>
-                      <td>
-                        <span class="response positive"
-                          >Promesse de paiement</span
-                        >
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir relance">
-                            <i class="fas fa-eye"></i>
-                          </button>
+                          {% else %}
                           <button class="btn-action" title="Suivre">
                             <i class="fas fa-clock"></i>
                           </button>
+                          {% endif %}
                         </div>
                       </td>
                     </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr>
+                      <td colspan="6" style="text-align: center; padding: 2rem;">
+                        <div style="color: var(--text-secondary);">
+                          <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                          <p>Aucune relance envoyée</p>
+                          <small>Les relances apparaîtront ici une fois envoyées</small>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>
@@ -765,6 +408,8 @@
                     </tr>
                   </thead>
                   <tbody>
+                    {% for contentieux_item in contentieux %}
+                    {% if contentieux_item.etablissement %}
                     <tr>
                       <td>
                         <div class="etablissement-info">
@@ -772,22 +417,22 @@
                             <i class="fas fa-school"></i>
                           </div>
                           <div>
-                            <h4>Lycée du Plateau</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
+                            <h4>{{ contentieux_item.etablissement.nom }}</h4>
+                            <p>{{ contentieux_item.etablissement.ville }}, {{ contentieux_item.etablissement.pays }}</p>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="amount urgent">10,400,000 FCFA</span>
+                        <span class="amount urgent">{{ contentieux_item.montant_reclame|floatformat:0 }} FCFA</span>
                       </td>
                       <td>
-                        <span class="date">10 Déc 2023</span>
+                        <span class="date">{{ contentieux_item.date_assignation }}</span>
                       </td>
                       <td>
-                        <span class="status-badge en-cours">En cours</span>
+                        <span class="status-badge en-cours">{{ contentieux_item.statut_dossier }}</span>
                       </td>
                       <td>
-                        <span class="date">15 Jan 2024</span>
+                        <span class="date">{{ contentieux_item.prochaine_audience }}</span>
                       </td>
                       <td>
                         <div class="action-buttons">
@@ -800,42 +445,18 @@
                         </div>
                       </td>
                     </tr>
-
+                    {% endif %}
+                    {% empty %}
                     <tr>
-                      <td>
-                        <div class="etablissement-info">
-                          <div class="etablissement-avatar urgent">
-                            <i class="fas fa-school"></i>
-                          </div>
-                          <div>
-                            <h4>Lycée Technique</h4>
-                            <p>Abidjan, Côte d'Ivoire</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="amount urgent">5,000,000 FCFA</span>
-                      </td>
-                      <td>
-                        <span class="date">05 Déc 2023</span>
-                      </td>
-                      <td>
-                        <span class="status-badge en-cours">En cours</span>
-                      </td>
-                      <td>
-                        <span class="date">20 Jan 2024</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir dossier">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Mettre à jour">
-                            <i class="fas fa-edit"></i>
-                          </button>
+                      <td colspan="6" style="text-align: center; padding: 2rem;">
+                        <div style="color: var(--text-secondary);">
+                          <i class="fas fa-gavel" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                          <p>Aucun contentieux en cours</p>
+                          <small>Les dossiers de contentieux apparaîtront ici</small>
                         </div>
                       </td>
                     </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>

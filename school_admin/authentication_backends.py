@@ -16,21 +16,20 @@ class MultiUserBackend(BaseBackend):
     
     def authenticate(self, request, username=None, password=None, **kwargs):
         """
-        Authentifie un utilisateur en vérifiant d'abord dans CompteUser,
-        puis dans Etablissement
+        Authentifie un utilisateur en vérifiant dans tous les modèles d'utilisateurs
         """
         if username is None or password is None:
             return None
         
-        # Essayer d'abord avec CompteUser
+        # Essayer d'abord avec PersonnelAdministratif (priorité pour les établissements)
         try:
-            user = CompteUser.objects.get(username=username)
-            if user.check_password(password):
-                return user
-        except CompteUser.DoesNotExist:
+            personnel = PersonnelAdministratif.objects.get(username=username)
+            if personnel.check_password(password) and personnel.actif:
+                return personnel
+        except PersonnelAdministratif.DoesNotExist:
             pass
         
-        # Essayer ensuite avec Etablissement
+        # Essayer avec Etablissement
         try:
             etablissement = Etablissement.objects.get(username=username)
             if etablissement.check_password(password):
@@ -38,12 +37,12 @@ class MultiUserBackend(BaseBackend):
         except Etablissement.DoesNotExist:
             pass
         
-        # Essayer avec PersonnelAdministratif
+        # Essayer avec CompteUser
         try:
-            personnel = PersonnelAdministratif.objects.get(username=username)
-            if personnel.check_password(password):
-                return personnel
-        except PersonnelAdministratif.DoesNotExist:
+            user = CompteUser.objects.get(username=username)
+            if user.check_password(password):
+                return user
+        except CompteUser.DoesNotExist:
             pass
         
         # Essayer avec Eleve
@@ -58,24 +57,24 @@ class MultiUserBackend(BaseBackend):
     
     def get_user(self, user_id):
         """
-        Récupère un utilisateur par son ID en vérifiant les deux modèles
+        Récupère un utilisateur par son ID en vérifiant tous les modèles
         """
-        # Essayer d'abord CompteUser
+        # Essayer d'abord PersonnelAdministratif
         try:
-            return CompteUser.objects.get(pk=user_id)
-        except CompteUser.DoesNotExist:
+            return PersonnelAdministratif.objects.get(pk=user_id)
+        except PersonnelAdministratif.DoesNotExist:
             pass
         
-        # Essayer ensuite Etablissement
+        # Essayer avec Etablissement
         try:
             return Etablissement.objects.get(pk=user_id)
         except Etablissement.DoesNotExist:
             pass
         
-        # Essayer avec PersonnelAdministratif
+        # Essayer avec CompteUser
         try:
-            return PersonnelAdministratif.objects.get(pk=user_id)
-        except PersonnelAdministratif.DoesNotExist:
+            return CompteUser.objects.get(pk=user_id)
+        except CompteUser.DoesNotExist:
             pass
         
         # Essayer avec Eleve

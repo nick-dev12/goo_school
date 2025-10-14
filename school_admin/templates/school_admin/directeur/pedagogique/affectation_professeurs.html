@@ -1,0 +1,302 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affectation des Professeurs - {{ etablissement.nom }}</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/affectation_professeurs.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+        <div class="main-content-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title-section">
+                    <h1 class="page-title">
+                        <i class="fas fa-user-graduate"></i>
+                        Affectation des Professeurs
+                    </h1>
+                    <p class="page-subtitle">{{ etablissement.nom }} - Gestion des affectations</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn-add btn-primary" onclick="toggleFilters()">
+                        <i class="fas fa-filter"></i>
+                        <span>Filtres</span>
+                    </button>
+                    <button class="btn-add btn-success" onclick="exportAffectations()">
+                        <i class="fas fa-download"></i>
+                        <span>Exporter</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.total_professeurs }}</h3>
+                        <p>Professeurs</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.total_classes }}</h3>
+                        <p>Classes</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.total_matieres }}</h3>
+                        <p>Matières</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.professeurs_affectes }}</h3>
+                        <p>Affectés</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Panel -->
+            <div class="filters-panel" id="filtersPanel" style="display: none;">
+                <div class="filters-content">
+                    <div class="filter-group">
+                        <label for="matiereFilter">Filtrer par matière :</label>
+                        <select id="matiereFilter" class="filter-select">
+                            <option value="">Toutes les matières</option>
+                            {% for matiere in matieres %}
+                                <option value="{{ matiere.id }}">{{ matiere.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="classeFilter">Filtrer par classe :</label>
+                        <select id="classeFilter" class="filter-select">
+                            <option value="">Toutes les classes</option>
+                            {% for classe in classes %}
+                                <option value="{{ classe.id }}">{{ classe.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="statusFilter">Statut :</label>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">Tous</option>
+                            <option value="affecte">Affectés</option>
+                            <option value="non_affecte">Non affectés</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-filter" onclick="applyFilters()">
+                            <i class="fas fa-search"></i>
+                            Appliquer
+                        </button>
+                        <button class="btn-filter btn-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times"></i>
+                            Effacer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matière Tabs -->
+            <div class="matiere-tabs-container">
+                <div class="matiere-tabs">
+                    <button class="matiere-tab-btn active" data-matiere="all">
+                        <i class="fas fa-users"></i>
+                        <span>Tous</span>
+                        <span class="tab-count">{{ stats.total_professeurs }}</span>
+                    </button>
+                    {% for matiere, data in professeurs_par_matiere.items %}
+                        <button class="matiere-tab-btn" data-matiere="{{ matiere.id }}">
+                            <i class="fas fa-book"></i>
+                            <span>{{ matiere.nom }}</span>
+                            <span class="tab-count">{{ data.total }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+        <!-- Professors Grid -->
+        <div class="professors-grid" id="professorsGrid">
+            {% for item in professeurs_with_classes %}
+                {% with professeur=item.professeur affectations=item.affectations classes_disponibles=item.classes_disponibles %}
+                    <div class="professor-card" data-professeur-id="{{ professeur.id }}" data-matiere="{{ professeur.matiere_principale.id }}">
+                        <div class="professor-header">
+                            <div class="professor-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="professor-info">
+                                <h3>{{ professeur.nom }}</h3>
+                                <p class="professor-matiere">{{ professeur.matiere_principale.nom }}</p>
+                                <div class="professor-status">
+                                    <span class="status-badge {% if professeur.classes.exists %}status-active{% else %}status-inactive{% endif %}">
+                                        {% if professeur.classes.exists %}Affecté{% else %}Non affecté{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="professor-actions">
+                                <button class="action-btn" onclick="toggleAffectations({{ professeur.id }})" title="Gérer les affectations">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="professor-details">
+                            <div class="detail-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>{{ professeur.email }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-phone"></i>
+                                <span>{{ professeur.telephone }}</span>
+                            </div>
+                            
+                        <!-- Classes affectées -->
+                        {% if affectations.exists %}
+                            <div class="detail-item classes-affectees">
+                                <i class="fas fa-door-open"></i>
+                                <div class="classes-list">
+                                    {% for affectation in affectations %}
+                                        <span class="classe-badge {% if affectation.is_principal %}badge-principal{% else %}badge-classique{% endif %}">
+                                            {{ affectation.classe.nom }}
+                                            {% if affectation.is_principal %}
+                                                <i class="fas fa-crown" title="Professeur Principal"></i>
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                            
+                            {% if professeur.matieres_secondaires.exists %}
+                                <div class="detail-item">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span>{{ professeur.matieres_secondaires.count }} matière(s) secondaire(s)</span>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Affectations Panel -->
+                        <div class="affectations-panel" id="affectationsPanel{{ professeur.id }}" style="display: none;">
+                            <div class="panel-header">
+                                <h4>Affectations de {{ professeur.nom }}</h4>
+                                <button class="close-panel" onclick="toggleAffectations({{ professeur.id }})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="current-affectations">
+                                <h5>Classes actuelles :</h5>
+                                <div class="affectations-list" id="affectationsList{{ professeur.id }}">
+                                {% for affectation in affectations %}
+                                    <div class="affectation-item" data-classe-id="{{ affectation.classe.id }}">
+                                        <span class="classe-name">
+                                            {{ affectation.classe.nom }}
+                                            {% if affectation.is_principal %}
+                                                <span class="statut-badge principal">Principal</span>
+                                            {% else %}
+                                                <span class="statut-badge classique">Classique</span>
+                                            {% endif %}
+                                        </span>
+                                        <form method="post" action="{% url 'affectation:affecter_professeur' %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
+                                            <input type="hidden" name="classe_id" value="{{ affectation.classe.id }}">
+                                            <input type="hidden" name="action" value="remove">
+                                            <button type="submit" class="remove-affectation" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette affectation ?')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% empty %}
+                                    <p class="no-affectations">Aucune affectation</p>
+                                {% endfor %}
+                                </div>
+                            </div>
+
+                        <div class="add-affectation">
+                            <h5>Ajouter une affectation :</h5>
+                            <form method="post" action="{% url 'affectation:affecter_professeur' %}" class="add-affectation-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
+                                <input type="hidden" name="action" value="add">
+                                <div class="form-group">
+                                    <select name="classe_id" class="classe-select" required>
+                                        <option value="">Sélectionner une classe</option>
+                                        {% for classe in classes_disponibles %}
+                                            <option value="{{ classe.id }}">{{ classe.nom }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="statut{{ professeur.id }}" class="statut-label">Statut :</label>
+                                    <select name="statut" id="statut{{ professeur.id }}" class="statut-select" required>
+                                        <option value="classique">Professeur Classique</option>
+                                        <option value="principal">Professeur Principal</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn-add-affectation">
+                                    <i class="fas fa-plus"></i>
+                                    Ajouter
+                                </button>
+                            </form>
+                        </div>
+                        </div>
+                    </div>
+                {% endwith %}
+            {% empty %}
+                    <div class="empty-state">
+                        <i class="fas fa-user-graduate"></i>
+                        <h3>Aucun professeur trouvé</h3>
+                        <p>Il n'y a actuellement aucun professeur dans cet établissement.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Chargement...</p>
+        </div>
+    </div>
+
+    <!-- CSRF Token -->
+    {% csrf_token %}
+    
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/affectation_professeurs.js' %}"></script>
+</body>
+</html>

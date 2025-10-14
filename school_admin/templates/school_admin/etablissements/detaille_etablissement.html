@@ -134,6 +134,18 @@
                 {{ etablissement.email|default:"Non renseigné" }}
               </div>
             </div>
+            <div class="info-item">
+              <div class="info-label">Type de facturation</div>
+              <div class="info-value">
+                {{ etablissement.get_type_facturation_display }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Montant par élève</div>
+              <div class="info-value highlight">
+                {{ etablissement.montant_par_eleve|floatformat:0 }} FCFA
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -385,6 +397,34 @@
                     <span class="slider"></span>
                   </label>
                   <span>Actif</span>
+                </div>
+              </div>
+              
+              <!-- Configuration de facturation -->
+              <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--gray-200)">
+                <h4 style="color: var(--text-primary); margin-bottom: 1.5rem">
+                  <i class="fas fa-credit-card"></i> Configuration de facturation
+                </h4>
+                <div class="form-row">
+                  <div class="form-group" style="flex: 1">
+                    <label class="form-label">Type de facturation</label>
+                    <select name="type_facturation" class="form-control" required>
+                      <option value="mensuel" {% if etablissement.type_facturation == 'mensuel' %}selected{% endif %}>Facturation mensuelle</option>
+                      <option value="annuel" {% if etablissement.type_facturation == 'annuel' %}selected{% endif %}>Facturation annuelle</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1">
+                    <label class="form-label">Montant par élève (FCFA)</label>
+                    <input
+                      type="number"
+                      name="montant_par_eleve"
+                      class="form-control"
+                      value="{{ etablissement.montant_par_eleve|floatformat:0 }}"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1086,9 +1126,9 @@
                     color: var(--admin-primary);
                   "
                 >
-                  6 000 000 CFA
+                  {{ etablissement.montant_par_eleve|floatformat:0 }} FCFA
                 </div>
-                <div style="color: var(--text-secondary)">par ANS</div>
+                <div style="color: var(--text-secondary)">par {{ etablissement.get_type_facturation_display|lower }}</div>
               </div>
               <div style="margin-bottom: 1.5rem">
                 <h5 style="margin-bottom: 1rem; color: var(--text-primary)">
@@ -1234,6 +1274,58 @@
               >
                 <i class="fas fa-download"></i> Télécharger la facture
               </button>
+            </div>
+          </div>
+
+          <!-- Informations de facturation actuelles -->
+          <div style="margin: 2rem 0">
+            <h4 class="section-title" style="margin-bottom: 1rem">
+              <i class="fas fa-info-circle"></i>
+              Configuration de facturation actuelle
+            </h4>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-bottom: 2rem">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem">
+                <div>
+                  <h5 style="color: var(--text-primary); margin-bottom: 0.5rem">Type de facturation</h5>
+                  <p style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 600">
+                    {{ etablissement.get_type_facturation_display }}
+                  </p>
+                </div>
+                <div>
+                  <h5 style="color: var(--text-primary); margin-bottom: 0.5rem">Montant par élève</h5>
+                  <p style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 600">
+                    {{ etablissement.montant_par_eleve|floatformat:0 }} FCFA
+                  </p>
+                </div>
+                <div>
+                  <h5 style="color: var(--text-primary); margin-bottom: 0.5rem">Nombre d'élèves facturés</h5>
+                  <p style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 600">
+                    {{ etablissement.nombre_eleves_factures }}
+                  </p>
+                </div>
+                <div>
+                  <h5 style="color: var(--text-primary); margin-bottom: 0.5rem">Montant total facturé</h5>
+                  <p style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 600">
+                    {{ etablissement.montant_total_facturation|floatformat:0 }} FCFA
+                  </p>
+                </div>
+                <div>
+                  <h5 style="color: var(--text-primary); margin-bottom: 0.5rem">Statut de paiement</h5>
+                  <span class="badge badge-{% if etablissement.statut_paiement == 'paye' %}success{% elif etablissement.statut_paiement == 'en_retard' %}danger{% else %}warning{% endif %}">
+                    {{ etablissement.get_statut_paiement_display }}
+                  </span>
+                </div>
+                <div>
+                  <h5 style="color: var(--text-primary); margin-bottom: 0.5rem">Dernière facturation</h5>
+                  <p style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 600">
+                    {% if etablissement.date_derniere_facturation %}
+                      {{ etablissement.date_derniere_facturation|date:"d/m/Y à H:i" }}
+                    {% else %}
+                      Aucune facturation
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

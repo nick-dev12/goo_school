@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Élèves - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-user-graduate"></i>
+                    Gestion des Élèves
+                </h1>
+                <p class="page-subtitle">
+                    Gérez efficacement les dossiers, inscriptions et suivi des élèves
+                </p>
+            </div>
+        </div>
+
+        <!-- Navigation Links Container -->
+        <div class="navigation-container">
+            <h2 class="section-title">Outils de gestion des élèves</h2>
+            
+            <div class="nav-cards-grid">
+                <a href="{% url 'secretaire:inscription_eleves' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-green">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Inscrire un élève</h3>
+                        <p>Ajout de nouveaux élèves</p>
+                    </div>
+                </a>
+                <a href="{% url 'secretaire:liste_eleves' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Liste des élèves</h3>
+                        <p>Gestion des dossiers élèves</p>
+                    </div>
+                </a>
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Notes et resultats</h3>
+                        <p>Gestion des notes et resultats</p>
+                    </div>
+                </a>
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-orange">
+                        <i class="fas fa-compass"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Dossiers & Orientations</h3>
+                        <p>Parcours scolaires</p>
+                    </div>
+                </a>
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-red">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Suivi de présence</h3>
+                        <p>Assiduité et absences</p>
+                    </div>
+                </a>
+              
+            </div>
+        </div>
+
+        <!-- Dernières actions élèves -->
+        <div class="recent-actions-section">
+            <h2 class="section-title">Dernières actions élèves</h2>
+            <div class="actions-list">
+                <div class="action-item">
+                    <div class="action-icon success">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Nouvel élève inscrit : Jean Dupont</p>
+                        <span class="action-time">Il y a 1 heure</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon primary">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Dossier médical de Marie Martin mis à jour</p>
+                        <span class="action-time">Il y a 3 heures</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon warning">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Absence signalée : Pierre Durand</p>
+                        <span class="action-time">Hier</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon info">
+                        <i class="fas fa-compass"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Orientation 3ème : 15 élèves concernés</p>
+                        <span class="action-time">Il y a 2 jours</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon success">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Nouvelle ligne de transport créée</p>
+                        <span class="action-time">Il y a 3 jours</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon primary">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Menu de la semaine mis à jour</p>
+                        <span class="action-time">Il y a 4 jours</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/gestion_eleves.js' %}"></script>
+</body>
+</html>

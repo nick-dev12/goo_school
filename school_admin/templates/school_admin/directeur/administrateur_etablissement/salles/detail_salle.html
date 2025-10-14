@@ -1,0 +1,279 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails de la Salle - {{ salle.nom }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/salles_improved.css' %}">
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <i class="fas fa-door-open"></i>
+                    <h1>{{ salle.nom }}</h1>
+                    <p>{{ salle.type_display }} - {{ etablissement.nom }}</p>
+                </div>
+                <a href="{% url 'salle:liste_salles' %}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+
+        <!-- Informations de base -->
+        <div class="salle-info-card">
+            <div class="salle-header">
+                <div class="salle-icon">
+                    <i class="fas fa-{% if salle.type_salle == 'classe' %}chalkboard-teacher{% elif salle.type_salle == 'laboratoire' %}flask{% elif salle.type_salle == 'bibliotheque' %}book{% elif salle.type_salle == 'salle_informatique' %}desktop{% elif salle.type_salle == 'salle_art' %}palette{% elif salle.type_salle == 'salle_musique' %}music{% elif salle.type_salle == 'salle_sport' %}dumbbell{% elif salle.type_salle == 'amphitheatre' %}theater-masks{% elif salle.type_salle == 'salle_reunion' %}users{% elif salle.type_salle == 'bureau' %}briefcase{% else %}door-open{% endif %}"></i>
+                </div>
+                <div class="salle-info">
+                    <h2>{{ salle.nom }}</h2>
+                    <p>{{ salle.numero }} - {{ salle.type_display }}</p>
+                    <div class="salle-badge type-{{ salle.type_salle }}">
+                        <span>{{ salle.type_display }}</span>
+                    </div>
+                </div>
+                <div class="salle-status">
+                    <div class="status-badge status-{{ salle.etat }}">
+                        <i class="fas fa-{% if salle.etat == 'disponible' %}check-circle{% elif salle.etat == 'occupee' %}times-circle{% elif salle.etat == 'maintenance' %}tools{% else %}lock{% endif %}"></i>
+                        <span>{{ salle.etat_display }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="salle-stats">
+                <div class="stat-item">
+                    <i class="fas fa-users"></i>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ salle.capacite_max }}</div>
+                        <div class="stat-label">Capacité</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-calendar-plus"></i>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ salle.date_creation|date:"d/m/Y" }}</div>
+                        <div class="stat-label">Créée le</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-edit"></i>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ salle.date_modification|date:"d/m/Y" }}</div>
+                        <div class="stat-label">Modifiée le</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation par onglets -->
+        <div class="tabs-navigation">
+            <button class="tab-btn active" data-tab="overview">
+                <i class="fas fa-info-circle"></i>
+                Vue d'ensemble
+            </button>
+            <button class="tab-btn" data-tab="historique">
+                <i class="fas fa-history"></i>
+                Historique
+            </button>
+            <button class="tab-btn" data-tab="modifier">
+                <i class="fas fa-edit"></i>
+                Modifier
+            </button>
+        </div>
+
+        <div class="tabs-content">
+            <!-- Vue d'ensemble -->
+            <div id="overview" class="tab-panel active">
+                <div class="overview-grid">
+                    <div class="info-card">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i>
+                            Informations Générales
+                        </h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">Nom:</span>
+                                <span class="info-value">{{ salle.nom }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Numéro:</span>
+                                <span class="info-value">{{ salle.numero }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Type:</span>
+                                <span class="info-value">{{ salle.type_display }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">État:</span>
+                                <span class="info-value status-{{ salle.etat }}">{{ salle.etat_display }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Capacité:</span>
+                                <span class="info-value">{{ salle.capacite_max }} personnes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3 class="card-title">
+                            <i class="fas fa-building"></i>
+                            Établissement
+                        </h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">Nom:</span>
+                                <span class="info-value">{{ etablissement.nom }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Type:</span>
+                                <span class="info-value">{{ etablissement.get_type_etablissement_display }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Code:</span>
+                                <span class="info-value">{{ etablissement.code_etablissement }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- Historique -->
+            <div id="historique" class="tab-panel">
+                <div class="historique-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-history"></i>
+                        Historique de la Salle
+                    </h3>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>Création de la salle</h4>
+                                <p>Salle créée le {{ salle.date_creation|date:"d F Y à H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker">
+                                <i class="fas fa-edit"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>Dernière modification</h4>
+                                <p>Modifiée le {{ salle.date_modification|date:"d F Y à H:i" }}</p>
+                            </div>
+                        </div>
+                        <!-- TODO: Ajouter d'autres événements de l'historique -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modifier -->
+            <div id="modifier" class="tab-panel">
+                <div class="modifier-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-edit"></i>
+                        Modifier la Salle
+                    </h3>
+                    <form class="modifier-form" method="post" action="{% url 'salle:modifier_salle' salle.id %}">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nom" class="form-label">Nom de la salle *</label>
+                                <input type="text" id="nom" name="nom" class="form-control" value="{{ salle.nom }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="numero" class="form-label">Numéro de salle *</label>
+                                <input type="text" id="numero" name="numero" class="form-control" value="{{ salle.numero }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="type_salle" class="form-label">Type de salle *</label>
+                                <select id="type_salle" name="type_salle" class="form-control" required>
+                                    <option value="classe" {% if salle.type_salle == 'classe' %}selected{% endif %}>Salle de Classe</option>
+                                    <option value="laboratoire" {% if salle.type_salle == 'laboratoire' %}selected{% endif %}>Laboratoire</option>
+                                    <option value="bibliotheque" {% if salle.type_salle == 'bibliotheque' %}selected{% endif %}>Bibliothèque</option>
+                                    <option value="salle_informatique" {% if salle.type_salle == 'salle_informatique' %}selected{% endif %}>Salle d'Informatique</option>
+                                    <option value="salle_art" {% if salle.type_salle == 'salle_art' %}selected{% endif %}>Salle d'Arts</option>
+                                    <option value="salle_musique" {% if salle.type_salle == 'salle_musique' %}selected{% endif %}>Salle de Musique</option>
+                                    <option value="salle_sport" {% if salle.type_salle == 'salle_sport' %}selected{% endif %}>Salle de Sport</option>
+                                    <option value="amphitheatre" {% if salle.type_salle == 'amphitheatre' %}selected{% endif %}>Amphithéâtre</option>
+                                    <option value="salle_reunion" {% if salle.type_salle == 'salle_reunion' %}selected{% endif %}>Salle de Réunion</option>
+                                    <option value="bureau" {% if salle.type_salle == 'bureau' %}selected{% endif %}>Bureau</option>
+                                    <option value="autre" {% if salle.type_salle == 'autre' %}selected{% endif %}>Autre</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="etat" class="form-label">État de la salle</label>
+                                <select id="etat" name="etat" class="form-control">
+                                    <option value="disponible" {% if salle.etat == 'disponible' %}selected{% endif %}>Disponible</option>
+                                    <option value="occupee" {% if salle.etat == 'occupee' %}selected{% endif %}>Occupée</option>
+                                    <option value="maintenance" {% if salle.etat == 'maintenance' %}selected{% endif %}>En Maintenance</option>
+                                    <option value="fermee" {% if salle.etat == 'fermee' %}selected{% endif %}>Fermée</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="capacite_max" class="form-label">Capacité maximale *</label>
+                            <input type="number" id="capacite_max" name="capacite_max" class="form-control" value="{{ salle.capacite_max }}" min="1" required>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-save"></i>
+                                Sauvegarder les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-section">
+            <a href="{% url 'salle:liste_salles' %}" class="btn-back">
+                <i class="fas fa-arrow-left"></i>
+                Retour à la liste
+            </a>
+            <a href="{% url 'salle:toggle_actif' salle.id %}" class="btn-toggle {% if salle.actif %}active{% endif %}">
+                <i class="fas fa-{% if salle.actif %}pause{% else %}play{% endif %}"></i>
+                {% if salle.actif %}Désactiver{% else %}Activer{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestion des onglets
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Retirer la classe active de tous les onglets et panneaux
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => p.classList.remove('active'));
+                    
+                    // Ajouter la classe active à l'onglet cliqué et au panneau correspondant
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

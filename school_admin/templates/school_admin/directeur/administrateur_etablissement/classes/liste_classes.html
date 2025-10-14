@@ -19,12 +19,20 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes.css' %}"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}"
     />
   </head>
   <body>
     <!-- Header -->
-    {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% endif %}
 
     <!-- Main Content Container -->
     <div class="content-container">
@@ -98,79 +106,139 @@
                 <div class="stat-label">Niveaux</div>
               </div>
             </div>
+            <div class="stat-card stat-primary">
+              <div class="stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.total_enseignants_affectes }}</div>
+                <div class="stat-label">Enseignants Affectés</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Liste des classes -->
+        <!-- Liste des classes groupées par onglets -->
         <div class="classes-section">
-          {% if classes %}
-            <div class="classes-grid">
-              {% for classe in classes %}
-                <div class="classe-card">
-                  <div class="classe-header">
-                    <div class="classe-icon">
-                      <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+          {% if classes_grouped %}
+            <!-- Navigation des onglets -->
+            <div class="categories-tabs">
+              <div class="tabs-nav">
+                {% for categorie, data in classes_grouped.items %}
+                  <button class="tab-btn {% if forloop.first %}active{% endif %}" data-category="{{ categorie }}">
+                    <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                    <span>{{ categorie }}</span>
+                    <span class="tab-count">({{ data.classes|length }})</span>
+                  </button>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="tabs-content">
+              {% for categorie, data in classes_grouped.items %}
+                <div class="tab-panel {% if forloop.first %}active{% endif %}" id="category-{{ categorie }}">
+                  <!-- En-tête de la catégorie -->
+                  <div class="category-header">
+                    <div class="category-info">
+                      <h3 class="category-title">
+                        <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                        {{ categorie }}
+                      </h3>
+                      <p class="category-subtitle">{{ data.classes|length }} classe{{ data.classes|length|pluralize }}</p>
                     </div>
-                    <div class="classe-info">
-                      <h3 class="classe-nom">{{ classe.nom }}</h3>
-                      <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
-                      <div class="classe-badge niveau-{{ classe.niveau }}">
-                        <span>{{ classe.get_niveau_display }}</span>
+                    <div class="category-stats">
+                      <div class="stat-item">
+                        <span class="stat-number">{{ data.total_eleves }}</span>
+                        <span class="stat-label">Élèves</span>
                       </div>
-                    </div>
-                    <div class="classe-status">
-                      <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
-                        <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
-                        <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+                      <div class="stat-item">
+                        <span class="stat-number">{{ data.total_enseignants }}</span>
+                        <span class="stat-label">Enseignants</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-number">{{ data.total_capacite }}</span>
+                        <span class="stat-label">Capacité</span>
                       </div>
                     </div>
                   </div>
 
-                  <div class="classe-details">
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <i class="fas fa-code"></i>
-                        <span class="detail-label">Code:</span>
-                        <span class="detail-value">{{ classe.code_classe }}</span>
-                      </div>
-                      <div class="detail-item">
-                        <i class="fas fa-users"></i>
-                        <span class="detail-label">Capacité:</span>
-                        <span class="detail-value">{{ classe.capacite_max }} élèves</span>
-                      </div>
-                    </div>
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <i class="fas fa-user-graduate"></i>
-                        <span class="detail-label">Élèves:</span>
-                        <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
-                      </div>
-                      <div class="detail-item">
-                        <i class="fas fa-chart-pie"></i>
-                        <span class="detail-label">Occupation:</span>
-                        <span class="detail-value">{{ classe.taux_occupation }}%</span>
-                      </div>
-                    </div>
-                    {% if classe.description %}
-                      <div class="detail-row">
-                        <div class="detail-item full-width">
-                          <i class="fas fa-info-circle"></i>
-                          <span class="detail-label">Description:</span>
-                          <span class="detail-value">{{ classe.description|truncatechars:50 }}</span>
+                  <!-- Grille des classes de cette catégorie -->
+                  <div class="classes-grid">
+                    {% for classe_data in data.classes %}
+                      {% with classe=classe_data.classe %}
+                      <div class="classe-card">
+                        <div class="classe-header">
+                          <div class="classe-icon">
+                            <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                          </div>
+                          <div class="classe-info">
+                            <h3 class="classe-nom">{{ classe.nom }}</h3>
+                            <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
+                            <div class="classe-badge niveau-{{ classe.niveau }}">
+                              <span>{{ classe.get_niveau_display }}</span>
+                            </div>
+                          </div>
+                          <div class="classe-status">
+                            <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+                              <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+                              <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="classe-details">
+                          <!-- Informations principales -->
+                          <div class="detail-row">
+                            <div class="detail-item">
+                              <i class="fas fa-user-graduate"></i>
+                              <span class="detail-label">Élèves:</span>
+                              <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
+                            </div>
+                            <div class="detail-item">
+                              <i class="fas fa-chalkboard-teacher"></i>
+                              <span class="detail-label">Enseignants:</span>
+                              <span class="detail-value">{{ classe_data.nombre_enseignants }}</span>
+                            </div>
+                          </div>
+                          
+                          <!-- Informations secondaires -->
+                          <div class="detail-row">
+                            <div class="detail-item">
+                              <i class="fas fa-chart-pie"></i>
+                              <span class="detail-label">Occupation:</span>
+                              <span class="detail-value">{{ classe.taux_occupation }}%</span>
+                            </div>
+                            <div class="detail-item">
+                              <i class="fas fa-calendar-plus"></i>
+                              <span class="detail-label">Créée:</span>
+                              <span class="detail-value">{{ classe.date_creation|date:"d/m/Y" }}</span>
+                            </div>
+                          </div>
+                          
+                          <!-- Code de la classe (moins visible) -->
+                          <div class="detail-row">
+                            <div class="detail-item full-width">
+                              <i class="fas fa-code"></i>
+                              <span class="detail-label">Code:</span>
+                              <span class="detail-value">{{ classe.code_classe }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="classe-actions">
+                          <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail">
+                            <i class="fas fa-eye"></i>
+                            <span>Détails</span>
+                          </a>
+                          <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
+                            <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+                            <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
+                          </a>
                         </div>
                       </div>
-                    {% endif %}
-                  </div>
-
-                  <div class="classe-actions">
-                    <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail">
-                      <i class="fas fa-eye"></i>
-                      <span>Détails</span>
-                    </a>
-                    <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
-                      <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
-                      <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
-                    </a>
+                      {% endwith %}
+                    {% endfor %}
                   </div>
                 </div>
               {% endfor %}
@@ -285,5 +353,86 @@
     </div>
 
     <script src="{% static 'school_admin/js/directeur/classes.js' %}"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const addClasseBtn = document.getElementById('addClasseBtn');
+        const addClasseBtnEmpty = document.getElementById('addClasseBtnEmpty');
+        const modal = document.getElementById('addClasseModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelAdd');
+
+        // Fonction pour ouvrir le modal
+        function openModal() {
+          modal.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
+
+        // Fonction pour fermer le modal
+        function closeModalFunc() {
+          modal.classList.remove('active');
+          document.body.style.overflow = 'auto';
+        }
+
+        // Event listeners
+        if (addClasseBtn) {
+          addClasseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal();
+          });
+        }
+
+        if (addClasseBtnEmpty) {
+          addClasseBtnEmpty.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal();
+          });
+        }
+
+        if (closeModal) {
+          closeModal.addEventListener('click', closeModalFunc);
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', closeModalFunc);
+        }
+
+        // Fermer le modal en cliquant sur l'overlay
+        if (modal) {
+          modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+              closeModalFunc();
+            }
+          });
+        }
+
+        // Fermer le modal avec la touche Escape
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModalFunc();
+          }
+        });
+
+        // Gestion des onglets de catégories
+        const categoryTabs = document.querySelectorAll('.tab-btn[data-category]');
+        const categoryPanels = document.querySelectorAll('.tab-panel[id^="category-"]');
+
+        categoryTabs.forEach(tab => {
+          tab.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            
+            // Retirer la classe active de tous les onglets et panneaux
+            categoryTabs.forEach(t => t.classList.remove('active'));
+            categoryPanels.forEach(p => p.classList.remove('active'));
+            
+            // Ajouter la classe active à l'onglet cliqué et au panneau correspondant
+            this.classList.add('active');
+            const targetPanel = document.getElementById(`category-${category}`);
+            if (targetPanel) {
+              targetPanel.classList.add('active');
+            }
+          });
+        });
+      });
+    </script>
   </body>
 </html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Matières - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/matieres.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-book-open"></i>
+                    Gestion des Matières
+                </h1>
+                <p class="page-subtitle">
+                    Organisez et gérez les matières de {{ etablissement.nom }}
+                </p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-add btn-primary" onclick="toggleAddForm()">
+                    <i class="fas fa-plus"></i>
+                    <span>Ajouter une matière</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total }}</h3>
+                    <p>Total</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.actives }}</h3>
+                    <p>Actives</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.par_niveau|length }}</h3>
+                    <p>Niveaux</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Matiere Form (Hidden by default) -->
+        <div class="add-form-container" id="addFormContainer" style="display: none;">
+            <div class="form-card">
+                <div class="form-header">
+                    <h2>Ajouter une matière</h2>
+                    <button class="btn-close" onclick="toggleAddForm()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form method="post" action="{% url 'matiere:ajouter_matiere' %}" class="matiere-form" id="ajouterMatiereForm">
+                    {% csrf_token %}
+                    
+                    <!-- Messages d'erreur généraux -->
+                    {% if field_errors %}
+                        <div class="alert alert-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+                        </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label class="form-label" for="nom">
+                            <i class="fas fa-book"></i>
+                            Nom de la matière *
+                        </label>
+                        <input type="text" 
+                               class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
+                               id="nom" 
+                               name="nom" 
+                               value="{{ form_data.nom }}"
+                               placeholder="Ex: Mathématiques">
+                        {% if field_errors.nom %}
+                            <div class="invalid-feedback">{{ field_errors.nom }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="type_matiere">
+                                <i class="fas fa-tag"></i>
+                                Type *
+                            </label>
+                            <select class="form-control {% if field_errors.type_matiere %}is-invalid{% endif %}" 
+                                    id="type_matiere" 
+                                    name="type_matiere">
+                                <option value="">Sélectionnez un type</option>
+                                {% for value, label in type_choices %}
+                                    <option value="{{ value }}" {% if form_data.type_matiere == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if field_errors.type_matiere %}
+                                <div class="invalid-feedback">{{ field_errors.type_matiere }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="niveau">
+                                <i class="fas fa-graduation-cap"></i>
+                                Niveau *
+                            </label>
+                            <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" 
+                                    id="niveau" 
+                                    name="niveau">
+                                <option value="">Sélectionnez un niveau</option>
+                                {% for value, label in niveau_choices %}
+                                    <option value="{{ value }}" {% if form_data.niveau == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if field_errors.niveau %}
+                                <div class="invalid-feedback">{{ field_errors.niveau }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="coefficient">
+                            <i class="fas fa-weight-hanging"></i>
+                            Coefficient
+                        </label>
+                        <input type="number" 
+                               class="form-control {% if field_errors.coefficient %}is-invalid{% endif %}" 
+                               id="coefficient" 
+                               name="coefficient" 
+                               value="{{ form_data.coefficient }}"
+                               min="0" 
+                               max="10" 
+                               step="0.1"
+                               placeholder="1.0">
+                        {% if field_errors.coefficient %}
+                            <div class="invalid-feedback">{{ field_errors.coefficient }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-users"></i>
+                            Classes concernées
+                        </label>
+                        <div class="classes-selection">
+                            {% for classe in classes %}
+                                <label class="class-checkbox">
+                                    <input type="checkbox" 
+                                           name="classes" 
+                                           value="{{ classe.id }}"
+                                           {% if classe.id|stringformat:"s" in form_data.classes %}checked{% endif %}>
+                                    <span class="checkmark">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    <span class="class-name">{{ classe.nom }}</span>
+                                </label>
+                            {% empty %}
+                                <div class="no-classes">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <p>Aucune classe disponible</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="toggleAddForm()">
+                            <i class="fas fa-times"></i>
+                            <span>Annuler</span>
+                        </button>
+                        <button type="submit" class="btn-submit">
+                            <i class="fas fa-save"></i>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Matieres List -->
+        <div class="matieres-container">
+            <div class="matieres-header">
+                <h2>Liste des Matières</h2>
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" placeholder="Rechercher..." class="search-input">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                    <div class="filter-options">
+                        <button class="filter-btn active" data-filter="all">Toutes</button>
+                        <button class="filter-btn" data-filter="obligatoire">Obligatoires</button>
+                        <button class="filter-btn" data-filter="optionnelle">Optionnelles</button>
+                    </div>
+                </div>
+            </div>
+
+            {% if matieres %}
+                <div class="matieres-grid">
+                    {% for matiere in matieres %}
+                        <div class="matiere-card" data-matiere="{{ matiere.nom|lower }}" data-type="{{ matiere.type_matiere }}">
+                            <div class="card-header">
+                                <div class="matiere-info">
+                                    <h3 class="matiere-nom">{{ matiere.nom }}</h3>
+                                    <p class="matiere-type">{{ matiere.type_display }}</p>
+                                </div>
+                                <div class="matiere-actions">
+                                    <a href="{% url 'matiere:detail_matiere' matiere.id %}" class="action-btn primary" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="action-btn secondary" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn danger" title="Supprimer" onclick="confirmDelete({{ matiere.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="card-content">
+                                <div class="matiere-details">
+                                    <div class="detail-item">
+                                        <i class="fas fa-graduation-cap"></i>
+                                        <span>{{ matiere.niveau_display }}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-weight-hanging"></i>
+                                        <span>Coeff: {{ matiere.coefficient }}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-users"></i>
+                                        <span>{{ matiere.classes.count }} classe{{ matiere.classes.count|pluralize }}</span>
+                                    </div>
+                                </div>
+                                
+                                {% if matiere.classes.exists %}
+                                    <div class="classes-list">
+                                        {% for classe in matiere.classes.all %}
+                                            <span class="class-tag">{{ classe.nom }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="card-footer">
+                                <div class="matiere-status">
+                                    <span class="status-dot active"></span>
+                                    <span>Active</span>
+                                </div>
+                                <div class="matiere-date">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>{{ matiere.date_creation|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <h3>Aucune matière trouvée</h3>
+                    <p>Commencez par ajouter votre première matière pour organiser votre programme d'enseignement.</p>
+                    <button class="btn-primary btn-gradient" onclick="toggleAddForm()">
+                        <i class="fas fa-plus"></i>
+                        <span>Ajouter une matière</span>
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=3"></script>
+</body>
+</html>

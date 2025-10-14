@@ -9,23 +9,25 @@ from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.etablissement_model import Etablissement
 from ..model.classe_model import Classe
 from ..model.eleve_model import Eleve
+from ..model.facturation_model import Facturation
 
 
 @login_required
 def dashboard_secretaire(request):
     """
-    Dashboard pour le secrétaire d'établissement
+    Dashboard pour le secrétaire d'établissement ou le directeur
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -34,15 +36,25 @@ def dashboard_secretaire(request):
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True)
     
-    # Statistiques du secrétaire
-    stats = {
-        'nom_complet': user.nom_complet,
-        'fonction': user.get_fonction_display(),
-        'etablissement': etablissement.nom,
-        'date_creation': user.date_creation,
-        'actif': user.actif,
-        'numero_employe': user.numero_employe,
-    }
+    # Statistiques de l'utilisateur
+    if isinstance(user, PersonnelAdministratif):
+        stats = {
+            'nom_complet': user.nom_complet,
+            'fonction': user.get_fonction_display(),
+            'etablissement': etablissement.nom,
+            'date_creation': user.date_creation,
+            'actif': user.actif,
+            'numero_employe': user.numero_employe,
+        }
+    else:  # Directeur
+        stats = {
+            'nom_complet': f"{etablissement.directeur_prenom} {etablissement.directeur_nom}",
+            'fonction': "Directeur",
+            'etablissement': etablissement.nom,
+            'date_creation': etablissement.date_creation,
+            'actif': True,
+            'numero_employe': "DIR-001",
+        }
     
     # Statistiques de l'établissement
     etablissement_stats = {
@@ -77,18 +89,19 @@ def dashboard_secretaire(request):
 @login_required
 def inscription_eleves(request):
     """
-    Page d'inscription des élèves pour le secrétaire
+    Page d'inscription des élèves pour le secrétaire ou le directeur
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -97,11 +110,39 @@ def inscription_eleves(request):
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
     
-    form_data = {}
+    form_data = {
+        'statut': 'nouvelle',  # Valeur par défaut
+        'date_inscription': date.today().strftime('%Y-%m-%d'),  # Date du jour par défaut
+        # Initialiser les champs parent/tuteur
+        'parent_nom': '',
+        'parent_prenom': '',
+        'parent_telephone': '',
+        'parent_email': '',
+        'parent_adresse': '',
+        'parent_profession': '',
+        'parent_lien': '',
+    }
     field_errors = {}
     
-    # Générer un mot de passe provisoire pour l'affichage initial
+    # Générer un numéro d'élève et un mot de passe provisoire pour l'affichage initial
     import random
+    now = datetime.now()
+    year = now.year % 100
+    base_num = f"ELE-{year}-"
+    
+    # Chercher le prochain numéro disponible pour l'affichage initial
+    counter = 1
+    while counter <= 999:  # Limiter les tentatives
+        numero_eleve = f"{base_num}{counter:03d}"
+        if not Eleve.objects.filter(numero_eleve=numero_eleve).exists():
+            form_data['numero_eleve'] = numero_eleve
+            break
+        counter += 1
+    else:
+        # Fallback si tous les numéros sont pris
+        timestamp = int(now.timestamp() * 1000) % 10000
+        form_data['numero_eleve'] = f"{base_num}{timestamp:04d}"
+    
     mot_de_passe_initial = f"{random.randint(1000, 9999)}"
     form_data['mot_de_passe_provisoire'] = mot_de_passe_initial
     
@@ -121,22 +162,14 @@ def inscription_eleves(request):
             'date_inscription': request.POST.get('date_inscription', ''),
             'statut': request.POST.get('statut', ''),
             'numero_eleve': request.POST.get('numero_eleve', '').strip(),
-            'type_responsable': request.POST.get('type_responsable', ''),
-            # Champs parents
-            'nom_pere': request.POST.get('nom_pere', '').strip(),
-            'nom_mere': request.POST.get('nom_mere', '').strip(),
-            'telephone_pere': request.POST.get('telephone_pere', '').strip(),
-            'telephone_mere': request.POST.get('telephone_mere', '').strip(),
-            'email_pere': request.POST.get('email_pere', '').strip(),
-            'email_mere': request.POST.get('email_mere', '').strip(),
-            # Champs tuteur
-            'tuteur_nom': request.POST.get('tuteur_nom', '').strip(),
-            'tuteur_prenom': request.POST.get('tuteur_prenom', '').strip(),
-            'tuteur_telephone': request.POST.get('tuteur_telephone', '').strip(),
-            'tuteur_email': request.POST.get('tuteur_email', '').strip(),
-            'tuteur_adresse': request.POST.get('tuteur_adresse', '').strip(),
-            'tuteur_profession': request.POST.get('tuteur_profession', '').strip(),
-            'tuteur_lien': request.POST.get('tuteur_lien', ''),
+            # Champs parent/tuteur
+            'parent_nom': request.POST.get('parent_nom', '').strip(),
+            'parent_prenom': request.POST.get('parent_prenom', '').strip(),
+            'parent_telephone': request.POST.get('parent_telephone', '').strip(),
+            'parent_email': request.POST.get('parent_email', '').strip(),
+            'parent_adresse': request.POST.get('parent_adresse', '').strip(),
+            'parent_profession': request.POST.get('parent_profession', '').strip(),
+            'parent_lien': request.POST.get('parent_lien', ''),
             # Mot de passe provisoire
             'mot_de_passe_provisoire': request.POST.get('mot_de_passe_provisoire', ''),
             # Documents d'identité
@@ -160,39 +193,19 @@ def inscription_eleves(request):
         # Validation
         is_valid = True
         
-        # Champs obligatoires
-        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'classe', 'date_inscription', 'statut', 'type_responsable']
+        # Champs obligatoires (adresse supprimée de la liste)
+        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'classe', 'date_inscription', 'statut']
         for field in required_fields:
             if not form_data[field]:
                 field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                 is_valid = False
         
-        # Validation spécifique selon le type de responsable
-        if form_data['type_responsable'] == 'parents':
-            # Validation des champs parents - au moins un parent doit être renseigné
-            pere_renseigne = form_data['nom_pere'] and form_data['telephone_pere']
-            mere_renseignee = form_data['nom_mere'] and form_data['telephone_mere']
-            
-            if not pere_renseigne and not mere_renseignee:
-                field_errors['nom_pere'] = "Au moins un parent doit être renseigné (nom et téléphone)."
-                field_errors['nom_mere'] = "Au moins un parent doit être renseigné (nom et téléphone)."
+        # Validation des champs parent/tuteur
+        parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
+        for field in parent_required:
+            if not form_data[field]:
+                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                 is_valid = False
-            elif pere_renseigne and not mere_renseignee:
-                # Si le père est renseigné, la mère devient optionnelle
-                pass
-            elif mere_renseignee and not pere_renseigne:
-                # Si la mère est renseignée, le père devient optionnel
-                pass
-            else:
-                # Les deux parents sont renseignés, c'est parfait
-                pass
-        elif form_data['type_responsable'] == 'tuteur':
-            # Validation des champs tuteur (email optionnel)
-            tuteur_required = ['tuteur_nom', 'tuteur_prenom', 'tuteur_telephone', 'tuteur_adresse', 'tuteur_lien']
-            for field in tuteur_required:
-                if not form_data[field]:
-                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire pour le tuteur."
-                    is_valid = False
         
         # Validation de la date de naissance
         if form_data['date_naissance']:
@@ -221,21 +234,32 @@ def inscription_eleves(request):
             field_errors['email'] = "L'adresse email n'est pas valide."
             is_valid = False
         
-        # Validation des emails parents/tuteur (optionnels)
-        if form_data['type_responsable'] == 'parents':
-            if form_data['email_pere'] and '@' not in form_data['email_pere']:
-                field_errors['email_pere'] = "L'adresse email du père n'est pas valide."
-                is_valid = False
-            if form_data['email_mere'] and '@' not in form_data['email_mere']:
-                field_errors['email_mere'] = "L'adresse email de la mère n'est pas valide."
-                is_valid = False
-        elif form_data['type_responsable'] == 'tuteur':
-            if form_data['tuteur_email'] and '@' not in form_data['tuteur_email']:
-                field_errors['tuteur_email'] = "L'adresse email du tuteur n'est pas valide."
-                is_valid = False
+        # Validation de l'email parent/tuteur (optionnel)
+        if form_data['parent_email'] and '@' not in form_data['parent_email']:
+            field_errors['parent_email'] = "L'adresse email du parent/tuteur n'est pas valide."
+            is_valid = False
         
-        # Génération automatique du mot de passe de 4 chiffres
+        # Génération automatique du numéro d'élève et du mot de passe
         import random
+        if not form_data['numero_eleve']:
+            # Générer un numéro d'élève unique
+            now = datetime.now()
+            year = now.year % 100
+            base_num = f"ELE-{year}-"
+            
+            # Chercher le prochain numéro disponible
+            counter = 1
+            while counter <= 999:  # Limiter les tentatives
+                numero_eleve = f"{base_num}{counter:03d}"
+                if not Eleve.objects.filter(numero_eleve=numero_eleve).exists():
+                    form_data['numero_eleve'] = numero_eleve
+                    break
+                counter += 1
+            else:
+                # Fallback avec timestamp si tous les numéros sont pris
+                timestamp = int(now.timestamp() * 1000) % 10000
+                form_data['numero_eleve'] = f"{base_num}{timestamp:04d}"
+        
         mot_de_passe = f"{random.randint(1000, 9999)}"
         form_data['mot_de_passe_provisoire'] = mot_de_passe
         
@@ -267,21 +291,15 @@ def inscription_eleves(request):
             field_errors['statut'] = "Le type d'inscription sélectionné n'est pas valide."
             is_valid = False
         
-        # Validation du type de responsable
-        if form_data['type_responsable'] not in ['parents', 'tuteur']:
-            field_errors['type_responsable'] = "Le type de responsable sélectionné n'est pas valide."
+        # Validation du lien parent/tuteur
+        if form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
+            field_errors['parent_lien'] = "Le lien avec l'élève sélectionné n'est pas valide."
             is_valid = False
         
         # Si tout est valide, traiter l'inscription
         if is_valid:
             try:
                 with transaction.atomic():
-                    # Générer le numéro d'élève si non fourni
-                    if not form_data['numero_eleve']:
-                        now = datetime.now()
-                        year = now.year % 100
-                        random_num = f"{now.microsecond % 1000:03d}"
-                        form_data['numero_eleve'] = f"ELE-{year}-{random_num}"
                     
                     # Récupérer la classe et vérifier à nouveau les places disponibles
                     classe = Classe.objects.get(id=form_data['classe'], etablissement=etablissement)
@@ -300,7 +318,7 @@ def inscription_eleves(request):
                         lieu_naissance=form_data['lieu_naissance'],
                         sexe=form_data['sexe'],
                         nationalite=form_data['nationalite'],
-                        adresse=form_data['adresse'],
+                        adresse=form_data['adresse'] if form_data['adresse'] else None,
                         telephone=form_data['telephone'],
                         email=form_data['email'],
                         numero_eleve=form_data['numero_eleve'],
@@ -308,22 +326,14 @@ def inscription_eleves(request):
                         classe=classe,
                         date_inscription=datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date(),
                         statut=form_data['statut'],
-                        type_responsable=form_data['type_responsable'],
-                        # Champs parents
-                        nom_pere=form_data['nom_pere'] if form_data['type_responsable'] == 'parents' else None,
-                        nom_mere=form_data['nom_mere'] if form_data['type_responsable'] == 'parents' else None,
-                        telephone_pere=form_data['telephone_pere'] if form_data['type_responsable'] == 'parents' else None,
-                        telephone_mere=form_data['telephone_mere'] if form_data['type_responsable'] == 'parents' else None,
-                        email_pere=form_data['email_pere'] if form_data['type_responsable'] == 'parents' else None,
-                        email_mere=form_data['email_mere'] if form_data['type_responsable'] == 'parents' else None,
-                        # Champs tuteur
-                        tuteur_nom=form_data['tuteur_nom'] if form_data['type_responsable'] == 'tuteur' else None,
-                        tuteur_prenom=form_data['tuteur_prenom'] if form_data['type_responsable'] == 'tuteur' else None,
-                        tuteur_telephone=form_data['tuteur_telephone'] if form_data['type_responsable'] == 'tuteur' else None,
-                        tuteur_email=form_data['tuteur_email'] if form_data['type_responsable'] == 'tuteur' else None,
-                        tuteur_adresse=form_data['tuteur_adresse'] if form_data['type_responsable'] == 'tuteur' else None,
-                        tuteur_profession=form_data['tuteur_profession'] if form_data['type_responsable'] == 'tuteur' else None,
-                        tuteur_lien=form_data['tuteur_lien'] if form_data['type_responsable'] == 'tuteur' else None,
+                        # Champs parent/tuteur
+                        parent_nom=form_data['parent_nom'],
+                        parent_prenom=form_data['parent_prenom'],
+                        parent_telephone=form_data['parent_telephone'],
+                        parent_email=form_data['parent_email'] if form_data['parent_email'] else None,
+                        parent_adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else None,
+                        parent_profession=form_data['parent_profession'] if form_data['parent_profession'] else None,
+                        parent_lien=form_data['parent_lien'],
                         # Mot de passe provisoire
                         mot_de_passe_provisoire=form_data['mot_de_passe_provisoire'],
                         # Documents d'identité
@@ -349,17 +359,33 @@ def inscription_eleves(request):
                         is_superuser=False,
                     )
                     
-                    # Définir le mot de passe pour la connexion
+                    # Définir le mot de passe pour la connexion AVANT la sauvegarde
                     eleve.set_password(form_data['mot_de_passe_provisoire'])
                     
                     # Sauvegarder l'élève
                     eleve.save()
                     
+                    # Mettre à jour les données de facturation de l'établissement
+                    montant_par_eleve = etablissement.montant_par_eleve
+                    
+                    # Incrémenter le nombre d'élèves facturés
+                    etablissement.nombre_eleves_factures += 1
+                    
+                    # Ajouter le montant au total de facturation
+                    etablissement.montant_total_facturation += montant_par_eleve
+                    
+                    # Mettre à jour la date de dernière facturation
+                    from django.utils import timezone
+                    etablissement.date_derniere_facturation = timezone.now()
+                    
+                    # Sauvegarder les modifications de l'établissement
+                    etablissement.save()
+                    
                     # Log des documents fournis
                     documents_fournis = eleve.documents_fournis_liste
                     documents_text = ", ".join(documents_fournis) if documents_fournis else "Aucun document"
                     
-                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Documents fournis: {documents_text}")
+                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_par_eleve} FCFA. Documents fournis: {documents_text}")
                     return redirect('secretaire:reçu_inscription_eleve', eleve_id=eleve.id)
                     
             except Exception as e:
@@ -385,13 +411,14 @@ def liste_eleves(request):
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -450,18 +477,19 @@ def liste_eleves(request):
 @login_required
 def reçu_inscription_eleve(request, eleve_id):
     """
-    Page de reçu d'inscription pour un élève
+    Page de reçu d'inscription pour un élève (secrétaire ou directeur)
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -501,38 +529,21 @@ def reçu_inscription_eleve(request, eleve_id):
         'niveau_classe': eleve.classe.get_niveau_display() if eleve.classe else "",
         'date_inscription': eleve.date_inscription,
         'statut': eleve.get_statut_display(),
-        'type_responsable': eleve.get_type_responsable_display(),
+        'parent_lien': eleve.get_parent_lien_display(),
         'mot_de_passe_provisoire': eleve.mot_de_passe_provisoire,
         'documents_fournis': eleve.documents_fournis_liste,
         'nombre_documents': eleve.nombre_documents_fournis,
     }
     
-    # Informations des parents/tuteurs
-    responsable_info = {}
-    if eleve.type_responsable == 'parents':
-        responsable_info = {
-            'type': 'Parents',
-            'pere': {
-                'nom': eleve.nom_pere or "Non renseigné",
-                'telephone': eleve.telephone_pere or "Non renseigné",
-                'email': eleve.email_pere or "Non renseigné",
-            },
-            'mere': {
-                'nom': eleve.nom_mere or "Non renseigné",
-                'telephone': eleve.telephone_mere or "Non renseigné",
-                'email': eleve.email_mere or "Non renseigné",
-            }
-        }
-    elif eleve.type_responsable == 'tuteur':
-        responsable_info = {
-            'type': 'Tuteur légal',
-            'nom': f"{eleve.tuteur_prenom or ''} {eleve.tuteur_nom or ''}".strip() or "Non renseigné",
-            'telephone': eleve.tuteur_telephone or "Non renseigné",
-            'email': eleve.tuteur_email or "Non renseigné",
-            'adresse': eleve.tuteur_adresse or "Non renseigné",
-            'profession': eleve.tuteur_profession or "Non renseigné",
-            'lien': eleve.get_tuteur_lien_display() or "Non renseigné",
-        }
+    # Informations du parent/tuteur
+    responsable_info = {
+        'nom_complet': f"{eleve.parent_prenom or ''} {eleve.parent_nom or ''}".strip() or "Non renseigné",
+        'telephone': eleve.parent_telephone or "Non renseigné",
+        'email': eleve.parent_email or "Non renseigné",
+        'adresse': eleve.parent_adresse or "Non renseigné",
+        'profession': eleve.parent_profession or "Non renseigné",
+        'lien': eleve.get_parent_lien_display() or "Non renseigné",
+    }
     
     context = {
         'user': user,
@@ -549,18 +560,19 @@ def reçu_inscription_eleve(request, eleve_id):
 @login_required
 def detail_eleve(request, eleve_id):
     """
-    Page de détails d'un élève avec formulaire de modification
+    Page de détails d'un élève avec formulaire de modification (secrétaire ou directeur)
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -591,22 +603,14 @@ def detail_eleve(request, eleve_id):
             'adresse': request.POST.get('adresse', '').strip(),
             'telephone': request.POST.get('telephone', '').strip(),
             'email': request.POST.get('email', '').strip(),
-            'type_responsable': request.POST.get('type_responsable', ''),
-            # Champs parents
-            'nom_pere': request.POST.get('nom_pere', '').strip(),
-            'nom_mere': request.POST.get('nom_mere', '').strip(),
-            'telephone_pere': request.POST.get('telephone_pere', '').strip(),
-            'telephone_mere': request.POST.get('telephone_mere', '').strip(),
-            'email_pere': request.POST.get('email_pere', '').strip(),
-            'email_mere': request.POST.get('email_mere', '').strip(),
-            # Champs tuteur
-            'tuteur_nom': request.POST.get('tuteur_nom', '').strip(),
-            'tuteur_prenom': request.POST.get('tuteur_prenom', '').strip(),
-            'tuteur_telephone': request.POST.get('tuteur_telephone', '').strip(),
-            'tuteur_email': request.POST.get('tuteur_email', '').strip(),
-            'tuteur_adresse': request.POST.get('tuteur_adresse', '').strip(),
-            'tuteur_profession': request.POST.get('tuteur_profession', '').strip(),
-            'tuteur_lien': request.POST.get('tuteur_lien', ''),
+            # Champs parent/tuteur
+            'parent_nom': request.POST.get('parent_nom', '').strip(),
+            'parent_prenom': request.POST.get('parent_prenom', '').strip(),
+            'parent_telephone': request.POST.get('parent_telephone', '').strip(),
+            'parent_email': request.POST.get('parent_email', '').strip(),
+            'parent_adresse': request.POST.get('parent_adresse', '').strip(),
+            'parent_profession': request.POST.get('parent_profession', '').strip(),
+            'parent_lien': request.POST.get('parent_lien', ''),
             # Documents d'identité
             'document_acte_naissance': request.POST.get('document_acte_naissance') == 'true',
             'document_cni': request.POST.get('document_cni') == 'true',
@@ -629,27 +633,18 @@ def detail_eleve(request, eleve_id):
         is_valid = True
         
         # Champs obligatoires
-        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'type_responsable']
+        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite']
         for field in required_fields:
             if not form_data[field]:
                 field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                 is_valid = False
         
-        # Validation spécifique selon le type de responsable
-        if form_data['type_responsable'] == 'parents':
-            pere_renseigne = form_data['nom_pere'] and form_data['telephone_pere']
-            mere_renseignee = form_data['nom_mere'] and form_data['telephone_mere']
-            
-            if not pere_renseigne and not mere_renseignee:
-                field_errors['nom_pere'] = "Au moins un parent doit être renseigné (nom et téléphone)."
-                field_errors['nom_mere'] = "Au moins un parent doit être renseigné (nom et téléphone)."
+        # Validation des champs parent/tuteur
+        parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
+        for field in parent_required:
+            if not form_data[field]:
+                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                 is_valid = False
-        elif form_data['type_responsable'] == 'tuteur':
-            tuteur_required = ['tuteur_nom', 'tuteur_prenom', 'tuteur_telephone', 'tuteur_adresse', 'tuteur_lien']
-            for field in tuteur_required:
-                if not form_data[field]:
-                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire pour le tuteur."
-                    is_valid = False
         
         # Validation des dates
         if form_data['date_naissance']:
@@ -667,17 +662,10 @@ def detail_eleve(request, eleve_id):
             field_errors['email'] = "L'adresse email n'est pas valide."
             is_valid = False
         
-        if form_data['type_responsable'] == 'parents':
-            if form_data['email_pere'] and '@' not in form_data['email_pere']:
-                field_errors['email_pere'] = "L'adresse email du père n'est pas valide."
-                is_valid = False
-            if form_data['email_mere'] and '@' not in form_data['email_mere']:
-                field_errors['email_mere'] = "L'adresse email de la mère n'est pas valide."
-                is_valid = False
-        elif form_data['type_responsable'] == 'tuteur':
-            if form_data['tuteur_email'] and '@' not in form_data['tuteur_email']:
-                field_errors['tuteur_email'] = "L'adresse email du tuteur n'est pas valide."
-                is_valid = False
+        # Validation de l'email parent/tuteur (optionnel)
+        if form_data['parent_email'] and '@' not in form_data['parent_email']:
+            field_errors['parent_email'] = "L'adresse email du parent/tuteur n'est pas valide."
+            is_valid = False
         
         
         # Si tout est valide, sauvegarder les modifications
@@ -694,39 +682,15 @@ def detail_eleve(request, eleve_id):
                     eleve.adresse = form_data['adresse']
                     eleve.telephone = form_data['telephone']
                     eleve.email = form_data['email']
-                    eleve.type_responsable = form_data['type_responsable']
                     
-                    # Mettre à jour les informations parents/tuteur
-                    if form_data['type_responsable'] == 'parents':
-                        eleve.nom_pere = form_data['nom_pere']
-                        eleve.nom_mere = form_data['nom_mere']
-                        eleve.telephone_pere = form_data['telephone_pere']
-                        eleve.telephone_mere = form_data['telephone_mere']
-                        eleve.email_pere = form_data['email_pere']
-                        eleve.email_mere = form_data['email_mere']
-                        # Effacer les champs tuteur
-                        eleve.tuteur_nom = None
-                        eleve.tuteur_prenom = None
-                        eleve.tuteur_telephone = None
-                        eleve.tuteur_email = None
-                        eleve.tuteur_adresse = None
-                        eleve.tuteur_profession = None
-                        eleve.tuteur_lien = None
-                    elif form_data['type_responsable'] == 'tuteur':
-                        eleve.tuteur_nom = form_data['tuteur_nom']
-                        eleve.tuteur_prenom = form_data['tuteur_prenom']
-                        eleve.tuteur_telephone = form_data['tuteur_telephone']
-                        eleve.tuteur_email = form_data['tuteur_email']
-                        eleve.tuteur_adresse = form_data['tuteur_adresse']
-                        eleve.tuteur_profession = form_data['tuteur_profession']
-                        eleve.tuteur_lien = form_data['tuteur_lien']
-                        # Effacer les champs parents
-                        eleve.nom_pere = None
-                        eleve.nom_mere = None
-                        eleve.telephone_pere = None
-                        eleve.telephone_mere = None
-                        eleve.email_pere = None
-                        eleve.email_mere = None
+                    # Mettre à jour les informations parent/tuteur
+                    eleve.parent_nom = form_data['parent_nom']
+                    eleve.parent_prenom = form_data['parent_prenom']
+                    eleve.parent_telephone = form_data['parent_telephone']
+                    eleve.parent_email = form_data['parent_email'] if form_data['parent_email'] else None
+                    eleve.parent_adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else None
+                    eleve.parent_profession = form_data['parent_profession'] if form_data['parent_profession'] else None
+                    eleve.parent_lien = form_data['parent_lien']
                     
                     # Mettre à jour les documents
                     eleve.document_acte_naissance = form_data['document_acte_naissance']
@@ -763,22 +727,14 @@ def detail_eleve(request, eleve_id):
             'adresse': eleve.adresse,
             'telephone': eleve.telephone,
             'email': eleve.email,
-            'type_responsable': eleve.type_responsable,
-            # Champs parents
-            'nom_pere': eleve.nom_pere,
-            'nom_mere': eleve.nom_mere,
-            'telephone_pere': eleve.telephone_pere,
-            'telephone_mere': eleve.telephone_mere,
-            'email_pere': eleve.email_pere,
-            'email_mere': eleve.email_mere,
-            # Champs tuteur
-            'tuteur_nom': eleve.tuteur_nom,
-            'tuteur_prenom': eleve.tuteur_prenom,
-            'tuteur_telephone': eleve.tuteur_telephone,
-            'tuteur_email': eleve.tuteur_email,
-            'tuteur_adresse': eleve.tuteur_adresse,
-            'tuteur_profession': eleve.tuteur_profession,
-            'tuteur_lien': eleve.tuteur_lien,
+            # Champs parent/tuteur
+            'parent_nom': eleve.parent_nom,
+            'parent_prenom': eleve.parent_prenom,
+            'parent_telephone': eleve.parent_telephone,
+            'parent_email': eleve.parent_email,
+            'parent_adresse': eleve.parent_adresse,
+            'parent_profession': eleve.parent_profession,
+            'parent_lien': eleve.parent_lien,
             # Documents
             'document_acte_naissance': eleve.document_acte_naissance,
             'document_cni': eleve.document_cni,
@@ -809,18 +765,19 @@ def detail_eleve(request, eleve_id):
 @login_required
 def transfer_eleve(request, eleve_id):
     """
-    Transfert d'un élève vers une autre classe
+    Transfert d'un élève vers une autre classe (secrétaire ou directeur)
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -899,18 +856,19 @@ def transfer_eleve(request, eleve_id):
 @login_required
 def gestion_classes(request):
     """
-    Page de gestion des classes pour le secrétaire
+    Page de gestion des classes pour le secrétaire ou le directeur
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -957,18 +915,19 @@ def gestion_classes(request):
 @login_required
 def detail_classe(request, classe_id):
     """
-    Page de détails d'une classe avec liste des élèves
+    Page de détails d'une classe avec liste des élèves (secrétaire ou directeur)
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -1016,18 +975,19 @@ def detail_classe(request, classe_id):
 @login_required
 def imprimer_liste_eleves(request, classe_id):
     """
-    Page d'impression de la liste des élèves d'une classe
+    Page d'impression de la liste des élèves d'une classe (secrétaire ou directeur)
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est du personnel administratif avec fonction secrétaire
-    if not isinstance(user, PersonnelAdministratif) or user.fonction != 'secretaire':
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire.")
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'établissement
-    etablissement = user.etablissement
     
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
@@ -1076,3 +1036,207 @@ def imprimer_liste_eleves(request, classe_id):
     }
     
     return render(request, 'school_admin/directeur/secretaire/imprimer_liste_eleves.html', context)
+
+
+@login_required
+def desactiver_eleve(request, eleve_id):
+    """
+    Désactiver un élève et mettre à jour la facturation (secrétaire ou directeur)
+    """
+    # Récupérer l'utilisateur connecté
+    user = request.user
+    
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    try:
+        # Récupérer l'élève
+        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
+    except Eleve.DoesNotExist:
+        messages.error(request, "Élève non trouvé.")
+        return redirect('secretaire:liste_eleves')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Désactiver l'élève
+                eleve.actif = False
+                eleve.save()
+                
+                # Mettre à jour les données de facturation de l'établissement
+                montant_par_eleve = etablissement.montant_par_eleve
+                
+                # Décrémenter le nombre d'élèves facturés
+                if etablissement.nombre_eleves_factures > 0:
+                    etablissement.nombre_eleves_factures -= 1
+                
+                # Décrémenter le montant total de facturation
+                if etablissement.montant_total_facturation >= montant_par_eleve:
+                    etablissement.montant_total_facturation -= montant_par_eleve
+                
+                # Mettre à jour la date de dernière facturation
+                etablissement.date_derniere_facturation = timezone.now()
+                
+                # Sauvegarder les modifications de l'établissement
+                etablissement.save()
+                
+                messages.success(request, f"L'élève {eleve.nom_complet} a été désactivé avec succès. Montant déduit: {montant_par_eleve} FCFA.")
+                return redirect('secretaire:liste_eleves')
+                
+        except Exception as e:
+            messages.error(request, f"Une erreur est survenue lors de la désactivation: {str(e)}")
+            return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
+    
+    context = {
+        'user': user,
+        'etablissement': etablissement,
+        'eleve': eleve,
+    }
+    
+    return render(request, 'school_admin/directeur/secretaire/confirmer_desactivation_eleve.html', context)
+
+
+@login_required
+def supprimer_eleve(request, eleve_id):
+    """
+    Supprimer définitivement un élève (secrétaire ou directeur)
+    """
+    # Récupérer l'utilisateur connecté
+    user = request.user
+    
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    try:
+        # Récupérer l'élève
+        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
+    except Eleve.DoesNotExist:
+        messages.error(request, "Élève non trouvé.")
+        return redirect('secretaire:liste_eleves')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Récupérer les informations avant suppression
+                eleve_nom = eleve.nom_complet
+                montant_par_eleve = etablissement.montant_par_eleve
+                
+                # Supprimer définitivement l'élève
+                eleve.delete()
+                
+                # Mettre à jour les données de facturation de l'établissement
+                # Décrémenter le nombre d'élèves facturés
+                if etablissement.nombre_eleves_factures > 0:
+                    etablissement.nombre_eleves_factures -= 1
+                
+                # Décrémenter le montant total de facturation
+                if etablissement.montant_total_facturation >= montant_par_eleve:
+                    etablissement.montant_total_facturation -= montant_par_eleve
+                
+                # Mettre à jour la date de dernière facturation
+                etablissement.date_derniere_facturation = timezone.now()
+                
+                # Sauvegarder les modifications de l'établissement
+                etablissement.save()
+                
+                messages.success(request, f"L'élève {eleve_nom} a été supprimé définitivement. Montant déduit: {montant_par_eleve} FCFA.")
+                return redirect('secretaire:liste_eleves')
+                
+        except Exception as e:
+            messages.error(request, f"Une erreur est survenue lors de la suppression: {str(e)}")
+            return redirect('secretaire:liste_eleves')
+    
+    context = {
+        'user': user,
+        'etablissement': etablissement,
+        'eleve': eleve,
+    }
+    
+    return render(request, 'school_admin/directeur/secretaire/confirmer_suppression_eleve.html', context)
+
+
+@login_required
+def synchroniser_facturation(request):
+    """
+    Synchroniser les données de facturation avec les élèves actifs (secrétaire ou directeur)
+    """
+    # Récupérer l'utilisateur connecté
+    user = request.user
+    
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Compter les élèves actifs
+                eleves_actifs = Eleve.objects.filter(etablissement=etablissement, actif=True).count()
+                montant_par_eleve = etablissement.montant_par_eleve
+                montant_total_calcule = eleves_actifs * montant_par_eleve
+                
+                # Mettre à jour les données de facturation
+                etablissement.nombre_eleves_factures = eleves_actifs
+                etablissement.montant_total_facturation = montant_total_calcule
+                etablissement.date_derniere_facturation = timezone.now()
+                etablissement.save()
+                
+                messages.success(
+                    request, 
+                    f"Synchronisation réussie ! "
+                    f"Élèves actifs: {eleves_actifs}, "
+                    f"Montant total: {montant_total_calcule} FCFA"
+                )
+                return redirect('secretaire:dashboard_secretaire')
+                
+        except Exception as e:
+            messages.error(request, f"Erreur lors de la synchronisation: {str(e)}")
+            return redirect('secretaire:dashboard_secretaire')
+    
+    # Statistiques actuelles
+    eleves_actifs = Eleve.objects.filter(etablissement=etablissement, actif=True).count()
+    montant_par_eleve = etablissement.montant_par_eleve
+    montant_total_calcule = eleves_actifs * montant_par_eleve
+    
+    context = {
+        'user': user,
+        'etablissement': etablissement,
+        'eleves_actifs': eleves_actifs,
+        'montant_par_eleve': montant_par_eleve,
+        'montant_total_calcule': montant_total_calcule,
+        'montant_actuel': etablissement.montant_total_facturation,
+        'nombre_actuel': etablissement.nombre_eleves_factures,
+    }
+    
+    return render(request, 'school_admin/directeur/secretaire/synchroniser_facturation.html', context)
+
+

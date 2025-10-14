@@ -53,8 +53,10 @@ class Eleve(AbstractUser):
     )
     
     adresse = models.TextField(
+        blank=True,
+        null=True,
         verbose_name="Adresse",
-        help_text="Adresse de résidence de l'élève"
+        help_text="Adresse de résidence de l'élève (optionnel)"
     )
     
     telephone = models.CharField(
@@ -115,126 +117,62 @@ class Eleve(AbstractUser):
         help_text="Type d'inscription de l'élève"
     )
     
-    # Informations des parents/tuteurs
-    TYPE_RESPONSABLE_CHOICES = [
-        ('parents', 'Parents'),
-        ('tuteur', 'Tuteur légal'),
-    ]
-    type_responsable = models.CharField(
+    # Informations du parent/tuteur
+    parent_nom = models.CharField(
+        max_length=100,
+        verbose_name="Nom du parent/tuteur",
+        help_text="Nom de famille du parent ou tuteur"
+    )
+    
+    parent_prenom = models.CharField(
+        max_length=100,
+        verbose_name="Prénom du parent/tuteur",
+        help_text="Prénom du parent ou tuteur"
+    )
+    
+    parent_telephone = models.CharField(
         max_length=20,
-        choices=TYPE_RESPONSABLE_CHOICES,
-        verbose_name="Type de responsable",
-        help_text="Type de responsable de l'élève"
+        verbose_name="Téléphone du parent/tuteur",
+        help_text="Numéro de téléphone du parent ou tuteur"
     )
     
-    # Champs parents
-    nom_pere = models.CharField(
+    parent_email = models.EmailField(
+        blank=True,
+        null=True,
+        verbose_name="Email du parent/tuteur",
+        help_text="Adresse email du parent ou tuteur (optionnel)"
+    )
+    
+    parent_adresse = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Adresse du parent/tuteur",
+        help_text="Adresse complète du parent ou tuteur (optionnel)"
+    )
+    
+    parent_profession = models.CharField(
         max_length=100,
         blank=True,
         null=True,
-        verbose_name="Nom du père",
-        help_text="Nom de famille du père"
+        verbose_name="Profession du parent/tuteur",
+        help_text="Profession du parent ou tuteur (optionnel)"
     )
     
-    nom_mere = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Nom de la mère",
-        help_text="Nom de famille de la mère"
-    )
-    
-    telephone_pere = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        verbose_name="Téléphone du père",
-        help_text="Numéro de téléphone du père"
-    )
-    
-    telephone_mere = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        verbose_name="Téléphone de la mère",
-        help_text="Numéro de téléphone de la mère"
-    )
-    
-    email_pere = models.EmailField(
-        blank=True,
-        null=True,
-        verbose_name="Email du père",
-        help_text="Adresse email du père"
-    )
-    
-    email_mere = models.EmailField(
-        blank=True,
-        null=True,
-        verbose_name="Email de la mère",
-        help_text="Adresse email de la mère"
-    )
-    
-    # Champs tuteur
-    tuteur_nom = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Nom du tuteur",
-        help_text="Nom de famille du tuteur légal"
-    )
-    
-    tuteur_prenom = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Prénom du tuteur",
-        help_text="Prénom du tuteur légal"
-    )
-    
-    tuteur_telephone = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        verbose_name="Téléphone du tuteur",
-        help_text="Numéro de téléphone du tuteur"
-    )
-    
-    tuteur_email = models.EmailField(
-        blank=True,
-        null=True,
-        verbose_name="Email du tuteur",
-        help_text="Adresse email du tuteur"
-    )
-    
-    tuteur_adresse = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Adresse du tuteur",
-        help_text="Adresse complète du tuteur"
-    )
-    
-    tuteur_profession = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Profession du tuteur",
-        help_text="Profession du tuteur légal"
-    )
-    
-    LIEN_TUTEUR_CHOICES = [
+    LIEN_PARENT_CHOICES = [
+        ('pere', 'Père'),
+        ('mere', 'Mère'),
         ('grand_parent', 'Grand-parent'),
         ('oncle_tante', 'Oncle/Tante'),
         ('frere_soeur', 'Frère/Sœur'),
         ('autre_famille', 'Autre membre de la famille'),
+        ('tuteur_legal', 'Tuteur légal'),
         ('autre', 'Autre'),
     ]
-    tuteur_lien = models.CharField(
+    parent_lien = models.CharField(
         max_length=20,
-        choices=LIEN_TUTEUR_CHOICES,
-        blank=True,
-        null=True,
+        choices=LIEN_PARENT_CHOICES,
         verbose_name="Lien avec l'élève",
-        help_text="Lien de parenté du tuteur avec l'élève"
+        help_text="Lien de parenté du parent/tuteur avec l'élève"
     )
     
     # Mot de passe provisoire pour les parents/tuteurs
@@ -413,52 +351,23 @@ class Eleve(AbstractUser):
     
     @property
     def responsable_nom_complet(self):
-        """Retourne le nom complet du responsable selon le type"""
-        if self.type_responsable == 'parents':
-            if self.nom_pere and self.nom_mere:
-                return f"{self.nom_pere} et {self.nom_mere}"
-            elif self.nom_pere:
-                return self.nom_pere
-            elif self.nom_mere:
-                return self.nom_mere
-            else:
-                return "Non renseigné"
-        elif self.type_responsable == 'tuteur':
-            if self.tuteur_prenom and self.tuteur_nom:
-                return f"{self.tuteur_prenom} {self.tuteur_nom}"
-            elif self.tuteur_nom:
-                return self.tuteur_nom
-            else:
-                return "Non renseigné"
-        return "Non renseigné"
+        """Retourne le nom complet du parent/tuteur"""
+        if self.parent_prenom and self.parent_nom:
+            return f"{self.parent_prenom} {self.parent_nom}"
+        elif self.parent_nom:
+            return self.parent_nom
+        else:
+            return "Non renseigné"
     
     @property
     def responsable_contact(self):
-        """Retourne le contact principal du responsable"""
-        if self.type_responsable == 'parents':
-            if self.telephone_pere:
-                return self.telephone_pere
-            elif self.telephone_mere:
-                return self.telephone_mere
-            else:
-                return "Non renseigné"
-        elif self.type_responsable == 'tuteur':
-            return self.tuteur_telephone or "Non renseigné"
-        return "Non renseigné"
+        """Retourne le contact du parent/tuteur"""
+        return self.parent_telephone or "Non renseigné"
     
     @property
     def responsable_email(self):
-        """Retourne l'email principal du responsable"""
-        if self.type_responsable == 'parents':
-            if self.email_pere:
-                return self.email_pere
-            elif self.email_mere:
-                return self.email_mere
-            else:
-                return None
-        elif self.type_responsable == 'tuteur':
-            return self.tuteur_email
-        return None
+        """Retourne l'email du parent/tuteur"""
+        return self.parent_email
     
     @property
     def documents_fournis_liste(self):
@@ -503,35 +412,23 @@ class Eleve(AbstractUser):
         """Retourne l'affichage du sexe"""
         return dict(self.SEXE_CHOICES).get(self.sexe, self.sexe)
     
-    def get_type_responsable_display(self):
-        """Retourne l'affichage du type de responsable"""
-        return dict(self.TYPE_RESPONSABLE_CHOICES).get(self.type_responsable, self.type_responsable)
-    
-    def get_tuteur_lien_display(self):
-        """Retourne l'affichage du lien du tuteur"""
-        return dict(self.LIEN_TUTEUR_CHOICES).get(self.tuteur_lien, self.tuteur_lien)
+    def get_parent_lien_display(self):
+        """Retourne l'affichage du lien du parent/tuteur"""
+        return dict(self.LIEN_PARENT_CHOICES).get(self.parent_lien, self.parent_lien)
     
     def clean(self):
         """Validation personnalisée"""
         from django.core.exceptions import ValidationError
         
-        # Validation selon le type de responsable
-        if self.type_responsable == 'parents':
-            pere_renseigne = self.nom_pere and self.telephone_pere
-            mere_renseignee = self.nom_mere and self.telephone_mere
-            
-            if not pere_renseigne and not mere_renseignee:
-                raise ValidationError("Au moins un parent doit être renseigné (nom et téléphone).")
-        elif self.type_responsable == 'tuteur':
-            if not self.tuteur_nom:
-                raise ValidationError("Le nom du tuteur est obligatoire.")
-            if not self.tuteur_telephone:
-                raise ValidationError("Le téléphone du tuteur est obligatoire.")
-            if not self.tuteur_adresse:
-                raise ValidationError("L'adresse du tuteur est obligatoire.")
-            if not self.tuteur_lien:
-                raise ValidationError("Le lien avec l'élève est obligatoire.")
-            # L'email du tuteur est optionnel
+        # Validation du parent/tuteur
+        if not self.parent_nom:
+            raise ValidationError("Le nom du parent/tuteur est obligatoire.")
+        if not self.parent_prenom:
+            raise ValidationError("Le prénom du parent/tuteur est obligatoire.")
+        if not self.parent_telephone:
+            raise ValidationError("Le téléphone du parent/tuteur est obligatoire.")
+        if not self.parent_lien:
+            raise ValidationError("Le lien avec l'élève est obligatoire.")
         
         # Validation de l'âge
         if self.date_naissance:

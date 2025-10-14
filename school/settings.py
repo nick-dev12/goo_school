@@ -70,7 +70,7 @@ ROOT_URLCONF = 'school.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'school_admin' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -96,6 +96,9 @@ DATABASES = {
         'PASSWORD': 'Ludvanne', # ← Le mot de passe que tu as défini à l'installation
         'HOST': 'localhost',            # ← Ou 127.0.0.1
         'PORT': '5432',                 # ← Port par défaut de PostgreSQL
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        },
     }
 }
 
@@ -129,6 +132,18 @@ TIME_ZONE = 'Europe/Paris'
 USE_I18N = True
 
 USE_TZ = True
+
+# Configuration de l'encodage UTF-8
+DEFAULT_CHARSET = 'utf-8'
+FILE_CHARSET = 'utf-8'
+
+# Configuration de l'encodage pour les templates
+TEMPLATES[0]['OPTIONS']['context_processors'].extend([
+    'django.template.context_processors.i18n',
+])
+
+# Configuration de l'encodage pour les formulaires
+FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 
 # Static files (CSS, JavaScript, Images)

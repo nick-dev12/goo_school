@@ -32,7 +32,7 @@
             <p>Gérez et suivez toutes les dépenses de l'organisation</p>
           </div>
           <div class="header-actions">
-            <button class="btn btn-primary" onclick="openAddExpenseModal()">
+            <button class="btn btn-primary" onclick="document.getElementById('addExpenseModal').style.display='block'">
               <i class="fas fa-plus"></i> Nouvelle Dépense
             </button>
             <button class="btn btn-success" onclick="generateExpenseReport()">
@@ -44,6 +44,9 @@
           </div>
         </div>
 
+        <!-- Messages Django -->
+        {% include 'school_admin/partials/messages.html' %}
+
         <!-- Summary Cards -->
         <div class="summary-cards">
           <div class="summary-card">
@@ -51,8 +54,8 @@
               <i class="fas fa-credit-card"></i>
             </div>
             <div class="card-content">
-              <h3>2,450,000 FCFA</h3>
-              <p>Dépenses ce Mois</p>
+              <h3>{{ montant_total|floatformat:0 }} FCFA</h3>
+              <p>Total Dépenses</p>
             </div>
           </div>
           <div class="summary-card">
@@ -60,8 +63,8 @@
               <i class="fas fa-chart-line"></i>
             </div>
             <div class="card-content">
-              <h3>15,200,000 FCFA</h3>
-              <p>Dépenses cette Année</p>
+              <h3>{{ total_depenses }}</h3>
+              <p>Nombre de Dépenses</p>
             </div>
           </div>
           <div class="summary-card">
@@ -69,8 +72,8 @@
               <i class="fas fa-list"></i>
             </div>
             <div class="card-content">
-              <h3>127</h3>
-              <p>Transactions ce Mois</p>
+              <h3>{{ stats_statuts.en_attente.count }}</h3>
+              <p>En Attente</p>
             </div>
           </div>
           <div class="summary-card">
@@ -78,8 +81,8 @@
               <i class="fas fa-check-circle"></i>
             </div>
             <div class="card-content">
-              <h3>98%</h3>
-              <p>Dépenses Approuvées</p>
+              <h3>{{ stats_statuts.paye.count }}</h3>
+              <p>Dépenses Payées</p>
             </div>
           </div>
         </div>
@@ -92,6 +95,8 @@
               <input
                 type="text"
                 id="searchInput"
+                name="search"
+                value="{{ search_query }}"
                 placeholder="Rechercher par description, catégorie ou montant..."
               />
             </div>
@@ -100,32 +105,38 @@
             </button>
           </div>
           <div class="filter-section">
-            <select id="categoryFilter" class="filter-select">
-              <option value="">Toutes les catégories</option>
-              <option value="personnel">Personnel</option>
-              <option value="equipement">Équipement</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="formation">Formation</option>
-              <option value="marketing">Marketing</option>
-              <option value="bureau">Bureau</option>
-              <option value="transport">Transport</option>
-              <option value="autre">Autre</option>
-            </select>
-            <select id="statusFilter" class="filter-select">
-              <option value="">Tous les statuts</option>
-              <option value="en_attente">En attente</option>
-              <option value="approuve">Approuvé</option>
-              <option value="rejete">Rejeté</option>
-              <option value="paye">Payé</option>
-            </select>
-            <select id="amountFilter" class="filter-select">
-              <option value="">Toutes les tranches</option>
-              <option value="0-50000">0 - 50,000 FCFA</option>
-              <option value="50000-200000">50,000 - 200,000 FCFA</option>
-              <option value="200000-500000">200,000 - 500,000 FCFA</option>
-              <option value="500000+">500,000+ FCFA</option>
-            </select>
-            <input type="date" id="dateFilter" class="filter-select" />
+            <form method="GET" id="filterForm">
+              <select name="categorie" class="filter-select">
+                <option value="">Toutes les catégories</option>
+                <option value="personnel" {% if categorie_filter == 'personnel' %}selected{% endif %}>Personnel</option>
+                <option value="equipement" {% if categorie_filter == 'equipement' %}selected{% endif %}>Équipement</option>
+                <option value="maintenance" {% if categorie_filter == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                <option value="formation" {% if categorie_filter == 'formation' %}selected{% endif %}>Formation</option>
+                <option value="marketing" {% if categorie_filter == 'marketing' %}selected{% endif %}>Marketing</option>
+                <option value="bureau" {% if categorie_filter == 'bureau' %}selected{% endif %}>Bureau</option>
+                <option value="transport" {% if categorie_filter == 'transport' %}selected{% endif %}>Transport</option>
+                <option value="loyer" {% if categorie_filter == 'loyer' %}selected{% endif %}>Loyer</option>
+                <option value="autre" {% if categorie_filter == 'autre' %}selected{% endif %}>Autre</option>
+              </select>
+              <select name="statut" class="filter-select">
+                <option value="">Tous les statuts</option>
+                <option value="en_attente" {% if statut_filter == 'en_attente' %}selected{% endif %}>En attente</option>
+                <option value="approuve" {% if statut_filter == 'approuve' %}selected{% endif %}>Approuvé</option>
+                <option value="rejete" {% if statut_filter == 'rejete' %}selected{% endif %}>Rejeté</option>
+                <option value="paye" {% if statut_filter == 'paye' %}selected{% endif %}>Payé</option>
+              </select>
+              <select name="montant" class="filter-select">
+                <option value="">Toutes les tranches</option>
+                <option value="0-50000" {% if montant_filter == '0-50000' %}selected{% endif %}>0 - 50,000 FCFA</option>
+                <option value="50000-200000" {% if montant_filter == '50000-200000' %}selected{% endif %}>50,000 - 200,000 FCFA</option>
+                <option value="200000-500000" {% if montant_filter == '200000-500000' %}selected{% endif %}>200,000 - 500,000 FCFA</option>
+                <option value="500000+" {% if montant_filter == '500000+' %}selected{% endif %}>500,000+ FCFA</option>
+              </select>
+              <input type="date" name="date" value="{{ date_filter }}" class="filter-select" />
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter"></i> Filtrer
+              </button>
+            </form>
           </div>
         </div>
 
@@ -158,7 +169,7 @@
                   <i class="fas fa-download"></i> Exporter
                 </button>
                 <button class="btn btn-warning" onclick="bulkApprove()">
-                  <i class="fas fa-check"></i> Approuver Sélection
+                  <i class="fas fa-check"></i> Confirmer Sélection
                 </button>
               </div>
             </div>
@@ -178,205 +189,68 @@
                   </tr>
                 </thead>
                 <tbody>
+                  {% for depense in depenses %}
                   <tr>
                     <td><input type="checkbox" class="row-checkbox" /></td>
-                    <td><span class="date">15 Jan 2024</span></td>
+                    <td><span class="date">{{ depense.date_depense|date:"d M Y" }}</span></td>
                     <td>
                       <div class="expense-info">
-                        <h4>Achat matériel informatique</h4>
-                        <p>Ordinateurs portables pour les enseignants</p>
+                        <h4>{{ depense.description }}</h4>
+                        {% if depense.notes %}
+                          <p>{{ depense.notes|truncatechars:50 }}</p>
+                        {% endif %}
                       </div>
                     </td>
-                    <td><span class="category equipement">Équipement</span></td>
-                    <td><span class="amount">850,000 FCFA</span></td>
-                    <td><span class="status-badge approuve">Approuvé</span></td>
-                    <td><span class="supplier">TechStore Cameroun</span></td>
+                    <td>
+                      <span class="category {{ depense.categorie }}" style="background-color: {{ depense.get_categorie_display_color }}20; color: {{ depense.get_categorie_display_color }};">
+                        {{ depense.get_categorie_display }}
+                      </span>
+                    </td>
+                    <td><span class="amount">{{ depense.get_montant_formatted }}</span></td>
+                    <td>
+                      <span class="status-badge {{ depense.statut }}" style="background-color: {{ depense.get_statut_display_color }}20; color: {{ depense.get_statut_display_color }};">
+                        {{ depense.get_statut_display }}
+                      </span>
+                    </td>
+                    <td><span class="supplier">{{ depense.fournisseur }}</span></td>
                     <td>
                       <div class="action-buttons">
-                        <button
-                          class="btn-action"
-                          title="Modifier"
-                          onclick="editExpense(1)"
-                        >
+                        <a href="{% url 'school_admin:modifier_depense' depense.id %}" class="btn-action" title="Modifier">
                           <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Voir détails"
-                          onclick="viewExpenseDetails(1)"
-                        >
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Télécharger facture"
-                          onclick="downloadInvoice(1)"
-                        >
-                          <i class="fas fa-download"></i>
-                        </button>
+                        </a>
+                        {% if depense.statut == 'en_attente' %}
+                        <a href="{% url 'school_admin:confirmer_depense' depense.id %}" class="btn-action" title="Confirmer dépense" onclick="return confirm('Confirmer que cette dépense a été effectuée ?')">
+                          <i class="fas fa-check-circle"></i>
+                        </a>
+                        {% endif %}
+                        {% if depense.can_be_paid %}
+                          <form method="POST" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="depense_id" value="{{ depense.id }}">
+                            <button type="submit" name="pay_expense" class="btn-action" title="Marquer comme payé">
+                              <i class="fas fa-money-bill"></i>
+                            </button>
+                          </form>
+                        {% endif %}
+                        {% if depense.piece_jointe %}
+                          <a href="{{ depense.piece_jointe.url }}" class="btn-action" title="Télécharger pièce jointe" target="_blank">
+                            <i class="fas fa-download"></i>
+                          </a>
+                        {% endif %}
                       </div>
                     </td>
                   </tr>
+                  {% empty %}
                   <tr>
-                    <td><input type="checkbox" class="row-checkbox" /></td>
-                    <td><span class="date">12 Jan 2024</span></td>
-                    <td>
-                      <div class="expense-info">
-                        <h4>Formation du personnel</h4>
-                        <p>Formation en gestion comptable</p>
-                      </div>
-                    </td>
-                    <td><span class="category formation">Formation</span></td>
-                    <td><span class="amount">320,000 FCFA</span></td>
-                    <td><span class="status-badge paye">Payé</span></td>
-                    <td><span class="supplier">Institut de Formation</span></td>
-                    <td>
-                      <div class="action-buttons">
-                        <button
-                          class="btn-action"
-                          title="Modifier"
-                          onclick="editExpense(2)"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Voir détails"
-                          onclick="viewExpenseDetails(2)"
-                        >
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Télécharger facture"
-                          onclick="downloadInvoice(2)"
-                        >
-                          <i class="fas fa-download"></i>
-                        </button>
+                    <td colspan="8" class="text-center">
+                      <div class="empty-state">
+                        <i class="fas fa-receipt"></i>
+                        <h3>Aucune dépense trouvée</h3>
+                        <p>Commencez par ajouter une nouvelle dépense.</p>
                       </div>
                     </td>
                   </tr>
-                  <tr>
-                    <td><input type="checkbox" class="row-checkbox" /></td>
-                    <td><span class="date">10 Jan 2024</span></td>
-                    <td>
-                      <div class="expense-info">
-                        <h4>Maintenance serveurs</h4>
-                        <p>Maintenance préventive des serveurs</p>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="category maintenance">Maintenance</span>
-                    </td>
-                    <td><span class="amount">150,000 FCFA</span></td>
-                    <td>
-                      <span class="status-badge en_attente">En attente</span>
-                    </td>
-                    <td><span class="supplier">TechMaintenance Pro</span></td>
-                    <td>
-                      <div class="action-buttons">
-                        <button
-                          class="btn-action"
-                          title="Modifier"
-                          onclick="editExpense(3)"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Voir détails"
-                          onclick="viewExpenseDetails(3)"
-                        >
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Télécharger facture"
-                          onclick="downloadInvoice(3)"
-                        >
-                          <i class="fas fa-download"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><input type="checkbox" class="row-checkbox" /></td>
-                    <td><span class="date">08 Jan 2024</span></td>
-                    <td>
-                      <div class="expense-info">
-                        <h4>Fournitures de bureau</h4>
-                        <p>Papier, stylos, classeurs</p>
-                      </div>
-                    </td>
-                    <td><span class="category bureau">Bureau</span></td>
-                    <td><span class="amount">45,000 FCFA</span></td>
-                    <td><span class="status-badge approuve">Approuvé</span></td>
-                    <td><span class="supplier">Office Supply</span></td>
-                    <td>
-                      <div class="action-buttons">
-                        <button
-                          class="btn-action"
-                          title="Modifier"
-                          onclick="editExpense(4)"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Voir détails"
-                          onclick="viewExpenseDetails(4)"
-                        >
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Télécharger facture"
-                          onclick="downloadInvoice(4)"
-                        >
-                          <i class="fas fa-download"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><input type="checkbox" class="row-checkbox" /></td>
-                    <td><span class="date">05 Jan 2024</span></td>
-                    <td>
-                      <div class="expense-info">
-                        <h4>Campagne publicitaire</h4>
-                        <p>Publicité sur les réseaux sociaux</p>
-                      </div>
-                    </td>
-                    <td><span class="category marketing">Marketing</span></td>
-                    <td><span class="amount">180,000 FCFA</span></td>
-                    <td><span class="status-badge rejete">Rejeté</span></td>
-                    <td><span class="supplier">Digital Agency</span></td>
-                    <td>
-                      <div class="action-buttons">
-                        <button
-                          class="btn-action"
-                          title="Modifier"
-                          onclick="editExpense(5)"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Voir détails"
-                          onclick="viewExpenseDetails(5)"
-                        >
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button
-                          class="btn-action"
-                          title="Télécharger facture"
-                          onclick="downloadInvoice(5)"
-                        >
-                          <i class="fas fa-download"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
@@ -398,125 +272,37 @@
 
             <!-- Categories Grid -->
             <div class="categories-grid">
+              {% for categorie, stats in stats_categories.items %}
               <div class="category-card">
                 <div class="category-header">
-                  <div class="category-icon personnel">
-                    <i class="fas fa-users"></i>
+                  <div class="category-icon {{ categorie }}">
+                    <i class="fas fa-{% if categorie == 'personnel' %}users{% elif categorie == 'equipement' %}laptop{% elif categorie == 'maintenance' %}tools{% elif categorie == 'formation' %}graduation-cap{% elif categorie == 'marketing' %}bullhorn{% elif categorie == 'bureau' %}building{% elif categorie == 'transport' %}truck{% elif categorie == 'loyer' %}home{% else %}receipt{% endif %}"></i>
                   </div>
                   <div class="category-info">
-                    <h4>Personnel</h4>
-                    <p>Salaires et avantages</p>
+                    <h4>{{ categorie|title }}</h4>
+                    <p>{% if categorie == 'personnel' %}Salaires et avantages{% elif categorie == 'equipement' %}Matériel informatique et bureau{% elif categorie == 'maintenance' %}Réparations et entretien{% elif categorie == 'formation' %}Formation et développement{% elif categorie == 'marketing' %}Publicité et communication{% elif categorie == 'bureau' %}Fournitures de bureau{% elif categorie == 'transport' %}Transport et déplacements{% elif categorie == 'loyer' %}Loyers et charges{% else %}Autres dépenses{% endif %}</p>
                   </div>
                 </div>
                 <div class="category-stats">
                   <div class="stat-item">
-                    <span class="stat-value">1,200,000 FCFA</span>
-                    <span class="stat-label">Ce mois</span>
+                    <span class="stat-value">{{ stats.total|floatformat:0 }} FCFA</span>
+                    <span class="stat-label">Total</span>
                   </div>
                   <div class="stat-item">
-                    <span class="stat-value">15</span>
+                    <span class="stat-value">{{ stats.count }}</span>
                     <span class="stat-label">Transactions</span>
                   </div>
                 </div>
                 <div class="category-actions">
-                  <button class="btn-action" onclick="editCategory(1)">
-                    <i class="fas fa-edit"></i>
+                  <button class="btn-action" onclick="filterByCategory('{{ categorie }}')" title="Filtrer par catégorie">
+                    <i class="fas fa-filter"></i>
                   </button>
-                  <button class="btn-action" onclick="viewCategoryDetails(1)">
+                  <button class="btn-action" onclick="viewCategoryDetails('{{ categorie }}')" title="Voir détails">
                     <i class="fas fa-eye"></i>
                   </button>
                 </div>
               </div>
-
-              <div class="category-card">
-                <div class="category-header">
-                  <div class="category-icon equipement">
-                    <i class="fas fa-laptop"></i>
-                  </div>
-                  <div class="category-info">
-                    <h4>Équipement</h4>
-                    <p>Matériel informatique et bureau</p>
-                  </div>
-                </div>
-                <div class="category-stats">
-                  <div class="stat-item">
-                    <span class="stat-value">850,000 FCFA</span>
-                    <span class="stat-label">Ce mois</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-value">8</span>
-                    <span class="stat-label">Transactions</span>
-                  </div>
-                </div>
-                <div class="category-actions">
-                  <button class="btn-action" onclick="editCategory(2)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="btn-action" onclick="viewCategoryDetails(2)">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div class="category-card">
-                <div class="category-header">
-                  <div class="category-icon maintenance">
-                    <i class="fas fa-tools"></i>
-                  </div>
-                  <div class="category-info">
-                    <h4>Maintenance</h4>
-                    <p>Réparations et entretien</p>
-                  </div>
-                </div>
-                <div class="category-stats">
-                  <div class="stat-item">
-                    <span class="stat-value">150,000 FCFA</span>
-                    <span class="stat-label">Ce mois</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-value">5</span>
-                    <span class="stat-label">Transactions</span>
-                  </div>
-                </div>
-                <div class="category-actions">
-                  <button class="btn-action" onclick="editCategory(3)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="btn-action" onclick="viewCategoryDetails(3)">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div class="category-card">
-                <div class="category-header">
-                  <div class="category-icon formation">
-                    <i class="fas fa-graduation-cap"></i>
-                  </div>
-                  <div class="category-info">
-                    <h4>Formation</h4>
-                    <p>Formation et développement</p>
-                  </div>
-                </div>
-                <div class="category-stats">
-                  <div class="stat-item">
-                    <span class="stat-value">320,000 FCFA</span>
-                    <span class="stat-label">Ce mois</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-value">3</span>
-                    <span class="stat-label">Transactions</span>
-                  </div>
-                </div>
-                <div class="category-actions">
-                  <button class="btn-action" onclick="editCategory(4)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="btn-action" onclick="viewCategoryDetails(4)">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              </div>
+              {% endfor %}
             </div>
           </div>
 
@@ -525,7 +311,10 @@
             <div class="panel-header">
               <h3>Budget & Analyse</h3>
               <div class="panel-actions">
-                <button class="btn btn-primary" onclick="openBudgetModal()">
+                <button class="btn btn-primary" onclick="document.getElementById('addBudgetModal').style.display='block'">
+                  <i class="fas fa-plus"></i> Ajouter Budget
+                </button>
+                <button class="btn btn-warning" onclick="document.getElementById('editBudgetModal').style.display='block'">
                   <i class="fas fa-edit"></i> Modifier Budget
                 </button>
               </div>
@@ -534,20 +323,20 @@
             <!-- Budget Overview -->
             <div class="budget-overview">
               <div class="budget-card">
-                <h4>Budget Mensuel</h4>
-                <div class="budget-amount">3,000,000 FCFA</div>
+                <h4>Budget Total</h4>
+                <div class="budget-amount">{{ budget_total|floatformat:0 }} FCFA</div>
                 <div class="budget-progress">
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: 82%"></div>
+                    <div class="progress-fill" style="width: {{ pourcentage_utilise }}%"></div>
                   </div>
-                  <span class="progress-text">82% utilisé</span>
+                  <span class="progress-text">{{ pourcentage_utilise }}% utilisé</span>
                 </div>
               </div>
               <div class="budget-card">
                 <h4>Dépenses Réalisées</h4>
-                <div class="budget-amount">2,450,000 FCFA</div>
+                <div class="budget-amount">{{ depenses_total|floatformat:0 }} FCFA</div>
                 <div class="budget-remaining">
-                  <span class="remaining-amount">550,000 FCFA restants</span>
+                  <span class="remaining-amount">{{ budget_restant|floatformat:0 }} FCFA restants</span>
                 </div>
               </div>
             </div>
@@ -556,54 +345,34 @@
             <div class="budget-categories">
               <h3>Budget par Catégorie</h3>
               <div class="budget-list">
+                {% for budget in budgets_actifs %}
                 <div class="budget-item">
                   <div class="budget-category">
-                    <span class="category-name">Personnel</span>
-                    <span class="category-amount">1,500,000 FCFA</span>
+                    <span class="category-name">{{ budget.get_categorie_display }}</span>
+                    <span class="category-amount">{{ budget.get_montant_alloue_formatted }}</span>
                   </div>
                   <div class="budget-progress">
                     <div class="progress-bar">
-                      <div class="progress-fill" style="width: 80%"></div>
+                      <div class="progress-fill" style="width: {{ budget.get_pourcentage_utilise }}%"></div>
                     </div>
-                    <span class="progress-text">1,200,000 / 1,500,000</span>
+                    <span class="progress-text">{{ budget.get_montant_depense|floatformat:0 }} / {{ budget.montant_alloue|floatformat:0 }}</span>
+                  </div>
+                  <div class="budget-actions">
+                    <button class="btn-action" onclick="editBudget({{ budget.id }})" title="Modifier">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action" onclick="deleteBudget({{ budget.id }})" title="Supprimer">
+                      <i class="fas fa-trash"></i>
+                    </button>
                   </div>
                 </div>
-                <div class="budget-item">
-                  <div class="budget-category">
-                    <span class="category-name">Équipement</span>
-                    <span class="category-amount">800,000 FCFA</span>
-                  </div>
-                  <div class="budget-progress">
-                    <div class="progress-bar">
-                      <div class="progress-fill" style="width: 106%"></div>
-                    </div>
-                    <span class="progress-text">850,000 / 800,000</span>
-                  </div>
+                {% empty %}
+                <div class="empty-state">
+                  <i class="fas fa-chart-pie"></i>
+                  <h3>Aucun budget configuré</h3>
+                  <p>Commencez par ajouter un budget pour une catégorie.</p>
                 </div>
-                <div class="budget-item">
-                  <div class="budget-category">
-                    <span class="category-name">Formation</span>
-                    <span class="category-amount">400,000 FCFA</span>
-                  </div>
-                  <div class="budget-progress">
-                    <div class="progress-bar">
-                      <div class="progress-fill" style="width: 80%"></div>
-                    </div>
-                    <span class="progress-text">320,000 / 400,000</span>
-                  </div>
-                </div>
-                <div class="budget-item">
-                  <div class="budget-category">
-                    <span class="category-name">Maintenance</span>
-                    <span class="category-amount">200,000 FCFA</span>
-                  </div>
-                  <div class="budget-progress">
-                    <div class="progress-bar">
-                      <div class="progress-fill" style="width: 75%"></div>
-                    </div>
-                    <span class="progress-text">150,000 / 200,000</span>
-                  </div>
-                </div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -727,21 +496,23 @@
           >
         </div>
         <div class="modal-body">
-          <form class="expense-form">
+          <form id="addExpenseForm" class="expense-form" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="add_expense" value="1">
             <div class="form-row">
               <div class="form-group">
-                <label>Description</label>
-                <input type="text" class="form-input" required />
+                <label>Description *</label>
+                <input type="text" name="description" class="form-input" required />
               </div>
               <div class="form-group">
-                <label>Montant</label>
-                <input type="number" class="form-input" required />
+                <label>Montant (FCFA) *</label>
+                <input type="number" name="montant" class="form-input" step="0.01" min="0" required />
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Catégorie</label>
-                <select class="form-input" required>
+                <label>Catégorie *</label>
+                <select name="categorie" class="form-input" required>
                   <option value="">Sélectionner</option>
                   <option value="personnel">Personnel</option>
                   <option value="equipement">Équipement</option>
@@ -750,33 +521,36 @@
                   <option value="marketing">Marketing</option>
                   <option value="bureau">Bureau</option>
                   <option value="transport">Transport</option>
+                  <option value="loyer">Loyer</option>
                   <option value="autre">Autre</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Date</label>
-                <input type="date" class="form-input" required />
+                <label>Date de dépense *</label>
+                <input type="date" name="date_depense" class="form-input" required />
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Fournisseur</label>
-                <input type="text" class="form-input" required />
+                <label>Fournisseur *</label>
+                <input type="text" name="fournisseur" class="form-input" required />
               </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
-                <label>Méthode de Paiement</label>
-                <select class="form-input" required>
-                  <option value="">Sélectionner</option>
-                  <option value="virement">Virement</option>
-                  <option value="cheque">Chèque</option>
-                  <option value="especes">Espèces</option>
-                  <option value="carte">Carte bancaire</option>
+                <label>Établissement (optionnel)</label>
+                <select name="etablissement" class="form-input">
+                  <option value="">Aucun établissement</option>
+                  {% for etablissement in etablissements %}
+                    <option value="{{ etablissement.id }}">{{ etablissement.nom }}</option>
+                  {% endfor %}
                 </select>
               </div>
             </div>
             <div class="form-group">
               <label>Notes</label>
               <textarea
+                name="notes"
                 class="form-input"
                 rows="3"
                 placeholder="Notes additionnelles..."
@@ -784,7 +558,8 @@
             </div>
             <div class="form-group">
               <label>Pièce jointe</label>
-              <input type="file" class="form-input" accept=".pdf,.jpg,.png" />
+              <input type="file" name="piece_jointe" class="form-input" accept=".pdf,.jpg,.png,.doc,.docx" />
+              <small class="form-text">Formats acceptés: PDF, JPG, PNG, DOC, DOCX</small>
             </div>
           </form>
         </div>
@@ -795,7 +570,7 @@
           >
             Annuler
           </button>
-          <button class="btn btn-primary" onclick="saveExpense()">
+          <button type="submit" form="addExpenseForm" class="btn btn-primary">
             Enregistrer
           </button>
         </div>
@@ -872,71 +647,273 @@
       </div>
     </div>
 
-    <!-- Budget Modal -->
-    <div id="budgetModal" class="modal">
+    <!-- Add Budget Modal -->
+    <div id="addBudgetModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Gestion du Budget</h3>
-          <span class="close" onclick="closeModal('budgetModal')">&times;</span>
+          <h3>Ajouter un Budget</h3>
+          <span class="close" onclick="closeModal('addBudgetModal')">&times;</span>
         </div>
         <div class="modal-body">
-          <form class="budget-form">
+          <form id="addBudgetForm" method="POST" action="{% url 'school_admin:ajouter_budget' %}">
+            {% csrf_token %}
+            <input type="hidden" name="add_budget" value="1">
             <div class="form-group">
-              <label>Budget Mensuel Total</label>
-              <input
-                type="number"
-                class="form-input"
-                value="3000000"
-                required
-              />
+              <label>Nom du budget *</label>
+              <input type="text" name="nom" class="form-input" required placeholder="Ex: Budget Personnel 2024" />
             </div>
-            <div class="budget-categories-form">
-              <h4>Budget par Catégorie</h4>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Personnel</label>
-                  <input type="number" class="form-input" value="1500000" />
-                </div>
-                <div class="form-group">
-                  <label>Équipement</label>
-                  <input type="number" class="form-input" value="800000" />
-                </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Catégorie *</label>
+                <select name="categorie" class="form-input" required>
+                  <option value="">Sélectionner une catégorie</option>
+                  <option value="personnel">Personnel</option>
+                  <option value="equipement">Équipement</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="formation">Formation</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="bureau">Bureau</option>
+                  <option value="transport">Transport</option>
+                  <option value="loyer">Loyer</option>
+                  <option value="autre">Autre</option>
+                </select>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Formation</label>
-                  <input type="number" class="form-input" value="400000" />
-                </div>
-                <div class="form-group">
-                  <label>Maintenance</label>
-                  <input type="number" class="form-input" value="200000" />
-                </div>
+              <div class="form-group">
+                <label>Période *</label>
+                <select name="periode" class="form-input" required>
+                  <option value="">Sélectionner une période</option>
+                  <option value="mensuel">Mensuel</option>
+                  <option value="trimestriel">Trimestriel</option>
+                  <option value="annuel">Annuel</option>
+                </select>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Marketing</label>
-                  <input type="number" class="form-input" value="100000" />
-                </div>
-                <div class="form-group">
-                  <label>Bureau</label>
-                  <input type="number" class="form-input" value="100000" />
-                </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Montant alloué (FCFA) *</label>
+                <input type="number" name="montant_alloue" class="form-input" step="0.01" min="0" required />
               </div>
+              <div class="form-group">
+                <label>Date de début *</label>
+                <input type="date" name="date_debut" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Date de fin *</label>
+              <input type="date" name="date_fin" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea name="notes" class="form-input" rows="3" placeholder="Notes additionnelles sur le budget..."></textarea>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="closeModal('budgetModal')">
+          <button class="btn btn-secondary" onclick="closeModal('addBudgetModal')">
             Annuler
           </button>
-          <button class="btn btn-primary" onclick="saveBudget()">
+          <button type="submit" form="addBudgetForm" class="btn btn-primary">
             Enregistrer
           </button>
         </div>
       </div>
     </div>
 
-    <script src="{% static 'school_admin/js/gestion_comptable/gestion_depenses.js' %}"></script>
+    <!-- Edit Budget Modal -->
+    <div id="editBudgetModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier le Budget</h3>
+          <span class="close" onclick="closeModal('editBudgetModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="editBudgetForm" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="edit_budget" value="1">
+            <input type="hidden" name="budget_id" id="edit_budget_id">
+            <div class="form-group">
+              <label>Nom du budget *</label>
+              <input type="text" name="nom" id="edit_nom" class="form-input" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Catégorie *</label>
+                <select name="categorie" id="edit_categorie" class="form-input" required>
+                  <option value="">Sélectionner une catégorie</option>
+                  <option value="personnel">Personnel</option>
+                  <option value="equipement">Équipement</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="formation">Formation</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="bureau">Bureau</option>
+                  <option value="transport">Transport</option>
+                  <option value="loyer">Loyer</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Période *</label>
+                <select name="periode" id="edit_periode" class="form-input" required>
+                  <option value="">Sélectionner une période</option>
+                  <option value="mensuel">Mensuel</option>
+                  <option value="trimestriel">Trimestriel</option>
+                  <option value="annuel">Annuel</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Montant alloué (FCFA) *</label>
+                <input type="number" name="montant_alloue" id="edit_montant_alloue" class="form-input" step="0.01" min="0" required />
+              </div>
+              <div class="form-group">
+                <label>Date de début *</label>
+                <input type="date" name="date_debut" id="edit_date_debut" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Date de fin *</label>
+              <input type="date" name="date_fin" id="edit_date_fin" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea name="notes" id="edit_notes" class="form-input" rows="3" placeholder="Notes additionnelles sur le budget..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('editBudgetModal')">
+            Annuler
+          </button>
+          <button type="submit" form="editBudgetForm" class="btn btn-primary">
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Gestion des modals
+      function openAddExpenseModal() {
+        document.getElementById('addExpenseModal').style.display = 'block';
+      }
+      
+      function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+      }
+      
+      // Fermer le modal en cliquant à l'extérieur
+      window.onclick = function(event) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+          if (event.target === modal) {
+            modal.style.display = 'none';
+          }
+        });
+      }
+      
+      // Gestion des onglets
+      function switchTab(tabId) {
+        // Masquer tous les panneaux
+        const panels = document.querySelectorAll('.tab-panel');
+        panels.forEach(panel => panel.classList.remove('active'));
+        
+        // Désactiver tous les boutons d'onglets
+        const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(button => button.classList.remove('active'));
+        
+        // Afficher le panneau sélectionné
+        document.getElementById(tabId).classList.add('active');
+        
+        // Activer le bouton correspondant
+        event.target.classList.add('active');
+      }
+      
+      // Fonctions de filtrage
+      function filterByCategory(category) {
+        const form = document.getElementById('filterForm');
+        const categorySelect = form.querySelector('select[name="categorie"]');
+        categorySelect.value = category;
+        form.submit();
+      }
+      
+      function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        // Optionnel: soumettre le formulaire pour effacer les filtres
+        const form = document.getElementById('filterForm');
+        if (form) {
+          form.submit();
+        }
+      }
+      
+      // Fonctions pour les rapports (à implémenter)
+      function generateExpenseReport() {
+        alert('Fonction de génération de rapport à implémenter');
+      }
+      
+      function openBudgetModal() {
+        alert('Fonction de budget à implémenter');
+      }
+      
+      function exportExpensesList() {
+        alert('Fonction d\'export à implémenter');
+      }
+      
+      function bulkApprove() {
+        alert('Fonction d\'approbation en lot à implémenter');
+      }
+      
+      function editExpense(id) {
+        alert('Fonction d\'édition à implémenter pour l\'ID: ' + id);
+      }
+      
+      function viewExpenseDetails(id) {
+        alert('Fonction de détails à implémenter pour l\'ID: ' + id);
+      }
+      
+      function downloadInvoice(id) {
+        alert('Fonction de téléchargement à implémenter pour l\'ID: ' + id);
+      }
+      
+      function openAddCategoryModal() {
+        alert('Fonction d\'ajout de catégorie à implémenter');
+      }
+      
+      function editCategory(id) {
+        alert('Fonction d\'édition de catégorie à implémenter pour l\'ID: ' + id);
+      }
+      
+      function viewCategoryDetails(category) {
+        alert('Fonction de détails de catégorie à implémenter pour: ' + category);
+      }
+      
+      function analyzeTrends() {
+        alert('Fonction d\'analyse des tendances à implémenter');
+      }
+      
+      function compareBudget() {
+        alert('Fonction de comparaison de budget à implémenter');
+      }
+      
+      function exportData() {
+        alert('Fonction d\'export de données à implémenter');
+      }
+      
+      // Fonctions pour la gestion des budgets
+      function editBudget(budgetId) {
+        // Remplir le formulaire de modification avec les données du budget
+        // Cette fonction sera appelée depuis le serveur avec les données
+        document.getElementById('editBudgetModal').style.display = 'block';
+        // TODO: Charger les données du budget via AJAX
+      }
+      
+      function deleteBudget(budgetId) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce budget ?')) {
+          // TODO: Implémenter la suppression
+          alert('Fonction de suppression à implémenter pour l\'ID: ' + budgetId);
+        }
+      }
+    </script>
   </body>
 </html>
 

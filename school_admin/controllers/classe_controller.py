@@ -63,25 +63,73 @@ class ClasseController:
         """
         Affiche la liste des classes de l'établissement
         """
-        # Vérifier que l'utilisateur est du personnel administratif
-        if not isinstance(request.user, PersonnelAdministratif):
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            personnel = request.user
+            etablissement = personnel.etablissement
+        elif isinstance(request.user, Etablissement):
+            personnel = None
+            etablissement = request.user
+        else:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
-        personnel = request.user
-        etablissement = personnel.etablissement
-        
-        # Récupérer les classes de l'établissement
+        # Récupérer les classes de l'établissement avec les affectations
         classes = Classe.objects.filter(
             etablissement=etablissement
-        ).order_by('niveau', 'nom')
+        ).prefetch_related('affectations__professeur').order_by('niveau', 'nom')
+        
+        # Ajouter le nombre d'enseignants affectés à chaque classe
+        classes_with_teachers = []
+        for classe in classes:
+            classe_data = {
+                'classe': classe,
+                'nombre_enseignants': classe.affectations.filter(actif=True).count(),
+                'enseignants': classe.affectations.filter(actif=True).select_related('professeur')
+            }
+            classes_with_teachers.append(classe_data)
+        
+        # Regrouper les classes par catégorie (niveau + préfixe)
+        import re
+        classes_grouped = {}
+        
+        for classe_data in classes_with_teachers:
+            classe = classe_data['classe']
+            
+            # Extraire la catégorie (ex: "6ème" de "6ème A", "6ème B", etc.)
+            nom = classe.nom
+            # Pattern pour extraire le niveau et la lettre/section
+            match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom)
+            
+            if match:
+                categorie = match.group(1)  # "6ème", "5ème", "Terminale", etc.
+                section = match.group(2)    # "A", "B", "C", "1", "2", etc.
+            else:
+                # Si pas de pattern trouvé, utiliser le nom complet comme catégorie
+                categorie = nom
+                section = ""
+            
+            if categorie not in classes_grouped:
+                classes_grouped[categorie] = {
+                    'niveau': classe.niveau,
+                    'classes': [],
+                    'total_eleves': 0,
+                    'total_enseignants': 0,
+                    'total_capacite': 0
+                }
+            
+            classes_grouped[categorie]['classes'].append(classe_data)
+            classes_grouped[categorie]['total_eleves'] += classe.nombre_eleves
+            classes_grouped[categorie]['total_enseignants'] += classe_data['nombre_enseignants']
+            classes_grouped[categorie]['total_capacite'] += classe.capacite_max
         
         # Statistiques
         stats = {
             'total': classes.count(),
             'actives': classes.filter(actif=True).count(),
             'inactives': classes.filter(actif=False).count(),
-            'par_niveau': {}
+            'par_niveau': {},
+            'total_enseignants_affectes': sum(classe_data['nombre_enseignants'] for classe_data in classes_with_teachers)
         }
         
         # Compter par niveau
@@ -92,6 +140,8 @@ class ClasseController:
         
         context = {
             'classes': classes,
+            'classes_with_teachers': classes_with_teachers,
+            'classes_grouped': classes_grouped,
             'etablissement': etablissement,
             'personnel': personnel,
             'stats': stats,
@@ -105,13 +155,16 @@ class ClasseController:
         """
         Affiche le formulaire d'ajout de classe et traite la soumission
         """
-        # Vérifier que l'utilisateur est du personnel administratif
-        if not isinstance(request.user, PersonnelAdministratif):
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            personnel = request.user
+            etablissement = personnel.etablissement
+        elif isinstance(request.user, Etablissement):
+            personnel = None
+            etablissement = request.user
+        else:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
-        
-        personnel = request.user
-        etablissement = personnel.etablissement
         form_data = {}
         field_errors = {}
         
@@ -237,24 +290,57 @@ class ClasseController:
         """
         Affiche les détails d'une classe
         """
-        # Vérifier que l'utilisateur est du personnel administratif
-        if not isinstance(request.user, PersonnelAdministratif):
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            personnel = request.user
+            etablissement = personnel.etablissement
+        elif isinstance(request.user, Etablissement):
+            personnel = None
+            etablissement = request.user
+        else:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
         try:
             classe = Classe.objects.get(
                 id=classe_id,
-                etablissement=request.user.etablissement
+                etablissement=etablissement
             )
         except Classe.DoesNotExist:
             messages.error(request, "Classe non trouvée.")
             return redirect('administrateur_etablissement:liste_classes')
         
+        # Récupérer les affectations des enseignants
+        affectations = classe.affectations.filter(actif=True).select_related('professeur', 'professeur__matiere_principale')
+        
+        # Organiser les enseignants par statut
+        enseignants_principaux = affectations.filter(statut='principal')
+        enseignants_classiques = affectations.filter(statut='classique')
+        
+        # Récupérer les élèves de la classe
+        from ..model.eleve_model import Eleve
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+        
+        # Statistiques des élèves
+        stats_eleves = {
+            'total': eleves.count(),
+            'masculin': eleves.filter(sexe='M').count(),
+            'feminin': eleves.filter(sexe='F').count(),
+            'nouveaux': eleves.filter(statut='nouvelle').count(),
+            'transferts': eleves.filter(statut='transfert').count(),
+            'reinscriptions': eleves.filter(statut='reinscription').count(),
+        }
+        
         context = {
             'classe': classe,
-            'etablissement': request.user.etablissement,
-            'personnel': request.user,
+            'etablissement': etablissement,
+            'personnel': personnel,
+            'affectations': affectations,
+            'enseignants_principaux': enseignants_principaux,
+            'enseignants_classiques': enseignants_classiques,
+            'nombre_enseignants': affectations.count(),
+            'eleves': eleves,
+            'stats_eleves': stats_eleves,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/detail_classe.html', context)
@@ -265,15 +351,19 @@ class ClasseController:
         """
         Active/désactive une classe
         """
-        # Vérifier que l'utilisateur est du personnel administratif
-        if not isinstance(request.user, PersonnelAdministratif):
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
         try:
             classe = Classe.objects.get(
                 id=classe_id,
-                etablissement=request.user.etablissement
+                etablissement=etablissement
             )
             
             classe.actif = not classe.actif

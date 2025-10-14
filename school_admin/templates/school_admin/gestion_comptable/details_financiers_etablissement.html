@@ -22,6 +22,9 @@
     {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
 
     <div class="dashboard-content">
+      <!-- Messages Django -->
+      {% include 'school_admin/partials/messages.html' %}
+      
       <!-- Page Header -->
       <div class="page-header">
         <div class="header-left">
@@ -30,7 +33,7 @@
           </button>
           <div class="header-title">
             <h1><i class="fas fa-chart-line"></i> Détails Financiers</h1>
-            <p>Lycée Moderne de Douala - ID: {{ etablissement_id }}</p>
+            <p>{{ etablissement.nom }} - ID: {{ etablissement_id }}</p>
           </div>
         </div>
         <div class="header-actions">
@@ -40,7 +43,7 @@
           <button class="btn btn-primary" onclick="exportData()">
             <i class="fas fa-download"></i> Exporter
           </button>
-          <button class="btn btn-success" onclick="generateInvoice()">
+          <button class="btn btn-success" onclick="document.getElementById('invoiceModal').style.display='flex'; setTimeout(() => document.getElementById('invoiceModal').classList.add('show'), 10);">
             <i class="fas fa-file-invoice"></i> Générer Facture
           </button>
         </div>
@@ -53,30 +56,30 @@
             <i class="fas fa-school"></i>
           </div>
           <div class="etablissement-info">
-            <h2>Lycée Moderne de Douala</h2>
-            <p><i class="fas fa-map-marker-alt"></i> Douala, Cameroun</p>
+            <h2>{{ etablissement.nom }}</h2>
+            <p><i class="fas fa-map-marker-alt"></i> {{ etablissement.ville }}, {{ etablissement.pays }}</p>
             <div class="etablissement-meta">
-              <span class="type-badge prive">Privé</span>
-              <span class="status-badge en-regle">En règle</span>
-              <span class="student-count">450 élèves</span>
+              <span class="type-badge {% if etablissement.type_etablissement == 'prive' %}prive{% else %}public{% endif %}">{{ etablissement.get_type_etablissement_display }}</span>
+              <span class="status-badge {% if etablissement.statut_paiement == 'paye' %}en-regle{% elif etablissement.statut_paiement == 'en_retard' %}en-retard{% else %}en-attente{% endif %}">{{ etablissement.get_statut_paiement_display }}</span>
+              <span class="student-count">{{ nombre_eleves }} élèves</span>
             </div>
           </div>
         </div>
         <div class="etablissement-stats">
           <div class="stat-item">
-            <div class="stat-value">1,350,000 FCFA</div>
+            <div class="stat-value">{{ montant_total_facture|floatformat:0 }} FCFA</div>
             <div class="stat-label">Montant Total</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">1,200,000 FCFA</div>
+            <div class="stat-value">{{ montant_paye|floatformat:0 }} FCFA</div>
             <div class="stat-label">Montant Payé</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">150,000 FCFA</div>
+            <div class="stat-value">{{ montant_restant|floatformat:0 }} FCFA</div>
             <div class="stat-label">Reste à Payer</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">89%</div>
+            <div class="stat-value">{{ taux_paiement }}%</div>
             <div class="stat-label">Taux de Paiement</div>
           </div>
         </div>
@@ -89,9 +92,9 @@
             <i class="fas fa-money-bill-wave"></i>
           </div>
           <div class="card-content">
-            <h3>Revenus Mensuels</h3>
-            <div class="card-value">1,350,000 FCFA</div>
-            <div class="card-change positive">+5.2% vs mois dernier</div>
+            <h3>Revenus {{ etablissement.get_type_facturation_display|lower }}s</h3>
+            <div class="card-value">{{ montant_total_facture|floatformat:0 }} FCFA</div>
+            <div class="card-change positive">Facturation {{ etablissement.get_type_facturation_display|lower }}</div>
           </div>
         </div>
         <div class="overview-card">
@@ -100,8 +103,16 @@
           </div>
           <div class="card-content">
             <h3>Dernier Paiement</h3>
-            <div class="card-value">15 Jan 2024</div>
-            <div class="card-change positive">À jour</div>
+            <div class="card-value">
+              {% if dernier_paiement %}
+                {{ dernier_paiement.date_paiement|date:"d M Y" }}
+              {% else %}
+                Aucun paiement
+              {% endif %}
+            </div>
+            <div class="card-change {% if dernier_paiement %}positive{% else %}neutral{% endif %}">
+              {% if dernier_paiement %}À jour{% else %}Aucun paiement{% endif %}
+            </div>
           </div>
         </div>
         <div class="overview-card">
@@ -110,8 +121,8 @@
           </div>
           <div class="card-content">
             <h3>Factures Générées</h3>
-            <div class="card-value">12</div>
-            <div class="card-change positive">Cette année</div>
+            <div class="card-value">{{ nombre_factures }}</div>
+            <div class="card-change positive">Total générées</div>
           </div>
         </div>
         <div class="overview-card">
@@ -120,8 +131,10 @@
           </div>
           <div class="card-content">
             <h3>Retards</h3>
-            <div class="card-value">0</div>
-            <div class="card-change positive">Aucun retard</div>
+            <div class="card-value">{{ nombre_retards }}</div>
+            <div class="card-change {% if nombre_retards == 0 %}positive{% else %}negative{% endif %}">
+              {% if nombre_retards == 0 %}Aucun retard{% else %}{{ nombre_retards }} en retard{% endif %}
+            </div>
           </div>
         </div>
       </div>
@@ -157,23 +170,48 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
+                  <th>N° Facture</th>
                   <th>Type de Paiement</th>
-                  <th>Montant</th>
-                  <th>Méthode</th>
-                  <th>Référence</th>
+                  <th>Montant Facture</th>
+                  <th>Montant Versé</th>
+                  <th>Reste à Payer</th>
                   <th>Statut</th>
+                  <th>Date Paiement</th>
+                  <th>Date Création</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
+                {% for paiement in historique_paiements %}
                 <tr>
-                  <td><span class="date">15 Jan 2024</span></td>
-                  <td><span class="payment-type mensuel">Mensuel</span></td>
-                  <td><span class="amount">1,350,000 FCFA</span></td>
-                  <td><span class="payment-method virement">Virement</span></td>
-                  <td><span class="reference">VIR-2024-001</span></td>
-                  <td><span class="status-badge paye">Payé</span></td>
+                  <td>
+                    <div class="invoice-info">
+                      <h4>{{ paiement.numero_facture }}</h4>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="payment-type {% if etablissement.type_facturation == 'mensuel' %}mensuel{% else %}annuel{% endif %}">{{ paiement.type_paiement }}</span>
+                  </td>
+                  <td><span class="amount">{{ paiement.montant_facture|floatformat:0 }} FCFA</span></td>
+                  <td><span class="amount">{{ paiement.montant_verse|floatformat:0 }} FCFA</span></td>
+                  <td>
+                    {% if paiement.paiement_partiel %}
+                      <span class="amount" style="color: #dc2626;">{{ paiement.reste_a_payer|floatformat:0 }} FCFA</span>
+                      {% if paiement.date_echeance_reste %}
+                      <br><small style="color: #6b7280; font-size: 11px;">Échéance: {{ paiement.date_echeance_reste|date:"d M Y" }}</small>
+                      {% endif %}
+                    {% else %}
+                      <span class="amount" style="color: #059669;">0 FCFA</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="status-badge paye">{{ paiement.statut }}</span>
+                    {% if paiement.paiement_partiel %}
+                    <br><span class="paiement-partiel-indicator">Paiement partiel</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="date">{{ paiement.date_paiement|date:"d M Y" }}</span></td>
+                  <td><span class="date">{{ paiement.date_creation|date:"d M Y" }}</span></td>
                   <td>
                     <div class="action-buttons">
                       <button class="btn-action" title="Voir détails">
@@ -185,42 +223,13 @@
                     </div>
                   </td>
                 </tr>
+                {% empty %}
                 <tr>
-                  <td><span class="date">15 Déc 2023</span></td>
-                  <td><span class="payment-type mensuel">Mensuel</span></td>
-                  <td><span class="amount">1,350,000 FCFA</span></td>
-                  <td><span class="payment-method cheque">Chèque</span></td>
-                  <td><span class="reference">CHQ-2023-156</span></td>
-                  <td><span class="status-badge paye">Payé</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <button class="btn-action" title="Voir détails">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn-action" title="Télécharger reçu">
-                        <i class="fas fa-download"></i>
-                      </button>
-                    </div>
+                  <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> Aucun paiement enregistré
                   </td>
                 </tr>
-                <tr>
-                  <td><span class="date">15 Nov 2023</span></td>
-                  <td><span class="payment-type mensuel">Mensuel</span></td>
-                  <td><span class="amount">1,200,000 FCFA</span></td>
-                  <td><span class="payment-method especes">Espèces</span></td>
-                  <td><span class="reference">ESP-2023-089</span></td>
-                  <td><span class="status-badge paye">Payé</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <button class="btn-action" title="Voir détails">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn-action" title="Télécharger reçu">
-                        <i class="fas fa-download"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
@@ -250,21 +259,40 @@
                 </tr>
               </thead>
               <tbody>
+                {% for facture in factures_detailed %}
                 <tr>
                   <td>
                     <div class="invoice-info">
-                      <h4>FAC-2024-001</h4>
-                      <p>Janvier 2024</p>
+                      <h4>{{ facture.numero_facture }}</h4>
+                      <p>{{ facture.periode }}</p>
                     </div>
                   </td>
-                  <td><span class="period">Jan 2024</span></td>
-                  <td><span class="amount">1,350,000 FCFA</span></td>
-                  <td><span class="status-badge paye">Payée</span></td>
-                  <td><span class="date">01 Jan 2024</span></td>
-                  <td><span class="date">15 Jan 2024</span></td>
+                  <td>
+                    <span class="period">{{ facture.type_facture_detailed }}</span>
+                    {% if facture.est_facture_module and facture.modules_supplementaires != "Aucun module supplémentaire" %}
+                    <br><small style="color: #6b7280; font-size: 11px;">{{ facture.modules_supplementaires }}</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="amount">{{ facture.montant|floatformat:0 }} FCFA</span>
+                    {% if not facture.est_paiement_complet and facture.reste_a_payer > 0 %}
+                    <br><small style="color: #dc2626; font-size: 11px;">Reste: {{ facture.reste_a_payer|floatformat:0 }} FCFA</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="status-badge {{ facture.statut_color }}">{{ facture.statut }}</span>
+                    {% if facture.est_paiement_partiel %}
+                    <br><span class="paiement-partiel-indicator">Paiement partiel</span>
+                    {% endif %}
+                    {% if not facture.est_paiement_complet and facture.date_echeance_reste %}
+                    <br><small style="color: #6b7280; font-size: 11px;">Échéance reste: {{ facture.date_echeance_reste|date:"d M Y" }}</small>
+                    {% endif %}
+                  </td>
+                  <td><span class="date">{{ facture.date_emission|date:"d M Y" }}</span></td>
+                  <td><span class="date">{{ facture.date_echeance|date:"d M Y" }}</span></td>
                   <td>
                     <div class="action-buttons">
-                      <button class="btn-action" title="Voir facture">
+                      <button class="btn-action" title="Voir facture" onclick="window.open('{% url 'school_admin:facture_etablissement' %}?facture_id={{ facture.numero_facture }}&etablissement_id={{ etablissement_id }}', '_blank')">
                         <i class="fas fa-eye"></i>
                       </button>
                       <button class="btn-action" title="Télécharger PDF">
@@ -273,63 +301,20 @@
                       <button class="btn-action" title="Envoyer">
                         <i class="fas fa-paper-plane"></i>
                       </button>
+                      <button class="btn-action btn-payment" title="Marquer comme payé" 
+                              onclick="openPaymentModal('{{ facture.numero_facture }}', {{ facture.montant }}, '{{ facture.statut }}')">
+                        <i class="fas fa-money-bill-wave"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
+                {% empty %}
                 <tr>
-                  <td>
-                    <div class="invoice-info">
-                      <h4>FAC-2023-156</h4>
-                      <p>Décembre 2023</p>
-                    </div>
-                  </td>
-                  <td><span class="period">Déc 2023</span></td>
-                  <td><span class="amount">1,350,000 FCFA</span></td>
-                  <td><span class="status-badge paye">Payée</span></td>
-                  <td><span class="date">01 Déc 2023</span></td>
-                  <td><span class="date">15 Déc 2023</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <button class="btn-action" title="Voir facture">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn-action" title="Télécharger PDF">
-                        <i class="fas fa-download"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer">
-                        <i class="fas fa-paper-plane"></i>
-                      </button>
-                    </div>
+                  <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> Aucune facture générée
                   </td>
                 </tr>
-                <tr>
-                  <td>
-                    <div class="invoice-info">
-                      <h4>FAC-2023-155</h4>
-                      <p>Novembre 2023</p>
-                    </div>
-                  </td>
-                  <td><span class="period">Nov 2023</span></td>
-                  <td><span class="amount">1,200,000 FCFA</span></td>
-                  <td>
-                    <span class="status-badge partiel">Paiement partiel</span>
-                  </td>
-                  <td><span class="date">01 Nov 2023</span></td>
-                  <td><span class="date">15 Nov 2023</span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <button class="btn-action" title="Voir facture">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn-action" title="Télécharger PDF">
-                        <i class="fas fa-download"></i>
-                      </button>
-                      <button class="btn-action" title="Marquer comme payée">
-                        <i class="fas fa-check"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
@@ -373,33 +358,21 @@
               </div>
               <div class="chart-content">
                 <div class="payment-methods-stats">
+                  {% for methode in methodes_stats %}
                   <div class="method-stat">
-                    <div class="method-icon virement">
-                      <i class="fas fa-university"></i>
+                    <div class="method-icon {% if methode.nom == 'Virement' %}virement{% elif methode.nom == 'Chèque' %}cheque{% else %}especes{% endif %}">
+                      <i class="fas {% if methode.nom == 'Virement' %}fa-university{% elif methode.nom == 'Chèque' %}fa-file-invoice{% else %}fa-money-bill{% endif %}"></i>
                     </div>
                     <div class="method-info">
-                      <div class="method-name">Virement</div>
-                      <div class="method-percentage">60%</div>
+                      <div class="method-name">{{ methode.nom }}</div>
+                      <div class="method-percentage">{{ methode.pourcentage }}%</div>
                     </div>
                   </div>
-                  <div class="method-stat">
-                    <div class="method-icon cheque">
-                      <i class="fas fa-file-invoice"></i>
-                    </div>
-                    <div class="method-info">
-                      <div class="method-name">Chèque</div>
-                      <div class="method-percentage">25%</div>
-                    </div>
+                  {% empty %}
+                  <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> Aucune donnée de paiement disponible
                   </div>
-                  <div class="method-stat">
-                    <div class="method-icon especes">
-                      <i class="fas fa-money-bill"></i>
-                    </div>
-                    <div class="method-info">
-                      <div class="method-name">Espèces</div>
-                      <div class="method-percentage">15%</div>
-                    </div>
-                  </div>
+                  {% endfor %}
                 </div>
               </div>
             </div>
@@ -412,19 +385,19 @@
               <div class="summary-stats">
                 <div class="summary-stat">
                   <div class="stat-label">Total Facturé</div>
-                  <div class="stat-value">16,200,000 FCFA</div>
+                  <div class="stat-value">{{ total_facture_historique|floatformat:0 }} FCFA</div>
                 </div>
                 <div class="summary-stat">
                   <div class="stat-label">Total Payé</div>
-                  <div class="stat-value">14,850,000 FCFA</div>
+                  <div class="stat-value">{{ total_paye_historique|floatformat:0 }} FCFA</div>
                 </div>
                 <div class="summary-stat">
                   <div class="stat-label">En Attente</div>
-                  <div class="stat-value">1,350,000 FCFA</div>
+                  <div class="stat-value">{{ en_attente_historique|floatformat:0 }} FCFA</div>
                 </div>
                 <div class="summary-stat">
                   <div class="stat-label">Taux de Recouvrement</div>
-                  <div class="stat-value">91.7%</div>
+                  <div class="stat-value">{{ taux_recouvrement }}%</div>
                 </div>
               </div>
             </div>
@@ -443,13 +416,14 @@
           </div>
 
           <div class="documents-grid">
+            {% for document in documents %}
             <div class="document-card">
               <div class="document-icon">
-                <i class="fas fa-file-pdf"></i>
+                <i class="{{ document.icon }}"></i>
               </div>
               <div class="document-info">
-                <h4>Contrat de Service</h4>
-                <p>Contrat signé le 15 Jan 2023</p>
+                <h4>{{ document.nom }}</h4>
+                <p>{{ document.type }} - {{ document.date }}</p>
                 <div class="document-actions">
                   <button class="btn-action" title="Télécharger">
                     <i class="fas fa-download"></i>
@@ -460,47 +434,279 @@
                 </div>
               </div>
             </div>
-
-            <div class="document-card">
-              <div class="document-icon">
-                <i class="fas fa-file-excel"></i>
-              </div>
-              <div class="document-info">
-                <h4>Liste des Élèves</h4>
-                <p>Mise à jour du 15 Jan 2024</p>
-                <div class="document-actions">
-                  <button class="btn-action" title="Télécharger">
-                    <i class="fas fa-download"></i>
-                  </button>
-                  <button class="btn-action" title="Voir">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              </div>
+            {% empty %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: 1 / -1;">
+              <i class="fas fa-info-circle"></i> Aucun document disponible
             </div>
-
-            <div class="document-card">
-              <div class="document-icon">
-                <i class="fas fa-file-image"></i>
-              </div>
-              <div class="document-info">
-                <h4>Reçu de Paiement</h4>
-                <p>Paiement du 15 Jan 2024</p>
-                <div class="document-actions">
-                  <button class="btn-action" title="Télécharger">
-                    <i class="fas fa-download"></i>
-                  </button>
-                  <button class="btn-action" title="Voir">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
+            {% endfor %}
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Modal de création de facture -->
+    <div id="invoiceModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-file-invoice"></i> Créer une nouvelle facture</h3>
+          <button class="close-btn" onclick="document.getElementById('invoiceModal').classList.remove('show'); setTimeout(() => document.getElementById('invoiceModal').style.display='none', 300);">&times;</button>
+        </div>
+        <form method="POST" action="{% url 'school_admin:details_financiers_etablissement' etablissement_id %}" id="invoiceForm">
+          {% csrf_token %}
+          <input type="hidden" name="create_invoice" value="1">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="type_facture" class="required">Type de facture</label>
+                <select name="type_facture" id="type_facture" required onchange="toggleModuleFields()">
+                  <option value="">Sélectionner un type</option>
+                  <option value="frais_service_mensuel">Frais de service mensuel</option>
+                  <option value="frais_service_annuel">Frais de service annuel</option>
+                  <option value="module_supplementaire">Module supplémentaire</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Quantité (nombre d'élèves)</label>
+                <input type="text" value="{{ nombre_eleves }} élèves" readonly 
+                       style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed;">
+                <small style="color: #6c757d; font-size: 12px;">Quantité automatique basée sur le nombre d'élèves de l'établissement</small>
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Montant unitaire (FCFA)</label>
+                <input type="text" id="montant_unitaire_display" value="{{ etablissement.montant_par_eleve|floatformat:0 }} FCFA" readonly 
+                       style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed;">
+                <small style="color: #6c757d; font-size: 12px;">Montant automatique basé sur la configuration de l'établissement</small>
+              </div>
+              <div class="form-group">
+                <label for="date_echeance" class="required">Date d'échéance</label>
+                <input type="date" name="date_echeance" id="date_echeance" required>
+              </div>
+            </div>
+            
+            <!-- Champs pour module supplémentaire -->
+            <div class="form-group">
+              <label>Modules supplémentaires disponibles</label>
+              <div class="modules-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 12px;">
+                {% for module in modules_non_actives %}
+                <div class="module-checkbox-item" style="display: flex; align-items: center; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                  <input type="checkbox" name="modules_selectionnes" value="{{ module.nom }}" id="module_{{ module.nom }}" 
+                         style="margin-right: 12px; transform: scale(1.2);">
+                  <label for="module_{{ module.nom }}" style="display: flex; align-items: center; cursor: pointer; margin: 0; flex: 1;">
+                    <i class="{{ module.icon }}" style="margin-right: 8px; color: #6b7280; width: 20px;"></i>
+                    <span style="font-weight: 500; color: #374151;">{{ module.titre }}</span>
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              <small style="color: #6b7280; font-size: 12px; margin-top: 8px; display: block;">
+                Sélectionnez un ou plusieurs modules supplémentaires à facturer
+              </small>
+            </div>
+            
+            <div class="form-group">
+              <label for="montant_module_supplementaire">Montant total des modules (FCFA)</label>
+              <input type="number" name="montant_module_supplementaire" id="montant_module_supplementaire" 
+                     min="0" step="0.01" placeholder="0.00">
+              <small style="color: #6b7280; font-size: 12px;">Montant total pour tous les modules sélectionnés</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="description" class="required">Description</label>
+              <textarea name="description" id="description" rows="3" 
+                        placeholder="Description détaillée de la facture" required></textarea>
+            </div>
+            
+            <!-- Aperçu du montant total -->
+            <div class="total-preview">
+              <h4>Montant total : <span id="totalAmount">0.00</span> FCFA</h4>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('invoiceModal').classList.remove('show'); setTimeout(() => document.getElementById('invoiceModal').style.display='none', 300);">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-save"></i> Créer la facture
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de paiement -->
+    <div id="paymentModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-money-bill-wave"></i> Traitement du Paiement</h3>
+          <button class="close-btn" onclick="closePaymentModal()">&times;</button>
+        </div>
+        <form method="POST" action="{% url 'school_admin:traiter_paiement_facture' etablissement_id %}" id="paymentForm">
+          {% csrf_token %}
+          <input type="hidden" name="facture_numero" id="facture_numero">
+          <div class="modal-body">
+            <div class="payment-info">
+              <div class="info-item">
+                <label>Numéro de facture :</label>
+                <span id="payment_facture_numero"></span>
+              </div>
+              <div class="info-item">
+                <label>Montant initial :</label>
+                <span id="payment_montant_initial" class="amount-display"></span>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="montant_verse" class="required">Montant versé (FCFA)</label>
+              <input type="number" name="montant_verse" id="montant_verse" 
+                     min="0" step="0.01" required onchange="calculateReste()">
+            </div>
+            
+            <div class="form-group">
+              <label for="date_echeance_reste">Date d'échéance du reste à payer</label>
+              <input type="date" name="date_echeance_reste" id="date_echeance_reste">
+              <small style="color: #6b7280; font-size: 12px;">Optionnel - pour les paiements partiels</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="mode_paiement">Mode de paiement</label>
+              <select name="mode_paiement" id="mode_paiement">
+                <option value="">Sélectionner un mode</option>
+                <option value="Virement">Virement bancaire</option>
+                <option value="Chèque">Chèque</option>
+                <option value="Espèces">Espèces</option>
+                <option value="Mobile Money">Mobile Money</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="reference_paiement">Référence de paiement</label>
+              <input type="text" name="reference_paiement" id="reference_paiement" 
+                     placeholder="Numéro de transaction, référence chèque, etc.">
+            </div>
+            
+            <!-- Calcul automatique du reste -->
+            <div class="payment-summary">
+              <div class="summary-item">
+                <label>Reste à payer :</label>
+                <span id="reste_a_payer" class="amount-display">0.00 FCFA</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check"></i> Confirmer le paiement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="{% static 'school_admin/js/gestion_comptable/details_financiers_etablissement.js' %}"></script>
+    
+    <script>
+    // Script inline pour les animations et interactions
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fermer la modal en cliquant à l'extérieur
+        const modal = document.getElementById('invoiceModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.style.display = 'none', 300);
+                }
+            });
+        }
+        
+        // Fermer la modal avec la touche Échap
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('invoiceModal');
+                if (modal && modal.style.display !== 'none') {
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.style.display = 'none', 300);
+                }
+            }
+        });
+        
+        // Définir la date d'échéance par défaut quand la modal s'ouvre
+        const openButton = document.querySelector('button[onclick*="invoiceModal"]');
+        if (openButton) {
+            openButton.addEventListener('click', function() {
+                setTimeout(() => {
+                    const dateEcheance = document.getElementById('date_echeance');
+                    if (dateEcheance && !dateEcheance.value) {
+                        const today = new Date();
+                        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+                        dateEcheance.value = futureDate.toISOString().split('T')[0];
+                    }
+                }, 100);
+            });
+        }
+    });
+    
+    // Variables globales pour le modal de paiement
+    let currentFactureNumero = '';
+    let currentMontantInitial = 0;
+    
+    // Fonction pour ouvrir le modal de paiement
+    function openPaymentModal(factureNumero, montantInitial, statut) {
+        currentFactureNumero = factureNumero;
+        currentMontantInitial = montantInitial;
+        
+        // Remplir les informations
+        document.getElementById('facture_numero').value = factureNumero;
+        document.getElementById('payment_facture_numero').textContent = factureNumero;
+        document.getElementById('payment_montant_initial').textContent = montantInitial.toLocaleString() + ' FCFA';
+        
+        // Afficher le modal
+        const modal = document.getElementById('paymentModal');
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show'), 10);
+        
+        // Réinitialiser le formulaire
+        document.getElementById('paymentForm').reset();
+        document.getElementById('facture_numero').value = factureNumero;
+        calculateReste();
+    }
+    
+    // Fonction pour fermer le modal de paiement
+    function closePaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        modal.classList.remove('show');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+    
+    // Fonction pour calculer le reste à payer
+    function calculateReste() {
+        const montantVerse = parseFloat(document.getElementById('montant_verse').value) || 0;
+        const reste = Math.max(0, currentMontantInitial - montantVerse);
+        document.getElementById('reste_a_payer').textContent = reste.toLocaleString() + ' FCFA';
+    }
+    
+    // Confirmation simple avant soumission (sans validation)
+    document.addEventListener('DOMContentLoaded', function() {
+        const paymentForm = document.getElementById('paymentForm');
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(e) {
+                const montantVerse = parseFloat(document.getElementById('montant_verse').value) || 0;
+                
+                // Confirmation simple uniquement
+                const confirmation = confirm(`Confirmer le paiement de ${montantVerse.toLocaleString()} FCFA pour la facture ${currentFactureNumero} ?`);
+                if (!confirmation) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+    </script>
   </body>
 </html>
+

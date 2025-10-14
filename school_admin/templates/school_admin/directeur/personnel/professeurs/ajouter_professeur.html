@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ajouter un Professeur - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-background">
+                <div class="header-content">
+                    <div class="page-title-section">
+                        <div class="title-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="title-text">
+                            <h1 class="page-title">Ajouter un Professeur</h1>
+                            <p class="page-subtitle">
+                                Enregistrez un nouveau professeur dans {{ etablissement.nom }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="page-actions">
+                        <a href="{% url 'professeur:liste_professeurs' %}" class="btn-back btn-gradient">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Retour à la liste</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         <!-- Form Container -->
+         <div class="form-container">
+             <div class="form-card">
+                 <div class="form-header">
+                     <div class="form-title">
+                         <div class="form-icon">
+                             <i class="fas fa-user-plus"></i>
+                         </div>
+                         <h2>Nouveau Professeur</h2>
+                     </div>
+                 </div>
+                 
+                 <form method="post" action="{% url 'professeur:ajouter_professeur' %}" class="professeur-form" id="ajouterProfesseurForm">
+                     {% csrf_token %}
+                    
+                    <!-- Messages d'erreur généraux -->
+                    {% if field_errors %}
+                        <div class="alert alert-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+                        </div>
+                    {% endif %}
+
+                    <!-- Informations personnelles -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h3 class="section-title">Informations personnelles</h3>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="nom">
+                                    <i class="fas fa-id-card"></i>
+                                    Nom de famille *
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
+                                       id="nom" 
+                                       name="nom" 
+                                       value="{{ form_data.nom }}"
+                                       placeholder="Ex: Dupont">
+                                {% if field_errors.nom %}
+                                    <div class="invalid-feedback">{{ field_errors.nom }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="prenom">
+                                    <i class="fas fa-user"></i>
+                                    Prénom *
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if field_errors.prenom %}is-invalid{% endif %}" 
+                                       id="prenom" 
+                                       name="prenom" 
+                                       value="{{ form_data.prenom }}"
+                                       placeholder="Ex: Marie"
+                                       required>
+                                {% if field_errors.prenom %}
+                                    <div class="invalid-feedback">{{ field_errors.prenom }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="email">
+                                    <i class="fas fa-envelope"></i>
+                                    Adresse email *
+                                </label>
+                                <input type="email" 
+                                       class="form-control {% if field_errors.email %}is-invalid{% endif %}" 
+                                       id="email" 
+                                       name="email" 
+                                       value="{{ form_data.email }}"
+                                       placeholder="Ex: marie.dupont@email.com"
+                                       required>
+                                {% if field_errors.email %}
+                                    <div class="invalid-feedback">{{ field_errors.email }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="telephone">
+                                    <i class="fas fa-phone"></i>
+                                    Téléphone *
+                                </label>
+                                <input type="tel" 
+                                       class="form-control {% if field_errors.telephone %}is-invalid{% endif %}" 
+                                       id="telephone" 
+                                       name="telephone" 
+                                       value="{{ form_data.telephone }}"
+                                       placeholder="Ex: +237 123 456 789"
+                                       required>
+                                {% if field_errors.telephone %}
+                                    <div class="invalid-feedback">{{ field_errors.telephone }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations professionnelles -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <h3 class="section-title">Informations professionnelles</h3>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="matiere_principale">
+                                    <i class="fas fa-book"></i>
+                                    Matière principale *
+                                </label>
+                                <select class="form-control {% if field_errors.matiere_principale %}is-invalid{% endif %}" 
+                                        id="matiere_principale" 
+                                        name="matiere_principale" 
+                                        required>
+                                    <option value="">Sélectionnez une matière</option>
+                                    {% for matiere in matieres %}
+                                        <option value="{{ matiere.id }}" {% if form_data.matiere_principale == matiere.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ matiere.nom }}
+                                        </option>
+                                    {% empty %}
+                                        <option value="" disabled>Aucune matière disponible</option>
+                                    {% endfor %}
+                                </select>
+                                {% if field_errors.matiere_principale %}
+                                    <div class="invalid-feedback">{{ field_errors.matiere_principale }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="niveau_enseignement">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    Niveau d'enseignement *
+                                </label>
+                                <select class="form-control {% if field_errors.niveau_enseignement %}is-invalid{% endif %}" 
+                                        id="niveau_enseignement" 
+                                        name="niveau_enseignement" 
+                                        required>
+                                    <option value="">Sélectionnez un niveau</option>
+                                    <option value="maternelle">Maternelle</option>
+                                    <option value="primaire">Primaire</option>
+                                    <option value="college">Collège</option>
+                                    <option value="lycee">Lycée</option>
+                                    <option value="superieur">Supérieur</option>
+                                </select>
+                                {% if field_errors.niveau_enseignement %}
+                                    <div class="invalid-feedback">{{ field_errors.niveau_enseignement }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations de connexion -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-key"></i>
+                            </div>
+                            <h3 class="section-title">Informations de connexion</h3>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="password">
+                                <i class="fas fa-lock"></i>
+                                Mot de passe *
+                            </label>
+                            <input type="password" 
+                                   class="form-control {% if field_errors.password %}is-invalid{% endif %}" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Minimum 8 caractères"
+                                   required>
+                            {% if field_errors.password %}
+                                <div class="invalid-feedback">{{ field_errors.password }}</div>
+                            {% endif %}
+                            <small class="form-text">Le mot de passe doit contenir au moins 8 caractères.</small>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel">
+                            <i class="fas fa-times"></i>
+                            <span>Annuler</span>
+                        </button>
+                        <button type="submit" class="btn-submit btn-gradient">
+                            <i class="fas fa-save"></i>
+                            <span>Ajouter le professeur</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}"></script>
+</body>
+</html>

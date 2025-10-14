@@ -74,7 +74,7 @@ class PersonnelController:
     @login_required
     def liste_personnel(request):
         """
-        Affiche la liste du personnel administratif de l'établissement
+        Affiche la liste du personnel administratif et des professeurs de l'établissement
         """
         # Vérifier que l'utilisateur est un directeur
         if not isinstance(request.user, Etablissement):
@@ -83,27 +83,53 @@ class PersonnelController:
         
         etablissement = request.user
         
-        # Récupérer le personnel de l'établissement
+        # Récupérer le personnel administratif de l'établissement
         personnel = PersonnelAdministratif.objects.filter(
             etablissement=etablissement
         ).order_by('-date_creation')
         
-        # Statistiques
+        # Récupérer les professeurs de l'établissement
+        from ..model.professeur_model import Professeur
+        professeurs = Professeur.objects.filter(
+            etablissement=etablissement
+        ).select_related('matiere_principale').order_by('-date_creation')
+        
+        # Récupérer les matières avec le nombre de professeurs
+        from ..model.matiere_model import Matiere
+        matieres_avec_compteurs = []
+        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
+        
+        for matiere in matieres:
+            count = professeurs.filter(matiere_principale=matiere).count()
+            matieres_avec_compteurs.append({
+                'matiere': matiere,
+                'count': count,
+                'professeurs': professeurs.filter(matiere_principale=matiere)
+            })
+        
+        # Statistiques générales
         stats = {
-            'total': personnel.count(),
-            'actifs': personnel.filter(actif=True).count(),
-            'inactifs': personnel.filter(actif=False).count(),
+            'total_personnel': personnel.count(),
+            'total_professeurs': professeurs.count(),
+            'total_actifs': personnel.filter(actif=True).count() + professeurs.filter(actif=True).count(),
+            'total_inactifs': personnel.filter(actif=False).count() + professeurs.filter(actif=False).count(),
             'par_role': {}
         }
         
-        # Compter par rôle
+        # Compter par rôle pour le personnel administratif
         for fonction, label in PersonnelAdministratif.TYPE_FONCTION_CHOICES:
             count = personnel.filter(fonction=fonction).count()
             if count > 0:
                 stats['par_role'][label] = count
         
+        # Ajouter les professeurs aux statistiques
+        if professeurs.count() > 0:
+            stats['par_role']['Professeurs'] = professeurs.count()
+        
         context = {
             'personnel': personnel,
+            'professeurs': professeurs,
+            'matieres_avec_compteurs': matieres_avec_compteurs,
             'etablissement': etablissement,
             'stats': stats,
         }

@@ -19,12 +19,20 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes.css' %}"
+      href="{% static 'school_admin/css/directeur/classes_improved.css' %}"
     />
   </head>
   <body>
     <!-- Header -->
-    {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% endif %}
 
     <!-- Main Content Container -->
     <div class="content-container">
@@ -34,10 +42,10 @@
           <div class="page-title-section">
             <h1 class="page-title">
               <i class="fas fa-chalkboard"></i>
-              Détails de la Classe
+              {{ classe.nom }}
             </h1>
             <p class="page-subtitle">
-              {{ classe.nom_complet }} - {{ etablissement.nom }}
+              {{ classe.get_niveau_display }} - {{ etablissement.nom }}
             </p>
           </div>
           <div class="page-actions">
@@ -59,115 +67,444 @@
           {% endfor %}
         {% endif %}
 
-        <!-- Détails de la classe -->
-        <div class="classe-detail-container">
-          <div class="classe-main-card">
-            <div class="classe-header">
-              <div class="classe-icon">
-                <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
-              </div>
-              <div class="classe-info">
-                <h2 class="classe-nom">{{ classe.nom }}</h2>
-                <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
-                <div class="classe-badge niveau-{{ classe.niveau }}">
-                  <span>{{ classe.get_niveau_display }}</span>
-                </div>
-              </div>
-              <div class="classe-status">
-                <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
-                  <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
-                  <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
-                </div>
+        <!-- Classe Overview Card -->
+        <div class="classe-overview-card">
+          <div class="classe-header">
+            <div class="classe-icon">
+              <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+            </div>
+            <div class="classe-info">
+              <h2 class="classe-nom">{{ classe.nom }}</h2>
+              <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
+              <div class="classe-badge niveau-{{ classe.niveau }}">
+                <span>{{ classe.get_niveau_display }}</span>
               </div>
             </div>
-
-            <div class="classe-details">
-              <div class="detail-section">
-                <h3 class="section-title">
-                  <i class="fas fa-info-circle"></i>
-                  Informations Générales
-                </h3>
-                <div class="detail-grid">
-                  <div class="detail-item">
-                    <i class="fas fa-code"></i>
-                    <span class="detail-label">Code de la classe:</span>
-                    <span class="detail-value">{{ classe.code_classe }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-users"></i>
-                    <span class="detail-label">Capacité maximale:</span>
-                    <span class="detail-value">{{ classe.capacite_max }} élèves</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-user-graduate"></i>
-                    <span class="detail-label">Élèves inscrits:</span>
-                    <span class="detail-value">{{ classe.nombre_eleves }} élèves</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-chart-pie"></i>
-                    <span class="detail-label">Taux d'occupation:</span>
-                    <span class="detail-value">{{ classe.taux_occupation }}%</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-calendar-plus"></i>
-                    <span class="detail-label">Date de création:</span>
-                    <span class="detail-value">{{ classe.date_creation|date:"d/m/Y" }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="fas fa-calendar-edit"></i>
-                    <span class="detail-label">Dernière modification:</span>
-                    <span class="detail-value">{{ classe.date_modification|date:"d/m/Y" }}</span>
-                  </div>
-                </div>
+            <div class="classe-status">
+              <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+                <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+                <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
               </div>
-
-              {% if classe.description %}
-                <div class="detail-section">
-                  <h3 class="section-title">
-                    <i class="fas fa-align-left"></i>
-                    Description
-                  </h3>
-                  <div class="description-content">
-                    <p>{{ classe.description }}</p>
-                  </div>
-                </div>
-              {% endif %}
-
-              <div class="detail-section">
-                <h3 class="section-title">
-                  <i class="fas fa-school"></i>
-                  Établissement
-                </h3>
-                <div class="etablissement-info">
-                  <div class="etablissement-card">
-                    <div class="etablissement-icon">
-                      <i class="fas fa-school"></i>
-                    </div>
-                    <div class="etablissement-details">
-                      <h4>{{ etablissement.nom }}</h4>
-                      <p>{{ etablissement.get_type_etablissement_display }}</p>
-                      <span class="etablissement-code">{{ etablissement.code_etablissement }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="classe-actions">
-              <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-action btn-back">
-                <i class="fas fa-arrow-left"></i>
-                <span>Retour à la liste</span>
-              </a>
-              <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
-                <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
-                <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
-              </a>
             </div>
           </div>
+
+          <!-- Quick Stats -->
+          <div class="quick-stats">
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fas fa-user-graduate"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_eleves.total }}</div>
+                <div class="stat-label">Élèves</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ nombre_enseignants }}</div>
+                <div class="stat-label">Enseignants</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fas fa-chart-pie"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ classe.taux_occupation }}%</div>
+                <div class="stat-label">Occupation</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fas fa-calendar-plus"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ classe.date_creation|date:"d/m/Y" }}</div>
+                <div class="stat-label">Créée le</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-container">
+          <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="overview">
+              <i class="fas fa-info-circle"></i>
+              <span>Vue d'ensemble</span>
+            </button>
+            <button class="tab-btn" data-tab="enseignants">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Enseignants ({{ nombre_enseignants }})</span>
+            </button>
+            <button class="tab-btn" data-tab="eleves">
+              <i class="fas fa-user-graduate"></i>
+              <span>Élèves ({{ stats_eleves.total }})</span>
+            </button>
+            <button class="tab-btn" data-tab="statistiques">
+              <i class="fas fa-chart-bar"></i>
+              <span>Statistiques</span>
+            </button>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="tabs-content">
+            <!-- Overview Tab -->
+            <div class="tab-panel active" id="overview">
+              <div class="panel-content">
+                <div class="info-grid">
+                  <div class="info-card">
+                    <h3 class="card-title">
+                      <i class="fas fa-info-circle"></i>
+                      Informations Générales
+                    </h3>
+                    <div class="info-list">
+                      <div class="info-item">
+                        <i class="fas fa-code"></i>
+                        <span class="info-label">Code:</span>
+                        <span class="info-value">{{ classe.code_classe }}</span>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-users"></i>
+                        <span class="info-label">Capacité:</span>
+                        <span class="info-value">{{ classe.capacite_max }} élèves</span>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-chart-pie"></i>
+                        <span class="info-label">Occupation:</span>
+                        <span class="info-value">{{ classe.taux_occupation }}%</span>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-calendar-edit"></i>
+                        <span class="info-label">Modifiée:</span>
+                        <span class="info-value">{{ classe.date_modification|date:"d/m/Y" }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="info-card">
+                    <h3 class="card-title">
+                      <i class="fas fa-school"></i>
+                      Établissement
+                    </h3>
+                    <div class="etablissement-info">
+                      <div class="etablissement-card">
+                        <div class="etablissement-icon">
+                          <i class="fas fa-school"></i>
+                        </div>
+                        <div class="etablissement-details">
+                          <h4>{{ etablissement.nom }}</h4>
+                          <p>{{ etablissement.get_type_etablissement_display }}</p>
+                          <span class="etablissement-code">{{ etablissement.code_etablissement }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {% if classe.description %}
+                  <div class="info-card full-width">
+                    <h3 class="card-title">
+                      <i class="fas fa-align-left"></i>
+                      Description
+                    </h3>
+                    <div class="description-content">
+                      <p>{{ classe.description }}</p>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Enseignants Tab -->
+            <div class="tab-panel" id="enseignants">
+              <div class="panel-content">
+                {% if affectations %}
+                  <div class="enseignants-section">
+                    <!-- Enseignants Principaux -->
+                    {% if enseignants_principaux %}
+                      <div class="enseignants-group">
+                        <h3 class="group-title">
+                          <i class="fas fa-crown"></i>
+                          Professeurs Principaux
+                        </h3>
+                        <div class="enseignants-grid">
+                          {% for affectation in enseignants_principaux %}
+                            <div class="enseignant-card principal">
+                              <div class="enseignant-header">
+                                <div class="enseignant-avatar">
+                                  <i class="fas fa-user"></i>
+                                </div>
+                                <div class="enseignant-info">
+                                  <h4 class="enseignant-nom">{{ affectation.professeur.nom_complet }}</h4>
+                                  <p class="enseignant-matiere">{{ affectation.professeur.matiere_principale.nom }}</p>
+                                </div>
+                                <div class="enseignant-status">
+                                  <span class="status-badge principal">Principal</span>
+                                </div>
+                              </div>
+                              <div class="enseignant-details">
+                                <div class="detail-item">
+                                  <i class="fas fa-envelope"></i>
+                                  <span>{{ affectation.professeur.email }}</span>
+                                </div>
+                                <div class="detail-item">
+                                  <i class="fas fa-phone"></i>
+                                  <span>{{ affectation.professeur.telephone }}</span>
+                                </div>
+                                <div class="detail-item">
+                                  <i class="fas fa-calendar"></i>
+                                  <span>Affecté le {{ affectation.date_affectation|date:"d/m/Y" }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endif %}
+
+                    <!-- Enseignants Classiques -->
+                    {% if enseignants_classiques %}
+                      <div class="enseignants-group">
+                        <h3 class="group-title">
+                          <i class="fas fa-chalkboard"></i>
+                          Professeurs Classiques
+                        </h3>
+                        <div class="enseignants-grid">
+                          {% for affectation in enseignants_classiques %}
+                            <div class="enseignant-card classique">
+                              <div class="enseignant-header">
+                                <div class="enseignant-avatar">
+                                  <i class="fas fa-user"></i>
+                                </div>
+                                <div class="enseignant-info">
+                                  <h4 class="enseignant-nom">{{ affectation.professeur.nom_complet }}</h4>
+                                  <p class="enseignant-matiere">{{ affectation.professeur.matiere_principale.nom }}</p>
+                                </div>
+                                <div class="enseignant-status">
+                                  <span class="status-badge classique">Classique</span>
+                                </div>
+                              </div>
+                              <div class="enseignant-details">
+                                <div class="detail-item">
+                                  <i class="fas fa-envelope"></i>
+                                  <span>{{ affectation.professeur.email }}</span>
+                                </div>
+                                <div class="detail-item">
+                                  <i class="fas fa-phone"></i>
+                                  <span>{{ affectation.professeur.telephone }}</span>
+                                </div>
+                                <div class="detail-item">
+                                  <i class="fas fa-calendar"></i>
+                                  <span>Affecté le {{ affectation.date_affectation|date:"d/m/Y" }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h3>Aucun enseignant affecté</h3>
+                    <p>Cette classe n'a pas encore d'enseignants affectés.</p>
+                    <a href="{% url 'affectation:affectation_professeurs' %}" class="btn-primary">
+                      <i class="fas fa-plus"></i>
+                      Affecter des enseignants
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Élèves Tab -->
+            <div class="tab-panel" id="eleves">
+              <div class="panel-content">
+                {% if eleves %}
+                  <div class="eleves-section">
+                    <div class="eleves-header">
+                      <h3 class="section-title">
+                        <i class="fas fa-user-graduate"></i>
+                        Liste des Élèves ({{ stats_eleves.total }})
+                      </h3>
+                      <div class="eleves-stats">
+                        <span class="stat-badge">{{ stats_eleves.masculin }} garçons</span>
+                        <span class="stat-badge">{{ stats_eleves.feminin }} filles</span>
+                      </div>
+                    </div>
+                    <div class="eleves-grid">
+                      {% for eleve in eleves %}
+                        <div class="eleve-card">
+                          <div class="eleve-header">
+                            <div class="eleve-avatar">
+                              <i class="fas fa-user"></i>
+                            </div>
+                            <div class="eleve-info">
+                              <h4 class="eleve-nom">{{ eleve.prenom }} {{ eleve.nom }}</h4>
+                              <p class="eleve-statut">{{ eleve.get_statut_display }}</p>
+                            </div>
+                            <div class="eleve-sex">
+                              <i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                            </div>
+                          </div>
+                          <div class="eleve-details">
+                            <div class="detail-item">
+                              <i class="fas fa-calendar"></i>
+                              <span>Né(e) le {{ eleve.date_naissance|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="detail-item">
+                              <i class="fas fa-envelope"></i>
+                              <span>{{ eleve.email|default:"Aucun email" }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3>Aucun élève inscrit</h3>
+                    <p>Cette classe n'a pas encore d'élèves inscrits.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Statistiques Tab -->
+            <div class="tab-panel" id="statistiques">
+              <div class="panel-content">
+                <div class="stats-grid">
+                  <div class="stats-card">
+                    <h3 class="card-title">
+                      <i class="fas fa-user-graduate"></i>
+                      Statistiques des Élèves
+                    </h3>
+                    <div class="stats-list">
+                      <div class="stat-item">
+                        <span class="stat-label">Total des élèves:</span>
+                        <span class="stat-value">{{ stats_eleves.total }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Garçons:</span>
+                        <span class="stat-value">{{ stats_eleves.masculin }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Filles:</span>
+                        <span class="stat-value">{{ stats_eleves.feminin }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Nouveaux:</span>
+                        <span class="stat-value">{{ stats_eleves.nouveaux }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Transferts:</span>
+                        <span class="stat-value">{{ stats_eleves.transferts }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Réinscriptions:</span>
+                        <span class="stat-value">{{ stats_eleves.reinscriptions }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="stats-card">
+                    <h3 class="card-title">
+                      <i class="fas fa-chalkboard-teacher"></i>
+                      Statistiques des Enseignants
+                    </h3>
+                    <div class="stats-list">
+                      <div class="stat-item">
+                        <span class="stat-label">Total des enseignants:</span>
+                        <span class="stat-value">{{ nombre_enseignants }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Professeurs principaux:</span>
+                        <span class="stat-value">{{ enseignants_principaux.count }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Professeurs classiques:</span>
+                        <span class="stat-value">{{ enseignants_classiques.count }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="stats-card">
+                    <h3 class="card-title">
+                      <i class="fas fa-chart-pie"></i>
+                      Occupation de la Classe
+                    </h3>
+                    <div class="occupation-chart">
+                      <div class="chart-circle">
+                        <div class="chart-percentage">{{ classe.taux_occupation }}%</div>
+                        <div class="chart-label">Occupation</div>
+                      </div>
+                      <div class="chart-details">
+                        <div class="chart-item">
+                          <span class="chart-label">Élèves inscrits:</span>
+                          <span class="chart-value">{{ stats_eleves.total }}</span>
+                        </div>
+                        <div class="chart-item">
+                          <span class="chart-label">Capacité maximale:</span>
+                          <span class="chart-value">{{ classe.capacite_max }}</span>
+                        </div>
+                        <div class="chart-item">
+                          <span class="chart-label">Places disponibles:</span>
+                          <span class="chart-value">{{ classe.places_disponibles }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="classe-actions">
+          <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-action btn-back">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour à la liste</span>
+          </a>
+          <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
+            <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+            <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
+          </a>
         </div>
       </div>
     </div>
 
     <script src="{% static 'school_admin/js/directeur/classes.js' %}"></script>
+    <script>
+      // Tab functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Remove active class from all buttons and panels
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabPanels.forEach(p => p.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding panel
+            this.classList.add('active');
+            document.getElementById(targetTab).classList.add('active');
+          });
+        });
+      });
+    </script>
   </body>
 </html>

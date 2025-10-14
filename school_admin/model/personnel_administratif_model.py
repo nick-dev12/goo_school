@@ -45,6 +45,14 @@ class PersonnelAdministratif(AbstractUser):
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['nom', 'prenom', 'email']
     
+    # Ajouter les champs password et is_active pour l'authentification
+    password = models.CharField(max_length=128, verbose_name="Mot de passe")
+    is_active = models.BooleanField(default=True, verbose_name="Actif")
+    is_staff = models.BooleanField(default=False, verbose_name="Staff")
+    is_superuser = models.BooleanField(default=False, verbose_name="Super utilisateur")
+    last_login = models.DateTimeField(blank=True, null=True, verbose_name="Dernière connexion")
+    date_joined = models.DateTimeField(default=timezone.now, verbose_name="Date d'inscription")
+    
     # Relations ManyToMany avec related_name uniques
     groups = models.ManyToManyField(
         'auth.Group',

@@ -4,27 +4,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestion du Personnel Administratif</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
+    <title>Gestion du Personnel - {{ etablissement.nom }}</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-
     <link
-      href="{% static 'school_admin/css/dashboard.css' %}"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
     />
     <link
-      href="{% static 'school_admin/css/directeur/liste_personnel.css' %}"
       rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/liste_personnel.css' %}"
     />
   </head>
   <body>
@@ -32,205 +27,375 @@
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
-    <div class="personnel-page-container">
-      <div class="personnel-header-section">
-        <div class="personnel-header-content">
-          <div class="personnel-title-section">
-            <h1 class="personnel-main-title">
-              <i class="fas fa-users"></i>
-              Gestion du Personnel Administratif
-            </h1>
-            <p class="personnel-subtitle">
-              Gérez les membres de votre équipe administrative
-            </p>
-          </div>
-          <div class="personnel-actions">
-            <a
-              href="{% url 'personnel:ajouter_personnel' %}"
-              class="btn-add-personnel"
-            >
-              <i class="fas fa-plus"></i>
-              <span>Ajouter un membre</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Statistiques -->
-      <div class="personnel-stats-section">
-        <div class="stats-grid">
-          <div class="stat-card stat-primary">
-            <div class="stat-icon">
-              <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.total }}</div>
-              <div class="stat-label">Total Personnel</div>
-            </div>
-          </div>
-          <div class="stat-card stat-success">
-            <div class="stat-icon">
-              <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.actifs }}</div>
-              <div class="stat-label">Actifs</div>
-            </div>
-          </div>
-          <div class="stat-card stat-warning">
-            <div class="stat-icon">
-              <i class="fas fa-pause-circle"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.inactifs }}</div>
-              <div class="stat-label">Inactifs</div>
-            </div>
-          </div>
-          <div class="stat-card stat-info">
-            <div class="stat-icon">
-              <i class="fas fa-briefcase"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.par_role|length }}</div>
-              <div class="stat-label">Rôles</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Liste du personnel -->
-      <div class="personnel-list-section">
-        {% if personnel %}
-        <div class="personnel-grid">
-          {% for membre in personnel %}
-          <div class="personnel-card">
-            <div class="personnel-card-header">
-              <div class="personnel-avatar">
-                {% if membre.photo %}
-                <img
-                  src="{{ membre.photo.url }}"
-                  alt="{{ membre.nom_complet }}"
-                  class="avatar-image"
-                />
-                {% else %}
-                <div class="avatar-placeholder">
-                  <i class="fas fa-user"></i>
-                </div>
-                {% endif %}
-              </div>
-              <div class="personnel-info">
-                <h3 class="personnel-name">{{ membre.nom_complet }}</h3>
-                <p class="personnel-role">{{ membre.get_fonction_display }}</p>
-                <div class="role-badge role-{{ membre.fonction }}">
-                  <i
-                    class="fas fa-{% if membre.fonction == 'secretaire' %}user-tie{% elif membre.fonction == 'surveillant_general' %}shield-alt{% elif membre.fonction == 'censeur' %}graduation-cap{% elif membre.fonction == 'administrateur' %}cogs{% else %}user{% endif %}"
-                  ></i>
-                  <span>{{ membre.get_fonction_display }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="personnel-details">
-              <div class="detail-row">
-                <div class="detail-item">
-                  <div class="detail-item-content">
-                    <i class="fas fa-id-badge"></i>
-                    <span class="detail-label">ID:</span>
-                  </div>
-                  <span class="detail-value">{{ membre.numero_employe }}</span>
-                </div>
-                <div class="detail-item">
-                  <div class="detail-item-content">
-                    <i class="fas fa-envelope"></i>
-                    <span class="detail-label">Email:</span>
-                  </div>
-                  <span class="detail-value">{{ membre.email }}</span>
-                </div>
-              </div>
-              <div class="detail-row">
-                <div class="detail-item">
-                  <div class="detail-item-content">
-                    <i class="fas fa-phone"></i>
-                    <span class="detail-label">Tél:</span>
-                  </div>
-                  <span class="detail-value">{{ membre.telephone }}</span>
-                </div>
-                <div class="detail-item">
-                  <div class="detail-item-content">
-                    <i class="fas fa-calendar"></i>
-                    <span class="detail-label">Créé:</span>
-                  </div>
-                  <span class="detail-value"
-                    >{{ membre.date_creation|date:"d/m/Y" }}</span
-                  >
-                </div>
-              </div>
-              <div class="detail-row">
-                <div class="detail-item">
-                  <div class="detail-item-content">
-                    <i class="fas fa-building"></i>
-                    <span class="detail-label">Établissement:</span>
-                  </div>
-                  <span class="detail-value"
-                    >{{ membre.etablissement.nom|truncatechars:15 }}</span
-                  >
-                </div>
-                <div class="detail-item status-item">
-                  <i
-                    class="fas fa-{% if membre.actif %}check-circle{% else %}times-circle{% endif %} status-{% if membre.actif %}active{% else %}inactive{% endif %}"
-                  ></i>
-                  <span class="detail-label">Statut:</span>
-                  <span
-                    class="detail-value status-{% if membre.actif %}active{% else %}inactive{% endif %}"
-                  >
-                    {% if membre.actif %}Actif{% else %}Inactif{% endif %}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="personnel-actions">
-              <a
-                href="{% url 'personnel:detail_personnel' membre.id %}"
-                class="btn-action btn-detail"
-              >
-                <i class="fas fa-eye"></i>
-                <span>Détails</span>
-              </a>
-              <a
-                href="{% url 'personnel:toggle_actif' membre.id %}"
-                class="btn-action btn-toggle {% if membre.actif %}active{% endif %}"
-              >
-                <i
-                  class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"
-                ></i>
-                <span>
-                  {% if membre.actif %}Désactiver{% else %}Activer{% endif%}
-                </span>
-              </a>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">
-          <div class="empty-icon">
+    <div class="main-content-container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title-section">
+          <h1 class="page-title">
             <i class="fas fa-users"></i>
-          </div>
-          <h3>Aucun personnel administratif</h3>
-          <p>Commencez par ajouter des membres à votre équipe administrative</p>
-          <a
-            href="{% url 'personnel:ajouter_personnel' %}"
-            class="btn-add-personnel"
-          >
-            <i class="fas fa-plus"></i>
-            <span>Ajouter le premier membre</span>
+            Gestion du Personnel
+          </h1>
+          <p class="page-subtitle">
+            Gérez tous les membres de votre équipe éducative
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-add btn-primary">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Ajouter un professeur</span>
+          </a>
+          <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add btn-secondary">
+            <i class="fas fa-user-tie"></i>
+            <span>Ajouter du personnel</span>
           </a>
         </div>
-        {% endif %}
+      </div>
+
+      <!-- Onglets -->
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="professeurs">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Professeurs</span>
+            <span class="tab-count" id="professeurs-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="secretaires">
+            <i class="fas fa-user-tie"></i>
+            <span>Secrétaires</span>
+            <span class="tab-count" id="secretaires-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="censeurs">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Censeurs</span>
+            <span class="tab-count" id="censeurs-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="surveillants">
+            <i class="fas fa-shield-alt"></i>
+            <span>Surveillants</span>
+            <span class="tab-count" id="surveillants-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="intendants">
+            <i class="fas fa-cogs"></i>
+            <span>Intendants</span>
+            <span class="tab-count" id="intendants-count">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenu des onglets -->
+      <div class="tabs-content">
+        <!-- Onglet Professeurs -->
+        <div class="tab-pane active" id="professeurs-pane">
+          <div class="tab-header">
+            <h2>Professeurs</h2>
+            <p>Gérez les enseignants de votre établissement</p>
+          </div>
+          
+          <!-- Menu déroulant pour les matières -->
+          <div class="matiere-filter-container">
+            <div class="filter-wrapper">
+              <label for="matiere-select" class="filter-label">
+                <i class="fas fa-filter"></i>
+                Filtrer par matière
+              </label>
+              <select id="matiere-select" class="matiere-select">
+                <option value="all">Toutes les matières ({{ stats.total_professeurs }})</option>
+                {% for item in matieres_avec_compteurs %}
+                  {% if item.count > 0 %}
+                    <option value="{{ item.matiere.id }}">{{ item.matiere.nom }} ({{ item.count }})</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          
+          <div class="personnel-grid" id="professeurs-grid">
+            {% for professeur in professeurs %}
+              <div class="personnel-card professeur-card" data-matiere="{{ professeur.matiere_principale.id }}">
+                <div class="card-header">
+                  <div class="avatar">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                  </div>
+                  <div class="info">
+                    <h3 class="name">{{ professeur.nom_complet }}</h3>
+                    <p class="role">{{ professeur.matiere_display }}</p>
+                    <span class="badge">{{ professeur.niveau_display }}</span>
+                  </div>
+                  <div class="status">
+                    <span class="status-dot {% if professeur.actif %}active{% else %}inactive{% endif %}"></span>
+                  </div>
+                </div>
+                <div class="card-content">
+                  <div class="contact-info">
+                    <div class="contact-item">
+                      <i class="fas fa-envelope"></i>
+                      <span>{{ professeur.email|truncatechars:25 }}</span>
+                    </div>
+                    <div class="contact-item">
+                      <i class="fas fa-phone"></i>
+                      <span>{{ professeur.telephone|truncatechars:15 }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-actions">
+                  <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="action-btn primary" title="Voir détails">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <button class="action-btn secondary" onclick="alert('Fonctionnalité de modification à venir')" title="Modifier">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn {% if professeur.actif %}danger{% else %}success{% endif %}" onclick="alert('Fonctionnalité de toggle à venir')" title="{% if professeur.actif %}Désactiver{% else %}Activer{% endif %}">
+                    <i class="fas fa-{% if professeur.actif %}pause{% else %}play{% endif %}"></i>
+                  </button>
+                </div>
+              </div>
+            {% empty %}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h3>Aucun professeur</h3>
+                <p>Commencez par ajouter des professeurs à votre équipe</p>
+                <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-add">
+                  <i class="fas fa-plus"></i>
+                  <span>Ajouter le premier professeur</span>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Onglet Secrétaires -->
+        <div class="tab-pane" id="secretaires-pane">
+          <div class="tab-header">
+            <h2>Secrétaires</h2>
+            <p>Gérez le personnel administratif</p>
+          </div>
+          <div class="personnel-grid" id="secretaires-grid">
+            {% for membre in personnel %}
+              {% if membre.fonction == 'secretaire' %}
+                <div class="personnel-card">
+                  <div class="card-header">
+                    <div class="avatar">
+                      <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="info">
+                      <h3 class="name">{{ membre.nom_complet }}</h3>
+                      <p class="role">{{ membre.get_fonction_display }}</p>
+                      <span class="badge">{{ membre.numero_employe }}</span>
+                    </div>
+                    <div class="status">
+                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="contact-info">
+                      <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ membre.email|truncatechars:25 }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-actions">
+                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
+                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+            {% empty %}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <h3>Aucun secrétaire</h3>
+                <p>Commencez par ajouter des secrétaires</p>
+                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
+                  <i class="fas fa-plus"></i>
+                  <span>Ajouter un secrétaire</span>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Onglet Censeurs -->
+        <div class="tab-pane" id="censeurs-pane">
+          <div class="tab-header">
+            <h2>Censeurs</h2>
+            <p>Gérez les censeurs de votre établissement</p>
+          </div>
+          <div class="personnel-grid" id="censeurs-grid">
+            {% for membre in personnel %}
+              {% if membre.fonction == 'censeur' %}
+                <div class="personnel-card">
+                  <div class="card-header">
+                    <div class="avatar">
+                      <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="info">
+                      <h3 class="name">{{ membre.nom_complet }}</h3>
+                      <p class="role">{{ membre.get_fonction_display }}</p>
+                      <span class="badge">{{ membre.numero_employe }}</span>
+                    </div>
+                    <div class="status">
+                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="contact-info">
+                      <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ membre.email|truncatechars:25 }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-actions">
+                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
+                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+            {% empty %}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h3>Aucun censeur</h3>
+                <p>Commencez par ajouter des censeurs</p>
+                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
+                  <i class="fas fa-plus"></i>
+                  <span>Ajouter un censeur</span>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Onglet Surveillants -->
+        <div class="tab-pane" id="surveillants-pane">
+          <div class="tab-header">
+            <h2>Surveillants</h2>
+            <p>Gérez les surveillants généraux</p>
+          </div>
+          <div class="personnel-grid" id="surveillants-grid">
+            {% for membre in personnel %}
+              {% if membre.fonction == 'surveillant_general' %}
+                <div class="personnel-card">
+                  <div class="card-header">
+                    <div class="avatar">
+                      <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="info">
+                      <h3 class="name">{{ membre.nom_complet }}</h3>
+                      <p class="role">{{ membre.get_fonction_display }}</p>
+                      <span class="badge">{{ membre.numero_employe }}</span>
+                    </div>
+                    <div class="status">
+                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="contact-info">
+                      <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ membre.email|truncatechars:25 }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-actions">
+                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
+                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+            {% empty %}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Aucun surveillant</h3>
+                <p>Commencez par ajouter des surveillants</p>
+                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
+                  <i class="fas fa-plus"></i>
+                  <span>Ajouter un surveillant</span>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Onglet Intendants -->
+        <div class="tab-pane" id="intendants-pane">
+          <div class="tab-header">
+            <h2>Intendants</h2>
+            <p>Gérez les intendants de votre établissement</p>
+          </div>
+          <div class="personnel-grid" id="intendants-grid">
+            {% for membre in personnel %}
+              {% if membre.fonction == 'administrateur' %}
+                <div class="personnel-card">
+                  <div class="card-header">
+                    <div class="avatar">
+                      <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="info">
+                      <h3 class="name">{{ membre.nom_complet }}</h3>
+                      <p class="role">{{ membre.get_fonction_display }}</p>
+                      <span class="badge">{{ membre.numero_employe }}</span>
+                    </div>
+                    <div class="status">
+                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="contact-info">
+                      <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ membre.email|truncatechars:25 }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-actions">
+                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
+                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+            {% empty %}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-cogs"></i>
+                </div>
+                <h3>Aucun intendant</h3>
+                <p>Commencez par ajouter des intendants</p>
+                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
+                  <i class="fas fa-plus"></i>
+                  <span>Ajouter un intendant</span>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}"></script>
   </body>
 </html>

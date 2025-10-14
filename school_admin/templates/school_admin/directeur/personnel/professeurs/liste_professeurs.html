@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liste des Professeurs - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/liste_professeurs.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-background">
+                <div class="header-content">
+                    <div class="page-title-section">
+                        <div class="title-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="title-text">
+                            <h1 class="page-title">Liste des Professeurs</h1>
+                            <p class="page-subtitle">
+                                Gestion des professeurs de {{ etablissement.nom }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="page-actions">
+                        <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-primary btn-gradient">
+                            <i class="fas fa-plus"></i>
+                            <span>Ajouter un professeur</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-container">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total }}</h3>
+                    <p>Total des professeurs</p>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+15%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.actifs }}</h3>
+                    <p>Professeurs actifs</p>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+8%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.par_niveau|length }}</h3>
+                    <p>Niveaux d'enseignement</p>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+3%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>95%</h3>
+                    <p>Taux de satisfaction</p>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Professeurs List -->
+        <div class="professeurs-container">
+            <div class="professeurs-header">
+                <div class="professeurs-title">
+                    <div class="title-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <h2>Liste des Professeurs</h2>
+                </div>
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" placeholder="Rechercher un professeur..." class="search-input">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Onglets par matière -->
+            <div class="matiere-tabs-container">
+                <div class="matiere-tabs">
+                    <button class="matiere-tab-btn active" data-matiere="all">
+                        <i class="fas fa-th"></i>
+                        <span>Tous</span>
+                        <span class="tab-count">{{ stats.total }}</span>
+                    </button>
+                    {% for item in matieres_avec_compteurs %}
+                        {% if item.count > 0 %}
+                            <button class="matiere-tab-btn" data-matiere="{{ item.matiere.id }}">
+                                <i class="fas fa-book"></i>
+                                <span>{{ item.matiere.nom }}</span>
+                                <span class="tab-count">{{ item.count }}</span>
+                            </button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if professeurs %}
+                <div class="professeurs-grid">
+                    {% for professeur in professeurs %}
+                        <div class="professeur-card" data-professeur="{{ professeur.nom_complet|lower }}" data-status="{% if professeur.actif %}actif{% else %}inactif{% endif %}" data-matiere="{{ professeur.matiere_principale.id }}">
+                            <div class="professeur-header">
+                                <div class="professeur-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="professeur-info">
+                                    <h3 class="professeur-nom">{{ professeur.nom_complet }}</h3>
+                                    <p class="professeur-matiere">{{ professeur.matiere_display }}</p>
+                                </div>
+                                <div class="professeur-actions">
+                                    <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="btn-action btn-view" title="Voir les détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn-action btn-edit" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-action btn-delete" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="professeur-details">
+                                <div class="detail-item">
+                                    <div class="detail-icon">
+                                        <i class="fas fa-graduation-cap"></i>
+                                    </div>
+                                    <div class="detail-content">
+                                        <span class="detail-label">Niveau</span>
+                                        <span class="detail-value">{{ professeur.niveau_display }}</span>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-icon">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <div class="detail-content">
+                                        <span class="detail-label">Email</span>
+                                        <span class="detail-value">{{ professeur.email }}</span>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-icon">
+                                        <i class="fas fa-phone"></i>
+                                    </div>
+                                    <div class="detail-content">
+                                        <span class="detail-label">Téléphone</span>
+                                        <span class="detail-value">{{ professeur.telephone }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="professeur-footer">
+                                <div class="professeur-status">
+                                    <span class="status-badge {% if professeur.actif %}status-active{% else %}status-inactive{% endif %}">
+                                        <i class="fas {% if professeur.actif %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                                        {% if professeur.actif %}Actif{% else %}Inactif{% endif %}
+                                    </span>
+                                </div>
+                                <div class="professeur-date">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>{{ professeur.date_creation|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h3>Aucun professeur trouvé</h3>
+                    <p>Commencez par ajouter votre premier professeur pour constituer votre équipe pédagogique.</p>
+                    <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-primary btn-gradient">
+                        <i class="fas fa-plus"></i>
+                        <span>Ajouter un professeur</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/liste_professeurs.js' %}"></script>
+</body>
+</html>

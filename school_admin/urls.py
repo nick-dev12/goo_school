@@ -77,9 +77,37 @@ urlpatterns =[
         path('rapports_mensuels/',rapports_mensuels, name='rapports_mensuels'),
         path('rapports_annuels/',rapports_annuels, name='rapports_annuels'),
         path('gestion_etablissements/',gestion_etablissements, name='gestion_etablissements'),
-        path('details_financiers_etablissement',details_financiers_etablissement, name='details_financiers_etablissement'),
+        path('details_financiers_etablissement/<int:etablissement_id>/',details_financiers_etablissement, name='details_financiers_etablissement'),
+        path('traiter_paiement_facture/<int:etablissement_id>/',traiter_paiement_facture, name='traiter_paiement_facture'),
         path('facture_etablissement/',facture_etablissement, name='facture_etablissement'),
+        path('envoyer_facture/<str:facture_numero>/<int:etablissement_id>/',envoyer_facture, name='envoyer_facture'),
+        path('mettre_a_jour_statuts_factures/',mettre_a_jour_statuts_factures, name='mettre_a_jour_statuts_factures'),
         path('gestion_personnel_financier/',gestion_personnel_financier, name='gestion_personnel_financier'),
         path('gestion_depenses/',gestion_depenses, name='gestion_depenses'),
+        path('modifier_depense/<int:depense_id>/',modifier_depense, name='modifier_depense'),
+        path('confirmer_depense/<int:depense_id>/',confirmer_depense, name='confirmer_depense'),
+        path('ajouter_budget/',ajouter_budget, name='ajouter_budget'),
+        path('modifier_budget/<int:budget_id>/',modifier_budget, name='modifier_budget'),
+        path('supprimer_budget/<int:budget_id>/',supprimer_budget, name='supprimer_budget'),
 ]
+
+# Inclure les URLs des professeurs
+from .personal_url.professeur_url import urlpatterns as professeur_urls
+urlpatterns += professeur_urls
+
+# Inclure les URLs des matières
+from .personal_url.matiere_url import urlpatterns as matiere_urls
+urlpatterns += matiere_urls
+
+# Inclure les URLs d'affectation
+from .personal_url.affectation_url import urlpatterns as affectation_urls
+urlpatterns += affectation_urls
+
+# Inclure les URLs des salles
+from .personal_url.salle_url import urlpatterns as salle_urls
+urlpatterns += salle_urls
+
+# Inclure les URLs des affectations de salles
+from .personal_url.affectation_salle_url import urlpatterns as affectation_salle_urls
+urlpatterns += affectation_salle_urls
 

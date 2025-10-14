@@ -194,10 +194,10 @@ class CompteUserController:
                         return None, redirect(next_url)
                     else:
                         # Vérifier le type d'utilisateur et rediriger selon sa fonction
-                        if isinstance(user, Etablissement):
-                            return None, redirect('directeur:dashboard_directeur')
-                        elif isinstance(user, PersonnelAdministratif):
+                        if isinstance(user, PersonnelAdministratif):
                             return None, CompteUserController._redirect_personnel_administratif(user.fonction)
+                        elif isinstance(user, Etablissement):
+                            return None, redirect('directeur:dashboard_directeur')
                         elif isinstance(user, Eleve):
                             return None, redirect('eleve:dashboard_eleve')
                         else:

@@ -1,0 +1,231 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mise à Jour des Statuts de Factures - Goo-School</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/gestion_comptable/mettre_a_jour_statuts.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html' %}
+
+    <div class="dashboard-content">
+        <!-- Messages Django -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1><i class="fas fa-sync-alt"></i> Mise à Jour des Statuts de Factures</h1>
+                    <p>Gestion automatique des statuts basés sur les dates d'échéance</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-refresh"></i> Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques des Statuts -->
+        <div class="stats-container">
+            <h2><i class="fas fa-chart-pie"></i> Statistiques des Statuts</h2>
+            <div class="stats-grid">
+                <div class="stat-card en-attente">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats_statuts.en_attente }}</h3>
+                        <p>En Attente</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card en-retard">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats_statuts.en_retard }}</h3>
+                        <p>En Retard</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card impaye">
+                    <div class="stat-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats_statuts.impaye }}</h3>
+                        <p>Impayé</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card contentieux">
+                    <div class="stat-icon">
+                        <i class="fas fa-gavel"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats_statuts.contentieux }}</h3>
+                        <p>Contentieux</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card paye">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats_statuts.paye }}</h3>
+                        <p>Payé</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions de Mise à Jour -->
+        <div class="actions-container">
+            <div class="action-card">
+                <div class="action-header">
+                    <h3><i class="fas fa-cogs"></i> Actions de Mise à Jour</h3>
+                    <p>Exécuter la mise à jour automatique des statuts</p>
+                </div>
+                <div class="action-content">
+                    <div class="action-info">
+                        <div class="info-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>La mise à jour vérifie les dates d'échéance et met à jour les statuts automatiquement</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Règles: En retard → 1 mois → Impayé → 2 mois → Contentieux</span>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" class="action-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-large" onclick="return confirm('Êtes-vous sûr de vouloir mettre à jour tous les statuts de factures ?')">
+                            <i class="fas fa-sync-alt"></i> Mettre à Jour Maintenant
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Factures en Retard -->
+        <div class="factures-container">
+            <div class="factures-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Factures en Retard Récentes</h2>
+                <p>Dernières factures nécessitant une attention</p>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>N° Facture</th>
+                            <th>Établissement</th>
+                            <th>Statut</th>
+                            <th>Date d'Échéance</th>
+                            <th>Montant</th>
+                            <th>Jours de Retard</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for facture in factures_en_retard %}
+                        <tr>
+                            <td>
+                                <div class="invoice-info">
+                                    <strong>{{ facture.numero_facture }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="etablissement-info">
+                                    <strong>{{ facture.etablissement.nom }}</strong>
+                                    <br><small>{{ facture.etablissement.ville }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ facture.statut }}">
+                                    {{ facture.get_statut_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="date">
+                                    {{ facture.date_echeance|date:"d M Y" }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="amount">
+                                    {{ facture.montant_total|floatformat:0 }} FCFA
+                                </span>
+                            </td>
+                            <td>
+                                {% if facture.date_echeance %}
+                                    {% with jours_retard=facture.date_echeance|timesince %}
+                                        <span class="retard-days">
+                                            {{ facture.date_echeance|timesince }}
+                                        </span>
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="no-date">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="no-data">
+                                <i class="fas fa-info-circle"></i> Aucune facture en retard
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Informations sur les Règles -->
+        <div class="rules-container">
+            <div class="rules-card">
+                <h3><i class="fas fa-book"></i> Règles de Mise à Jour Automatique</h3>
+                <div class="rules-content">
+                    <div class="rule-item">
+                        <div class="rule-icon en-retard">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="rule-text">
+                            <h4>En Retard</h4>
+                            <p>Date d'échéance dépassée (moins de 30 jours)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="rule-item">
+                        <div class="rule-icon impaye">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="rule-text">
+                            <h4>Impayé</h4>
+                            <p>1 mois de retard (30+ jours)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="rule-item">
+                        <div class="rule-icon contentieux">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                        <div class="rule-text">
+                            <h4>Contentieux</h4>
+                            <p>2 mois de retard (60+ jours)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/mettre_a_jour_statuts.js' %}"></script>
+</body>
+</html>

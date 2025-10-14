@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirmer la suppression - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_secretaire.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      
+      .confirmation-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-top: 50px;
+      }
+      
+      .card-header {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      
+      .card-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      
+      .card-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+        font-size: 16px;
+      }
+      
+      .card-body {
+        padding: 40px;
+      }
+      
+      .warning-section {
+        background: #fff3cd;
+        border: 2px solid #ffeaa7;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      
+      .warning-icon {
+        font-size: 48px;
+        color: #e17055;
+        margin-bottom: 15px;
+      }
+      
+      .warning-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #2d3436;
+        margin: 0 0 10px 0;
+      }
+      
+      .warning-text {
+        color: #636e72;
+        font-size: 16px;
+        line-height: 1.6;
+        margin: 0;
+      }
+      
+      .student-info {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+      }
+      
+      .student-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      
+      .student-avatar {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #74b9ff, #0984e3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        margin-right: 20px;
+      }
+      
+      .student-details h3 {
+        margin: 0 0 5px 0;
+        font-size: 22px;
+        font-weight: 600;
+        color: #2d3436;
+      }
+      
+      .student-details p {
+        margin: 0;
+        color: #636e72;
+        font-size: 14px;
+      }
+      
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+      }
+      
+      .info-item {
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .info-label {
+        font-size: 12px;
+        color: #636e72;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      
+      .info-value {
+        font-size: 16px;
+        color: #2d3436;
+        font-weight: 500;
+      }
+      
+      .actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+      }
+      
+      .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .btn-danger {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+      }
+      
+      .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(238, 90, 36, 0.3);
+      }
+      
+      .btn-secondary {
+        background: linear-gradient(135deg, #74b9ff, #0984e3);
+        color: white;
+      }
+      
+      .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(9, 132, 227, 0.3);
+      }
+      
+      .consequences {
+        background: #ffe6e6;
+        border-left: 4px solid #ff6b6b;
+        padding: 20px;
+        border-radius: 0 10px 10px 0;
+        margin-bottom: 30px;
+      }
+      
+      .consequences h4 {
+        color: #d63031;
+        margin: 0 0 15px 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      
+      .consequences ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #636e72;
+      }
+      
+      .consequences li {
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+      <!-- Messages Django -->
+      {% include 'school_admin/partials/messages.html' %}
+
+      <!-- Carte de confirmation -->
+      <div class="confirmation-card">
+        <div class="card-header">
+          <h1>
+            <i class="fas fa-exclamation-triangle"></i>
+            Confirmer la suppression
+          </h1>
+          <p>Cette action est irréversible</p>
+        </div>
+        
+        <div class="card-body">
+          <!-- Section d'avertissement -->
+          <div class="warning-section">
+            <div class="warning-icon">
+              <i class="fas fa-trash-alt"></i>
+            </div>
+            <h2 class="warning-title">Attention !</h2>
+            <p class="warning-text">
+              Vous êtes sur le point de supprimer définitivement cet élève de la base de données. 
+              Cette action ne peut pas être annulée.
+            </p>
+          </div>
+
+          <!-- Informations de l'élève -->
+          <div class="student-info">
+            <div class="student-header">
+              <div class="student-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="student-details">
+                <h3>{{ eleve.nom_complet }}</h3>
+                <p>Numéro d'élève: {{ eleve.numero_eleve }}</p>
+              </div>
+            </div>
+            
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Classe</span>
+                <span class="info-value">{{ eleve.classe.nom|default:"Non assigné" }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Âge</span>
+                <span class="info-value">{{ eleve.age }} ans</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Date d'inscription</span>
+                <span class="info-value">{{ eleve.date_inscription|date:"d/m/Y" }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Statut</span>
+                <span class="info-value">{{ eleve.get_statut_display }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conséquences de la suppression -->
+          <div class="consequences">
+            <h4>
+              <i class="fas fa-exclamation-circle"></i>
+              Conséquences de cette suppression :
+            </h4>
+            <ul>
+              <li>Toutes les données de l'élève seront définitivement supprimées</li>
+              <li>L'historique scolaire sera perdu</li>
+              <li>Les notes et évaluations seront supprimées</li>
+              <li>Les informations de contact des parents/tuteurs seront perdues</li>
+              <li>Cette action ne peut pas être annulée</li>
+            </ul>
+          </div>
+
+          <!-- Actions -->
+          <div class="actions">
+            <a href="{% url 'secretaire:liste_eleves' %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left"></i>
+              Annuler
+            </a>
+            <form method="post" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i>
+                Supprimer définitivement
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

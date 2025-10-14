@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion de l'Établissement - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/gestion_etablissement.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-school"></i>
+                    Gestion de l'Établissement
+                </h1>
+                <p class="page-subtitle">
+                    Gérez les informations, paramètres et organisation de votre établissement
+                </p>
+            </div>
+        </div>
+
+        <!-- Navigation Links Container -->
+        <div class="navigation-container">
+            <h2 class="section-title">Outils de gestion de l'établissement</h2>
+            
+            <div class="nav-cards-grid">
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-school"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Infos de l'école</h3>
+                        <p>Coordonnées et organisation</p>
+                    </div>
+                </a>
+                <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Classes</h3>
+                        <p>Gestion des classes</p>
+                    </div>
+                </a>
+
+                <a href="{% url 'salle:liste_salles' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Salles</h3>
+                        <p>Gestion des salles</p>
+                    </div>
+                </a>
+                <a href="{% url 'affectation_salle:liste_affectations' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Affectations Salles</h3>
+                        <p>Classes ↔ Salles</p>
+                    </div>
+                </a>
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-teal">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Sécurité</h3>
+                        <p>Accès et permissions</p>
+                    </div>
+                </a>
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-red">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Rapports</h3>
+                        <p>Statistiques et analyses</p>
+                    </div>
+                </a>
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Notifications</h3>
+                        <p>Alertes et communications</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Dernières actions établissement -->
+        <div class="recent-actions-section">
+            <h2 class="section-title">Dernières actions établissement</h2>
+            <div class="actions-list">
+                <div class="action-item">
+                    <div class="action-icon success">
+                        <i class="fas fa-school"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Informations de l'établissement mises à jour</p>
+                        <span class="action-time">Il y a 30 minutes</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon primary">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Nouvelle année scolaire configurée</p>
+                        <span class="action-time">Il y a 2 heures</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon warning">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Nouvelle salle de classe ajoutée</p>
+                        <span class="action-time">Hier</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon info">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Paramètres de sécurité modifiés</p>
+                        <span class="action-time">Il y a 2 jours</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon success">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Sauvegarde automatique effectuée</p>
+                        <span class="action-time">Il y a 3 jours</span>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-icon primary">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="action-content">
+                        <p class="action-text">Rapport mensuel généré</p>
+                        <span class="action-time">Il y a 5 jours</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/gestion_etablissement.js' %}"></script>
+</body>
+</html>

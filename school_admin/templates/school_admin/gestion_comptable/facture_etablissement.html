@@ -21,8 +21,11 @@
   <body>
     {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
 
-    <div class="invoice-container">
-      <!-- Invoice Actions -->
+      <div class="invoice-container">
+        <!-- Messages Django -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Invoice Actions -->
       <div class="invoice-actions">
         <button class="btn btn-outline" onclick="goBack()">
           <i class="fas fa-arrow-left"></i> Retour
@@ -33,22 +36,42 @@
         <button class="btn btn-success" onclick="downloadPDF()">
           <i class="fas fa-download"></i> Télécharger PDF
         </button>
-        <button class="btn btn-secondary" onclick="sendInvoice()">
-          <i class="fas fa-paper-plane"></i> Envoyer par Email
+        {% if not facture_info.statut_envoi %}
+        <form method="POST" action="{% url 'school_admin:envoyer_facture' facture_info.numero etablissement.id %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary">
+            <i class="fas fa-paper-plane"></i> Marquer comme Envoyée
+          </button>
+        </form>
+        {% else %}
+        <button class="btn btn-success" disabled>
+          <i class="fas fa-check-circle"></i> Facture Envoyée
         </button>
+        {% endif %}
       </div>
 
       <!-- Invoice Document -->
       <div class="invoice-document" id="invoiceDocument">
         <!-- Invoice Status -->
         <div class="invoice-status-header">
-          <div class="status-badge paid">
-            <i class="fas fa-check-circle"></i>
-            <span>FACTURE PAYÉE</span>
+          <div class="status-badge {% if facture_info.statut == 'Payé' %}paid{% else %}pending{% endif %}">
+            <i class="fas fa-{% if facture_info.statut == 'Payé' %}check-circle{% else %}clock{% endif %}"></i>
+            <span>FACTURE {{ facture_info.statut|upper }}</span>
           </div>
           <div class="payment-date">
-            <p>Payée le : 15 Janvier 2024</p>
-            <p>Méthode : Virement bancaire</p>
+            {% if facture_info.date_paiement %}
+            <p>Payée le : {{ facture_info.date_paiement|date:"d F Y" }}</p>
+            {% if facture_info.mode_paiement %}
+            <p>Méthode : {{ facture_info.mode_paiement }}</p>
+            {% endif %}
+            {% else %}
+            <p>En attente de paiement</p>
+            {% endif %}
+            {% if facture_info.statut_envoi %}
+            <p style="color: #059669; font-weight: 600;"><i class="fas fa-paper-plane"></i> Envoyée à l'établissement</p>
+            {% else %}
+            <p style="color: #f59e0b; font-weight: 600;"><i class="fas fa-clock"></i> En attente d'envoi</p>
+            {% endif %}
           </div>
         </div>
 
@@ -60,17 +83,17 @@
               <span>Goo-School</span>
             </div>
             <div class="company-details">
-              <h2>Goo-School</h2>
-              <p>Plateforme de Gestion Scolaire</p>
-              <p><i class="fas fa-map-marker-alt"></i> Douala, Cameroun</p>
-              <p><i class="fas fa-phone"></i> +237 6XX XX XX XX</p>
-              <p><i class="fas fa-envelope"></i> contact@goo-school.com</p>
+              <h2>{{ company_info.nom }}</h2>
+              <p>{{ company_info.description }}</p>
+              <p><i class="fas fa-map-marker-alt"></i> {{ company_info.adresse }}</p>
+              <p><i class="fas fa-phone"></i> {{ company_info.telephone }}</p>
+              <p><i class="fas fa-envelope"></i> {{ company_info.email }}</p>
             </div>
           </div>
           <div class="invoice-title">
             <h1>FACTURE</h1>
             <div class="invoice-number">
-              <span>N° FAC-2024-001</span>
+              <span>N° {{ facture_info.numero }}</span>
             </div>
           </div>
         </div>
@@ -80,12 +103,16 @@
           <div class="bill-to">
             <h3>Facturer à :</h3>
             <div class="client-info">
-              <h4>Lycée Moderne de Douala</h4>
-              <p><strong>Directeur :</strong> M. Jean-Pierre Mballa</p>
-              <p><strong>Adresse :</strong> Quartier Akwa, Douala, Cameroun</p>
-              <p><strong>Téléphone :</strong> +237 6XX XX XX XX</p>
-              <p><strong>Email :</strong> contact@lyceemoderne-douala.cm</p>
-              <p><strong>Type :</strong> Établissement Privé</p>
+              <h4>{{ etablissement_info.nom }}</h4>
+              <p><strong>Directeur :</strong> {{ etablissement_info.directeur }}</p>
+              <p><strong>Adresse :</strong> {{ etablissement_info.adresse }}</p>
+              {% if etablissement_info.telephone %}
+              <p><strong>Téléphone :</strong> {{ etablissement_info.telephone }}</p>
+              {% endif %}
+              {% if etablissement_info.email %}
+              <p><strong>Email :</strong> {{ etablissement_info.email }}</p>
+              {% endif %}
+              <p><strong>Type :</strong> {{ etablissement_info.type }}</p>
             </div>
           </div>
           <div class="invoice-info">
@@ -93,20 +120,22 @@
             <div class="info-grid">
               <div class="info-item">
                 <label>Date d'émission :</label>
-                <span>15 Janvier 2024</span>
+                <span>{{ facture_info.date_emission|date:"d F Y" }}</span>
               </div>
               <div class="info-item">
                 <label>Date d'échéance :</label>
-                <span>15 Février 2024</span>
+                <span>{{ facture_info.date_echeance|date:"d F Y" }}</span>
               </div>
               <div class="info-item">
-                <label>Période :</label>
-                <span>Janvier 2024</span>
+                <label>Type de facture :</label>
+                <span>{{ facture_info.type_facture }}</span>
               </div>
+              {% if facture_info.mode_paiement %}
               <div class="info-item">
                 <label>Méthode de paiement :</label>
-                <span>Virement bancaire</span>
+                <span>{{ facture_info.mode_paiement }}</span>
               </div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -127,39 +156,18 @@
               <tr>
                 <td>
                   <div class="item-description">
-                    <strong>Service de Gestion Scolaire</strong>
-                    <p>Abonnement mensuel - 450 élèves inscrits</p>
-                    <p>
-                      Inclut : Gestion des élèves, bulletins, communication,
-                      etc.
-                    </p>
+                    <strong>{{ facture_info.description }}</strong>
+                    {% if facture.est_facture_service %}
+                    <p>{{ facture_info.type_facture }} - {{ facture_info.quantite }} élèves inscrits</p>
+                    <p>Inclut : Gestion des élèves, bulletins, communication, etc.</p>
+                    {% elif facture.est_facture_module %}
+                    <p>Modules supplémentaires : {{ facture.get_modules_supplementaires_display }}</p>
+                    {% endif %}
                   </div>
                 </td>
-                <td>450</td>
-                <td>3,000 FCFA</td>
-                <td>1,350,000 FCFA</td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="item-description">
-                    <strong>Support Technique</strong>
-                    <p>Assistance technique et formation du personnel</p>
-                  </div>
-                </td>
-                <td>1</td>
-                <td>50,000 FCFA</td>
-                <td>50,000 FCFA</td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="item-description">
-                    <strong>Maintenance et Mises à jour</strong>
-                    <p>Maintenance du système et mises à jour de sécurité</p>
-                  </div>
-                </td>
-                <td>1</td>
-                <td>25,000 FCFA</td>
-                <td>25,000 FCFA</td>
+                <td>{{ facture_info.quantite }}</td>
+                <td>{{ facture_info.montant_unitaire|floatformat:0 }} FCFA</td>
+                <td>{{ facture_info.montant_total|floatformat:0 }} FCFA</td>
               </tr>
             </tbody>
           </table>
@@ -169,43 +177,38 @@
         <div class="invoice-totals">
           <div class="totals-table">
             <div class="total-row">
-              <span>Sous-total :</span>
-              <span>1,425,000 FCFA</span>
+              <span>Montant total :</span>
+              <span>{{ facture_info.montant_total|floatformat:0 }} FCFA</span>
+            </div>
+            {% if facture_info.paiement_partiel %}
+            <div class="total-row">
+              <span>Montant versé :</span>
+              <span style="color: #059669;">{{ facture_info.montant_verse|floatformat:0 }} FCFA</span>
             </div>
             <div class="total-row">
-              <span>Remise (5%) :</span>
-              <span class="discount">-71,250 FCFA</span>
+              <span>Reste à payer :</span>
+              <span style="color: #dc2626;">{{ facture_info.reste_a_payer|floatformat:0 }} FCFA</span>
             </div>
+            {% if facture_info.date_echeance_reste %}
             <div class="total-row">
-              <span>Taxe (19%) :</span>
-              <span>257,175 FCFA</span>
+              <span>Échéance du reste :</span>
+              <span>{{ facture_info.date_echeance_reste|date:"d F Y" }}</span>
             </div>
+            {% endif %}
+            {% endif %}
             <div class="total-row total-final">
-              <span><strong>Total TTC :</strong></span>
-              <span><strong>1,610,925 FCFA</strong></span>
+              <span><strong>{% if facture_info.paiement_partiel %}Montant total de la facture{% else %}Total payé{% endif %} :</strong></span>
+              <span><strong>{{ facture_info.montant_total|floatformat:0 }} FCFA</strong></span>
             </div>
           </div>
         </div>
 
-        <!-- Payment Information -->
-        <div class="payment-info">
-          <h3>Informations de Paiement :</h3>
-          <div class="payment-details">
-            <div class="bank-info">
-              <h4>Virement Bancaire :</h4>
-              <p><strong>Banque :</strong> Afriland First Bank</p>
-              <p><strong>Nom du compte :</strong> Goo-School SARL</p>
-              <p><strong>Numéro de compte :</strong> 1234567890123456</p>
-              <p><strong>Code BIC :</strong> AFRIXCMCX</p>
-            </div>
-            <div class="payment-terms">
-              <h4>Conditions de Paiement :</h4>
-              <p>• Paiement à 30 jours net</p>
-              <p>
-                • En cas de retard, des intérêts de 1.5% par mois seront
-                appliqués
-              </p>
-              <p>• Merci de mentionner le numéro de facture lors du virement</p>
+        <!-- Facture Number -->
+        <div class="facture-number-section">
+          <div class="facture-number-display">
+            <h3>Numéro de Facture :</h3>
+            <div class="facture-number-box">
+              <span class="facture-number">{{ facture_info.numero }}</span>
             </div>
           </div>
         </div>

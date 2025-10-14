@@ -181,7 +181,9 @@ class EtablissementController:
                 'establishment_address': 'Adresse de l\'établissement',
                 'establishment_email': 'Email de l\'établissement',
                 'establishment_type': 'Type d\'établissement',
-                'establishment_password': 'Mot de passe provisoire'
+                'establishment_password': 'Mot de passe provisoire',
+                'type_facturation': 'Type de facturation',
+                'montant_par_eleve': 'Montant par élève'
             }
             
             # Vérifier les champs obligatoires
@@ -225,6 +227,22 @@ class EtablissementController:
                 errors['establishment_type'] = "Le type d'établissement n'est pas valide."
                 return False, "Le type d'établissement n'est pas valide.", None, errors
             
+            # Validation du type de facturation
+            valid_facturation_types = ['mensuel', 'annuel']
+            if data['type_facturation'] not in valid_facturation_types:
+                errors['type_facturation'] = "Le type de facturation n'est pas valide."
+                return False, "Le type de facturation n'est pas valide.", None, errors
+            
+            # Validation du montant par élève
+            try:
+                montant_par_eleve = float(data['montant_par_eleve'])
+                if montant_par_eleve < 0:
+                    errors['montant_par_eleve'] = "Le montant par élève ne peut pas être négatif."
+                    return False, "Le montant par élève ne peut pas être négatif.", None, errors
+            except (ValueError, TypeError):
+                errors['montant_par_eleve'] = "Le montant par élève doit être un nombre valide."
+                return False, "Le montant par élève doit être un nombre valide.", None, errors
+            
             email_directeur = data['teacher_email']
             username = email_directeur
             
@@ -249,6 +267,9 @@ class EtablissementController:
                     directeur_telephone=data.get('teacher_phone', ''),
                     username=username,
                     cree_par=request.user if request.user.is_authenticated else None,
+                    # Configuration de facturation
+                    type_facturation=data['type_facturation'],
+                    montant_par_eleve=montant_par_eleve,
                     # Modules activés
                     module_gestion_eleves=bool(data.get('module_gestion_eleves')),
                     module_notes_evaluations=bool(data.get('module_notes_evaluations')),
@@ -315,6 +336,9 @@ class EtablissementController:
                 'establishment_password': request.POST.get('establishment_password', ''),
                 'establishment_country': request.POST.get('establishment_country', ''),
                 'establishment_city': request.POST.get('establishment_city', ''),
+                # Configuration de facturation
+                'type_facturation': request.POST.get('type_facturation', ''),
+                'montant_par_eleve': request.POST.get('montant_par_eleve', ''),
                 # Modules
                 'module_gestion_eleves': request.POST.get('module_gestion_eleves'),
                 'module_notes_evaluations': request.POST.get('module_notes_evaluations'),

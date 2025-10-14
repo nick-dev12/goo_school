@@ -1,0 +1,371 @@
+
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturation Directeur</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/facturation_directeur.css' %}">
+
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+<div class="facturation-page">
+    <!-- Actions de la page -->
+    <div class="page-actions">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+        <button class="btn btn-success" onclick="exporterFactures()">
+            <i class="fas fa-download"></i> Exporter
+        </button>
+    </div>
+
+    <!-- Statistiques de facturation -->
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.total_factures }}</h3>
+                <p>Total Factures</p>
+                <span class="stat-change">+12% ce mois</span>
+            </div>
+            <div class="stat-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-franc-sign"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.montant_total|floatformat:0 }} FCFA</h3>
+                <p>Montant Total</p>
+                <span class="stat-change">+8% vs mois dernier</span>
+            </div>
+            <div class="stat-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.en_attente }}</h3>
+                <p>En Attente</p>
+                <span class="stat-change">En cours de traitement</span>
+            </div>
+            <div class="stat-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.payees }}</h3>
+                <p>Payées</p>
+                <span class="stat-change">+15% cette semaine</span>
+            </div>
+            <div class="stat-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+        
+        <div class="stat-card urgent">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.en_retard }}</h3>
+                <p>En Retard</p>
+                <span class="stat-change urgent-text">Nécessitent votre attention</span>
+            </div>
+            <div class="stat-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes urgentes -->
+    {% if factures_urgentes %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Attention !</strong> Vous avez {{ factures_urgentes|length }} facture(s) urgente(s) nécessitant votre attention.
+        <a href="#urgentes" class="alert-link">Voir les détails</a>
+    </div>
+    {% endif %}
+
+    <!-- Filtres -->
+    <div class="filters-section">
+        <form method="get" class="filters-form">
+            <div class="filter-group">
+                <label for="statut">Statut :</label>
+                <select name="statut" id="statut" class="form-select">
+                    <option value="">Tous les statuts</option>
+                    {% for value, label in statut_choices %}
+                    <option value="{{ value }}" {% if statut_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="type">Type :</label>
+                <select name="type" id="type" class="form-select">
+                    <option value="">Tous les types</option>
+                    {% for value, label in type_choices %}
+                    <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter"></i> Filtrer
+            </button>
+            
+            <a href="{% url 'directeur:facturation_directeur' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Effacer
+            </a>
+        </form>
+    </div>
+
+    <!-- Modules activés/inactifs -->
+    <div class="modules-section">
+        <div class="section-header">
+            <h2><i class="fas fa-cogs"></i> Modules de Service</h2>
+            <p>Gérez les modules activés pour votre établissement</p>
+        </div>
+        
+        <div class="modules-container">
+            <div class="modules-grid">
+                {% for key, module in modules_info.items %}
+                <div class="module-item {% if module.actif %}active{% else %}inactive{% endif %}">
+                    <div class="module-header">
+                        <div class="module-icon">
+                            <i class="fas fa-{% if module.actif %}check{% else %}times{% endif %}"></i>
+                        </div>
+                        <div class="module-status">
+                            {% if module.actif %}
+                                <span class="status-badge active">Activé</span>
+                            {% else %}
+                                <span class="status-badge inactive">Inactivé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="module-content">
+                        <h4>{{ module.nom }}</h4>
+                        <div class="module-indicator">
+                            <div class="indicator-dot {% if module.actif %}active{% else %}inactive{% endif %}"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations de facturation -->
+    <div class="billing-info">
+        <div class="info-card">
+            <div class="card-header">
+                <h3><i class="fas fa-info-circle"></i> Informations de Facturation</h3>
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Montant par élève</span>
+                    </div>
+                    <div class="info-value">{{ montant_par_eleve }} FCFA</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-users"></i>
+                        <span>Nombre d'élèves inscrits</span>
+                    </div>
+                    <div class="info-value">{{ nombre_eleves_total }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-calculator"></i>
+                        <span>Montant total calculé</span>
+                    </div>
+                    <div class="info-value">{{ montant_total_theorique|floatformat:0 }} FCFA</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Statut de paiement</span>
+                    </div>
+                    <div class="info-value status-{{ etablissement.statut_paiement }}">{{ etablissement.get_statut_paiement_display }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des factures -->
+    <div class="factures-section">
+        <h2><i class="fas fa-list"></i> Historique des Factures</h2>
+        
+        {% if facturations %}
+        <div class="table-responsive">
+            <table class="factures-table">
+                <thead>
+                    <tr>
+                        <th>N° Facture</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Montant</th>
+                        <th>Statut</th>
+                        <th>Date Création</th>
+                        <th>Échéance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facture in facturations %}
+                    <tr class="{% if facture.est_urgente %}urgent{% endif %}">
+                        <td>
+                            <strong>{{ facture.numero_facture }}</strong>
+                        </td>
+                        <td>
+                            <span class="type-badge type-{{ facture.type_facture }}">
+                                {{ facture.get_type_facture_display }}
+                            </span>
+                        </td>
+                        <td>{{ facture.description|truncatechars:50 }}</td>
+                        <td>
+                            <strong>{{ facture.montant_total|floatformat:0 }} FCFA</strong>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ facture.statut }}">
+                                {{ facture.get_statut_display }}
+                            </span>
+                            {% if facture.est_urgente %}
+                            <i class="fas fa-exclamation-triangle urgent-icon" title="Facture urgente"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ facture.date_creation|date:"d/m/Y" }}</td>
+                        <td>
+                            {{ facture.date_echeance|date:"d/m/Y" }}
+                            {% if facture.jours_restants > 0 %}
+                            <small class="text-muted">({{ facture.jours_restants }}j restants)</small>
+                            {% elif facture.est_en_retard %}
+                            <small class="text-danger">(En retard)</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline-primary" onclick="voirFacture({{ facture.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if facture.statut == 'en_attente' %}
+                                <button class="btn btn-sm btn-success" onclick="marquerPaye({{ facture.id }})">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary" onclick="imprimerFacture({{ facture.id }})">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-receipt"></i>
+            <h3>Aucune facture trouvée</h3>
+            <p>Il n'y a pas de factures correspondant à vos critères de recherche.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Factures urgentes (section spéciale) -->
+    {% if factures_urgentes %}
+    <div id="urgentes" class="urgentes-section">
+        <h2><i class="fas fa-exclamation-triangle"></i> Factures Urgentes</h2>
+        <div class="urgentes-grid">
+            {% for facture in factures_urgentes %}
+            <div class="urgente-card">
+                <div class="urgente-header">
+                    <h4>{{ facture.numero_facture }}</h4>
+                    <span class="urgente-badge">URGENTE</span>
+                </div>
+                <div class="urgente-content">
+                    <p><strong>Montant :</strong> {{ facture.montant_total|floatformat:0 }} FCFA</p>
+                    <p><strong>Échéance :</strong> {{ facture.date_echeance|date:"d/m/Y" }}</p>
+                    <p><strong>Jours restants :</strong> 
+                        {% if facture.jours_restants > 0 %}
+                            {{ facture.jours_restants }} jour(s)
+                        {% else %}
+                            <span class="text-danger">En retard</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="urgente-actions">
+                    <button class="btn btn-warning btn-sm" onclick="voirFacture({{ facture.id }})">
+                        <i class="fas fa-eye"></i> Voir
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="marquerPaye({{ facture.id }})">
+                        <i class="fas fa-check"></i> Marquer payée
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Scripts -->
+<script>
+function voirFacture(factureId) {
+    // Implémentation pour voir les détails d'une facture
+    console.log('Voir facture:', factureId);
+    // Ici vous pouvez ajouter une modal ou rediriger vers une page de détail
+}
+
+function marquerPaye(factureId) {
+    if (confirm('Êtes-vous sûr de vouloir marquer cette facture comme payée ?')) {
+        // Implémentation pour marquer une facture comme payée
+        console.log('Marquer payée:', factureId);
+        // Ici vous pouvez faire un appel AJAX pour mettre à jour le statut
+    }
+}
+
+function imprimerFacture(factureId) {
+    // Implémentation pour imprimer une facture
+    console.log('Imprimer facture:', factureId);
+    // Ici vous pouvez ouvrir une nouvelle fenêtre avec la facture à imprimer
+}
+
+function exporterFactures() {
+    // Implémentation pour exporter les factures
+    console.log('Exporter factures');
+    // Ici vous pouvez générer un fichier Excel ou PDF
+}
+
+// Auto-refresh des factures urgentes toutes les 5 minutes
+setInterval(function() {
+    // Vérifier s'il y a de nouvelles factures urgentes
+    location.reload();
+}, 300000);
+</script>
+</body>
+</html>
+

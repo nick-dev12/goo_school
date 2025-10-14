@@ -1,0 +1,602 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affectations Salles-Classes - {{ etablissement.nom }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/affectations_salles.css' %}">
+</head>
+<body>
+
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="page-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <i class="fas fa-link"></i>
+                    <h1>Affectations Salles-Classes</h1>
+                    <p>Gérez les affectations des salles aux classes</p>
+                </div>
+                <button class="btn-add-affectation" id="addAffectationBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>Nouvelle affectation</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ stats.total_affectations }}</div>
+                        <div class="stat-label">Total Affectations</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ stats.affectations_actives }}</div>
+                        <div class="stat-label">Actives</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ stats.classes_affectees }}</div>
+                        <div class="stat-label">Classes Affectées</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ stats.salles_utilisees }}</div>
+                        <div class="stat-label">Salles Utilisées</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation par onglets -->
+        <div class="tabs-section">
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="par-classe">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    Par Classe
+                </button>
+                <button class="tab-btn" data-tab="par-salle">
+                    <i class="fas fa-door-open"></i>
+                    Par Salle
+                </button>
+                <button class="tab-btn" data-tab="calendrier">
+                    <i class="fas fa-calendar-alt"></i>
+                    Calendrier
+                </button>
+            </div>
+
+            <div class="tabs-content">
+                <!-- Onglet Par Classe -->
+                <div id="par-classe" class="tab-panel active">
+                    {% if classes_par_niveau %}
+                        <!-- Onglets par niveau -->
+                        <div class="niveau-tabs">
+                            <div class="niveau-tabs-nav">
+                                {% for groupe in classes_par_niveau %}
+                                    <button class="niveau-tab-btn {% if forloop.first %}active{% endif %}" data-niveau="{{ groupe.categorie }}">
+                                        <i class="fas fa-graduation-cap"></i>
+                                        {{ groupe.categorie|title }}
+                                        <span class="count-badge">{{ groupe.classes|length }}</span>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="niveau-tabs-content">
+                                {% for groupe in classes_par_niveau %}
+                                    <div id="niveau-{{ groupe.categorie }}" class="niveau-tab-panel {% if forloop.first %}active{% endif %}">
+                                        <!-- Résumé du niveau -->
+                                        <div class="niveau-summary">
+                                            <div class="summary-header">
+                                                <div class="summary-icon">
+                                                    <i class="fas fa-graduation-cap"></i>
+                                                </div>
+                                                <div class="summary-info">
+                                                    <h2>{{ groupe.categorie|title }}</h2>
+                                                    <p>{{ groupe.classes|length }} classe{{ groupe.classes|length|pluralize }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="summary-stats">
+                                                <div class="stat-item">
+                                                    <span class="stat-value">{{ groupe.total_affectations }}</span>
+                                                    <span class="stat-label">AFFECTATIONS</span>
+                                                </div>
+                                                <div class="stat-item">
+                                                    <span class="stat-value">{{ groupe.total_salles }}</span>
+                                                    <span class="stat-label">SALLES</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Grille des classes -->
+                                        <div class="classes-grid">
+                                            {% for classe_nom, data in groupe.classes %}
+                                                <div class="classe-card">
+                                                    <div class="classe-header">
+                                                        <div class="classe-icon">
+                                                            <i class="fas fa-chalkboard-teacher"></i>
+                                                        </div>
+                                                        <div class="classe-info">
+                                                            <h3>{{ data.classe.nom }}</h3>
+                                                            <p>{{ data.classe.niveau|title }}</p>
+                                                        </div>
+                                                        <div class="classe-status">
+                                                            <span class="status-badge active">ACTIVE</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="classe-details">
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-door-open"></i>
+                                                            <span class="detail-label">Salles affectées:</span>
+                                                            <div class="salles-list">
+                                                                {% for affectation in data.affectations %}
+                                                                    <span class="salle-tag">
+                                                                        {{ affectation.salle.nom }} ({{ affectation.salle.numero }})
+                                                                    </span>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-calendar-day"></i>
+                                                            <span class="detail-label">Horaires:</span>
+                                                            <div class="horaires-list">
+                                                                {% for affectation in data.affectations %}
+                                                                    <span class="horaire-tag">
+                                                                        {{ affectation.get_jour_semaine_display }} {{ affectation.get_periode_display }}
+                                                                        {% if affectation.heure_debut and affectation.heure_fin %}
+                                                                            - {{ affectation.heure_debut|time:"H:i" }}-{{ affectation.heure_fin|time:"H:i" }}
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="classe-actions">
+                                                        <a href="#" class="btn-action btn-detail">
+                                                            <i class="fas fa-eye"></i>
+                                                            Détails
+                                                        </a>
+                                                        <a href="#" class="btn-action btn-edit">
+                                                            <i class="fas fa-edit"></i>
+                                                            Modifier
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <h3>Aucune affectation trouvée</h3>
+                            <p>Commencez par créer des affectations entre vos classes et salles</p>
+                            <button class="btn-add-affectation" id="addAffectationBtnEmpty">
+                                <i class="fas fa-plus"></i>
+                                <span>Créer la première affectation</span>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Onglet Par Salle -->
+                <div id="par-salle" class="tab-panel">
+                    {% if salles_par_type %}
+                        <!-- Onglets par type de salle -->
+                        <div class="type-tabs">
+                            <div class="type-tabs-nav">
+                                {% for groupe in salles_par_type %}
+                                    <button class="type-tab-btn {% if forloop.first %}active{% endif %}" data-type="{{ groupe.type }}">
+                                        <i class="fas fa-door-open"></i>
+                                        {{ groupe.type|title }}
+                                        <span class="count-badge">{{ groupe.salles|length }}</span>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="type-tabs-content">
+                                {% for groupe in salles_par_type %}
+                                    <div id="type-{{ groupe.type }}" class="type-tab-panel {% if forloop.first %}active{% endif %}">
+                                        <!-- Résumé du type -->
+                                        <div class="type-summary">
+                                            <div class="summary-header">
+                                                <div class="summary-icon">
+                                                    <i class="fas fa-door-open"></i>
+                                                </div>
+                                                <div class="summary-info">
+                                                    <h2>{{ groupe.type|title }}</h2>
+                                                    <p>{{ groupe.salles|length }} salle{{ groupe.salles|length|pluralize }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="summary-stats">
+                                                <div class="stat-item">
+                                                    <span class="stat-value">{{ groupe.total_affectations }}</span>
+                                                    <span class="stat-label">AFFECTATIONS</span>
+                                                </div>
+                                                <div class="stat-item">
+                                                    <span class="stat-value">{{ groupe.total_classes }}</span>
+                                                    <span class="stat-label">CLASSES</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Grille des salles -->
+                                        <div class="salles-grid">
+                                            {% for salle_nom, data in groupe.salles %}
+                                                <div class="salle-card">
+                                                    <div class="salle-header">
+                                                        <div class="salle-icon">
+                                                            <i class="fas fa-door-open"></i>
+                                                        </div>
+                                                        <div class="salle-info">
+                                                            <h3>{{ data.salle.nom }}</h3>
+                                                            <p>{{ data.salle.numero }} - {{ data.salle.get_type_salle_display }}</p>
+                                                        </div>
+                                                        <div class="salle-status">
+                                                            <span class="status-badge active">ACTIVE</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="salle-details">
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-chalkboard-teacher"></i>
+                                                            <span class="detail-label">Classes affectées:</span>
+                                                            <div class="classes-list">
+                                                                {% for affectation in data.affectations %}
+                                                                    <span class="classe-tag">
+                                                                        {{ affectation.classe.nom }} ({{ affectation.classe.niveau }})
+                                                                    </span>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-calendar-day"></i>
+                                                            <span class="detail-label">Horaires:</span>
+                                                            <div class="horaires-list">
+                                                                {% for affectation in data.affectations %}
+                                                                    <span class="horaire-tag">
+                                                                        {{ affectation.get_jour_semaine_display }} {{ affectation.get_periode_display }}
+                                                                        {% if affectation.heure_debut and affectation.heure_fin %}
+                                                                            - {{ affectation.heure_debut|time:"H:i" }}-{{ affectation.heure_fin|time:"H:i" }}
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="salle-actions">
+                                                        <a href="#" class="btn-action btn-detail">
+                                                            <i class="fas fa-eye"></i>
+                                                            Détails
+                                                        </a>
+                                                        <a href="#" class="btn-action btn-edit">
+                                                            <i class="fas fa-edit"></i>
+                                                            Modifier
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <h3>Aucune salle affectée</h3>
+                            <p>Les salles n'ont pas encore été affectées à des classes.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Onglet Calendrier -->
+                <div id="calendrier" class="tab-panel">
+                    <div class="calendar-placeholder">
+                        <div class="calendar-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h3>Calendrier des Affectations</h3>
+                        <p>Cette fonctionnalité sera disponible dans une future version</p>
+                        <p>Elle permettra de visualiser les affectations sous forme de calendrier hebdomadaire</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'ajout d'affectation -->
+    <div class="modal-overlay" id="addAffectationModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-plus"></i>
+                    Nouvelle affectation
+                </h2>
+                <button class="modal-close" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form class="modal-form" method="post" action="{% url 'affectation_salle:ajouter_affectation' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="classe" class="form-label">Classe *</label>
+                        <select id="classe" name="classe" class="form-control" required>
+                            <option value="">Sélectionnez une classe</option>
+                            {% for classe in etablissement.classes.all %}
+                                <option value="{{ classe.id }}">{{ classe.nom }} ({{ classe.niveau }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="salle" class="form-label">Salle *</label>
+                        <select id="salle" name="salle" class="form-control" required>
+                            <option value="">Sélectionnez une salle</option>
+                            {% for salle in etablissement.salles.all %}
+                                <option value="{{ salle.id }}">{{ salle.nom }} ({{ salle.numero }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="jour_semaine" class="form-label">Jour de la semaine *</label>
+                        <select id="jour_semaine" name="jour_semaine" class="form-control" required>
+                            <option value="">Sélectionnez un jour</option>
+                            <option value="lundi">Lundi</option>
+                            <option value="mardi">Mardi</option>
+                            <option value="mercredi">Mercredi</option>
+                            <option value="jeudi">Jeudi</option>
+                            <option value="vendredi">Vendredi</option>
+                            <option value="samedi">Samedi</option>
+                            <option value="dimanche">Dimanche</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="periode" class="form-label">Période *</label>
+                        <select id="periode" name="periode" class="form-control" required>
+                            <option value="">Sélectionnez une période</option>
+                            <option value="matin">Matin</option>
+                            <option value="apres_midi">Après-midi</option>
+                            <option value="soir">Soir</option>
+                            <option value="journee_complete">Journée complète</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="heure_debut" class="form-label">Heure de début</label>
+                        <input type="time" id="heure_debut" name="heure_debut" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="heure_fin" class="form-label">Heure de fin</label>
+                        <input type="time" id="heure_fin" name="heure_fin" class="form-control">
+                    </div>
+                </div>
+                
+                
+                <div class="form-group">
+                    <label for="commentaire" class="form-label">Commentaire</label>
+                    <textarea id="commentaire" name="commentaire" class="form-control" rows="3" placeholder="Commentaire sur cette affectation..."></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="cancelAdd">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-save"></i>
+                        Créer l'affectation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestion des onglets
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Retirer la classe active de tous les onglets et panneaux
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => p.classList.remove('active'));
+                    
+                    // Ajouter la classe active à l'onglet cliqué et au panneau correspondant
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+
+            // Gestion du modal
+            const addAffectationBtn = document.getElementById('addAffectationBtn');
+            const addAffectationBtnEmpty = document.getElementById('addAffectationBtnEmpty');
+            const addAffectationBtnEmpty2 = document.getElementById('addAffectationBtnEmpty2');
+            const modal = document.getElementById('addAffectationModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelBtn = document.getElementById('cancelAdd');
+
+            function openModal() {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModalFunc() {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+
+            if (addAffectationBtn) {
+                addAffectationBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openModal();
+                });
+            }
+
+            if (addAffectationBtnEmpty) {
+                addAffectationBtnEmpty.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openModal();
+                });
+            }
+
+            if (addAffectationBtnEmpty2) {
+                addAffectationBtnEmpty2.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openModal();
+                });
+            }
+
+            if (closeModal) {
+                closeModal.addEventListener('click', closeModalFunc);
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModalFunc);
+            }
+
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeModalFunc();
+                    }
+                });
+            }
+
+            // Fermer le modal avec la touche Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.classList.contains('active')) {
+                    closeModalFunc();
+                }
+            });
+
+
+            // Initialiser les onglets par niveau
+            initNiveauTabs();
+            
+            // Initialiser les onglets par type de salle
+            initTypeTabs();
+        });
+
+        // Gestion des onglets par niveau
+        function initNiveauTabs() {
+            const niveauTabBtns = document.querySelectorAll('.niveau-tab-btn');
+            const niveauTabPanels = document.querySelectorAll('.niveau-tab-panel');
+
+            niveauTabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const niveau = btn.getAttribute('data-niveau');
+                    
+                    // Désactiver tous les boutons
+                    niveauTabBtns.forEach(b => b.classList.remove('active'));
+                    // Activer le bouton cliqué
+                    btn.classList.add('active');
+                    
+                    // Masquer tous les panneaux
+                    niveauTabPanels.forEach(panel => panel.classList.remove('active'));
+                    // Afficher le panneau correspondant
+                    const targetPanel = document.getElementById(`niveau-${niveau}`);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Gestion des onglets par type de salle
+        function initTypeTabs() {
+            const typeTabBtns = document.querySelectorAll('.type-tab-btn');
+            const typeTabPanels = document.querySelectorAll('.type-tab-panel');
+
+            typeTabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.getAttribute('data-type');
+                    
+                    // Désactiver tous les boutons
+                    typeTabBtns.forEach(b => b.classList.remove('active'));
+                    // Activer le bouton cliqué
+                    btn.classList.add('active');
+                    
+                    // Masquer tous les panneaux
+                    typeTabPanels.forEach(panel => panel.classList.remove('active'));
+                    // Afficher le panneau correspondant
+                    const targetPanel = document.getElementById(`type-${type}`);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Fonctions pour les boutons toggle
+        function toggleClasse(classeId) {
+            const element = document.getElementById(classeId);
+            const button = element.previousElementSibling.querySelector('.btn-toggle i');
+            
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                button.classList.remove('fa-chevron-down');
+                button.classList.add('fa-chevron-up');
+            } else {
+                element.style.display = 'none';
+                button.classList.remove('fa-chevron-up');
+                button.classList.add('fa-chevron-down');
+            }
+        }
+
+        function toggleSalle(salleId) {
+            const element = document.getElementById(salleId);
+            const button = element.previousElementSibling.querySelector('.btn-toggle i');
+            
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                button.classList.remove('fa-chevron-down');
+                button.classList.add('fa-chevron-up');
+            } else {
+                element.style.display = 'none';
+                button.classList.remove('fa-chevron-up');
+                button.classList.add('fa-chevron-down');
+            }
+        }
+    </script>
+</body>
+</html>

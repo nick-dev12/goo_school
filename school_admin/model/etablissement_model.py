@@ -59,6 +59,49 @@ class Etablissement(AbstractUser):
     module_activites = models.BooleanField(default=False, verbose_name="Activités extra-scolaires")
     module_formation = models.BooleanField(default=False, verbose_name="Formation continue")
     
+    # Facturation
+    type_facturation = models.CharField(
+        max_length=20,
+        choices=[
+            ('mensuel', 'Facturation mensuelle'),
+            ('annuel', 'Facturation annuelle'),
+        ],
+        default='mensuel',
+        verbose_name="Type de facturation"
+    )
+    montant_par_eleve = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=3000.00, 
+        verbose_name="Montant par élève (FCFA)"
+    )
+    montant_total_facturation = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00, 
+        verbose_name="Montant total de facturation"
+    )
+    statut_paiement = models.CharField(
+        max_length=20,
+        choices=[
+            ('en_attente', 'En attente de paiement'),
+            ('paye', 'Payé'),
+            ('en_retard', 'En retard'),
+            ('annule', 'Annulé'),
+        ],
+        default='en_attente',
+        verbose_name="Statut du paiement"
+    )
+    date_derniere_facturation = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        verbose_name="Date de dernière facturation"
+    )
+    nombre_eleves_factures = models.PositiveIntegerField(
+        default=0, 
+        verbose_name="Nombre d'élèves facturés"
+    )
+    
     
     username = models.CharField(unique=True, max_length=100, verbose_name="Nom d'utilisateur", default="")
     USERNAME_FIELD = 'username'
@@ -86,6 +129,9 @@ class Etablissement(AbstractUser):
         verbose_name = "Établissement"
         verbose_name_plural = "Établissements"
         ordering = ['-date_creation']
+        # Configuration de l'encodage UTF-8
+        db_table = 'school_admin_etablissement'
+        managed = True
         
     def __str__(self):
         return f"{self.nom} ({self.get_type_etablissement_display()})"

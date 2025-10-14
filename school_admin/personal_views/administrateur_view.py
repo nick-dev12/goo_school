@@ -160,12 +160,25 @@ def administrateur_update_etablissement(request):
     # Validation et traitement du formulaire
     if request.method == 'POST':
         # Validation des champs obligatoires
-        required_fields = ['nom', 'type_etablissement', 'adresse', 'email']
+        required_fields = ['nom', 'type_etablissement', 'adresse', 'email', 'type_facturation', 'montant_par_eleve']
         errors = {}
         
         for field in required_fields:
             if not request.POST.get(field):
                 errors[field] = f"Le champ {field} est obligatoire."
+        
+        # Validation du type de facturation
+        valid_facturation_types = ['mensuel', 'annuel']
+        if request.POST.get('type_facturation') not in valid_facturation_types:
+            errors['type_facturation'] = "Le type de facturation n'est pas valide."
+        
+        # Validation du montant par élève
+        try:
+            montant_par_eleve = float(request.POST.get('montant_par_eleve', 0))
+            if montant_par_eleve < 0:
+                errors['montant_par_eleve'] = "Le montant par élève ne peut pas être négatif."
+        except (ValueError, TypeError):
+            errors['montant_par_eleve'] = "Le montant par élève doit être un nombre valide."
         
         # Si des erreurs sont détectées, afficher les messages d'erreur
         if errors:
@@ -185,6 +198,8 @@ def administrateur_update_etablissement(request):
                 'email': request.POST.get('email', ''),
                 'site_web': request.POST.get('site_web', ''),
                 'actif': bool(request.POST.get('actif', False)),
+                'type_facturation': request.POST.get('type_facturation', ''),
+                'montant_par_eleve': montant_par_eleve,
                 
                 # Modules de base
                 'module_gestion_eleves': bool(request.POST.get('module_gestion_eleves', False)),
@@ -228,6 +243,10 @@ def administrateur_update_etablissement(request):
             etablissement.email = data['email']
             etablissement.site_web = data['site_web']
             etablissement.actif = data['actif']
+            
+            # Mise à jour des champs de facturation
+            etablissement.type_facturation = data['type_facturation']
+            etablissement.montant_par_eleve = data['montant_par_eleve']
             
             # Mise à jour des modules
             etablissement.module_gestion_eleves = data['module_gestion_eleves']

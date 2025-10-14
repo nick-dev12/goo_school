@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion Pédagogique - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/gestion_pedagogique.css' %}"
+    />
+  </head>
+  <body>
+
+<!-- Header -->
+{% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+<!-- Main Content -->
+<div class="main-content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1 class="page-title">
+                <i class="fas fa-graduation-cap"></i>
+                Gestion Pédagogique
+            </h1>
+            <p class="page-subtitle">
+                Organisez et gérez tous les aspects pédagogiques de votre établissement
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation Links Container -->
+    <div class="navigation-container">
+        <h2 class="section-title">Outils de gestion</h2>
+        
+        <!-- Gestion pédagogique -->
+        <div class="nav-cards-grid">
+            <a href="{% url 'matiere:liste_matieres' %}" class="nav-link-card">
+                <div class="nav-card-icon neo-purple">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div class="nav-link-content">
+                    <h3>Matières et classes</h3>
+                    <p>Organisation des matières et classes</p>
+                </div>
+            </a>
+            <a href="{% url 'personnel:liste_personnel' %}" class="nav-link-card">
+                <div class="nav-card-icon neo-teal">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="nav-link-content">
+                    <h3>Enseignants et personnel administratif</h3>
+                    <p>Gestion de l'équipe pédagogique</p>
+                </div>
+            </a>
+            <a href="{% url 'affectation:affectation_professeurs' %}" class="nav-link-card">
+                <div class="nav-card-icon neo-teal">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div class="nav-link-content">
+                    <h3>affectation des professeurs</h3>
+                    <p>Affectation des professeurs aux classes</p>
+                </div>
+            </a>
+            <a href="#" class="nav-link-card">
+                <div class="nav-card-icon neo-green">
+                    <i class="fas fa-calendar-week"></i>
+                </div>
+                <div class="nav-link-content">
+                    <h3>Emplois du temps</h3>
+                    <p>Planification des cours</p>
+                </div>
+            </a>
+            <a href="#" class="nav-link-card">
+                <div class="nav-card-icon neo-orange">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="nav-link-content">
+                    <h3>Notes & Bulletins</h3>
+                    <p>Gestion des évaluations</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Dernières actions pédagogiques -->
+    <div class="recent-actions-section">
+        <h2 class="section-title">Dernières actions pédagogiques</h2>
+        <div class="actions-list">
+            <div class="action-item">
+                <div class="action-icon success">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="action-content">
+                    <p class="action-text">Nouvel enseignant ajouté : Marie Dubois</p>
+                    <span class="action-time">Il y a 2 heures</span>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-icon primary">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="action-content">
+                    <p class="action-text">Matière "Mathématiques" mise à jour</p>
+                    <span class="action-time">Il y a 4 heures</span>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-icon warning">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="action-content">
+                    <p class="action-text">Emploi du temps de la classe 6ème A modifié</p>
+                    <span class="action-time">Hier</span>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-icon info">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="action-content">
+                    <p class="action-text">Nouvelles évaluations programmées</p>
+                    <span class="action-time">Il y a 2 jours</span>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="action-content">
+                    <p class="action-text">Bulletins du 1er trimestre générés</p>
+                    <span class="action-time">Il y a 3 jours</span>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-icon primary">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="action-content">
+                    <p class="action-text">Personnel administratif mis à jour</p>
+                    <span class="action-time">Il y a 4 jours</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="{% static 'school_admin/js/directeur/gestion_pedagogique.js' %}"></script>
+</body>
+</html>
+
+

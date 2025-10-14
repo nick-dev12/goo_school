@@ -2,10 +2,10 @@
 
 /* Variables CSS */
 :root {
-  /* Couleurs principales */
-  --primary: #4361ee;
-  --primary-dark: #3a56d4;
-  --primary-light: #5c73f0;
+  /* Couleurs principales - Design élégant */
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #8b5cf6;
   --secondary: #64748b;
   --accent: #f59e0b;
   
@@ -83,8 +83,41 @@ body {
   font-size: var(--font-size-base);
   line-height: 1.6;
   color: var(--gray-700);
-  background-color: var(--gray-50);
+  background: linear-gradient(135deg, var(--gray-50) 0%, #f8fafc 50%, var(--gray-100) 100%);
+  background-attachment: fixed;
   overflow-x: hidden;
+}
+
+/* Animations d'entrée */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Container principal */
@@ -156,13 +189,13 @@ body {
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
 }
 
 .btn-secondary {
-  background: var(--gray-100);
+  background: linear-gradient(135deg, var(--gray-100) 0%, var(--white) 100%);
   color: var(--gray-700);
   border: 1px solid var(--gray-300);
   border-radius: var(--border-radius);
@@ -175,13 +208,30 @@ body {
   align-items: center;
   gap: var(--spacing-2);
   text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-secondary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-secondary:hover::before {
+  left: 100%;
 }
 
 .btn-secondary:hover {
-  background: var(--gray-200);
-  border-color: var(--gray-400);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-100) 100%);
+  border-color: var(--primary);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Messages */
@@ -235,82 +285,96 @@ body {
 .inscription-container {
   display: flex;
   justify-content: center;
-  margin-bottom: var(--spacing-8);
+  margin-bottom: var(--spacing-6);
 }
 
 .inscription-form-card {
   background: var(--white);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
   width: 100%;
-  max-width: 800px;
+  max-width: 1000px;
   overflow: hidden;
 }
 
 .form-header {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--primary-dark) 100%);
   color: var(--white);
-  padding: var(--spacing-8);
+  padding: var(--spacing-5);
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.form-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="90" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  pointer-events: none;
 }
 
 .form-title {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  margin-bottom: var(--spacing-2);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--spacing-1);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .form-title i {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
 }
 
 .form-subtitle {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   opacity: 0.9;
   margin: 0;
 }
 
 /* Formulaire */
 .inscription-form {
-  padding: var(--spacing-8);
+  padding: var(--spacing-5);
   position: relative;
 }
 
 
 .form-section {
-  margin-bottom: var(--spacing-8);
-  padding: var(--spacing-6);
-  background: var(--gray-50);
-  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-4);
+  background: var(--white);
+  border-radius: var(--border-radius);
   border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: var(--spacing-6);
+  margin-bottom: var(--spacing-4);
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  padding-bottom: var(--spacing-3);
+  gap: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
   border-bottom: 2px solid var(--primary);
 }
 
 .section-title i {
   color: var(--primary);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-6);
-  margin-bottom: var(--spacing-6);
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
 }
 
 .form-row:last-child {
@@ -323,10 +387,10 @@ body {
 }
 
 .form-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--gray-700);
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
   display: flex;
   align-items: center;
   gap: var(--spacing-1);
@@ -349,24 +413,26 @@ body {
   color: var(--error);
   font-weight: 700;
   margin-left: 2px;
+  font-size: var(--font-size-xs);
 }
 
 .optional-label {
   color: var(--gray-500);
   font-weight: 400;
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   font-style: italic;
   margin-left: 4px;
 }
 
 .form-control {
-  padding: var(--spacing-3) var(--spacing-4);
-  border: 2px solid var(--gray-200);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--gray-300);
   border-radius: var(--border-radius);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-family: var(--font-family);
   transition: var(--transition);
   background-color: var(--white);
+  height: 38px;
 }
 
 .form-control:focus {
@@ -395,10 +461,10 @@ body {
   font-weight: 500;
 }
 
-/* Radio buttons */
+/* Radio buttons - Design élégant */
 .radio-group {
   display: flex;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
   margin-top: var(--spacing-2);
 }
 
@@ -409,20 +475,40 @@ body {
   cursor: pointer;
   padding: var(--spacing-3);
   border-radius: var(--border-radius);
-  border: 2px solid var(--gray-200);
+  border: 1px solid var(--gray-300);
   transition: var(--transition);
-  background: var(--white);
+  background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.radio-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.radio-option:hover::before {
+  left: 100%;
 }
 
 .radio-option:hover {
   border-color: var(--primary);
-  background: var(--gray-50);
+  background: linear-gradient(135deg, var(--white) 0%, rgba(99, 102, 241, 0.05) 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 
 .radio-option input[type="radio"] {
   margin: 0;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   accent-color: var(--primary);
 }
 
@@ -433,7 +519,8 @@ body {
 
 .radio-option:has(input:checked) {
   border-color: var(--primary);
-  background: rgba(67, 97, 238, 0.05);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .radio-label {
@@ -441,57 +528,288 @@ body {
   font-weight: 500;
   color: var(--gray-700);
   transition: var(--transition);
+  position: relative;
+  z-index: 1;
 }
 
 /* Sections responsables */
 .responsable-section {
-  margin-top: var(--spacing-6);
-  padding: var(--spacing-6);
-  background: var(--white);
-  border-radius: var(--border-radius-lg);
-  border: 2px solid var(--gray-200);
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--gray-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-200);
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
+  min-height: auto;
 }
 
 .responsable-section:hover {
+  box-shadow: var(--shadow);
+}
+
+/* Étapes du formulaire */
+.form-steps-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3);
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--border-radius);
+  background: var(--gray-100);
+  color: var(--gray-600);
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition);
+}
+
+.step-indicator.active {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.step-number {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gray-400);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.step-indicator.active .step-number {
+  background: var(--white);
+  color: var(--primary);
+}
+
+.step-separator {
+  width: 20px;
+  height: 1px;
+  background: var(--gray-200);
+  margin: 0 var(--spacing-2);
+}
+
+/* Sections du formulaire avec numérotation - Override précédent */
+.form-section {
+  position: relative;
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-4);
+  background: var(--white);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  display: block !important; /* Force l'affichage */
+  visibility: visible !important; /* Force la visibilité */
+  animation: slideInUp 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.form-section:nth-child(1) { animation-delay: 0.1s; }
+.form-section:nth-child(2) { animation-delay: 0.2s; }
+.form-section:nth-child(3) { animation-delay: 0.3s; }
+.form-section:nth-child(4) { animation-delay: 0.4s; }
+
+.form-section::before {
+  content: attr(data-step);
+  position: absolute;
+  top: -12px;
+  left: var(--spacing-4);
+  background: var(--primary);
+  color: var(--white);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-section:hover {
   border-color: var(--primary);
   box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+/* S'assurer que les sections responsables sont visibles */
+.responsable-section {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  overflow: visible !important;
+  margin-top: var(--spacing-3) !important;
+  padding: var(--spacing-3) !important;
+  background: var(--gray-50) !important;
+  border-radius: var(--border-radius) !important;
+  box-shadow: var(--shadow-sm) !important;
+  min-height: 200px !important; /* Hauteur minimale pour s'assurer qu'elles sont visibles */
+}
+
+/* S'assurer que les champs de formulaire sont visibles */
+.responsable-section .form-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--spacing-4) !important;
+  margin-bottom: var(--spacing-4) !important;
+}
+
+.responsable-section .form-group {
+  display: flex !important;
+  flex-direction: column !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.responsable-section .form-control {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  padding: var(--spacing-2) var(--spacing-3) !important;
+  border: 1px solid var(--gray-300) !important;
+  border-radius: var(--border-radius) !important;
+  font-size: var(--font-size-sm) !important;
+  height: 38px !important;
+}
+
+.responsable-section .form-label {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: var(--font-size-xs) !important;
+  font-weight: 600 !important;
+  color: var(--gray-700) !important;
+  margin-bottom: var(--spacing-1) !important;
+}
+
+/* Forcer l'affichage de tous les éléments dans les sections responsables */
+.responsable-section * {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.responsable-section .form-row {
+  display: grid !important;
+}
+
+.responsable-section .form-group {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.responsable-section .subsection-title {
+  display: flex !important;
+}
+
+.responsable-section .subsection-title i {
+  display: inline-block !important;
+}
+
+/* S'assurer que les champs sont bien visibles */
+.responsable-section input,
+.responsable-section select,
+.responsable-section textarea {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: 38px !important;
+  padding: var(--spacing-2) var(--spacing-3) !important;
+  border-radius: var(--border-radius) !important;
+  background: var(--white) !important;
+  color: var(--gray-900) !important;
+  font-size: var(--font-size-sm) !important;
+  margin-bottom: var(--spacing-2) !important;
+}
+
+.responsable-section textarea {
+  height: auto !important;
+  min-height: 80px !important;
+  resize: vertical !important;
+}
+
+/* Styles spécifiques pour les labels dans les sections responsables */
+.responsable-section .form-label {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: var(--font-size-xs) !important;
+  font-weight: 600 !important;
+  color: var(--gray-700) !important;
+  margin-bottom: var(--spacing-1) !important;
+  padding: var(--spacing-1) 0 !important;
+  border-bottom: 1px solid var(--gray-300) !important; /* Ligne de séparation pour debug */
+}
+
+/* Styles pour les messages d'erreur */
+.responsable-section .invalid-feedback {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--error) !important;
+  font-size: var(--font-size-xs) !important;
+  margin-top: var(--spacing-1) !important;
+  padding: var(--spacing-1) !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-radius: var(--border-radius) !important;
 }
 
 /* Section mot de passe provisoire */
 .password-section {
-  margin-top: var(--spacing-6);
-  padding: var(--spacing-6);
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: var(--border-radius-lg);
-  border: 2px solid var(--primary);
-  box-shadow: var(--shadow-md);
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--gray-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary);
+  box-shadow: var(--shadow-sm);
   transition: var(--transition);
 }
 
 .password-section:hover {
   border-color: var(--primary-dark);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow);
 }
 
 .password-info {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-4);
+  align-items: center;
+  gap: var(--spacing-3);
 }
 
 .password-icon {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--white);
-  font-size: var(--font-size-xl);
-  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-base);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
 
@@ -500,32 +818,32 @@ body {
 }
 
 .password-title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
 }
 
 .password-title::before {
   content: '🔐';
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-xs);
 }
 
 .password-description {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--gray-600);
-  margin-bottom: var(--spacing-4);
-  line-height: 1.5;
+  margin-bottom: var(--spacing-2);
+  line-height: 1.4;
 }
 
 .password-display {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-4);
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
   background: var(--white);
   border-radius: var(--border-radius);
   border: 1px solid var(--gray-200);
@@ -533,41 +851,45 @@ body {
 }
 
 .password-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--gray-700);
 }
 
 .password-value {
   font-family: 'Courier New', monospace;
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   color: var(--primary);
   background: var(--gray-50);
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-1) var(--spacing-2);
   border-radius: var(--border-radius);
-  border: 2px solid var(--primary);
-  letter-spacing: 2px;
-  min-width: 100px;
+  border: 1px solid var(--primary);
+  letter-spacing: 1px;
+  min-width: 80px;
   text-align: center;
   box-shadow: var(--shadow-sm);
 }
 
 .subsection-title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: var(--spacing-4);
-  padding-bottom: var(--spacing-2);
-  border-bottom: 2px solid var(--primary);
-  display: flex;
+  margin-bottom: var(--spacing-3);
+  padding-bottom: var(--spacing-1);
+  border-bottom: 1px solid var(--primary);
+  display: flex !important;
   align-items: center;
   gap: var(--spacing-2);
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .subsection-title i {
   color: var(--primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
+  display: inline-block !important;
+  visibility: visible !important;
 }
 
 .form-text {
@@ -580,35 +902,35 @@ body {
 /* Checkboxes pour les documents */
 .documents-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--spacing-6);
-  margin-top: var(--spacing-4);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
 }
 
 .document-category {
   background: var(--white);
-  padding: var(--spacing-6);
-  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-3);
+  border-radius: var(--border-radius);
   border: 1px solid var(--gray-200);
   box-shadow: var(--shadow-sm);
 }
 
 .category-title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: var(--spacing-4);
-  padding-bottom: var(--spacing-2);
-  border-bottom: 2px solid var(--primary);
+  margin-bottom: var(--spacing-2);
+  padding-bottom: var(--spacing-1);
+  border-bottom: 1px solid var(--primary);
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
 }
 
 .category-title::before {
   content: '';
-  width: 4px;
-  height: 20px;
+  width: 3px;
+  height: 12px;
   background: var(--primary);
   border-radius: 2px;
 }
@@ -616,15 +938,15 @@ body {
 .checkbox-group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .checkbox-option {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
   cursor: pointer;
-  padding: var(--spacing-3);
+  padding: var(--spacing-2);
   border-radius: var(--border-radius);
   border: 1px solid var(--gray-200);
   transition: var(--transition);
@@ -639,8 +961,8 @@ body {
 
 .checkbox-option input[type="checkbox"] {
   margin: 0;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   accent-color: var(--primary);
 }
 
@@ -655,7 +977,7 @@ body {
 }
 
 .checkbox-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--gray-700);
   transition: var(--transition);
@@ -667,11 +989,11 @@ body {
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-4);
-  padding: var(--spacing-6);
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
   background: var(--gray-50);
   border-top: 1px solid var(--gray-200);
-  margin: var(--spacing-8) calc(-1 * var(--spacing-8)) calc(-1 * var(--spacing-8));
+  margin: var(--spacing-5) calc(-1 * var(--spacing-5)) calc(-1 * var(--spacing-5));
 }
 
 /* Responsive */

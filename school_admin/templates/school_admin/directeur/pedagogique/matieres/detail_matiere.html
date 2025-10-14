@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détails de la Matière - {{ matiere.nom }} - Goo-School</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_matiere.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+<div class="main-content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1 class="page-title">
+                <i class="fas fa-book"></i>
+                {{ matiere.nom }}
+            </h1>
+            <p class="page-subtitle">{{ matiere.etablissement.nom }} - Détails de la matière</p>
+        </div>
+        <div class="page-actions">
+            <a href="{% url 'matiere:liste_matieres' %}" class="btn-add btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                <span>Retour à la liste</span>
+            </a>
+            <button class="btn-add btn-primary" onclick="toggleEditForm()">
+                <i class="fas fa-edit"></i>
+                <span>Modifier</span>
+            </button>
+            <button class="btn-add btn-danger" onclick="confirmDelete()">
+                <i class="fas fa-trash"></i>
+                <span>Supprimer</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Matiere Information -->
+    <div class="matiere-info-container">
+        <div class="info-card">
+            <div class="card-header">
+                <div class="matiere-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="matiere-details">
+                    <h2>{{ matiere.nom }}</h2>
+                    <p class="matiere-type">{{ matiere.type_display }}</p>
+                    <div class="matiere-badges">
+                        <span class="badge badge-level">{{ matiere.niveau_display }}</span>
+                        <span class="badge badge-coefficient">Coeff: {{ matiere.coefficient }}</span>
+                        <span class="badge badge-status {% if matiere.actif %}active{% else %}inactive{% endif %}">
+                            {% if matiere.actif %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <i class="fas fa-code"></i>
+                        <div>
+                            <strong>Code</strong>
+                            <span>{{ matiere.code }}</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar"></i>
+                        <div>
+                            <strong>Créée le</strong>
+                            <span>{{ matiere.date_creation|date:"d/m/Y à H:i" }}</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <div>
+                            <strong>Niveau</strong>
+                            <span>{{ matiere.niveau_display }}</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-weight-hanging"></i>
+                        <div>
+                            <strong>Coefficient</strong>
+                            <span>{{ matiere.coefficient }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classes et Professeurs -->
+    <div class="content-grid">
+        <!-- Classes associées -->
+        <div class="content-card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-users"></i>
+                    Classes associées
+                </h3>
+                <span class="count-badge">{{ classes_associees.count }}</span>
+            </div>
+            <div class="card-content">
+                {% if classes_associees %}
+                    <div class="classes-list">
+                        {% for classe in classes_associees %}
+                            <div class="class-item">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>{{ classe.nom }}</span>
+                                <span class="class-level">{{ classe.niveau_display }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>Aucune classe associée</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Professeurs principaux -->
+        <div class="content-card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    Professeurs principaux
+                </h3>
+                <span class="count-badge">{{ professeurs_principaux.count }}</span>
+            </div>
+            <div class="card-content">
+                {% if professeurs_principaux %}
+                    <div class="professeurs-list">
+                        {% for professeur in professeurs_principaux %}
+                            <div class="professeur-item">
+                                <div class="professeur-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="professeur-info">
+                                    <h4>{{ professeur.nom_complet }}</h4>
+                                    <p>{{ professeur.niveau_display }}</p>
+                                </div>
+                                <div class="professeur-status">
+                                    <span class="status-dot {% if professeur.actif %}active{% else %}inactive{% endif %}"></span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <p>Aucun professeur principal</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Professeurs secondaires -->
+        <div class="content-card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-user-graduate"></i>
+                    Professeurs secondaires
+                </h3>
+                <span class="count-badge">{{ professeurs_secondaires.count }}</span>
+            </div>
+            <div class="card-content">
+                {% if professeurs_secondaires %}
+                    <div class="professeurs-list">
+                        {% for professeur in professeurs_secondaires %}
+                            <div class="professeur-item">
+                                <div class="professeur-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="professeur-info">
+                                    <h4>{{ professeur.nom_complet }}</h4>
+                                    <p>{{ professeur.matiere_display }} ({{ professeur.niveau_display }})</p>
+                                </div>
+                                <div class="professeur-status">
+                                    <span class="status-dot {% if professeur.actif %}active{% else %}inactive{% endif %}"></span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-user-graduate"></i>
+                        <p>Aucun professeur secondaire</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire de modification (caché par défaut) -->
+    <div class="edit-form-container" id="editFormContainer" style="display: none;">
+        <div class="form-card">
+            <div class="form-header">
+                <h2>Modifier la matière</h2>
+                <button class="btn-close" onclick="toggleEditForm()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form method="post" class="matiere-form" id="editMatiereForm">
+                {% csrf_token %}
+                
+                <!-- Messages d'erreur généraux -->
+                {% if field_errors %}
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label class="form-label" for="nom">
+                        <i class="fas fa-book"></i>
+                        Nom de la matière *
+                    </label>
+                    <input type="text" 
+                           class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
+                           id="nom" 
+                           name="nom" 
+                           value="{{ form_data.nom }}"
+                           placeholder="Ex: Mathématiques">
+                    {% if field_errors.nom %}
+                        <div class="invalid-feedback">{{ field_errors.nom }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="type_matiere">
+                            <i class="fas fa-tag"></i>
+                            Type *
+                        </label>
+                        <select class="form-control {% if field_errors.type_matiere %}is-invalid{% endif %}" 
+                                id="type_matiere" 
+                                name="type_matiere">
+                            <option value="">Sélectionnez un type</option>
+                            {% for value, label in type_choices %}
+                                <option value="{{ value }}" {% if form_data.type_matiere == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if field_errors.type_matiere %}
+                            <div class="invalid-feedback">{{ field_errors.type_matiere }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="niveau">
+                            <i class="fas fa-graduation-cap"></i>
+                            Niveau *
+                        </label>
+                        <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" 
+                                id="niveau" 
+                                name="niveau">
+                            <option value="">Sélectionnez un niveau</option>
+                            {% for value, label in niveau_choices %}
+                                <option value="{{ value }}" {% if form_data.niveau == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if field_errors.niveau %}
+                            <div class="invalid-feedback">{{ field_errors.niveau }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="coefficient">
+                        <i class="fas fa-weight-hanging"></i>
+                        Coefficient
+                    </label>
+                    <input type="number" 
+                           class="form-control {% if field_errors.coefficient %}is-invalid{% endif %}" 
+                           id="coefficient" 
+                           name="coefficient" 
+                           value="{{ form_data.coefficient }}"
+                           min="0" 
+                           max="10" 
+                           step="0.1"
+                           placeholder="1.0">
+                    {% if field_errors.coefficient %}
+                        <div class="invalid-feedback">{{ field_errors.coefficient }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-users"></i>
+                        Classes concernées
+                    </label>
+                    <div class="classes-selection">
+                        {% for classe in toutes_classes %}
+                            <label class="class-checkbox">
+                                <input type="checkbox" 
+                                       name="classes" 
+                                       value="{{ classe.id }}"
+                                       {% if classe.id|stringformat:"s" in form_data.classes %}checked{% endif %}>
+                                <span class="checkmark">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <span class="class-name">{{ classe.nom }}</span>
+                            </label>
+                        {% empty %}
+                            <div class="no-classes">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <p>Aucune classe disponible</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="toggleEditForm()">
+                        <i class="fas fa-times"></i>
+                        <span>Annuler</span>
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-save"></i>
+                        <span>Enregistrer</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/detail_matiere.js' %}"></script>
+</body>
+</html>

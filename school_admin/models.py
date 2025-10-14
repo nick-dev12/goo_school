@@ -7,6 +7,9 @@ from .model.eleve_model import Eleve
 from .model.prospection_model import Prospection
 from .model.note_commercial_model import NoteCommercial
 from .model.rendez_vous_model import RendezVous
+from .model.facturation_model import Facturation
+from .model.professeur_model import Professeur
+from .model.matiere_model import Matiere
 
 # Exposer les modèles au niveau du module
-__all__ = ['CompteUser', 'Etablissement', 'PersonnelAdministratif', 'Classe', 'Eleve', 'Prospection', 'NoteCommercial', 'RendezVous']
+__all__ = ['CompteUser', 'Etablissement', 'PersonnelAdministratif', 'Classe', 'Eleve', 'Prospection', 'NoteCommercial', 'RendezVous', 'Facturation', 'Professeur', 'Matiere']

@@ -28,7 +28,15 @@
   </head>
   <body>
     <!-- Header -->
-    {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+    {% endif %}
 
     <!-- Main Content Container -->
     <div class="container">
@@ -56,91 +64,7 @@
       </div>
 
       <!-- Cartes de vue d'ensemble -->
-      <div class="overview-cards">
-        <div class="overview-card">
-          <div class="card-icon total-students">
-            <i class="fas fa-graduation-cap"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">Élèves inscrits</h3>
-            <p class="card-number">{{ stats_generales.total_eleves }}</p>
-            <p class="card-subtitle">+{{ stats_generales.nouveaux_eleves }} cette année</p>
-          </div>
-          <div class="card-arrow">
-            <i class="fas fa-arrow-right"></i>
-          </div>
-        </div>
-
-        <div class="overview-card">
-          <div class="card-icon total-classes">
-            <i class="fas fa-chalkboard-teacher"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">Classes actives</h3>
-            <p class="card-number">{{ stats_generales.total_classes }}</p>
-            <p class="card-subtitle">Toutes opérationnelles</p>
-          </div>
-          <div class="card-arrow">
-            <i class="fas fa-arrow-right"></i>
-          </div>
-        </div>
-
-        <div class="overview-card">
-          <div class="card-icon occupation-rate">
-            <i class="fas fa-chart-pie"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">Taux d'occupation</h3>
-            <p class="card-number">{{ stats_generales.taux_occupation_global }}%</p>
-            <p class="card-subtitle">Capacité globale</p>
-          </div>
-          <div class="card-arrow">
-            <i class="fas fa-arrow-right"></i>
-          </div>
-        </div>
-
-        <div class="overview-card">
-          <div class="card-icon new-students">
-            <i class="fas fa-user-plus"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">Nouveaux élèves</h3>
-            <p class="card-number">{{ stats_generales.nouveaux_eleves }}</p>
-            <p class="card-subtitle">Inscriptions récentes</p>
-          </div>
-          <div class="card-arrow">
-            <i class="fas fa-arrow-right"></i>
-          </div>
-        </div>
-
-        <div class="overview-card">
-          <div class="card-icon transfer-students">
-            <i class="fas fa-exchange-alt"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">Transferts</h3>
-            <p class="card-number">{{ stats_generales.transferts }}</p>
-            <p class="card-subtitle">Cette année</p>
-          </div>
-          <div class="card-arrow">
-            <i class="fas fa-arrow-right"></i>
-          </div>
-        </div>
-
-        <div class="overview-card">
-          <div class="card-icon reenroll-students">
-            <i class="fas fa-redo"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">Réinscriptions</h3>
-            <p class="card-number">{{ stats_generales.reinscriptions }}</p>
-            <p class="card-subtitle">Cette année</p>
-          </div>
-          <div class="card-arrow">
-            <i class="fas fa-arrow-right"></i>
-          </div>
-        </div>
-      </div>
+  
 
       <!-- Système d'onglets -->
       <div class="tabs-container">
@@ -294,7 +218,7 @@
                         </div>
                         
                         <div class="list-cell" data-label="Responsable">
-                          <span class="responsable-type">{{ eleve.get_type_responsable_display }}</span>
+                          <span class="responsable-type">{{ eleve.get_parent_lien_display }}</span>
                         </div>
                         
                         <div class="list-cell" data-label="Inscription">
@@ -309,9 +233,9 @@
                             <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-small btn-edit" title="Modifier">
                               <i class="fas fa-edit"></i>
                             </a>
-                            <button class="btn-action-small btn-delete" onclick="deleteStudent({{ eleve.id }})" title="Supprimer">
+                            <a href="{% url 'secretaire:supprimer_eleve' eleve.id %}" class="btn-action-small btn-delete" title="Supprimer définitivement" onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cet élève ? Cette action est irréversible.')">
                               <i class="fas fa-trash"></i>
-                            </button>
+                            </a>
                           </div>
                         </div>
                       </div>
@@ -392,12 +316,6 @@
         console.log('Modifier élève:', studentId);
       }
 
-      function deleteStudent(studentId) {
-        // Fonction pour supprimer un élève
-        if (confirm('Êtes-vous sûr de vouloir supprimer cet élève ?')) {
-          console.log('Supprimer élève:', studentId);
-        }
-      }
     </script>
   </body>
 </html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste de présence - {{ classe.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_presence.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
+            <span class="separator">›</span>
+            <span class="current">Liste de présence</span>
+        </nav>
+
+        <!-- Status Banner -->
+        {% if liste_presence.validee %}
+            <div class="presence-status-banner validee">
+                <i class="fas fa-check-circle"></i>
+                <div class="status-content">
+                    <strong>Liste de présence déjà validée</strong>
+                    <p>Cette liste a été validée le {{ liste_presence.date_validation|date:"d/m/Y à H:i" }}. Vous ne pouvez plus la modifier.</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="presence-status-banner en-cours">
+                <i class="fas fa-clipboard-check"></i>
+                <div class="status-content">
+                    <strong>Liste de présence en cours</strong>
+                    <p>Marquez les présences et absences, puis validez la liste pour enregistrer définitivement.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1 class="page-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    Liste de présence
+                </h1>
+                <p class="page-subtitle">{{ classe.nom }} - {{ nombre_eleves }} élèves - {{ today|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="info-cards">
+            <div class="info-card">
+                <div class="info-icon" style="background: #667eea;">
+                    <i class="fas fa-chalkboard"></i>
+                </div>
+                <div class="info-content">
+                    <strong>Classe :</strong>
+                    <span>{{ classe.nom }}</span>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-icon" style="background: #f59e0b;">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="info-content">
+                    <strong>Date :</strong>
+                    <span>{{ today|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-icon" style="background: #10b981;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="info-content">
+                    <strong>Effectif :</strong>
+                    <span>{{ nombre_eleves }} élèves</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire de présence -->
+        <form method="post" action="{% url 'enseignant:valider_presence' classe.id %}" id="presence-form">
+            {% csrf_token %}
+            
+            <!-- Actions buttons (top) -->
+            {% if not liste_presence.validee %}
+                <div class="actions-container top-actions">
+                    <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider cette liste de présence ? Cette action est définitive pour aujourd\'hui.');">
+                        <i class="fas fa-check-circle"></i>
+                        Valider la liste de présence
+                    </button>
+                    <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour
+                    </a>
+                </div>
+            {% endif %}
+
+            <!-- Table de présence -->
+            <div class="presence-table-container">
+                <table class="presence-table">
+                    <thead>
+                        <tr>
+                            <th class="col-numero">#</th>
+                            <th class="col-eleve">Élève</th>
+                            <th class="col-statut" colspan="4">Statut de présence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in eleves_avec_presence %}
+                            <tr class="{% cycle 'row-even' 'row-odd' %}">
+                                <td class="col-numero">{{ forloop.counter }}</td>
+                                <td class="col-eleve">
+                                    <div class="eleve-info">
+                                        <div class="eleve-avatar">
+                                            {{ item.eleve.prenom.0 }}{{ item.eleve.nom.0 }}
+                                        </div>
+                                        <div class="eleve-details">
+                                            <div class="eleve-nom">{{ item.eleve.nom|upper }} {{ item.eleve.prenom }}</div>
+                                            <div class="eleve-meta">Matricule: {{ item.eleve.matricule }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td colspan="4" class="col-statut-container">
+                                    <div class="statut-buttons">
+                                        <label class="statut-option present {% if item.statut == 'present' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="present" 
+                                                   {% if item.statut == 'present' %}checked{% endif %}
+                                                   {% if liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-check-circle"></i>
+                                            </span>
+                                            <span class="statut-label">Présent</span>
+                                        </label>
+                                        
+                                        <label class="statut-option absent {% if item.statut == 'absent' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="absent" 
+                                                   {% if item.statut == 'absent' %}checked{% endif %}
+                                                   {% if liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-times-circle"></i>
+                                            </span>
+                                            <span class="statut-label">Absent</span>
+                                        </label>
+                                        
+                                        <label class="statut-option retard {% if item.statut == 'retard' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="retard" 
+                                                   {% if item.statut == 'retard' %}checked{% endif %}
+                                                   {% if liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-clock"></i>
+                                            </span>
+                                            <span class="statut-label">Retard</span>
+                                        </label>
+                                        
+                                        <label class="statut-option absent-justifie {% if item.statut == 'absent_justifie' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="absent_justifie" 
+                                                   {% if item.statut == 'absent_justifie' %}checked{% endif %}
+                                                   {% if liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-file-medical"></i>
+                                            </span>
+                                            <span class="statut-label">Absent Justifié</span>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Actions buttons (bottom) -->
+            {% if not liste_presence.validee %}
+                <div class="actions-container bottom-actions">
+                    <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider cette liste de présence ? Cette action est définitive pour aujourd\'hui.');">
+                        <i class="fas fa-check-circle"></i>
+                        Valider la liste de présence
+                    </button>
+                    <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour
+                    </a>
+                </div>
+            {% else %}
+                <div class="actions-container bottom-actions">
+                    <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour
+                    </a>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/liste_presence.js' %}"></script>
+</body>
+</html>
+

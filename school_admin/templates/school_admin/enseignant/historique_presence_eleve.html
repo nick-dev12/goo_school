@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique de présence - {{ eleve.nom_complet }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/historique_presence.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant:detail_eleve' eleve.id %}?onglet=presences">{{ eleve.nom_complet }}</a>
+            <span class="separator">›</span>
+            <span class="current">Historique de présence</span>
+        </nav>
+
+        <!-- Header Élève -->
+        <div class="eleve-header-card">
+            <div class="eleve-avatar-large">
+                {{ eleve.prenom.0 }}{{ eleve.nom.0 }}
+            </div>
+            <div class="eleve-header-info">
+                <h1 class="eleve-nom">{{ eleve.nom|upper }} {{ eleve.prenom }}</h1>
+                <div class="eleve-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-chalkboard"></i>
+                        {{ classe.nom }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-id-card"></i>
+                        {{ eleve.numero_matricule_complet }}
+                    </span>
+                </div>
+            </div>
+            {% if absences_non_justifiees %}
+                <button class="btn-justifier" onclick="ouvrirModalJustification()">
+                    <i class="fas fa-file-signature"></i>
+                    Justifier une absence
+                    <span class="badge-count">{{ absences_non_justifiees.count }}</span>
+                </button>
+            {% endif %}
+        </div>
+
+        <!-- Filtres de période -->
+        <div class="filtres-periode">
+            <a href="?periode=7jours" class="filtre-btn {% if periode_filtree == '7jours' %}active{% endif %}">
+                <i class="fas fa-calendar-week"></i>
+                7 derniers jours
+            </a>
+            <a href="?periode=30jours" class="filtre-btn {% if periode_filtree == '30jours' %}active{% endif %}">
+                <i class="fas fa-calendar-day"></i>
+                30 derniers jours
+            </a>
+            <a href="?periode=annee" class="filtre-btn {% if periode_filtree == 'annee' %}active{% endif %}">
+                <i class="fas fa-calendar-alt"></i>
+                Année scolaire
+            </a>
+        </div>
+
+        <!-- Statistiques globales -->
+        <div class="stats-globales">
+            <div class="stat-box present">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nombre_presents }}</div>
+                    <div class="stat-label">Présent{{ nombre_presents|pluralize }}</div>
+                </div>
+            </div>
+            <div class="stat-box absent">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nombre_absences }}</div>
+                    <div class="stat-label">Absence{{ nombre_absences|pluralize }} non justifiée{{ nombre_absences|pluralize }}</div>
+                </div>
+            </div>
+            <div class="stat-box justifie">
+                <div class="stat-icon">
+                    <i class="fas fa-file-medical"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nombre_absences_justifiees }}</div>
+                    <div class="stat-label">Absence{{ nombre_absences_justifiees|pluralize }} justifiée{{ nombre_absences_justifiees|pluralize }}</div>
+                </div>
+            </div>
+            <div class="stat-box retard">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nombre_retards }}</div>
+                    <div class="stat-label">Retard{{ nombre_retards|pluralize }}</div>
+                </div>
+            </div>
+            <div class="stat-box taux">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ taux_presence }}%</div>
+                    <div class="stat-label">Taux de présence</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historique complet -->
+        <div class="historique-container">
+            <div class="historique-header">
+                <h2><i class="fas fa-history"></i> Historique complet</h2>
+                <span class="total-count">{{ total_presences }} enregistrement{{ total_presences|pluralize }}</span>
+            </div>
+
+            {% if presences %}
+                <div class="timeline-container">
+                    {% for presence in presences %}
+                        <div class="timeline-item {% if presence.statut == 'present' %}present{% elif presence.statut == 'absent' %}absent{% elif presence.statut == 'retard' %}retard{% else %}justifie{% endif %}">
+                            <div class="timeline-marker">
+                                <i class="fas fa-{% if presence.statut == 'present' %}check-circle{% elif presence.statut == 'absent' %}times-circle{% elif presence.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-date">
+                                    <strong>{{ presence.date|date:"l d F Y" }}</strong>
+                                    <span class="date-relative">{{ presence.date|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="timeline-status">
+                                    <span class="status-badge {{ presence.statut }}">
+                                        <i class="fas fa-{% if presence.statut == 'present' %}check-circle{% elif presence.statut == 'absent' %}times-circle{% elif presence.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
+                                        {{ presence.get_statut_display }}
+                                    </span>
+                                    {% if presence.type_justificatif %}
+                                        <span class="justificatif-badge">
+                                            <i class="fas fa-file-alt"></i>
+                                            {{ presence.get_type_justificatif_display }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {% if presence.remarque %}
+                                    <div class="timeline-remarque">
+                                        <i class="fas fa-comment"></i>
+                                        {{ presence.remarque }}
+                                    </div>
+                                {% endif %}
+                                {% if presence.date_justification %}
+                                    <div class="timeline-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Justifiée le {{ presence.date_justification|date:"d/m/Y à H:i" }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>Aucun enregistrement de présence pour la période sélectionnée</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Actions Footer -->
+        <div class="actions-footer">
+            <a href="{% url 'enseignant:detail_eleve' eleve.id %}?onglet=presences" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Retour au profil
+            </a>
+            <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                <i class="fas fa-list"></i>
+                Liste des élèves
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal de justification d'absence -->
+    <div id="modal-justifier-absence" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-signature"></i> Justifier une absence</h3>
+                <button class="modal-close" onclick="fermerModalJustification()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'enseignant:justifier_absence' %}" id="form-justifier-absence">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Sélection de l'absence -->
+                    <div class="form-group">
+                        <label for="presence_id">
+                            <i class="fas fa-calendar-times"></i>
+                            Sélectionnez l'absence à justifier <span class="required">*</span>
+                        </label>
+                        <select id="presence_id" name="presence_id" required>
+                            <option value="">-- Choisir une absence --</option>
+                            {% for absence in absences_non_justifiees %}
+                                <option value="{{ absence.id }}">
+                                    {{ absence.date|date:"l d F Y" }} ({{ absence.date|date:"d/m/Y" }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Type de justificatif -->
+                    <div class="form-group">
+                        <label for="type_justificatif">
+                            <i class="fas fa-file-alt"></i>
+                            Type de justificatif <span class="required">*</span>
+                        </label>
+                        <select id="type_justificatif" name="type_justificatif" required>
+                            <option value="">-- Choisir un type --</option>
+                            {% for code, libelle in TYPE_JUSTIFICATIF_CHOICES %}
+                                <option value="{{ code }}">{{ libelle }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="info-box">
+                        <i class="fas fa-info-circle"></i>
+                        <p>En justifiant cette absence, le statut passera automatiquement de <strong>"Absent"</strong> à <strong>"Absent Justifié"</strong>.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fermerModalJustification()">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-check"></i>
+                        Justifier l'absence
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/historique_presence.js' %}"></script>
+</body>
+</html>
+

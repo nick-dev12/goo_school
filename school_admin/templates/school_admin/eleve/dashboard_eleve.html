@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Élève - {{ stats.nom_complet }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dashboard Élève</h1>
+        <p>Bienvenue, {{ stats.nom_complet }}</p>
+    </div>
+
+    <div class="container">
+        <div class="welcome-message">
+            <h2>Bienvenue dans votre espace personnel</h2>
+            <p>Voici un aperçu de vos informations scolaires</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-label">Numéro d'élève</div>
+                <div class="stat-value">{{ stats.numero_eleve }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Classe</div>
+                <div class="stat-value">{{ stats.classe }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Établissement</div>
+                <div class="stat-value">{{ stats.etablissement }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Statut</div>
+                <div class="stat-value">{{ stats.statut }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Âge</div>
+                <div class="stat-value">{{ stats.age }} ans</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Date d'inscription</div>
+                <div class="stat-value">{{ stats.date_inscription }}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Informations de l'établissement</h3>
+            <p><strong>Nom :</strong> {{ etablissement_stats.nom }}</p>
+            <p><strong>Type :</strong> {{ etablissement_stats.type }}</p>
+            <p><strong>Code :</strong> {{ etablissement_stats.code }}</p>
+            <p><strong>Ville :</strong> {{ etablissement_stats.ville }}</p>
+            <p><strong>Pays :</strong> {{ etablissement_stats.pays }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Informations du parent/tuteur</h3>
+            <p><strong>Nom complet :</strong> {{ eleve.responsable_nom_complet }}</p>
+            <p><strong>Téléphone :</strong> {{ eleve.responsable_contact }}</p>
+            {% if eleve.responsable_email %}
+            <p><strong>Email :</strong> {{ eleve.responsable_email }}</p>
+            {% endif %}
+            <p><strong>Lien :</strong> {{ eleve.get_parent_lien_display }}</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="{% url 'school_admin:connexion_compte_user' %}" class="logout-btn">Se déconnecter</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,5 +1,6 @@
 # school_admin/controllers/compte_user_controller.py
 from datetime import datetime, date
+import logging
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -14,6 +15,9 @@ from django.contrib.auth.models import User
 from ..model.etablissement_model import Etablissement
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.eleve_model import Eleve
+from ..model.professeur_model import Professeur
+
+logger = logging.getLogger(__name__)
 
 
 class CompteUserController:
@@ -185,9 +189,12 @@ class CompteUserController:
                 
             # Si pas d'erreurs de validation, on tente l'authentification
             if not field_errors:
+                logger.info(f"Tentative d'authentification - Username: {form_data['username']}, Password: {'*' * len(form_data['password'])}")
                 user = authenticate(request, username=form_data['username'], password=form_data['password'])
+                logger.info(f"Résultat authentification - User: {user}, Type: {type(user).__name__ if user else 'None'}")
                 if user is not None:
                     login(request, user)
+                    logger.info(f"Login réussi pour {user.email}, Type: {type(user).__name__}")
                     
                     # Redirection vers l'URL next si présente, sinon vers le tableau de bord approprié
                     if next_url:
@@ -198,6 +205,8 @@ class CompteUserController:
                             return None, CompteUserController._redirect_personnel_administratif(user.fonction)
                         elif isinstance(user, Etablissement):
                             return None, redirect('directeur:dashboard_directeur')
+                        elif isinstance(user, Professeur):
+                            return None, redirect('enseignant:dashboard_enseignant')
                         elif isinstance(user, Eleve):
                             return None, redirect('eleve:dashboard_eleve')
                         else:

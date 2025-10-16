@@ -1,0 +1,169 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}"
+/>
+<div class="dashboard">
+  <main class="main-content full-width" id="mainContent">
+    <!-- Header Horizontal -->
+    <header class="dashboard-header-horizontal">
+      <div class="header-left">
+        <div class="header-logo">
+          <i class="fas fa-chalkboard-teacher"></i>
+          <span>Goo-School</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-search">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher..." />
+        </div>
+
+        <button class="header-button" aria-label="Notifications">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge">3</span>
+        </button>
+
+        <button class="header-button" aria-label="Messages">
+          <i class="fas fa-envelope"></i>
+          <span class="notification-badge">5</span>
+        </button>
+
+        <div class="header-profile">
+          <div class="header-avatar">{{ professeur.prenom.0|upper }}{{ professeur.nom.0|upper }}</div>
+          <div class="header-user-info">
+            <div class="header-user-name">{{ professeur.nom_complet }}</div>
+            <div class="header-user-role">Enseignant</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Welcome Banner -->
+    <section class="welcome-banner">
+      <div class="banner-content">
+        <h1 class="banner-title">Bienvenue, {{ professeur.nom_complet }}</h1>
+        <p class="banner-subtitle">
+          {{ professeur.etablissement.nom }} - {{ professeur.matiere_display }}
+        </p>
+      </div>
+      <button
+        class="nav-toggle-btn"
+        id="openNavMenu"
+        aria-label="Ouvrir le menu"
+      >
+        <span class="d-none d-sm-inline">Menu</span>
+        <i class="fas fa-th"></i>
+      </button>
+    </section>
+
+    <!-- Navigation Overlay -->
+    <div class="navigation-overlay" id="navOverlay"></div>
+
+    <!-- Navigation Cards Section -->
+    <section
+      class="section-container navigation-section"
+      id="navigationSection"
+    >
+      <button class="close-btn" id="closeNavMenu" aria-label="Fermer le menu">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="nav-menu-header">
+        <h2>Menu de Navigation</h2>
+        <p>Accédez rapidement à toutes les fonctionnalités</p>
+      </div>
+
+      <!-- Section 1: Tableau de bord -->
+      <div class="section-title">
+        <h2>Tableau de bord</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'enseignant:dashboard_enseignant' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-home"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Vue d'ensemble</h3>
+            <p>Tableau de bord principal</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 2: Gestion -->
+      <div class="section-title">
+        <h2>Gestion</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'enseignant:gestion_classes' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-purple">
+            <i class="fas fa-chalkboard"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Mes Classes</h3>
+            <p>Gérer mes classes affectées</p>
+          </div>
+        </a>
+
+        <a href="{% url 'enseignant:gestion_eleves' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-blue">
+            <i class="fas fa-user-graduate"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Mes Élèves</h3>
+            <p>Consulter et gérer mes élèves</p>
+          </div>
+        </a>
+
+        <a href="{% url 'enseignant:gestion_notes' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-purple">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Notes & Évaluations</h3>
+            <p>Gérer les notes et évaluations</p>
+          </div>
+        </a>
+
+        <a href="{% url 'enseignant:emploi_du_temps' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-cyan">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Emploi du Temps</h3>
+            <p>Consulter mon planning</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Section 3: Mon compte -->
+      <div class="section-title">
+        <h2>Mon compte</h2>
+      </div>
+      <div class="nav-cards-row">
+        <a href="{% url 'enseignant:parametres_profil' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-cyan">
+            <i class="fas fa-user-cog"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Paramètres du profil</h3>
+            <p>Informations personnelles</p>
+          </div>
+        </a>
+
+        <a
+          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+          class="nav-link-card logout-card"
+        >
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Déconnexion</h3>
+            <p>Quitter la session</p>
+          </div>
+        </a>
+      </div>
+    </section>
+

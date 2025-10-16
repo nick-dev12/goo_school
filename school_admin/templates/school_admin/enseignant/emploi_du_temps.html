@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+{% load static %}
+{% load pagination_tags %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon Emploi du Temps</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/enseignant/emploi_du_temps.css' %}"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a href="{% url 'enseignant:dashboard_enseignant' %}" class="breadcrumb-link">
+            <i class="fas fa-home"></i>
+            Tableau de bord
+          </a>
+          <i class="fas fa-chevron-right breadcrumb-separator"></i>
+          <span class="breadcrumb-current">Emploi du Temps</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-calendar-alt"></i>
+              Mon Emploi du Temps
+            </h1>
+            <p class="page-subtitle">
+              {{ professeur.nom_complet }} - {{ professeur.matiere_principale }}
+            </p>
+            <div class="classe-info-badges">
+              <span class="info-badge">
+                <i class="fas fa-chalkboard"></i>
+                {{ nombre_classes }} classe{{ nombre_classes|pluralize }}
+              </span>
+              <span class="info-badge">
+                <i class="fas fa-clock"></i>
+                {{ nombre_creneaux }} créneau{{ nombre_creneaux|pluralize }}
+              </span>
+              <span class="info-badge info-badge-success">
+                <i class="fas fa-hourglass-half"></i>
+                {{ total_heures }}h/semaine
+              </span>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary" onclick="window.print()">
+              <i class="fas fa-print"></i>
+              <span>Imprimer</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          <div class="messages-container">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Emploi du temps -->
+        <div class="emploi-du-temps-section">
+          <div class="emploi-du-temps-wrapper">
+            <!-- En-tête du tableau -->
+            <div class="edt-header">
+              {% for jour in jours_semaine %}
+                <div class="edt-jour-header">
+                  <div class="jour-name">{{ jour|title }}</div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- Grille de l'emploi du temps -->
+            <div class="edt-grid">
+              <!-- Colonnes des jours -->
+              {% for jour in jours_semaine %}
+                <div class="edt-jour-column">
+                  <div class="creneaux-container">
+                    {% for creneau in creneaux_par_jour|get_item:jour %}
+                      <div class="creneau-card" data-matiere="{{ creneau.matiere.nom|default:'sans-matiere' }}">
+                        <div class="creneau-content">
+                          <div class="creneau-horaire">
+                            <i class="fas fa-clock"></i>
+                            {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                          </div>
+                          <div class="creneau-matiere">{{ creneau.matiere.nom|default:"Sans matière" }}</div>
+                          <div class="creneau-classe">
+                            <i class="fas fa-chalkboard"></i>
+                            {{ creneau.emploi_du_temps.classe.nom }}
+                          </div>
+                          <div class="creneau-salle">
+                            <i class="fas fa-door-open"></i>
+                            Salle {{ creneau.salle.numero|default:"N/A" }}
+                          </div>
+                        </div>
+                      </div>
+                    {% empty %}
+                      <div class="no-creneau">
+                        <i class="fas fa-calendar-times"></i>
+                        <span>Pas de cours</span>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {% if not nombre_creneaux %}
+          <!-- Message si aucun créneau -->
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-calendar-times"></i>
+            </div>
+            <h3 class="empty-state-title">Aucun créneau programmé</h3>
+            <p class="empty-state-text">
+              Votre emploi du temps n'a pas encore été configuré.<br>
+              Veuillez contacter l'administration pour plus d'informations.
+            </p>
+          </div>
+        {% endif %}
+
+        <!-- Retour -->
+        <div class="back-section">
+          <a href="{% url 'enseignant:dashboard_enseignant' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour au tableau de bord</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    <script>
+      // Impression
+      window.addEventListener('beforeprint', function() {
+        document.querySelectorAll('.page-actions, .back-section').forEach(function(el) {
+          el.style.display = 'none';
+        });
+      });
+
+      window.addEventListener('afterprint', function() {
+        document.querySelectorAll('.page-actions, .back-section').forEach(function(el) {
+          el.style.display = '';
+        });
+      });
+    </script>
+  </body>
+</html>
+

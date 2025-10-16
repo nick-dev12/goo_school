@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from ..controllers.administrateur_compte_controller import AdministrateurCompteController
 from ..controllers.etablissement_controller import EtablissementController
-from ..decorators import admin_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from ..controllers.compte_user_controller import CompteUserController
 from ..controllers.etablissement_controller import EtablissementController
@@ -15,20 +15,25 @@ from datetime import datetime, timedelta
 
 
 
-@admin_required
+@login_required
 def dashboard_administrateur(request):
     """
     Tableau de bord pour les administrateurs
     """
-   # Vérifier si l'utilisateur est connecté
-    if not request.user.is_authenticated:
-        return redirect('school_admin:connexion_compte_user')
+    # Vérifier le type d'utilisateur et rediriger vers le tableau de bord approprié
+    from ..model.compte_user import CompteUser
+    from ..model.etablissement_model import Etablissement
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+    from ..model.eleve_model import Eleve
     
-    # Rediriger vers le tableau de bord approprié selon la fonction
-    if hasattr(request.user, 'fonction'):
+    # Si c'est un CompteUser, vérifier sa fonction
+    if isinstance(request.user, CompteUser) and hasattr(request.user, 'fonction'):
         fonction = request.user.fonction
         
-        if fonction == 'commercial':
+        # Si c'est un administrateur, continuer vers le dashboard administrateur
+        if fonction == 'administrateur':
+            pass  # Continuer vers le dashboard administrateur
+        elif fonction == 'commercial':
             return redirect('school_admin:dashboard_commercial')
         elif fonction == 'support':
             return redirect('school_admin:dashboard_support')
@@ -40,6 +45,27 @@ def dashboard_administrateur(request):
             return redirect('school_admin:dashboard_comptable')
         elif fonction == 'ressources humaines':
             return redirect('school_admin:dashboard_rh')
+        else:
+            # Si la fonction n'est pas reconnue ou n'est pas administrateur, rediriger vers la connexion
+            messages.error(request, "Accès non autorisé. Vous devez être administrateur pour accéder à cette page.")
+            return redirect('school_admin:connexion_compte_user')
+    
+    # Si c'est un Etablissement, rediriger vers le dashboard directeur
+    elif isinstance(request.user, Etablissement):
+        return redirect('directeur:dashboard_directeur')
+    
+    # Si c'est un PersonnelAdministratif, rediriger vers le dashboard personnel
+    elif isinstance(request.user, PersonnelAdministratif):
+        return redirect('personnel_administratif:dashboard_personnel_administratif')
+    
+    # Si c'est un Eleve, rediriger vers le dashboard élève
+    elif isinstance(request.user, Eleve):
+        return redirect('eleve:dashboard_eleve')
+    
+    # Si aucun type reconnu, rediriger vers la connexion
+    else:
+        messages.error(request, "Type d'utilisateur non reconnu. Veuillez vous reconnecter.")
+        return redirect('school_admin:connexion_compte_user')
     
     # Si c'est un administrateur ou si la fonction n'est pas reconnue, afficher le tableau de bord administrateur
     # Récupérer les statistiques des établissements
@@ -139,11 +165,16 @@ def detaille_etablissement(request):
     return render(request, 'school_admin/etablissements/detaille_etablissement.html', {'etablissement': etablissement})
 
 
-@admin_required
+@login_required
 def administrateur_update_etablissement(request):
     """
     Vue spéciale pour la mise à jour des paramètres d'un établissement
     """
+    # Vérifier que l'utilisateur est un administrateur
+    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
+        messages.error(request, "Accès non autorisé. Vous devez être administrateur pour effectuer cette action.")
+        return redirect('school_admin:connexion_compte_user')
+    
     # Récupérer l'ID de l'établissement depuis le formulaire
     etablissement_id = request.POST.get('etablissement_id')
     

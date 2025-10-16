@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails - {{ classe.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/detail_classe.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant:gestion_classes' %}">Mes classes</a>
+            <span class="separator">›</span>
+            <span class="current">{{ classe.nom }}</span>
+        </nav>
+
+        <!-- Header Classe -->
+        <div class="classe-header-card">
+            <div class="classe-icon-large">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="classe-header-info">
+                <h1 class="classe-nom">{{ classe.nom }}</h1>
+                <div class="classe-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-building"></i>
+                        {{ classe.etablissement.nom }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-tag"></i>
+                        {% if affectation.est_classe_principale %}Principal{% else %}Classique{% endif %}
+                    </span>
+                    <span class="meta-item {% if classe.actif %}active{% else %}inactive{% endif %}">
+                        <i class="fas fa-circle"></i>
+                        {% if classe.actif %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="action-buttons-group">
+                <a href="{% url 'enseignant:noter_eleves' classe.id %}" class="btn-action primary">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Notes</span>
+                </a>
+                <a href="{% url 'enseignant:liste_presence' classe.id %}" class="btn-action secondary">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Présence</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistiques rapides -->
+        <div class="quick-stats-grid">
+            <div class="stat-card eleves">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nombre_eleves }}</div>
+                    <div class="stat-label">Élèves</div>
+                    <div class="stat-detail">{{ nombre_garcons }} garçons, {{ nombre_filles }} filles</div>
+                </div>
+            </div>
+            <div class="stat-card occupation">
+                <div class="stat-icon">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ taux_occupation }}%</div>
+                    <div class="stat-label">Taux d'occupation</div>
+                    <div class="stat-detail">{{ nombre_eleves }} / {{ classe.capacite_max }} places</div>
+                </div>
+            </div>
+            <div class="stat-card presence">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ taux_presence_mois }}%</div>
+                    <div class="stat-label">Taux de présence (mois)</div>
+                    <div class="stat-detail">{{ nombre_presents_mois }} / {{ total_presences_mois }} présences</div>
+                </div>
+            </div>
+            <div class="stat-card evaluations">
+                <div class="stat-icon">
+                    <i class="fas fa-clipboard"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nombre_evaluations_total }}</div>
+                    <div class="stat-label">Évaluations</div>
+                    <div class="stat-detail">{{ nombre_evaluations_mois }} ce mois</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-navigation">
+            <button class="tab-btn {% if onglet_actif == 'eleves' %}active{% endif %}" onclick="switchTab('eleves')">
+                <i class="fas fa-users"></i>
+                Liste des élèves
+            </button>
+            <button class="tab-btn {% if onglet_actif == 'presence' %}active{% endif %}" onclick="switchTab('presence')">
+                <i class="fas fa-calendar-check"></i>
+                Présence & Absences
+            </button>
+            <button class="tab-btn {% if onglet_actif == 'evaluations' %}active{% endif %}" onclick="switchTab('evaluations')">
+                <i class="fas fa-clipboard-list"></i>
+                Évaluations
+            </button>
+        </div>
+
+        <!-- Tab 1: Liste des élèves -->
+        <div class="tab-content {% if onglet_actif == 'eleves' %}active{% endif %}" id="tab-eleves">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Liste des élèves</h2>
+                    <span class="count-badge">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
+                </div>
+                
+                {% if eleves %}
+                    <div class="table-container">
+                        <table class="eleves-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nom complet</th>
+                                    <th>Genre</th>
+                                    <th>Absences</th>
+                                    <th>Moyenne</th>
+                                    <th>Notes</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for eleve_data in eleves %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>
+                                            <div class="eleve-cell">
+                                                <div class="eleve-avatar-mini">
+                                                    {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
+                                                </div>
+                                                <div class="eleve-name">
+                                                    <span class="nom">{{ eleve_data.eleve.nom|upper }}</span>
+                                                    <span class="prenom">{{ eleve_data.eleve.prenom }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge-genre {{ eleve_data.eleve.sexe|lower }}">
+                                                <i class="fas fa-{% if eleve_data.eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                                                {{ eleve_data.eleve.get_sexe_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if eleve_data.nombre_absences > 0 %}
+                                                <span class="badge-absences {% if eleve_data.nombre_absences >= 5 %}danger{% elif eleve_data.nombre_absences >= 3 %}warning{% else %}info{% endif %}">
+                                                    <i class="fas fa-calendar-times"></i>
+                                                    {{ eleve_data.nombre_absences }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge-absences success">
+                                                    <i class="fas fa-check"></i>
+                                                    0
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if eleve_data.derniere_moyenne %}
+                                                {% with moy=eleve_data.derniere_moyenne|floatformat:2 %}
+                                                    {% if eleve_data.derniere_moyenne < 8 %}
+                                                        <span class="badge-moyenne faible">{{ moy }}/20</span>
+                                                    {% elif eleve_data.derniere_moyenne < 10 %}
+                                                        <span class="badge-moyenne moyenne-faible">{{ moy }}/20</span>
+                                                    {% elif eleve_data.derniere_moyenne < 14 %}
+                                                        <span class="badge-moyenne bonne">{{ moy }}/20</span>
+                                                    {% else %}
+                                                        <span class="badge-moyenne excellente">{{ moy }}/20</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <span class="badge-moyenne non-calcule">-/20</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="notes-count">{{ eleve_data.nombre_notes }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="actions-cell">
+                                                <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=informations" 
+                                                   class="action-btn-tiny primary" 
+                                                   title="Voir le profil">
+                                                    <i class="fas fa-user"></i>
+                                                </a>
+                                                <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=presences" 
+                                                   class="action-btn-tiny info" 
+                                                   title="Présences">
+                                                    <i class="fas fa-calendar-check"></i>
+                                                </a>
+                                                <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=notes" 
+                                                   class="action-btn-tiny success" 
+                                                   title="Notes">
+                                                    <i class="fas fa-clipboard-check"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-user-slash"></i>
+                        <p>Aucun élève dans cette classe</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tab 2: Présence & Absences -->
+        <div class="tab-content {% if onglet_actif == 'presence' %}active{% endif %}" id="tab-presence">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-check"></i> Statistiques de présence</h2>
+                </div>
+                
+                <!-- Sous-onglets par mois -->
+                <div class="sub-tabs-container">
+                    {% for mois_data in mois_disponibles %}
+                        <a href="?onglet=presence&mois={{ mois_data.mois }}&annee={{ mois_data.annee }}{% if periode_filtre %}&periode_eval={{ periode_filtre }}{% endif %}" 
+                           class="sub-tab {% if mois_filtre == mois_data.mois and annee_filtre == mois_data.annee %}active{% endif %}">
+                            {{ mois_data.nom_court }}
+                        </a>
+                    {% endfor %}
+                </div>
+                
+                <div class="presence-stats-grid">
+                    <div class="presence-stat-box present">
+                        <div class="presence-stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="presence-stat-content">
+                            <div class="presence-stat-value">{{ nombre_presents_mois }}</div>
+                            <div class="presence-stat-label">Présents</div>
+                        </div>
+                    </div>
+                    <div class="presence-stat-box absent">
+                        <div class="presence-stat-icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="presence-stat-content">
+                            <div class="presence-stat-value">{{ nombre_absences_mois }}</div>
+                            <div class="presence-stat-label">Absences</div>
+                        </div>
+                    </div>
+                    <div class="presence-stat-box justifie">
+                        <div class="presence-stat-icon">
+                            <i class="fas fa-file-medical"></i>
+                        </div>
+                        <div class="presence-stat-content">
+                            <div class="presence-stat-value">{{ nombre_absences_justifiees_mois }}</div>
+                            <div class="presence-stat-label">Justifiées</div>
+                        </div>
+                    </div>
+                    <div class="presence-stat-box retard">
+                        <div class="presence-stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="presence-stat-content">
+                            <div class="presence-stat-value">{{ nombre_retards_mois }}</div>
+                            <div class="presence-stat-label">Retards</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header mt-3">
+                    <h3><i class="fas fa-history"></i> Dernières listes de présence validées</h3>
+                </div>
+                
+                {% if listes_presence_validees %}
+                    <div class="listes-presence-container">
+                        {% for liste in listes_presence_validees %}
+                            <div class="liste-presence-card">
+                                <div class="liste-date">
+                                    <div class="date-jour">{{ liste.date|date:"d" }}</div>
+                                    <div class="date-mois">{{ liste.date|date:"M" }}</div>
+                                </div>
+                                <div class="liste-content">
+                                    <div class="liste-title">{{ liste.date|date:"l d F Y" }}</div>
+                                    <div class="liste-stats">
+                                        <span class="liste-stat present">
+                                            <i class="fas fa-check"></i> {{ liste.nombre_presents }} présent{{ liste.nombre_presents|pluralize }}
+                                        </span>
+                                        <span class="liste-stat absent">
+                                            <i class="fas fa-times"></i> {{ liste.nombre_absents }} absent{{ liste.nombre_absents|pluralize }}
+                                        </span>
+                                        {% if liste.nombre_retards > 0 %}
+                                            <span class="liste-stat retard">
+                                                <i class="fas fa-clock"></i> {{ liste.nombre_retards }} retard{{ liste.nombre_retards|pluralize }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="liste-badge">
+                                    <i class="fas fa-check-circle"></i>
+                                    Validée
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>Aucune liste de présence validée pour cette classe</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tab 3: Évaluations -->
+        <div class="tab-content {% if onglet_actif == 'evaluations' %}active{% endif %}" id="tab-evaluations">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2><i class="fas fa-clipboard-list"></i> Évaluations</h2>
+                    <a href="{% url 'enseignant:creer_evaluation' classe.id %}" class="btn-add">
+                        <i class="fas fa-plus"></i>
+                        Créer une évaluation
+                    </a>
+                </div>
+                
+                <!-- Sous-onglets par période -->
+                <div class="sub-tabs-container">
+                    {% for periode_code, periode_nom in PERIODES_EVAL %}
+                        <a href="?onglet=evaluations&periode_eval={{ periode_code }}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                           class="sub-tab {% if periode_filtre == periode_code %}active{% endif %}">
+                            {{ periode_nom }}
+                        </a>
+                    {% endfor %}
+                </div>
+                
+                <!-- Prochaines évaluations -->
+                {% if prochaines_evaluations %}
+                    <div class="subsection-header">
+                        <h3><i class="fas fa-calendar-plus"></i> Prochaines évaluations</h3>
+                    </div>
+                    <div class="evaluations-grid">
+                        {% for eval in prochaines_evaluations %}
+                            <div class="evaluation-card prochaine">
+                                <div class="eval-header">
+                                    <div class="eval-type {{ eval.type_evaluation|lower }}">
+                                        {{ eval.get_type_evaluation_display }}
+                                    </div>
+                                    <div class="eval-bareme">/{{ eval.bareme }}</div>
+                                </div>
+                                <div class="eval-title">{{ eval.titre }}</div>
+                                <div class="eval-date">
+                                    <i class="fas fa-calendar"></i>
+                                    {{ eval.date_evaluation|date:"d/m/Y" }}
+                                </div>
+                                {% if eval.description %}
+                                    <div class="eval-description">{{ eval.description|truncatewords:15 }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Dernières évaluations -->
+                {% if dernieres_evaluations %}
+                    <div class="subsection-header">
+                        <h3><i class="fas fa-history"></i> Dernières évaluations</h3>
+                    </div>
+                    <div class="evaluations-grid">
+                        {% for eval in dernieres_evaluations %}
+                            <div class="evaluation-card passee">
+                                <div class="eval-header">
+                                    <div class="eval-type {{ eval.type_evaluation|lower }}">
+                                        {{ eval.get_type_evaluation_display }}
+                                    </div>
+                                    <div class="eval-bareme">/{{ eval.bareme }}</div>
+                                </div>
+                                <div class="eval-title">{{ eval.titre }}</div>
+                                <div class="eval-date">
+                                    <i class="fas fa-calendar"></i>
+                                    {{ eval.date_evaluation|date:"d/m/Y" }}
+                                </div>
+                                {% if eval.description %}
+                                    <div class="eval-description">{{ eval.description|truncatewords:15 }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if not dernieres_evaluations and not prochaines_evaluations %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-clipboard"></i>
+                        <p>Aucune évaluation programmée pour cette classe</p>
+                        <a href="{% url 'enseignant:creer_evaluation' classe.id %}" class="btn-primary-small">
+                            <i class="fas fa-plus"></i>
+                            Créer une première évaluation
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions Footer -->
+        <div class="actions-footer">
+            <a href="{% url 'enseignant:gestion_classes' %}" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Retour aux classes
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Switch tabs avec mise à jour de l'URL
+        function switchTab(tabName) {
+            // Construire la nouvelle URL avec le paramètre onglet
+            const url = new URL(window.location);
+            url.searchParams.set('onglet', tabName);
+            
+            // Rediriger vers la nouvelle URL (conserve tous les autres paramètres)
+            window.location.href = url.toString();
+        }
+    </script>
+</body>
+</html>
+

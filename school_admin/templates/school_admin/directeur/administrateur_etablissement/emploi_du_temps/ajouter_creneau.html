@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+{% load static %}
+{% load pagination_tags %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ajouter un Créneau - {{ classe.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_form.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% endif %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
+            <i class="fas fa-calendar-week"></i>
+            Emplois du temps
+          </a>
+          <i class="fas fa-chevron-right breadcrumb-separator"></i>
+          <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}" class="breadcrumb-link">
+            {{ classe.nom }}
+          </a>
+          <i class="fas fa-chevron-right breadcrumb-separator"></i>
+          <span class="breadcrumb-current">Ajouter un créneau</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-plus-circle"></i>
+              Ajouter un Créneau
+            </h1>
+            <p class="page-subtitle">
+              Emploi du temps de la classe {{ classe.nom }} - {{ emploi_du_temps.annee_scolaire }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          <div class="messages-container">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Erreurs globales -->
+        {% if field_errors.non_field_errors %}
+          <div class="alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{{ field_errors.non_field_errors }}</span>
+          </div>
+        {% endif %}
+
+        <!-- Formulaire -->
+        <div class="form-section-creneau">
+          <div class="form-card-creneau">
+            <div class="form-card-header-creneau">
+              <h2 class="form-card-title-creneau">
+                <i class="fas fa-calendar-plus"></i>
+                Informations du Créneau
+              </h2>
+              <p class="form-card-subtitle-creneau">
+                Remplissez tous les champs obligatoires pour créer un nouveau créneau
+              </p>
+            </div>
+
+            <form method="post" action="{% url 'administrateur_etablissement:ajouter_creneau' emploi_du_temps.id %}" class="form-content-creneau">
+              {% csrf_token %}
+              
+              <div class="form-row">
+                <!-- Jour -->
+                <div class="form-group {% if field_errors.jour %}has-error{% endif %}">
+                  <label for="jour" class="form-label required">
+                    <i class="fas fa-calendar-day"></i>
+                    Jour de la semaine
+                  </label>
+                  <select id="jour" name="jour" class="form-control" required>
+                    <option value="">Sélectionnez un jour</option>
+                    {% for value, label in jours_choices %}
+                      <option value="{{ value }}" {% if form_data.jour == value %}selected{% endif %}>
+                        {{ label }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if field_errors.jour %}
+                    <span class="error-message">
+                      <i class="fas fa-exclamation-circle"></i>
+                      {{ field_errors.jour }}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <!-- Type de cours -->
+                <div class="form-group {% if field_errors.type_cours %}has-error{% endif %}">
+                  <label for="type_cours" class="form-label required">
+                    <i class="fas fa-tag"></i>
+                    Type de cours
+                  </label>
+                  <select id="type_cours" name="type_cours" class="form-control" required>
+                    {% for value, label in type_cours_choices %}
+                      <option value="{{ value }}" {% if form_data.type_cours == value %}selected{% endif %}>
+                        {{ label }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if field_errors.type_cours %}
+                    <span class="error-message">
+                      <i class="fas fa-exclamation-circle"></i>
+                      {{ field_errors.type_cours }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="form-row">
+                <!-- Heure de début -->
+                <div class="form-group {% if field_errors.heure_debut %}has-error{% endif %}">
+                  <label for="heure_debut" class="form-label required">
+                    <i class="fas fa-clock"></i>
+                    Heure de début
+                  </label>
+                  <input 
+                    type="time" 
+                    id="heure_debut" 
+                    name="heure_debut" 
+                    class="form-control" 
+                    value="{{ form_data.heure_debut }}"
+                    required
+                  />
+                  {% if field_errors.heure_debut %}
+                    <span class="error-message">
+                      <i class="fas fa-exclamation-circle"></i>
+                      {{ field_errors.heure_debut }}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <!-- Heure de fin -->
+                <div class="form-group {% if field_errors.heure_fin %}has-error{% endif %}">
+                  <label for="heure_fin" class="form-label required">
+                    <i class="fas fa-clock"></i>
+                    Heure de fin
+                  </label>
+                  <input 
+                    type="time" 
+                    id="heure_fin" 
+                    name="heure_fin" 
+                    class="form-control" 
+                    value="{{ form_data.heure_fin }}"
+                    required
+                  />
+                  {% if field_errors.heure_fin %}
+                    <span class="error-message">
+                      <i class="fas fa-exclamation-circle"></i>
+                      {{ field_errors.heure_fin }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Matière -->
+              <div class="form-group {% if field_errors.matiere %}has-error{% endif %}">
+                <label for="matiere" class="form-label">
+                  <i class="fas fa-book"></i>
+                  Matière
+                  <span class="optional">(Optionnel)</span>
+                </label>
+                <select id="matiere" name="matiere" class="form-control">
+                  <option value="">Sélectionnez une matière</option>
+                  {% for matiere in matieres %}
+                    <option value="{{ matiere.id }}" {% if form_data.matiere_id == matiere.id|stringformat:"s" %}selected{% endif %}>
+                      {{ matiere.nom }}
+                    </option>
+                  {% endfor %}
+                </select>
+                {% if field_errors.matiere %}
+                  <span class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ field_errors.matiere }}
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="form-row">
+                <!-- Professeur -->
+                <div class="form-group {% if field_errors.professeur %}has-error{% endif %}">
+                  <label for="professeur" class="form-label">
+                    <i class="fas fa-user-tie"></i>
+                    Professeur
+                    <span class="optional">(Optionnel)</span>
+                  </label>
+                  <select id="professeur" name="professeur" class="form-control">
+                    <option value="">Sélectionnez un professeur</option>
+                    {% for prof in professeurs %}
+                      <option value="{{ prof.id }}" {% if form_data.professeur_id == prof.id|stringformat:"s" %}selected{% endif %}>
+                        {{ prof.prenom }} {{ prof.nom }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if field_errors.professeur %}
+                    <span class="error-message">
+                      <i class="fas fa-exclamation-circle"></i>
+                      {{ field_errors.professeur }}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <!-- Salle -->
+                <div class="form-group {% if field_errors.salle %}has-error{% endif %}">
+                  <label for="salle" class="form-label">
+                    <i class="fas fa-door-open"></i>
+                    Salle
+                    <span class="optional">(Optionnel)</span>
+                  </label>
+                  <select id="salle" name="salle" class="form-control">
+                    <option value="">Sélectionnez une salle</option>
+                    {% for salle in salles %}
+                      <option value="{{ salle.id }}" {% if form_data.salle_id == salle.id|stringformat:"s" %}selected{% endif %}>
+                        Salle {{ salle.numero }} - {{ salle.nom }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if field_errors.salle %}
+                    <span class="error-message">
+                      <i class="fas fa-exclamation-circle"></i>
+                      {{ field_errors.salle }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+
+
+              <!-- Actions du formulaire -->
+              <div class="form-actions">
+                <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}" class="btn btn-secondary">
+                  <i class="fas fa-times"></i>
+                  <span>Annuler</span>
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-check"></i>
+                  <span>Ajouter le créneau</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
+    <script>
+      // Mise à jour de l'aperçu de la couleur
+      const colorInput = document.getElementById('couleur');
+      const colorPreview = document.getElementById('colorPreview');
+      
+      colorInput.addEventListener('input', function() {
+        colorPreview.style.backgroundColor = this.value;
+        colorPreview.style.color = getContrastColor(this.value);
+      });
+      
+      // Définir la couleur initiale
+      colorPreview.style.backgroundColor = colorInput.value;
+      colorPreview.style.color = getContrastColor(colorInput.value);
+      
+      // Fonction pour déterminer la couleur de texte contrastée
+      function getContrastColor(hexColor) {
+        const r = parseInt(hexColor.substr(1, 2), 16);
+        const g = parseInt(hexColor.substr(3, 2), 16);
+        const b = parseInt(hexColor.substr(5, 2), 16);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness > 128 ? '#000000' : '#ffffff';
+      }
+    </script>
+  </body>
+</html>
+

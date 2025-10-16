@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+{% load static %}
+{% load notes_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails - {{ eleve.nom_complet }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/detail_eleve.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
+            <span class="separator">›</span>
+            <span class="current">{{ eleve.nom_complet }}</span>
+        </nav>
+
+        <!-- Header Élève -->
+        <div class="eleve-header-card">
+            <div class="eleve-avatar-large">
+                {{ eleve.prenom.0 }}{{ eleve.nom.0 }}
+            </div>
+            <div class="eleve-header-info">
+                <h1 class="eleve-nom">{{ eleve.nom|upper }} {{ eleve.prenom }}</h1>
+                <div class="eleve-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-chalkboard"></i>
+                        {{ classe.nom }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-id-card"></i>
+                        {{ eleve.numero_matricule_complet }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                        {{ eleve.get_sexe_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <div class="stat-value">{{ nombre_notes }}</div>
+                    <div class="stat-label">Notes</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="stat-value">{{ nombre_absences }}</div>
+                    <div class="stat-label">Absences</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="stat-value">{{ taux_presence }}%</div>
+                    <div class="stat-label">Assiduité</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglets -->
+        <div class="tabs-navigation">
+            <a href="?onglet=notes" class="tab-link {% if onglet_actif == 'notes' %}active{% endif %}">
+                <i class="fas fa-clipboard-check"></i>
+                <span>Notes & Moyennes</span>
+            </a>
+            <a href="?onglet=presences" class="tab-link {% if onglet_actif == 'presences' %}active{% endif %}">
+                <i class="fas fa-calendar-check"></i>
+                <span>Présences & Absences</span>
+            </a>
+            <a href="?onglet=informations" class="tab-link {% if onglet_actif == 'informations' %}active{% endif %}">
+                <i class="fas fa-user"></i>
+                <span>Informations personnelles</span>
+            </a>
+        </div>
+
+        <!-- Contenu des onglets -->
+        <div class="tab-content-wrapper">
+            
+            <!-- ONGLET NOTES -->
+            {% if onglet_actif == 'notes' %}
+                <div class="tab-content active" id="tab-notes">
+                    <div class="content-header">
+                        <h2><i class="fas fa-chart-line"></i> Performances scolaires</h2>
+                        <p>Matière : {{ professeur.matiere_principale.nom }}</p>
+                    </div>
+
+                    <!-- Moyennes par période -->
+                    {% if moyennes %}
+                        <div class="moyennes-container">
+                            <h3><i class="fas fa-calculator"></i> Moyennes par période</h3>
+                            <div class="moyennes-grid">
+                                {% for moyenne in moyennes %}
+                                    <div class="moyenne-card">
+                                        <div class="moyenne-header">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span>{{ moyenne.get_periode_display }}</span>
+                                        </div>
+                                        <div class="moyenne-value {% if moyenne.moyenne < 10 %}faible{% elif moyenne.moyenne < 14 %}bonne{% else %}excellente{% endif %}">
+                                            {{ moyenne.moyenne|floatformat:2 }}/20
+                                        </div>
+                                        {% if moyenne.appreciation %}
+                                            <div class="moyenne-appreciation">
+                                                "{{ moyenne.appreciation }}"
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Historique des notes -->
+                    <div class="notes-container">
+                        <h3><i class="fas fa-list"></i> Historique des notes</h3>
+                        {% if notes %}
+                            <div class="notes-table-container">
+                                <table class="notes-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Évaluation</th>
+                                            <th>Type</th>
+                                            <th>Note</th>
+                                            <th>Période</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for note in notes %}
+                                            <tr>
+                                                <td>{{ note.evaluation.date_evaluation|date:"d/m/Y" }}</td>
+                                                <td class="eval-nom">{{ note.evaluation.titre }}</td>
+                                                <td>
+                                                    <span class="badge-type {{ note.evaluation.type_evaluation }}">
+                                                        {{ note.evaluation.get_type_evaluation_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="note-badge {{ note.note|get_note_color_class:note.evaluation.bareme }}">
+                                                        {{ note.note|floatformat:2 }}/{{ note.evaluation.bareme }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ note.evaluation.get_periode_display }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-clipboard"></i>
+                                <p>Aucune note enregistrée pour cet élève</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- ONGLET PRÉSENCES -->
+            {% if onglet_actif == 'presences' %}
+                <div class="tab-content active" id="tab-presences">
+                    <div class="content-header">
+                        <h2><i class="fas fa-clipboard-list"></i> Suivi de présence</h2>
+                        <p>30 derniers jours</p>
+                    </div>
+
+                    <!-- Statistiques -->
+                    <div class="presence-stats">
+                        <div class="stat-card present">
+                            <div class="stat-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number">{{ nombre_presents }}</div>
+                                <div class="stat-text">Présents</div>
+                            </div>
+                        </div>
+                        <div class="stat-card absent">
+                            <div class="stat-icon">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number">{{ nombre_absences }}</div>
+                                <div class="stat-text">Absences</div>
+                            </div>
+                        </div>
+                        <div class="stat-card retard">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number">{{ nombre_retards }}</div>
+                                <div class="stat-text">Retards</div>
+                            </div>
+                        </div>
+                        <div class="stat-card taux">
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number">{{ taux_presence }}%</div>
+                                <div class="stat-text">Assiduité</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historique des présences -->
+                    <div class="presences-container">
+                        <h3><i class="fas fa-history"></i> Historique des 30 derniers jours</h3>
+                        {% if presences %}
+                            <div class="presences-timeline">
+                                {% for presence in presences %}
+                                    <div class="presence-item {% if not presence.liste_presence.validee %}modifiable{% endif %}" data-presence-id="{{ presence.id }}">
+                                        <div class="presence-date">
+                                            <div class="date-jour">{{ presence.date|date:"d" }}</div>
+                                            <div class="date-mois">{{ presence.date|date:"M" }}</div>
+                                        </div>
+                                        <div class="presence-details">
+                                            <div class="presence-status">
+                                                <span class="status-badge {{ presence.statut }}">
+                                                    <i class="fas fa-{% if presence.statut == 'present' %}check-circle{% elif presence.statut == 'absent' %}times-circle{% elif presence.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
+                                                    {{ presence.get_statut_display }}
+                                                </span>
+                                            </div>
+                                            <div class="presence-info">
+                                                <span class="info-text">{{ presence.date|date:"l d F Y" }}</span>
+                                                {% if presence.remarque %}
+                                                    <span class="info-remarque">{{ presence.remarque }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="presence-actions">
+                                            {% with liste=presence.classe.listes_presences.all|dictsort:"date" %}
+                                                {% for lp in liste %}
+                                                    {% if lp.date == presence.date %}
+                                                        {% if not lp.validee %}
+                                                            <button class="btn-modifier-presence" 
+                                                                    onclick="ouvrirModalModification({{ presence.id }}, '{{ presence.statut }}', '{{ presence.date|date:'d/m/Y' }}')">
+                                                                <i class="fas fa-edit"></i>
+                                                                Modifier
+                                                            </button>
+                                                        {% else %}
+                                                            <span class="badge-validee">
+                                                                <i class="fas fa-lock"></i>
+                                                                Validée
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endwith %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Aucune présence enregistrée pour les 30 derniers jours</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- ONGLET INFORMATIONS -->
+            {% if onglet_actif == 'informations' %}
+                <div class="tab-content active" id="tab-informations">
+                    <div class="content-header">
+                        <h2><i class="fas fa-user-circle"></i> Informations personnelles</h2>
+                        <p>Profil de l'élève</p>
+                    </div>
+
+                    <div class="info-sections">
+                        <!-- Identité -->
+                        <div class="info-section">
+                            <h3><i class="fas fa-id-card"></i> Identité</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Nom complet</span>
+                                    <span class="info-value">{{ eleve.nom|upper }} {{ eleve.prenom }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Matricule</span>
+                                    <span class="info-value">{{ eleve.numero_matricule_complet }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Date de naissance</span>
+                                    <span class="info-value">{{ eleve.date_naissance|date:"d/m/Y"|default:"-" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Sexe</span>
+                                    <span class="info-value">{{ eleve.get_sexe_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scolarité -->
+                        <div class="info-section">
+                            <h3><i class="fas fa-graduation-cap"></i> Scolarité</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Classe</span>
+                                    <span class="info-value">{{ classe.nom }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Établissement</span>
+                                    <span class="info-value">{{ classe.etablissement.nom }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Statut</span>
+                                    <span class="info-value">
+                                        <span class="badge-statut {% if eleve.actif %}actif{% else %}inactif{% endif %}">
+                                            {% if eleve.actif %}Actif{% else %}Inactif{% endif %}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact -->
+                        <div class="info-section">
+                            <h3><i class="fas fa-envelope"></i> Contact</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Email</span>
+                                    <span class="info-value">{{ eleve.email|default:"-" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Téléphone</span>
+                                    <span class="info-value">{{ eleve.telephone|default:"-" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Adresse</span>
+                                    <span class="info-value">{{ eleve.adresse|default:"-" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Parents/Tuteurs -->
+                        <div class="info-section">
+                            <h3><i class="fas fa-users"></i> Parents / Tuteurs</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Nom du tuteur</span>
+                                    <span class="info-value">{{ eleve.nom_tuteur|default:"-" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Téléphone tuteur</span>
+                                    <span class="info-value">{{ eleve.telephone_tuteur|default:"-" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Email tuteur</span>
+                                    <span class="info-value">{{ eleve.email_tuteur|default:"-" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Actions Footer -->
+        <div class="actions-footer">
+            <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Retour à la liste
+            </a>
+            {% if onglet_actif == 'presences' %}
+                <a href="{% url 'enseignant:historique_presence' eleve.id %}" class="btn-primary">
+                    <i class="fas fa-history"></i>
+                    Voir l'historique complet
+                </a>
+            {% endif %}
+            <a href="{% url 'enseignant:noter_eleves' classe.id %}" class="btn-primary">
+                <i class="fas fa-edit"></i>
+                Noter cet élève
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal de modification de présence -->
+    <div id="modal-modifier-presence" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Modifier la présence</h3>
+                <button class="modal-close" onclick="fermerModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="post" id="form-modifier-presence">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="modal-info">Date : <strong id="modal-date"></strong></p>
+                    <div class="statut-selector">
+                        <label class="statut-radio present">
+                            <input type="radio" name="statut" value="present">
+                            <span class="radio-content">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Présent</span>
+                            </span>
+                        </label>
+                        <label class="statut-radio absent">
+                            <input type="radio" name="statut" value="absent">
+                            <span class="radio-content">
+                                <i class="fas fa-times-circle"></i>
+                                <span>Absent</span>
+                            </span>
+                        </label>
+                        <label class="statut-radio retard">
+                            <input type="radio" name="statut" value="retard">
+                            <span class="radio-content">
+                                <i class="fas fa-clock"></i>
+                                <span>Retard</span>
+                            </span>
+                        </label>
+                        <label class="statut-radio absent-justifie">
+                            <input type="radio" name="statut" value="absent_justifie">
+                            <span class="radio-content">
+                                <i class="fas fa-file-medical"></i>
+                                <span>Absent Justifié</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fermerModal()">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/detail_eleve.js' %}"></script>
+</body>
+</html>
+

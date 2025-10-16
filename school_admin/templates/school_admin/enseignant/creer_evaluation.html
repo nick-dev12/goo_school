@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer une évaluation - {{ classe.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Fil d'Ariane -->
+        <div class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'enseignant:gestion_notes' %}">Gestion des notes</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Créer une évaluation</span>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-info-circle"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if errors.general %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>{{ errors.general }}</p>
+            </div>
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-plus-circle"></i>
+                    Créer une évaluation
+                </h1>
+                <p class="page-subtitle">
+                    {{ classe.nom }} - {{ matiere.nom }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Information de la classe -->
+        <div class="classe-info-card">
+            <div class="info-item">
+                <i class="fas fa-chalkboard"></i>
+                <span><strong>Classe :</strong> {{ classe.nom }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-book"></i>
+                <span><strong>Matière :</strong> {{ matiere.nom }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-users"></i>
+                <span><strong>Effectif :</strong> {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}</span>
+            </div>
+        </div>
+
+        <!-- Formulaire -->
+        <form method="post" class="evaluation-form">
+            {% csrf_token %}
+            
+            <div class="form-container">
+                <!-- Informations générales -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Informations générales
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <!-- Titre -->
+                        <div class="form-group {% if errors.titre %}has-error{% endif %}">
+                            <label for="titre">
+                                <i class="fas fa-heading"></i>
+                                Titre de l'évaluation <span class="required">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="titre" 
+                                   name="titre" 
+                                   value="{{ form_data.titre }}"
+                                   placeholder="Ex: Contrôle sur les fractions"
+                                   required>
+                            {% if errors.titre %}
+                                <span class="error-message">{{ errors.titre }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Type -->
+                        <div class="form-group {% if errors.type_evaluation %}has-error{% endif %}">
+                            <label for="type_evaluation">
+                                <i class="fas fa-tag"></i>
+                                Type d'évaluation <span class="required">*</span>
+                            </label>
+                            <select id="type_evaluation" name="type_evaluation" required>
+                                <option value="controle" {% if form_data.type_evaluation == 'controle' %}selected{% endif %}>Contrôle écrit</option>
+                                <option value="interrogation" {% if form_data.type_evaluation == 'interrogation' %}selected{% endif %}>Interrogation</option>
+                                <option value="devoir_maison" {% if form_data.type_evaluation == 'devoir_maison' %}selected{% endif %}>Devoir maison</option>
+                                <option value="projet" {% if form_data.type_evaluation == 'projet' %}selected{% endif %}>Projet</option>
+                                <option value="oral" {% if form_data.type_evaluation == 'oral' %}selected{% endif %}>Évaluation orale</option>
+                                <option value="pratique" {% if form_data.type_evaluation == 'pratique' %}selected{% endif %}>Évaluation pratique</option>
+                            </select>
+                            {% if errors.type_evaluation %}
+                                <span class="error-message">{{ errors.type_evaluation }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="form-group full-width {% if errors.description %}has-error{% endif %}">
+                        <label for="description">
+                            <i class="fas fa-align-left"></i>
+                            Description
+                        </label>
+                        <textarea id="description" 
+                                  name="description" 
+                                  rows="3" 
+                                  placeholder="Description ou consignes de l'évaluation (optionnel)">{{ form_data.description }}</textarea>
+                        {% if errors.description %}
+                            <span class="error-message">{{ errors.description }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Paramètres de l'évaluation -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-cog"></i>
+                        Paramètres de l'évaluation
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <!-- Date -->
+                        <div class="form-group {% if errors.date_evaluation %}has-error{% endif %}">
+                            <label for="date_evaluation">
+                                <i class="fas fa-calendar"></i>
+                                Date de l'évaluation <span class="required">*</span>
+                            </label>
+                            <input type="date" 
+                                   id="date_evaluation" 
+                                   name="date_evaluation" 
+                                   value="{{ form_data.date_evaluation }}"
+                                   required>
+                            {% if errors.date_evaluation %}
+                                <span class="error-message">{{ errors.date_evaluation }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Durée -->
+                        <div class="form-group {% if errors.duree %}has-error{% endif %}">
+                            <label for="duree">
+                                <i class="fas fa-clock"></i>
+                                Durée (en minutes)
+                            </label>
+                            <input type="number" 
+                                   id="duree" 
+                                   name="duree" 
+                                   value="{{ form_data.duree }}"
+                                   min="5"
+                                   step="5"
+                                   placeholder="Ex: 60">
+                            {% if errors.duree %}
+                                <span class="error-message">{{ errors.duree }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Barème -->
+                        <div class="form-group {% if errors.bareme %}has-error{% endif %}">
+                            <label for="bareme">
+                                <i class="fas fa-calculator"></i>
+                                Barème (points) <span class="required">*</span>
+                            </label>
+                            <input type="number" 
+                                   id="bareme" 
+                                   name="bareme" 
+                                   value="{{ form_data.bareme|default:'20' }}"
+                                   min="1"
+                                   step="0.5"
+                                   required>
+                            {% if errors.bareme %}
+                                <span class="error-message">{{ errors.bareme }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Période -->
+                        <div class="form-group {% if errors.periode %}has-error{% endif %}">
+                            <label for="periode">
+                                <i class="fas fa-calendar-alt"></i>
+                                Période scolaire <span class="required">*</span>
+                            </label>
+                            <select id="periode" name="periode" required>
+                                <optgroup label="Système Trimestre (Primaire & Collège)">
+                                    <option value="trimestre1" {% if form_data.periode == 'trimestre1' or not form_data.periode %}selected{% endif %}>1er Trimestre</option>
+                                    <option value="trimestre2" {% if form_data.periode == 'trimestre2' %}selected{% endif %}>2ème Trimestre</option>
+                                    <option value="trimestre3" {% if form_data.periode == 'trimestre3' %}selected{% endif %}>3ème Trimestre</option>
+                                </optgroup>
+                                <optgroup label="Système Semestre (Lycée)">
+                                    <option value="semestre1" {% if form_data.periode == 'semestre1' %}selected{% endif %}>1er Semestre</option>
+                                    <option value="semestre2" {% if form_data.periode == 'semestre2' %}selected{% endif %}>2ème Semestre</option>
+                                </optgroup>
+                                <optgroup label="Annuel">
+                                    <option value="annuel" {% if form_data.periode == 'annuel' %}selected{% endif %}>Année complète</option>
+                                </optgroup>
+                            </select>
+                            {% if errors.periode %}
+                                <span class="error-message">{{ errors.periode }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Créer l'évaluation
+                    </button>
+                    <a href="{% url 'enseignant:gestion_notes' %}" class="btn btn-outline">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+</body>
+</html>
+

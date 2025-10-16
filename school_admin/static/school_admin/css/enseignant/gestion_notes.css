@@ -1,0 +1,1013 @@
+/* Gestion des Notes - Enseignant */
+
+.main-content-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    margin-top: 80px;
+}
+
+/* Onglets de périodes horizontaux */
+.periodes-tabs-horizontal {
+    margin-bottom: 1.25rem;
+}
+
+.periodes-nav {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    background: white;
+    padding: 0.75rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.periode-tab-horizontal {
+    flex: 1;
+    min-width: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    color: #64748b;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.periode-tab-horizontal i {
+    font-size: 0.875rem;
+}
+
+.periode-tab-horizontal:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.periode-tab-horizontal.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Badges de moyennes colorés */
+.moyenne-badge.faible {
+    background: #fee2e2;
+    color: #991b1b;
+    font-weight: 700;
+}
+
+.moyenne-badge.moyenne-faible {
+    background: #fed7aa;
+    color: #9a3412;
+    font-weight: 700;
+}
+
+.moyenne-badge.bonne {
+    background: #dbeafe;
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.moyenne-badge.excellente {
+    background: #d1fae5;
+    color: #065f46;
+    font-weight: 700;
+}
+
+.moyenne-badge.non-calcule {
+    background: #f1f5f9;
+    color: #9ca3af;
+}
+
+.appreciation-text.muted {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.stat-value.muted {
+    color: #9ca3af;
+}
+
+.stat-value-small {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Alertes */
+.alert {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.alert i {
+    font-size: 1rem;
+    margin-right: 0.625rem;
+    margin-top: 0.125rem;
+}
+
+.alert p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 3px solid #10b981;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 3px solid #ef4444;
+}
+
+.alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border-left: 3px solid #3b82f6;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.page-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: #667eea;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+    background: #5568d3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.25);
+}
+
+.btn-action i {
+    font-size: 0.9375rem;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.page-title i {
+    color: #10b981;
+    font-size: 1.25rem;
+}
+
+.page-subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Statistiques globales */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.125rem;
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Onglets principaux */
+.tabs-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.tabs-nav {
+    display: flex;
+    background: #f8fafc;
+    padding: 0.75rem;
+    gap: 0.5rem;
+    overflow-x: auto;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.tab-btn {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 120px;
+    text-align: left;
+}
+
+.tab-btn:hover {
+    border-color: #10b981;
+    background: #d1fae5;
+}
+
+.tab-btn.active {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.tab-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.tab-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.tab-badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    padding: 0.125rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.tab-btn.active .tab-badge {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.tab-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.tab-students {
+    font-size: 0.6875rem;
+    opacity: 0.8;
+}
+
+.tab-btn.active .tab-students {
+    color: white;
+}
+
+/* Contenu des onglets */
+.tab-content-panel {
+    display: none;
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content-panel.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Info catégorie */
+.category-info {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-left: 3px solid #10b981;
+}
+
+.category-details h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.375rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.category-details h3 i {
+    color: #10b981;
+    font-size: 0.875rem;
+}
+
+.category-details p {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Sous-onglets par classe */
+.classes-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.classe-tab-btn {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 140px;
+}
+
+.classe-tab-btn:hover {
+    border-color: #10b981;
+    background: #d1fae5;
+}
+
+.classe-tab-btn.active {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.classe-tab-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #10b981;
+    font-size: 0.875rem;
+}
+
+.classe-tab-btn.active .classe-tab-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.classe-tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.classe-tab-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.classe-tab-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 8px;
+    align-self: flex-start;
+}
+
+.classe-tab-badge.principal {
+    background: #f093fb;
+    color: white;
+}
+
+.classe-tab-count {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.classe-tab-btn.active .classe-tab-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* Contenu de classe */
+.classe-content {
+    display: none;
+}
+
+.classe-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Header avec actions */
+.classe-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.classe-header-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.classe-header-info h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.classe-header-info h3 i {
+    color: #10b981;
+    font-size: 1rem;
+}
+
+.eleves-count {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+    background: #f1f5f9;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-action i {
+    font-size: 0.875rem;
+}
+
+.btn-action.primary {
+    background: #667eea;
+}
+
+.btn-action.primary:hover {
+    background: #5568d3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.25);
+}
+
+.btn-action.success {
+    background: #10b981;
+}
+
+.btn-action.success:hover {
+    background: #0ea271;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25);
+}
+
+.btn-action.secondary {
+    background: #64748b;
+}
+
+.btn-action.secondary:hover {
+    background: #475569;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(100, 116, 139, 0.25);
+}
+
+/* Statistiques de la classe */
+.class-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-box {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    border: 1px solid #e2e8f0;
+}
+
+.stat-box .stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.stat-box .stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* Répartition des notes */
+.repartition-container {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.repartition-container h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 0.75rem 0;
+}
+
+.repartition-bar {
+    height: 1.75rem;
+    width: 100%;
+    background: #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 0.75rem;
+}
+
+.repartition-segment {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.segment-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.repartition-segment.insuffisant {
+    background: #ef4444;
+}
+
+.repartition-segment.fragile {
+    background: #f59e0b;
+}
+
+.repartition-segment.satisfaisant {
+    background: #3b82f6;
+}
+
+.repartition-segment.excellent {
+    background: #10b981;
+}
+
+.repartition-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.legend-color {
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 3px;
+    margin-right: 0.375rem;
+}
+
+.legend-color.insuffisant {
+    background: #ef4444;
+}
+
+.legend-color.fragile {
+    background: #f59e0b;
+}
+
+.legend-color.satisfaisant {
+    background: #3b82f6;
+}
+
+.legend-color.excellent {
+    background: #10b981;
+}
+
+/* Tableau relevé de notes */
+.releve-table-container {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    overflow: auto;
+}
+
+.releve-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.releve-table thead {
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.releve-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.releve-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.8125rem;
+}
+
+.releve-table tr:last-child td {
+    border-bottom: none;
+}
+
+.row-even {
+    background: white;
+}
+
+.row-odd {
+    background: #f8fafc;
+}
+
+.releve-table tr:hover {
+    background: #f1f5f9;
+}
+
+/* Colonnes du tableau */
+.col-numero {
+    width: 50px;
+    text-align: center;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.col-eleve {
+    width: 250px;
+}
+
+.col-moyenne {
+    width: 100px;
+    text-align: center;
+}
+
+.col-appreciation {
+    min-width: 300px;
+}
+
+/* Cellule élève */
+.eleve-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.eleve-avatar-tiny {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #10b981;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.eleve-name {
+    display: flex;
+    gap: 0.375rem;
+}
+
+.eleve-name .nom {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.eleve-name .prenom {
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* Badge moyenne */
+.moyenne-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Appréciation */
+.appreciation-text {
+    font-size: 0.8125rem;
+    color: #64748b;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* État vide pour une classe */
+.empty-class-state {
+    text-align: center;
+    padding: 2rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+}
+
+.empty-class-state i {
+    font-size: 2.5rem;
+    color: #cbd5e1;
+    margin-bottom: 0.75rem;
+}
+
+.empty-class-state p {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* État vide global */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+}
+
+.empty-state h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.75rem 0;
+}
+
+.empty-state p {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Styles d'impression */
+@media print {
+    .no-print,
+    .tabs-nav,
+    .classes-tabs,
+    .action-buttons,
+    .classe-header-actions {
+        display: none !important;
+    }
+    
+    .releve-table-container {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .releve-table {
+        font-size: 10pt;
+    }
+    
+    .page-header,
+    .stats-container,
+    .category-info {
+        break-inside: avoid;
+    }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .releve-table {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .col-appreciation {
+        min-width: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content-container {
+        padding: 1rem;
+        margin-top: 70px;
+    }
+
+    .page-title {
+        font-size: 1.25rem;
+    }
+
+    .stats-container {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs-nav,
+    .classes-tabs {
+        flex-direction: column;
+    }
+
+    .tab-btn,
+    .classe-tab-btn {
+        min-width: auto;
+    }
+
+    .class-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .classe-header-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .action-buttons {
+        width: 100%;
+    }
+
+    .btn-action {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .releve-table th,
+    .releve-table td {
+        padding: 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .col-appreciation {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-title {
+        font-size: 1.125rem;
+    }
+
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+    
+    .eleve-name {
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Classes - Espace Enseignant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_classes.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-chalkboard"></i>
+                    Gestion de Mes Classes
+                </h1>
+                <p class="page-subtitle">
+                    {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }} affectée{{ stats.total_classes|pluralize }}
+                </p>
+            </div>
+        </div>
+
+        {% if stats.total_classes > 0 %}
+            <!-- Statistiques globales -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #667eea;">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_classes }}</span>
+                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #f093fb;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_eleves }}</span>
+                        <span class="stat-label">Élève{{ stats.total_eleves|pluralize }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #4facfe;">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.classes_principales }}</span>
+                        <span class="stat-label">Principal{{ stats.classes_principales|pluralize:"e,e" }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #43e97b;">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.classes_classiques }}</span>
+                        <span class="stat-label">Classique{{ stats.classes_classiques|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglets par catégorie -->
+            <div class="tabs-container">
+                <div class="tabs-nav">
+                    {% for categorie, data in classes_grouped.items %}
+                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <span class="tab-title">{{ categorie }}</span>
+                                <span class="tab-badge">{{ data.nombre_classes }}</span>
+                            </div>
+                            <div class="tab-info">
+                                <span class="tab-students">{{ data.total_eleves }} élèves</span>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Contenu des onglets -->
+                {% for categorie, data in classes_grouped.items %}
+                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                        <!-- Info catégorie -->
+                        <div class="category-info">
+                            <div class="category-details">
+                                <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                                <p>
+                                    {{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }} - 
+                                    {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }} / 
+                                    {{ data.total_capacite }} places ({{ data.taux_moyen }}% occupation)
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Grille de cartes des classes -->
+                        <div class="classes-grid">
+                            {% for classe_data in data.classes %}
+                                <div class="classe-card">
+                                    <!-- Header -->
+                                    <div class="classe-header">
+                                        <div class="classe-icon" style="background: #667eea;">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="classe-info">
+                                            <h3 class="classe-nom">{{ classe_data.classe.nom }}</h3>
+                                            <div class="classe-badges">
+                                                {% if classe_data.est_principal %}
+                                                    <span class="badge principal">
+                                                        <i class="fas fa-crown"></i> Principal
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge classique">
+                                                        <i class="fas fa-chalkboard-teacher"></i> Classique
+                                                    </span>
+                                                {% endif %}
+                                                <span class="badge {% if classe_data.classe.actif %}active{% else %}inactive{% endif %}">
+                                                    {% if classe_data.classe.actif %}Active{% else %}Inactive{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Statistiques de la classe -->
+                                    <div class="classe-stats">
+                                        <div class="stat-item">
+                                            <div class="stat-icon-small">
+                                                <i class="fas fa-user-friends"></i>
+                                            </div>
+                                            <div class="stat-content">
+                                                <span class="stat-label">Effectif</span>
+                                                <span class="stat-value">{{ classe_data.nombre_eleves }}/{{ classe_data.capacite_max }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Barre de progression -->
+                                    <div class="progress-container">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill {% if classe_data.taux_occupation >= 90 %}danger{% elif classe_data.taux_occupation >= 75 %}warning{% else %}success{% endif %}" 
+                                                 style="width: {{ classe_data.taux_occupation }}%;">
+                                            </div>
+                                        </div>
+                                        <span class="progress-text">
+                                            {{ classe_data.nombre_eleves }} / {{ classe_data.capacite_max }} élèves
+                                        </span>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="classe-actions">
+                                        <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}" class="action-btn primary" title="Voir les détails">
+                                            <i class="fas fa-eye"></i>
+                                            <span>Détails</span>
+                                        </a>
+                                        <a href="{% url 'enseignant:gestion_eleves' %}" class="action-btn secondary" title="Liste des élèves">
+                                            <i class="fas fa-users"></i>
+                                            <span>Élèves</span>
+                                        </a>
+                                        <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="action-btn success" title="Gérer les notes">
+                                            <i class="fas fa-clipboard-check"></i>
+                                            <span>Notes</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- État vide -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-chalkboard"></i>
+                </div>
+                <h3>Aucune classe affectée</h3>
+                <p>Vous n'avez actuellement aucune classe affectée. Contactez l'administration de votre établissement.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    <script>
+        // Fonction pour changer d'onglet
+        function switchTab(tabId) {
+            // Désactiver tous les onglets
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            // Activer l'onglet sélectionné
+            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            const selectedPanel = document.getElementById(tabId);
+            
+            if (selectedBtn && selectedPanel) {
+                selectedBtn.classList.add('active');
+                selectedPanel.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

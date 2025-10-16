@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Évaluations - Espace Enseignant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_evaluations.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Fil d'Ariane -->
+        <div class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'enseignant:gestion_notes' %}">Gestion des notes</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Évaluations programmées</span>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Évaluations programmées
+                </h1>
+                <p class="page-subtitle">
+                    {{ stats.total_evaluations }} évaluation{{ stats.total_evaluations|pluralize }} pour {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }}
+                </p>
+            </div>
+        </div>
+
+        {% if stats.total_evaluations > 0 %}
+            <!-- Statistiques globales -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #667eea;">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_evaluations }}</span>
+                        <span class="stat-label">Évaluation{{ stats.total_evaluations|pluralize }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #10b981;">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_classes }}</span>
+                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglets par catégorie -->
+            <div class="tabs-container">
+                <div class="tabs-nav">
+                    {% for categorie, data in evaluations_grouped.items %}
+                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchTab('tab-{{ forloop.counter }}')">
+                            <span class="tab-title">{{ categorie }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Contenu des onglets -->
+                {% for categorie, data in evaluations_grouped.items %}
+                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                        <!-- Sous-onglets par classe -->
+                        <div class="classes-tabs">
+                            {% for classe_data in data.classes %}
+                                <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
+                                        data-classe="classe-{{ categorie }}-{{ forloop.counter }}"
+                                        onclick="showClasse('classe-{{ categorie }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
+                                    <div class="classe-tab-icon">
+                                        <i class="fas fa-chalkboard"></i>
+                                    </div>
+                                    <div class="classe-tab-content">
+                                        <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                    </div>
+                                    <span class="classe-tab-count">{{ classe_data.nombre_evaluations }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Contenu de chaque classe -->
+                        {% for classe_data in data.classes %}
+                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}">
+                                {% if classe_data.evaluations %}
+                                    <!-- Grille des évaluations -->
+                                    <div class="evaluations-grid">
+                                        {% for evaluation in classe_data.evaluations %}
+                                            <div class="evaluation-card">
+                                                <!-- Header -->
+                                                <div class="eval-header">
+                                                    <div class="eval-icon" style="background: {% if evaluation.type_evaluation == 'controle' %}#667eea{% elif evaluation.type_evaluation == 'interrogation' %}#f59e0b{% elif evaluation.type_evaluation == 'devoir_maison' %}#10b981{% elif evaluation.type_evaluation == 'projet' %}#8b5cf6{% elif evaluation.type_evaluation == 'oral' %}#3b82f6{% else %}#64748b{% endif %};">
+                                                        <i class="fas fa-{% if evaluation.type_evaluation == 'controle' %}file-alt{% elif evaluation.type_evaluation == 'interrogation' %}question-circle{% elif evaluation.type_evaluation == 'devoir_maison' %}home{% elif evaluation.type_evaluation == 'projet' %}project-diagram{% elif evaluation.type_evaluation == 'oral' %}microphone{% else %}clipboard{% endif %}"></i>
+                                                    </div>
+                                                    <div class="eval-info">
+                                                        <h3 class="eval-titre">{{ evaluation.titre }}</h3>
+                                                        <div class="eval-badges">
+                                                            <span class="badge type-{{ evaluation.type_evaluation }}">
+                                                                {{ evaluation.type_display }}
+                                                            </span>
+                                                            <span class="badge {% if evaluation.est_passe %}passe{% elif evaluation.est_a_venir %}a-venir{% else %}aujourdhui{% endif %}">
+                                                                {% if evaluation.est_passe %}
+                                                                    <i class="fas fa-check"></i> Passée
+                                                                {% elif evaluation.est_a_venir %}
+                                                                    <i class="fas fa-clock"></i> À venir
+                                                                {% else %}
+                                                                    <i class="fas fa-calendar-day"></i> Aujourd'hui
+                                                                {% endif %}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Informations -->
+                                                <div class="eval-details">
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-calendar"></i>
+                                                        <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+                                                    </div>
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-calculator"></i>
+                                                        <span>{{ evaluation.bareme }} points</span>
+                                                    </div>
+                                                    {% if evaluation.duree %}
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-clock"></i>
+                                                            <span>{{ evaluation.duree }} min</span>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if evaluation.description %}
+                                                    <div class="eval-description">
+                                                        <p>{{ evaluation.description|truncatewords:20 }}</p>
+                                                    </div>
+                                                {% endif %}
+
+                                                <!-- Actions -->
+                                                <div class="eval-actions">
+                                                    <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="action-btn primary" title="Noter">
+                                                        <i class="fas fa-edit"></i>
+                                                        <span>Noter</span>
+                                                    </a>
+                                                    <button class="action-btn secondary" title="Modifier">
+                                                        <i class="fas fa-pen"></i>
+                                                        <span>Modifier</span>
+                                                    </button>
+                                                    <button class="action-btn danger" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                        <span>Supprimer</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="empty-class-state">
+                                        <i class="fas fa-clipboard"></i>
+                                        <p>Aucune évaluation programmée pour cette classe</p>
+                                        <a href="{% url 'enseignant:creer_evaluation' classe_data.classe.id %}" class="btn btn-primary">
+                                            <i class="fas fa-plus"></i>
+                                            Créer une évaluation
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- État vide -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <h3>Aucune évaluation programmée</h3>
+                <p>Vous n'avez encore créé aucune évaluation. Commencez par créer votre première évaluation.</p>
+                <a href="{% url 'enseignant:gestion_notes' %}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    <script>
+        // Fonction pour changer d'onglet principal
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            const selectedPanel = document.getElementById(tabId);
+            
+            if (selectedBtn && selectedPanel) {
+                selectedBtn.classList.add('active');
+                selectedPanel.classList.add('active');
+            }
+        }
+        
+        // Fonction pour afficher une classe spécifique
+        function showClasse(classeId, tabId) {
+            const tabPanel = document.getElementById(tabId);
+            if (tabPanel) {
+                tabPanel.querySelectorAll('.classe-tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                tabPanel.querySelectorAll('.classe-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                const selectedBtn = tabPanel.querySelector(`[data-classe="${classeId}"]`);
+                const selectedContent = document.getElementById(classeId);
+                
+                if (selectedBtn && selectedContent) {
+                    selectedBtn.classList.add('active');
+                    selectedContent.classList.add('active');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

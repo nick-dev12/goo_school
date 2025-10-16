@@ -1,0 +1,397 @@
+<?php
+// Informations utilisateur
+$user_name = isset($user_name) ? $user_name : "Marie Dupont";
+$user_role = isset($user_role) ? $user_role : "Enseignant";
+$user_avatar = isset($user_avatar) ? $user_avatar : "MD";
+$school_name = isset($school_name) ? $school_name : "Collège Saint-Exupéry";
+$page_title = isset($page_title) ? $page_title : "Tableau de Bord";
+?>
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $page_title; ?> - Acadeflex | Espace Enseignant</title>
+    <link rel="stylesheet" href="../style/style.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.3/dist/apexcharts.min.css">
+</head>
+
+<body>
+    <div class="dashboard">
+
+        <!-- Main Content -->
+        <main class="main-content full-width" id="mainContent">
+            <!-- Header Horizontal -->
+            <header class="dashboard-header-horizontal">
+                <div class="header-left">
+                    <div class="header-logo">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Acadeflex</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div class="header-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Rechercher un élève, une classe...">
+                    </div>
+
+                    <button class="header-button">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+
+                    <button class="header-button">
+                        <i class="fas fa-envelope"></i>
+                        <span class="notification-badge">5</span>
+                    </button>
+
+                    <div class="header-profile">
+                        <div class="header-avatar">
+                            <?php echo $user_avatar; ?>
+                        </div>
+                        <div class="header-user-info">
+                            <div class="header-user-name"><?php echo $user_name; ?></div>
+                            <div class="header-user-role"><?php echo $user_role; ?></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Welcome Banner -->
+            <section class="welcome-banner">
+                <div class="banner-content">
+                    <h1 class="banner-title">Bienvenue, <?php echo $user_name; ?></h1>
+                    <p class="banner-subtitle"><?php echo $school_name; ?> - Année scolaire 2023-2024</p>
+                </div>
+                <button class="nav-toggle-btn" id="openNavMenu">
+                    menu
+                    <i class="fas fa-th"></i>
+                </button>
+            </section>
+
+            <!-- Navigation Overlay -->
+            <div class="navigation-overlay" id="navOverlay"></div>
+
+            <!-- Navigation Cards Section (Hidden by default) -->
+            <section class="section-container navigation-section" id="navigationSection">
+                <button class="close-btn" id="closeNavMenu">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <div class="nav-menu-header">
+                    <h2>Menu de Navigation</h2>
+                    <p>Accédez rapidement à toutes les fonctionnalités</p>
+                </div>
+
+                <!-- Section 1: Tableau de bord -->
+                <div class="section-title">
+                    <h2>Tableau de bord</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="dashboard.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-blue">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Vue d'ensemble</h3>
+                            <p>Activités récentes</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 2: Mes classes -->
+                <div class="section-title">
+                    <h2>Mes classes</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="liste-classes.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-green">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Liste des classes</h3>
+                            <p>Classes assignées</p>
+                        </div>
+                    </a>
+                    <a href="detail-classe.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-teal">
+                            <i class="fas fa-chalkboard"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Détail par classe</h3>
+                            <p>Informations détaillées</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 3: Cahier de texte -->
+                <div class="section-title">
+                    <h2>Cahier de texte</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="cahier-texte.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-purple">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Cours</h3>
+                            <p>Ajout et consultation</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 4: Évaluations & Notes -->
+                <div class="section-title">
+                    <h2>Évaluations & Notes</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="creer-evaluation.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-orange">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Créer évaluation</h3>
+                            <p>Nouvelles évaluations</p>
+                        </div>
+                    </a>
+                    <a href="noter-eleves.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-light-blue">
+                            <i class="fas fa-pen"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Noter</h3>
+                            <p>Attribution de notes</p>
+                        </div>
+                    </a>
+                    <a href="releve-notes.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-blue">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Historique</h3>
+                            <p>Notes attribuées</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 5: Suivi des élèves -->
+                <div class="section-title">
+                    <h2>Suivi des élèves</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="absences-retards.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-red">
+                            <i class="fas fa-calendar-times"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Absences / retards</h3>
+                            <p>Gestion des présences</p>
+                        </div>
+                    </a>
+                    <a href="comportement.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-orange">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Comportement</h3>
+                            <p>Suivi comportemental</p>
+                        </div>
+                    </a>
+
+                </div>
+
+                <!-- Section 6: Orientation -->
+                <div class="section-title">
+                    <h2>Orientation</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="conseils-de-classe.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-cyan">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Conseils de classe</h3>
+                            <p>Suivi des conseils</p>
+                        </div>
+                    </a>
+                    <a href="orientation-des-eleves.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-light-purple">
+                            <i class="fas fa-compass"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Orientation</h3>
+                            <p>Recommandations</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 7: Documents -->
+                <div class="section-title">
+                    <h2>Documents</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="mes-supports.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-teal">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Mes supports</h3>
+                            <p>Documents personnels</p>
+                        </div>
+                    </a>
+                    <a href="fichiers-partages.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-green">
+                            <i class="fas fa-share-alt"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Fichiers partagés</h3>
+                            <p>Ressources communes</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 8: Messagerie -->
+                <div class="section-title">
+                    <h2>Messagerie</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="messages-eleves.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-blue">
+                            <i class="fas fa-child"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Élèves</h3>
+                            <p>Communication</p>
+                        </div>
+                    </a>
+                    <a href="messages-parents.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-purple">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Parents</h3>
+                            <p>Échanges</p>
+                        </div>
+                    </a>
+                    <a href="messages-administration.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-gray">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Administration</h3>
+                            <p>Direction</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 9: Profil -->
+                <div class="section-title">
+                    <h2>Mon profil</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="modifier-profil.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-light-blue">
+                            <i class="fas fa-user-edit"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Modifier profil</h3>
+                            <p>Informations</p>
+                        </div>
+                    </a>
+                    <a href="changer-mot-de-passe.php" class="nav-link-card">
+                        <div class="nav-card-icon neo-red">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Mot de passe</h3>
+                            <p>Sécurité</p>
+                        </div>
+                    </a>
+                    <a href="../logout.php" class="nav-link-card logout-card">
+                        <div class="nav-card-icon neo-red">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Déconnexion</h3>
+                            <p>Quitter</p>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <script>
+                // Script pour gérer le menu latéral
+                document.addEventListener('DOMContentLoaded', function () {
+                    const menuToggle = document.getElementById('menuToggle');
+                    const mainContent = document.getElementById('mainContent');
+
+                    if (menuToggle) {
+                        menuToggle.addEventListener('click', function () {
+                            mainContent.classList.toggle('expanded');
+
+                            // Changer l'icône du bouton
+                            const icon = menuToggle.querySelector('i');
+                            if (mainContent.classList.contains('expanded')) {
+                                icon.classList.remove('fa-bars');
+                                icon.classList.add('fa-angles-right');
+                            } else {
+                                icon.classList.remove('fa-angles-right');
+                                icon.classList.add('fa-bars');
+                            }
+                        });
+                    }
+
+                    // Gestion du menu de navigation
+                    const openNavBtn = document.getElementById('openNavMenu');
+                    const closeNavBtn = document.getElementById('closeNavMenu');
+                    const navSection = document.getElementById('navigationSection');
+                    const navOverlay = document.getElementById('navOverlay');
+
+                    // Fonction pour ouvrir le menu de navigation
+                    function openNavMenu() {
+                        navSection.classList.add('active');
+                        navOverlay.classList.add('active');
+                        document.body.style.overflow = 'hidden'; // Empêcher le défilement
+                    }
+
+                    // Fonction pour fermer le menu de navigation
+                    function closeNavMenu() {
+                        navSection.classList.remove('active');
+                        navOverlay.classList.remove('active');
+                        document.body.style.overflow = ''; // Réactiver le défilement
+                    }
+
+                    // Événements pour ouvrir/fermer le menu
+                    openNavBtn.addEventListener('click', openNavMenu);
+                    closeNavBtn.addEventListener('click', closeNavMenu);
+                    navOverlay.addEventListener('click', closeNavMenu);
+
+                    // Fermer le menu lors du clic sur un lien
+                    const navLinks = document.querySelectorAll('.nav-link-card');
+                    navLinks.forEach(link => {
+                        link.addEventListener('click', function () {
+                            // Fermer le menu avec un petit délai pour permettre à l'animation de clic de s'afficher
+                            setTimeout(closeNavMenu, 100);
+                        });
+                    });
+
+                    // Fermer le menu en appuyant sur Echap
+                    document.addEventListener('keydown', function (e) {
+                        if (e.key === 'Escape') {
+                            closeNavMenu();
+                        }
+                    });
+                });
+            </script>
+        </main>
+    </div>
+</body>
+
+</html>

@@ -87,6 +87,12 @@ class Professeur(AbstractUser):
     actif = models.BooleanField(default=True, verbose_name="Actif")
     
     # Informations de connexion
+    mot_de_passe_provisoire = models.CharField(
+        max_length=10, 
+        blank=True, 
+        null=True,
+        verbose_name="Mot de passe provisoire"
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     

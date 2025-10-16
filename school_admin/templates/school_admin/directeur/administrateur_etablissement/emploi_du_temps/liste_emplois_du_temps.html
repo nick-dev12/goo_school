@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+{% load static %}
+{% load pagination_tags %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Emplois du Temps - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% endif %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-calendar-week"></i>
+              Gestion des Emplois du Temps
+            </h1>
+            <p class="page-subtitle">
+              Planification et configuration des emplois du temps - {{ etablissement.nom }}
+            </p>
+            <div class="annee-scolaire-badge">
+              <i class="fas fa-calendar-alt"></i>
+              <span>Année scolaire {{ annee_scolaire }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          <div class="messages-container">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Statistiques -->
+        <div class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card stat-primary">
+              <div class="stat-icon">
+                <i class="fas fa-chalkboard"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.total_classes }}</div>
+                <div class="stat-label">Classes Totales</div>
+              </div>
+            </div>
+            
+            <div class="stat-card stat-success">
+              <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.classes_avec_edt }}</div>
+                <div class="stat-label">Avec Emploi du Temps</div>
+              </div>
+            </div>
+            
+            <div class="stat-card stat-warning">
+              <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.classes_sans_edt }}</div>
+                <div class="stat-label">Sans Emploi du Temps</div>
+              </div>
+            </div>
+            
+            <div class="stat-card stat-info">
+              <div class="stat-icon">
+                <i class="fas fa-layer-group"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.total_categories }}</div>
+                <div class="stat-label">Catégories</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section des emplois du temps -->
+        <div class="emplois-section">
+          {% if classes_grouped %}
+            <!-- Navigation des onglets -->
+            <div class="categories-tabs">
+              <div class="tabs-nav-wrapper">
+                <button class="tab-scroll-btn tab-scroll-left" id="scrollLeft">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="tabs-nav-container">
+                  <div class="tabs-nav">
+                    {% for categorie, data in classes_grouped.items %}
+                      <button 
+                        class="tab-btn {% if forloop.first %}active{% endif %}" 
+                        data-category="{{ categorie }}"
+                        onclick="switchTab('{{ categorie }}')">
+                        <div class="tab-icon">
+                          <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                        </div>
+                        <div class="tab-content">
+                          <span class="tab-title">{{ categorie }}</span>
+                          <span class="tab-count">{{ data.total_classes }} classe{{ data.total_classes|pluralize }}</span>
+                        </div>
+                        <div class="tab-indicator"></div>
+                      </button>
+                    {% endfor %}
+                  </div>
+                </div>
+                
+                <button class="tab-scroll-btn tab-scroll-right" id="scrollRight">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="tabs-content">
+              {% for categorie, data in classes_grouped.items %}
+                <div class="tab-panel {% if forloop.first %}active{% endif %}" id="panel-{{ categorie|slugify }}">
+                  <!-- En-tête de la catégorie -->
+                  <div class="category-header">
+                    <div class="category-info">
+                      <h3 class="category-title">
+                        <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                        {{ categorie }}
+                      </h3>
+                      <p class="category-subtitle">
+                        {{ data.total_classes }} classe{{ data.total_classes|pluralize }} - 
+                        {{ data.classes_avec_edt }} avec emploi du temps
+                      </p>
+                    </div>
+                    <div class="category-stats-mini">
+                      <div class="stat-mini stat-mini-success">
+                        <i class="fas fa-check"></i>
+                        <span>{{ data.classes_avec_edt }}</span>
+                      </div>
+                      <div class="stat-mini stat-mini-warning">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ data.classes_sans_edt }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Liste des classes -->
+                  <div class="classes-grid">
+                    {% for classe_data in data.classes %}
+                      <div class="classe-card {% if not classe_data.a_emploi_du_temps %}classe-card-no-edt{% endif %}">
+                        <div class="classe-card-header">
+                          <div class="classe-info">
+                            <h4 class="classe-nom">
+                              <i class="fas fa-chalkboard"></i>
+                              {{ classe_data.classe.nom }}
+                            </h4>
+                            <p class="classe-niveau">{{ classe_data.classe.get_niveau_display }}</p>
+                          </div>
+                          <div class="classe-badge">
+                            {% if classe_data.a_emploi_du_temps %}
+                              <span class="badge badge-success">
+                                <i class="fas fa-check-circle"></i>
+                                Configuré
+                              </span>
+                            {% else %}
+                              <span class="badge badge-warning">
+                                <i class="fas fa-exclamation-circle"></i>
+                                Non configuré
+                              </span>
+                            {% endif %}
+                          </div>
+                        </div>
+
+                        <div class="classe-card-body">
+                          <div class="classe-details">
+                            <div class="detail-item">
+                              <i class="fas fa-users"></i>
+                              <span>{{ classe_data.classe.nombre_eleves }}/{{ classe_data.classe.capacite_max }} élèves</span>
+                            </div>
+                            {% if classe_data.a_emploi_du_temps %}
+                              <div class="detail-item">
+                                <i class="fas fa-clock"></i>
+                                <span>{{ classe_data.nombre_creneaux }} créneau{{ classe_data.nombre_creneaux|pluralize }}</span>
+                              </div>
+                              <div class="detail-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>{{ classe_data.emploi_du_temps.annee_scolaire }}</span>
+                              </div>
+                            {% endif %}
+                          </div>
+
+                          <div class="classe-actions">
+                            {% if classe_data.a_emploi_du_temps %}
+                              <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe_data.classe.id %}" 
+                                 class="btn btn-primary">
+                                <i class="fas fa-eye"></i>
+                                <span>Voir l'emploi du temps</span>
+                              </a>
+                            {% else %}
+                              <a href="{% url 'administrateur_etablissement:creer_emploi_du_temps' classe_data.classe.id %}" 
+                                 class="btn btn-success">
+                                <i class="fas fa-plus"></i>
+                                <span>Créer un emploi du temps</span>
+                              </a>
+                            {% endif %}
+                          </div>
+                        </div>
+
+                        {% if classe_data.a_emploi_du_temps %}
+                          <div class="classe-card-footer">
+                            <div class="footer-info">
+                              <i class="fas fa-info-circle"></i>
+                              <span>Dernière modification : {{ classe_data.emploi_du_temps.date_modification|date:"d/m/Y" }}</span>
+                            </div>
+                          </div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+
+          {% else %}
+            <!-- État vide -->
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="fas fa-calendar-times"></i>
+              </div>
+              <h3 class="empty-state-title">Aucune classe trouvée</h3>
+              <p class="empty-state-text">
+                Commencez par créer des classes pour pouvoir configurer leurs emplois du temps.
+              </p>
+              <a href="{% url 'administrateur_etablissement:ajouter_classe' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Créer une classe</span>
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
+  </body>
+</html>
+

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres du Profil - {{ professeur.nom_complet }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/parametres_profil.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <span class="current">Paramètres du profil</span>
+        </nav>
+
+        <!-- Header Profile Card -->
+        <div class="profile-header-card">
+            <div class="profile-avatar-large">
+                {{ professeur.prenom.0 }}{{ professeur.nom.0 }}
+            </div>
+            <div class="profile-header-info">
+                <h1 class="profile-nom">{{ professeur.nom|upper }} {{ professeur.prenom }}</h1>
+                <div class="profile-meta">
+                    <span class="meta-item"><i class="fas fa-chalkboard-teacher"></i> {{ professeur.matiere_principale }}</span>
+                    <span class="meta-item"><i class="fas fa-envelope"></i> {{ professeur.email }}</span>
+                    <span class="meta-item"><i class="fas fa-school"></i> {{ professeur.etablissement.nom }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Layout -->
+        <div class="parametres-grid">
+            <!-- Colonne Gauche -->
+            <div class="parametres-column-left">
+                <!-- Section Informations Personnelles -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user"></i> Informations personnelles</h2>
+                    </div>
+                    <form method="post" class="info-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_info">
+                        
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label><i class="fas fa-id-card"></i> Matricule</label>
+                                <div class="info-value readonly">{{ professeur.numero_matricule_complet }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label><i class="fas fa-user"></i> Nom complet</label>
+                                <div class="info-value readonly">{{ professeur.nom|upper }} {{ professeur.prenom }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label><i class="fas fa-venus-mars"></i> Sexe</label>
+                                <div class="info-value readonly">{{ professeur.get_sexe_display }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label><i class="fas fa-envelope"></i> Email</label>
+                                <div class="info-value readonly">{{ professeur.email }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label><i class="fas fa-phone"></i> Téléphone</label>
+                                <input type="tel" name="telephone" class="info-input" value="{{ professeur.telephone|default:'' }}" placeholder="Numéro de téléphone">
+                            </div>
+                            <div class="info-item full-width">
+                                <label><i class="fas fa-map-marker-alt"></i> Adresse</label>
+                                <input type="text" name="adresse" class="info-input" value="{{ professeur.adresse|default:'' }}" placeholder="Votre adresse complète">
+                            </div>
+                            <div class="info-item">
+                                <label><i class="fas fa-chalkboard-teacher"></i> Matière principale</label>
+                                <div class="info-value readonly">{{ professeur.matiere_principale }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label><i class="fas fa-school"></i> Établissement</label>
+                                <div class="info-value readonly">{{ professeur.etablissement.nom }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-save">
+                                <i class="fas fa-save"></i>
+                                Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Section Changement de mot de passe -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-lock"></i> Sécurité - Changer le mot de passe</h2>
+                    </div>
+                    <form method="post" class="password-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="change_password">
+                        
+                        <div class="form-group">
+                            <label for="old_password">
+                                <i class="fas fa-key"></i>
+                                Ancien mot de passe
+                            </label>
+                            <input type="password" id="old_password" name="old_password" class="form-input" required placeholder="Entrez votre ancien mot de passe">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="new_password">
+                                <i class="fas fa-lock"></i>
+                                Nouveau mot de passe
+                            </label>
+                            <input type="password" id="new_password" name="new_password" class="form-input" required placeholder="Entrez un nouveau mot de passe">
+                            <small class="form-hint">Minimum 6 caractères</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirm_password">
+                                <i class="fas fa-lock"></i>
+                                Confirmer le mot de passe
+                            </label>
+                            <input type="password" id="confirm_password" name="confirm_password" class="form-input" required placeholder="Confirmez le nouveau mot de passe">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-change-password">
+                                <i class="fas fa-shield-alt"></i>
+                                Modifier le mot de passe
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Colonne Droite -->
+            <div class="parametres-column-right">
+                <!-- Section Statistiques -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-line"></i> Statistiques du compte</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-box primary">
+                            <div class="stat-icon"><i class="fas fa-chalkboard"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-value">{{ nombre_classes }}</div>
+                                <div class="stat-label">Classe{{ nombre_classes|pluralize }}</div>
+                            </div>
+                        </div>
+                        <div class="stat-box success">
+                            <div class="stat-icon"><i class="fas fa-clipboard-list"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-value">{{ nombre_evaluations }}</div>
+                                <div class="stat-label">Évaluation{{ nombre_evaluations|pluralize }}</div>
+                            </div>
+                        </div>
+                        <div class="stat-box info">
+                            <div class="stat-icon"><i class="fas fa-edit"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-value">{{ nombre_notes }}</div>
+                                <div class="stat-label">Note{{ nombre_notes|pluralize }} saisie{{ nombre_notes|pluralize }}</div>
+                            </div>
+                        </div>
+                        <div class="stat-box warning">
+                            <div class="stat-icon"><i class="fas fa-gavel"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-value">{{ nombre_sanctions }}</div>
+                                <div class="stat-label">Sanction{{ nombre_sanctions|pluralize }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Dernières Activités -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history"></i> Dernières activités</h2>
+                    </div>
+                    {% if dernieres_evaluations %}
+                        <div class="activites-timeline">
+                            {% for evaluation in dernieres_evaluations %}
+                                <div class="activite-item">
+                                    <div class="activite-icon">
+                                        <i class="fas fa-clipboard-list"></i>
+                                    </div>
+                                    <div class="activite-content">
+                                        <div class="activite-title">{{ evaluation.titre }}</div>
+                                        <div class="activite-meta">
+                                            <span class="activite-classe">{{ evaluation.classe.nom }}</span>
+                                            <span class="activite-date">{{ evaluation.date_creation|date:"d/m/Y" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state-small">
+                            <i class="fas fa-clipboard"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Section Actions Rapides -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-bolt"></i> Actions rapides</h2>
+                    </div>
+                    <div class="actions-grid">
+                        <a href="{% url 'enseignant:gestion_classes' %}" class="action-card">
+                            <i class="fas fa-chalkboard"></i>
+                            <span>Mes Classes</span>
+                        </a>
+                        <a href="{% url 'enseignant:gestion_eleves' %}" class="action-card">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Mes Élèves</span>
+                        </a>
+                        <a href="{% url 'enseignant:gestion_notes' %}" class="action-card">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Notes</span>
+                        </a>
+                        <a href="{% url 'enseignant:liste_evaluations' %}" class="action-card">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Évaluations</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+</body>
+</html>
+

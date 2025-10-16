@@ -129,14 +129,13 @@ class ProfesseurController:
                 'telephone': request.POST.get('telephone', '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'niveau_enseignement': request.POST.get('niveau_enseignement', ''),
-                'password': request.POST.get('password', ''),
             }
             
             # Validation
             is_valid = True
             
-            # Champs obligatoires
-            required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement', 'password']
+            # Champs obligatoires (password supprimé)
+            required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement']
             for field in required_fields:
                 if not form_data[field]:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -162,18 +161,16 @@ class ProfesseurController:
                 field_errors['email'] = "Cette adresse email est déjà utilisée."
                 is_valid = False
             
-            # Validation des mots de passe
-            if form_data['password'] and len(form_data['password']) < 8:
-                field_errors['password'] = "Le mot de passe doit contenir au moins 8 caractères."
-                is_valid = False
-            
-            
             # Si tout est valide, créer le professeur
             if is_valid:
                 try:
                     with transaction.atomic():
                         # Générer le numéro d'employé
                         numero_employe = ProfesseurController.generate_numero_employe(etablissement)
+                        
+                        # Générer un mot de passe provisoire de 4 chiffres
+                        import random
+                        mot_de_passe_provisoire = ''.join([str(random.randint(0, 9)) for _ in range(4)])
                         
                         # Créer le professeur
                         professeur = Professeur(
@@ -186,14 +183,15 @@ class ProfesseurController:
                             username=form_data['email'],
                             numero_employe=numero_employe,
                             etablissement=etablissement,
+                            mot_de_passe_provisoire=mot_de_passe_provisoire,
                         )
                         
-                        # Définir le mot de passe
-                        professeur.set_password(form_data['password'])
+                        # Définir le mot de passe provisoire hashé
+                        professeur.set_password(mot_de_passe_provisoire)
                         professeur.save()
                         
-                        messages.success(request, f"Le professeur {professeur.nom_complet} a été ajouté avec succès !")
-                        return redirect('professeur:liste_professeurs')
+                        messages.success(request, f"Le professeur {professeur.nom_complet} a été ajouté avec succès ! Mot de passe provisoire : {mot_de_passe_provisoire}")
+                        return redirect('professeur:detail_professeur', professeur_id=professeur.id)
                         
                 except Exception as e:
                     logger.error(f"Erreur lors de l'ajout du professeur: {str(e)}")
@@ -238,7 +236,14 @@ class ProfesseurController:
                 return redirect('school_admin:connexion_compte_user')
         
         try:
-            professeur = Professeur.objects.get(
+            professeur = Professeur.objects.select_related(
+                'matiere_principale',
+                'etablissement'
+            ).prefetch_related(
+                'matieres_secondaires',
+                'classes',
+                'classes__eleves'
+            ).get(
                 id=professeur_id,
                 etablissement=etablissement
             )
@@ -246,9 +251,13 @@ class ProfesseurController:
             messages.error(request, "Professeur non trouvé.")
             return redirect('professeur:liste_professeurs')
         
+        # Récupérer les classes affectées avec leurs informations
+        classes_affectees = professeur.classes.all().order_by('nom')
+        
         context = {
             'professeur': professeur,
             'etablissement': etablissement,
+            'classes_affectees': classes_affectees,
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/detail_professeur.html', context)
@@ -286,4 +295,147 @@ class ProfesseurController:
         except Professeur.DoesNotExist:
             messages.error(request, "Professeur non trouvé.")
         
-        return redirect('professeur:liste_professeurs')
+        return redirect('professeur:detail_professeur', professeur_id=professeur_id)
+    
+    @staticmethod
+    @login_required
+    def modifier_professeur(request, professeur_id):
+        """
+        Modifie les informations d'un professeur
+        """
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            # Si c'est du personnel administratif, récupérer son établissement
+            from ..model.personnel_administratif_model import PersonnelAdministratif
+            if isinstance(request.user, PersonnelAdministratif):
+                etablissement = request.user.etablissement
+            else:
+                messages.error(request, "Accès non autorisé.")
+                return redirect('school_admin:connexion_compte_user')
+        
+        try:
+            professeur = Professeur.objects.select_related(
+                'matiere_principale',
+                'etablissement'
+            ).prefetch_related(
+                'matieres_secondaires',
+                'classes'
+            ).get(
+                id=professeur_id,
+                etablissement=etablissement
+            )
+        except Professeur.DoesNotExist:
+            messages.error(request, "Professeur non trouvé.")
+            return redirect('professeur:liste_professeurs')
+        
+        form_data = {}
+        field_errors = {}
+        is_valid = True
+        
+        if request.method == 'POST':
+            # Récupération des données
+            form_data = {
+                'nom': request.POST.get('nom', '').strip(),
+                'prenom': request.POST.get('prenom', '').strip(),
+                'email': request.POST.get('email', '').strip(),
+                'telephone': request.POST.get('telephone', '').strip(),
+                'matiere_principale': request.POST.get('matiere_principale', ''),
+                'niveau_enseignement': request.POST.get('niveau_enseignement', ''),
+                'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
+            }
+            
+            # Validation
+            is_valid = True
+            
+            # Champs obligatoires
+            required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement']
+            for field in required_fields:
+                if not form_data[field]:
+                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                    is_valid = False
+            
+            # Validation de la matière principale
+            matiere_principale_obj = None
+            if form_data['matiere_principale']:
+                try:
+                    from ..model.matiere_model import Matiere
+                    matiere_principale_obj = Matiere.objects.get(id=form_data['matiere_principale'], etablissement=etablissement)
+                except Matiere.DoesNotExist:
+                    field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
+                    is_valid = False
+            
+            # Validation de l'email
+            if form_data['email'] and '@' not in form_data['email']:
+                field_errors['email'] = "L'adresse email n'est pas valide."
+                is_valid = False
+            
+            # Vérification de l'unicité de l'email (sauf si c'est le même)
+            if form_data['email'] and form_data['email'] != professeur.email:
+                if Professeur.objects.filter(email=form_data['email']).exists():
+                    field_errors['email'] = "Cette adresse email est déjà utilisée."
+                    is_valid = False
+            
+            # Si tout est valide, mettre à jour le professeur
+            if is_valid:
+                try:
+                    with transaction.atomic():
+                        professeur.nom = form_data['nom']
+                        professeur.prenom = form_data['prenom']
+                        professeur.email = form_data['email']
+                        professeur.telephone = form_data['telephone']
+                        professeur.matiere_principale = matiere_principale_obj
+                        professeur.niveau_enseignement = form_data['niveau_enseignement']
+                        
+                        # Mettre à jour le username si l'email a changé
+                        if professeur.email != professeur.username:
+                            professeur.username = professeur.email
+                        
+                        professeur.save()
+                        
+                        # Gérer les matières secondaires
+                        if form_data['matieres_secondaires']:
+                            from ..model.matiere_model import Matiere
+                            matieres_sec = Matiere.objects.filter(
+                                id__in=form_data['matieres_secondaires'],
+                                etablissement=etablissement
+                            )
+                            professeur.matieres_secondaires.set(matieres_sec)
+                        else:
+                            professeur.matieres_secondaires.clear()
+                        
+                        messages.success(request, f"Les informations de {professeur.nom_complet} ont été mises à jour avec succès !")
+                        return redirect('professeur:detail_professeur', professeur_id=professeur.id)
+                        
+                except Exception as e:
+                    logger.error(f"Erreur lors de la modification du professeur: {str(e)}")
+                    field_errors['__all__'] = "Une erreur est survenue lors de la modification du professeur."
+                    is_valid = False
+        else:
+            # Préremplir le formulaire avec les données actuelles
+            form_data = {
+                'nom': professeur.nom,
+                'prenom': professeur.prenom,
+                'email': professeur.email,
+                'telephone': professeur.telephone,
+                'matiere_principale': professeur.matiere_principale.id if professeur.matiere_principale else '',
+                'niveau_enseignement': professeur.niveau_enseignement,
+                'matieres_secondaires': [m.id for m in professeur.matieres_secondaires.all()],
+            }
+        
+        # Récupérer les matières de l'établissement
+        from ..model.matiere_model import Matiere
+        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
+        
+        context = {
+            'professeur': professeur,
+            'form_data': form_data,
+            'field_errors': field_errors,
+            'is_valid': is_valid,
+            'etablissement': etablissement,
+            'matieres': matieres,
+            'niveau_choices': Professeur.NIVEAU_CHOICES,
+        }
+        
+        return render(request, 'school_admin/directeur/personnel/professeurs/modifier_professeur.html', context)

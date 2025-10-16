@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ professeur.nom_complet }} - Détails Professeur</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/detail_professeur.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+      <!-- Page Header avec actions -->
+      <div class="page-header">
+        <div class="header-left">
+          <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour à la liste</span>
+          </a>
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-chalkboard-teacher"></i>
+              {{ professeur.nom_complet }}
+            </h1>
+            <p class="page-subtitle">
+              {{ professeur.matiere_display }} • {{ professeur.niveau_display }}
+            </p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a href="{% url 'professeur:modifier_professeur' professeur.id %}" class="btn-action btn-edit">
+            <i class="fas fa-edit"></i>
+            <span>Modifier</span>
+          </a>
+          <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-action {% if professeur.actif %}btn-danger{% else %}btn-success{% endif %}">
+              <i class="fas fa-{% if professeur.actif %}pause{% else %}play{% endif %}"></i>
+              <span>{% if professeur.actif %}Désactiver{% else %}Activer{% endif %}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="status-badge-container">
+        <div class="status-badge {% if professeur.actif %}active{% else %}inactive{% endif %}">
+          <span class="status-dot"></span>
+          <span class="status-text">{% if professeur.actif %}Actif{% else %}Inactif{% endif %}</span>
+        </div>
+        <div class="employee-number">
+          <i class="fas fa-id-card"></i>
+          <span>{{ professeur.numero_employe }}</span>
+        </div>
+      </div>
+
+      <!-- Grid de cartes d'informations -->
+      <div class="details-grid">
+        <!-- Carte Informations Personnelles -->
+        <div class="detail-card">
+          <div class="card-header">
+            <div class="card-icon personal">
+              <i class="fas fa-user"></i>
+            </div>
+            <h2 class="card-title">Informations Personnelles</h2>
+          </div>
+          <div class="card-content">
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-user"></i>
+                <span>Nom complet</span>
+              </div>
+              <div class="info-value">{{ professeur.nom }} {{ professeur.prenom }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-envelope"></i>
+                <span>Email</span>
+              </div>
+              <div class="info-value">
+                <a href="mailto:{{ professeur.email }}" class="link-email">{{ professeur.email }}</a>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-phone"></i>
+                <span>Téléphone</span>
+              </div>
+              <div class="info-value">
+                <a href="tel:{{ professeur.telephone }}" class="link-phone">{{ professeur.telephone }}</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Informations Professionnelles -->
+        <div class="detail-card">
+          <div class="card-header">
+            <div class="card-icon professional">
+              <i class="fas fa-briefcase"></i>
+            </div>
+            <h2 class="card-title">Informations Professionnelles</h2>
+          </div>
+          <div class="card-content">
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-book"></i>
+                <span>Matière principale</span>
+              </div>
+              <div class="info-value">
+                <span class="badge-matiere">{{ professeur.matiere_display }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-books"></i>
+                <span>Matières secondaires</span>
+              </div>
+              <div class="info-value">
+                {% if professeur.matieres_secondaires.all %}
+                  <div class="matieres-list">
+                    {% for matiere in professeur.matieres_secondaires.all %}
+                      <span class="badge-matiere-secondary">{{ matiere.nom }}</span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <span class="text-muted">Aucune matière secondaire</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Niveau d'enseignement</span>
+              </div>
+              <div class="info-value">
+                <span class="badge-niveau">{{ professeur.niveau_display }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Informations Administratives -->
+        <div class="detail-card">
+          <div class="card-header">
+            <div class="card-icon administrative">
+              <i class="fas fa-building"></i>
+            </div>
+            <h2 class="card-title">Informations Administratives</h2>
+          </div>
+          <div class="card-content">
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-id-badge"></i>
+                <span>Numéro d'employé</span>
+              </div>
+              <div class="info-value">
+                <span class="badge-employee">{{ professeur.numero_employe }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-school"></i>
+                <span>Établissement</span>
+              </div>
+              <div class="info-value">{{ professeur.etablissement.nom }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Date d'embauche</span>
+              </div>
+              <div class="info-value">{{ professeur.date_embauche|date:"d/m/Y" }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">
+                <i class="fas fa-toggle-on"></i>
+                <span>Statut</span>
+              </div>
+              <div class="info-value">
+                <span class="badge-status {% if professeur.actif %}active{% else %}inactive{% endif %}">
+                  {% if professeur.actif %}Actif{% else %}Inactif{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Informations de Connexion -->
+        <div class="detail-card full-width">
+          <div class="card-header">
+            <div class="card-icon connexion">
+              <i class="fas fa-key"></i>
+            </div>
+            <h2 class="card-title">Informations de Connexion</h2>
+          </div>
+          <div class="card-content">
+            {% if professeur.mot_de_passe_provisoire %}
+              <div class="alert alert-warning connexion-alert">
+                <div class="alert-icon">
+                  <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="alert-content">
+                  <h4>Mot de passe provisoire actif</h4>
+                  <p>Le professeur utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion.</p>
+                </div>
+              </div>
+              
+              <div class="connexion-info-grid">
+                <div class="connexion-item">
+                  <div class="connexion-label">
+                    <i class="fas fa-envelope"></i>
+                    <span>Email de connexion</span>
+                  </div>
+                  <div class="connexion-value">
+                    <code class="connexion-code">{{ professeur.email }}</code>
+                    <button class="btn-copy" onclick="copyToClipboard('{{ professeur.email }}')" title="Copier l'email">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="connexion-item">
+                  <div class="connexion-label">
+                    <i class="fas fa-lock"></i>
+                    <span>Mot de passe provisoire</span>
+                  </div>
+                  <div class="connexion-value">
+                    <code class="connexion-code password-code">{{ professeur.mot_de_passe_provisoire }}</code>
+                    <button class="btn-copy" onclick="copyToClipboard('{{ professeur.mot_de_passe_provisoire }}')" title="Copier le mot de passe">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="connexion-instructions">
+                <div class="instruction-icon">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="instruction-content">
+                  <h5>Instructions de première connexion</h5>
+                  <ol>
+                    <li>Utilisez l'email et le mot de passe provisoire ci-dessus</li>
+                    <li>Vous serez invité à changer votre mot de passe après la connexion</li>
+                    <li>Choisissez un mot de passe sécurisé d'au moins 8 caractères</li>
+                  </ol>
+                </div>
+              </div>
+            {% else %}
+              <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                  <strong>Mot de passe personnalisé</strong>
+                  <p>Le professeur a défini son propre mot de passe sécurisé.</p>
+                </div>
+              </div>
+              
+              <div class="connexion-info-grid">
+                <div class="connexion-item">
+                  <div class="connexion-label">
+                    <i class="fas fa-envelope"></i>
+                    <span>Email de connexion</span>
+                  </div>
+                  <div class="connexion-value">
+                    <code class="connexion-code">{{ professeur.email }}</code>
+                    <button class="btn-copy" onclick="copyToClipboard('{{ professeur.email }}')" title="Copier l'email">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Carte Classes Affectées -->
+        <div class="detail-card full-width">
+          <div class="card-header">
+            <div class="card-icon classes">
+              <i class="fas fa-users-class"></i>
+            </div>
+            <h2 class="card-title">Classes Affectées</h2>
+          </div>
+          <div class="card-content">
+            {% if professeur.classes.all %}
+              <div class="classes-grid">
+                {% for classe in professeur.classes.all %}
+                  <div class="classe-item">
+                    <div class="classe-icon">
+                      <i class="fas fa-users"></i>
+                    </div>
+                    <div class="classe-info">
+                      <h4 class="classe-name">{{ classe.nom }}</h4>
+                      <p class="classe-niveau">
+                        <i class="fas fa-graduation-cap"></i>
+                        {{ classe.get_niveau_display }}
+                      </p>
+                      <p class="classe-effectif">
+                        <i class="fas fa-user-friends"></i>
+                        {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }} / {{ classe.capacite_max }}
+                      </p>
+                      {% if classe.taux_occupation >= 90 %}
+                        <p class="classe-alert">
+                          <i class="fas fa-exclamation-triangle"></i>
+                          {{ classe.taux_occupation }}% de remplissage
+                        </p>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-state-small">
+                <i class="fas fa-users-class"></i>
+                <p>Aucune classe affectée</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Carte Historique -->
+        <div class="detail-card full-width">
+          <div class="card-header">
+            <div class="card-icon history">
+              <i class="fas fa-history"></i>
+            </div>
+            <h2 class="card-title">Historique</h2>
+          </div>
+          <div class="card-content">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-icon created">
+                  <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="timeline-content">
+                  <h4 class="timeline-title">Compte créé</h4>
+                  <p class="timeline-date">{{ professeur.date_creation|date:"d/m/Y à H:i" }}</p>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-icon modified">
+                  <i class="fas fa-edit"></i>
+                </div>
+                <div class="timeline-content">
+                  <h4 class="timeline-title">Dernière modification</h4>
+                  <p class="timeline-date">{{ professeur.date_modification|date:"d/m/Y à H:i" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions supplémentaires -->
+      <div class="actions-footer">
+        <a href="{% url 'personnel:liste_personnel' %}" class="btn-secondary">
+          <i class="fas fa-arrow-left"></i>
+          <span>Retour à la liste</span>
+        </a>
+        <div class="actions-right">
+          <button class="btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            <span>Imprimer</span>
+          </button>
+          <button class="btn-primary" onclick="alert('Fonctionnalité d\'export à venir')">
+            <i class="fas fa-download"></i>
+            <span>Exporter PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'school_admin/js/directeur/detail_professeur.js' %}"></script>
+  </body>
+</html>
+

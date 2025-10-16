@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Créer un Emploi du Temps - {{ classe.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% endif %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
+            <i class="fas fa-calendar-week"></i>
+            Emplois du temps
+          </a>
+          <i class="fas fa-chevron-right breadcrumb-separator"></i>
+          <span class="breadcrumb-current">Créer un emploi du temps</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-plus-circle"></i>
+              Créer un Emploi du Temps
+            </h1>
+            <p class="page-subtitle">
+              Configuration de l'emploi du temps pour la classe {{ classe.nom }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          <div class="messages-container">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Formulaire de création -->
+        <div class="form-section">
+          <div class="form-card">
+            <div class="form-card-header">
+              <h2 class="form-card-title">
+                <i class="fas fa-info-circle"></i>
+                Informations de l'Emploi du Temps
+              </h2>
+              <p class="form-card-subtitle">
+                Créez un nouvel emploi du temps pour la classe {{ classe.nom }}
+              </p>
+            </div>
+
+            <form method="post" action="{% url 'administrateur_etablissement:creer_emploi_du_temps' classe.id %}" class="form-content">
+              {% csrf_token %}
+              
+              <!-- Informations de la classe -->
+              <div class="info-box">
+                <div class="info-box-header">
+                  <i class="fas fa-chalkboard"></i>
+                  <span>Classe</span>
+                </div>
+                <div class="info-box-body">
+                  <div class="info-row">
+                    <span class="info-label">Nom :</span>
+                    <span class="info-value">{{ classe.nom }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Niveau :</span>
+                    <span class="info-value">{{ classe.get_niveau_display }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Nombre d'élèves :</span>
+                    <span class="info-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Code :</span>
+                    <span class="info-value">{{ classe.code_classe }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Champ Année scolaire -->
+              <div class="form-group">
+                <label for="annee_scolaire" class="form-label">
+                  <i class="fas fa-calendar-alt"></i>
+                  Année Scolaire
+                </label>
+                <input 
+                  type="text" 
+                  id="annee_scolaire" 
+                  name="annee_scolaire" 
+                  class="form-control" 
+                  value="{{ annee_scolaire_defaut }}"
+                  placeholder="Ex: 2023-2024"
+                  required
+                />
+                <small class="form-hint">
+                  <i class="fas fa-info-circle"></i>
+                  Format attendu : YYYY-YYYY (ex: 2023-2024)
+                </small>
+              </div>
+
+              <!-- Champ Notes -->
+              <div class="form-group">
+                <label for="notes" class="form-label">
+                  <i class="fas fa-sticky-note"></i>
+                  Notes et Commentaires
+                  <span class="optional">(Optionnel)</span>
+                </label>
+                <textarea 
+                  id="notes" 
+                  name="notes" 
+                  class="form-control" 
+                  rows="4"
+                  placeholder="Ajoutez des notes ou commentaires sur cet emploi du temps..."
+                ></textarea>
+                <small class="form-hint">
+                  <i class="fas fa-info-circle"></i>
+                  Ces notes seront visibles lors de la consultation de l'emploi du temps
+                </small>
+              </div>
+
+              <!-- Actions du formulaire -->
+              <div class="form-actions">
+                <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="btn btn-secondary">
+                  <i class="fas fa-times"></i>
+                  <span>Annuler</span>
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-check"></i>
+                  <span>Créer l'emploi du temps</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Carte d'information -->
+          <div class="info-card">
+            <div class="info-card-header">
+              <i class="fas fa-lightbulb"></i>
+              <span>Prochaines étapes</span>
+            </div>
+            <div class="info-card-body">
+              <div class="steps-list">
+                <div class="step-item">
+                  <div class="step-number">1</div>
+                  <div class="step-content">
+                    <h4>Créer l'emploi du temps</h4>
+                    <p>Créez la structure de base de l'emploi du temps</p>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">2</div>
+                  <div class="step-content">
+                    <h4>Ajouter des créneaux</h4>
+                    <p>Définissez les créneaux horaires pour chaque jour</p>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">3</div>
+                  <div class="step-content">
+                    <h4>Affecter matières et professeurs</h4>
+                    <p>Associez les matières et les professeurs à chaque créneau</p>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">4</div>
+                  <div class="step-content">
+                    <h4>Publier</h4>
+                    <p>Activez l'emploi du temps pour qu'il soit visible</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

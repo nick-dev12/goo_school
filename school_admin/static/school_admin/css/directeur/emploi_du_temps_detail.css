@@ -1,0 +1,669 @@
+/* 
+* Détail de l'Emploi du Temps - Design System
+* Styles pour l'affichage détaillé des emplois du temps
+* Design élégant et fonctionnel pour la grille horaire
+*/
+
+/* ===== BADGES D'INFORMATION ===== */
+.classe-info-badges {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--gray-100);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.info-badge:hover {
+  background: var(--gray-200);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-badge i {
+  color: var(--primary);
+}
+
+.info-badge-success {
+  background: var(--success-light);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.info-badge-success i {
+  color: var(--success);
+}
+
+/* ===== EMPLOI DU TEMPS SECTION ===== */
+.emploi-du-temps-section {
+  margin-bottom: var(--space-8);
+}
+
+.emploi-du-temps-wrapper {
+  background: var(--white);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+/* ===== EN-TÊTE DU TABLEAU ===== */
+.edt-header {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: var(--white);
+  padding: var(--space-4);
+  gap: 0;
+  border-bottom: 2px solid #357abd;
+}
+
+.edt-jour-header {
+  text-align: center;
+  padding: var(--space-3);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.edt-jour-header:last-child {
+  border-right: none;
+}
+
+.jour-name {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ===== GRILLE DE L'EMPLOI DU TEMPS ===== */
+.edt-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+}
+
+/* ===== COLONNES DES JOURS ===== */
+.edt-jour-column {
+  border-right: 1px solid var(--border-light);
+  background: var(--white);
+}
+
+.edt-jour-column:last-child {
+  border-right: none;
+}
+
+.creneaux-container {
+  padding: var(--space-4);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ===== CARTE DE CRÉNEAU ===== */
+.creneau-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--primary);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+  overflow: hidden;
+  position: relative;
+}
+
+.creneau-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, transparent 0%, rgba(59, 130, 246, 0.03) 100%);
+  pointer-events: none;
+}
+
+.creneau-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.creneau-content {
+  flex: 1;
+}
+
+.creneau-horaire {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.creneau-horaire i {
+  color: var(--primary);
+}
+
+.creneau-matiere {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.creneau-professeur {
+  font-size: 0.875rem;
+  margin-bottom: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.creneau-salle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.creneau-actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.creneau-card:hover .creneau-actions {
+  opacity: 1;
+}
+
+.btn-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  font-size: 0.75rem;
+  background: rgb(180, 180, 180);
+  color: white;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.btn-icon-edit:hover {
+  background: rgb(0, 123, 255);
+}
+
+.btn-icon-delete:hover {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+/* ===== LÉGENDE ===== */
+.legend-section {
+  margin-bottom: var(--space-6);
+}
+
+.legend-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+}
+
+.legend-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legend-title i {
+  color: var(--primary);
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.legend-desc {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* ===== PAGE ACTIONS ===== */
+.page-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* ===== IMPRESSION ===== */
+@media print {
+  .page-header,
+  .breadcrumb-nav,
+  .messages-container,
+  .legend-section,
+  .creneau-actions,
+  .page-actions {
+    display: none;
+  }
+  
+  .edt-grid {
+    gap: 0;
+    padding: 0;
+  }
+  
+  .creneau-card {
+    box-shadow: none;
+    border: 1px solid var(--border-medium);
+  }
+  
+  .creneau-card:hover {
+    transform: none;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1400px) {
+  .edt-header,
+  .edt-grid {
+    grid-template-columns: 80px repeat(3, 1fr);
+  }
+  
+  .edt-heures-column {
+    width: 80px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .edt-header {
+    display: none;
+  }
+  
+  .edt-grid {
+    grid-template-columns: 80px repeat(2, 1fr);
+  }
+  
+  .heure-cell {
+    min-height: 50px;
+    font-size: 0.8rem;
+  }
+  
+  .creneau-cell {
+    min-height: 50px;
+  }
+  
+  .legend-items {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .edt-grid {
+    grid-template-columns: 60px 1fr;
+  }
+  
+  .edt-heures-column {
+    width: 60px;
+  }
+  
+  .heure-cell {
+    min-height: 40px;
+    font-size: 0.75rem;
+    padding: var(--space-2);
+  }
+  
+  .creneau-cell {
+    min-height: 40px;
+  }
+  
+  .creneau-card {
+    padding: var(--space-1);
+  }
+  
+  .creneau-matiere {
+    font-size: 0.75rem;
+  }
+  
+  .creneau-professeur,
+  .creneau-salle {
+    font-size: 0.7rem;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  
+  .page-actions {
+    width: 100%;
+  }
+  
+  .page-actions .btn {
+    flex: 1;
+  }
+  
+  .legend-items {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .classe-info-badges {
+    flex-direction: column;
+  }
+  
+  .info-badge {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .edt-grid {
+    grid-template-columns: 50px 1fr;
+  }
+  
+  .edt-heures-column {
+    width: 50px;
+  }
+  
+  .heure-cell {
+    min-height: 35px;
+    font-size: 0.7rem;
+    padding: var(--space-1);
+  }
+  
+  .creneau-cell {
+    min-height: 35px;
+  }
+  
+  .creneau-card {
+    padding: 2px;
+  }
+  
+  .creneau-matiere {
+    font-size: 0.7rem;
+  }
+  
+  .creneau-professeur,
+  .creneau-salle {
+    font-size: 0.65rem;
+  }
+  
+  .btn-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.creneau-card {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.creneau-card:nth-child(1) { animation-delay: 0.05s; }
+.creneau-card:nth-child(2) { animation-delay: 0.1s; }
+.creneau-card:nth-child(3) { animation-delay: 0.15s; }
+.creneau-card:nth-child(4) { animation-delay: 0.2s; }
+.creneau-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* ===== COULEURS PAR DÉFAUT PAR MATIÈRE ===== */
+/* Mathématiques */
+.creneau-card[data-matiere*="Mathématiques"],
+.creneau-card[data-matiere*="mathématiques"],
+.creneau-card[data-matiere*="Maths"],
+.creneau-card[data-matiere*="maths"] {
+  border-left-color: #3b82f6 !important;
+}
+
+.creneau-card[data-matiere*="Mathématiques"] .creneau-horaire,
+.creneau-card[data-matiere*="mathématiques"] .creneau-horaire,
+.creneau-card[data-matiere*="Maths"] .creneau-horaire,
+.creneau-card[data-matiere*="maths"] .creneau-horaire {
+  color: #3b82f6 !important;
+}
+
+.creneau-card[data-matiere*="Mathématiques"] .creneau-horaire i,
+.creneau-card[data-matiere*="mathématiques"] .creneau-horaire i,
+.creneau-card[data-matiere*="Maths"] .creneau-horaire i,
+.creneau-card[data-matiere*="maths"] .creneau-horaire i {
+  color: #3b82f6 !important;
+}
+
+/* Français */
+.creneau-card[data-matiere*="Français"],
+.creneau-card[data-matiere*="français"],
+.creneau-card[data-matiere*="Francais"],
+.creneau-card[data-matiere*="francais"] {
+  border-left-color: #ef4444 !important;
+}
+
+.creneau-card[data-matiere*="Français"] .creneau-horaire,
+.creneau-card[data-matiere*="français"] .creneau-horaire,
+.creneau-card[data-matiere*="Francais"] .creneau-horaire,
+.creneau-card[data-matiere*="francais"] .creneau-horaire {
+  color: #ef4444 !important;
+}
+
+.creneau-card[data-matiere*="Français"] .creneau-horaire i,
+.creneau-card[data-matiere*="français"] .creneau-horaire i,
+.creneau-card[data-matiere*="Francais"] .creneau-horaire i,
+.creneau-card[data-matiere*="francais"] .creneau-horaire i {
+  color: #ef4444 !important;
+}
+
+/* Histoire */
+.creneau-card[data-matiere*="Histoire"],
+.creneau-card[data-matiere*="histoire"] {
+  border-left-color: #10b981 !important;
+}
+
+.creneau-card[data-matiere*="Histoire"] .creneau-horaire,
+.creneau-card[data-matiere*="histoire"] .creneau-horaire {
+  color: #10b981 !important;
+}
+
+.creneau-card[data-matiere*="Histoire"] .creneau-horaire i,
+.creneau-card[data-matiere*="histoire"] .creneau-horaire i {
+  color: #10b981 !important;
+}
+
+/* Sciences */
+.creneau-card[data-matiere*="Sciences"],
+.creneau-card[data-matiere*="sciences"],
+.creneau-card[data-matiere*="Physique"],
+.creneau-card[data-matiere*="physique"],
+.creneau-card[data-matiere*="Chimie"],
+.creneau-card[data-matiere*="chimie"],
+.creneau-card[data-matiere*="Biologie"],
+.creneau-card[data-matiere*="biologie"] {
+  border-left-color: #f59e0b !important;
+}
+
+.creneau-card[data-matiere*="Sciences"] .creneau-horaire,
+.creneau-card[data-matiere*="sciences"] .creneau-horaire,
+.creneau-card[data-matiere*="Physique"] .creneau-horaire,
+.creneau-card[data-matiere*="physique"] .creneau-horaire,
+.creneau-card[data-matiere*="Chimie"] .creneau-horaire,
+.creneau-card[data-matiere*="chimie"] .creneau-horaire,
+.creneau-card[data-matiere*="Biologie"] .creneau-horaire,
+.creneau-card[data-matiere*="biologie"] .creneau-horaire {
+  color: #f59e0b !important;
+}
+
+.creneau-card[data-matiere*="Sciences"] .creneau-horaire i,
+.creneau-card[data-matiere*="sciences"] .creneau-horaire i,
+.creneau-card[data-matiere*="Physique"] .creneau-horaire i,
+.creneau-card[data-matiere*="physique"] .creneau-horaire i,
+.creneau-card[data-matiere*="Chimie"] .creneau-horaire i,
+.creneau-card[data-matiere*="chimie"] .creneau-horaire i,
+.creneau-card[data-matiere*="Biologie"] .creneau-horaire i,
+.creneau-card[data-matiere*="biologie"] .creneau-horaire i {
+  color: #f59e0b !important;
+}
+
+/* Langues */
+.creneau-card[data-matiere*="Anglais"],
+.creneau-card[data-matiere*="anglais"],
+.creneau-card[data-matiere*="Espagnol"],
+.creneau-card[data-matiere*="espagnol"],
+.creneau-card[data-matiere*="Allemand"],
+.creneau-card[data-matiere*="allemand"] {
+  border-left-color: #8b5cf6 !important;
+}
+
+.creneau-card[data-matiere*="Anglais"] .creneau-horaire,
+.creneau-card[data-matiere*="anglais"] .creneau-horaire,
+.creneau-card[data-matiere*="Espagnol"] .creneau-horaire,
+.creneau-card[data-matiere*="espagnol"] .creneau-horaire,
+.creneau-card[data-matiere*="Allemand"] .creneau-horaire,
+.creneau-card[data-matiere*="allemand"] .creneau-horaire {
+  color: #8b5cf6 !important;
+}
+
+.creneau-card[data-matiere*="Anglais"] .creneau-horaire i,
+.creneau-card[data-matiere*="anglais"] .creneau-horaire i,
+.creneau-card[data-matiere*="Espagnol"] .creneau-horaire i,
+.creneau-card[data-matiere*="espagnol"] .creneau-horaire i,
+.creneau-card[data-matiere*="Allemand"] .creneau-horaire i,
+.creneau-card[data-matiere*="allemand"] .creneau-horaire i {
+  color: #8b5cf6 !important;
+}
+
+/* Sport */
+.creneau-card[data-matiere*="Sport"],
+.creneau-card[data-matiere*="sport"],
+.creneau-card[data-matiere*="EPS"],
+.creneau-card[data-matiere*="eps"] {
+  border-left-color: #06b6d4 !important;
+}
+
+.creneau-card[data-matiere*="Sport"] .creneau-horaire,
+.creneau-card[data-matiere*="sport"] .creneau-horaire,
+.creneau-card[data-matiere*="EPS"] .creneau-horaire,
+.creneau-card[data-matiere*="eps"] .creneau-horaire {
+  color: #06b6d4 !important;
+}
+
+.creneau-card[data-matiere*="Sport"] .creneau-horaire i,
+.creneau-card[data-matiere*="sport"] .creneau-horaire i,
+.creneau-card[data-matiere*="EPS"] .creneau-horaire i,
+.creneau-card[data-matiere*="eps"] .creneau-horaire i {
+  color: #06b6d4 !important;
+}
+
+/* Arts */
+.creneau-card[data-matiere*="Art"],
+.creneau-card[data-matiere*="art"],
+.creneau-card[data-matiere*="Musique"],
+.creneau-card[data-matiere*="musique"] {
+  border-left-color: #ec4899 !important;
+}
+
+.creneau-card[data-matiere*="Art"] .creneau-horaire,
+.creneau-card[data-matiere*="art"] .creneau-horaire,
+.creneau-card[data-matiere*="Musique"] .creneau-horaire,
+.creneau-card[data-matiere*="musique"] .creneau-horaire {
+  color: #ec4899 !important;
+}
+
+.creneau-card[data-matiere*="Art"] .creneau-horaire i,
+.creneau-card[data-matiere*="art"] .creneau-horaire i,
+.creneau-card[data-matiere*="Musique"] .creneau-horaire i,
+.creneau-card[data-matiere*="musique"] .creneau-horaire i {
+  color: #ec4899 !important;
+}
+
+/* Sans matière */
+.creneau-card[data-matiere="sans-matiere"] {
+  border-left-color: #6b7280 !important;
+}
+
+.creneau-card[data-matiere="sans-matiere"] .creneau-horaire {
+  color: #6b7280 !important;
+}
+
+.creneau-card[data-matiere="sans-matiere"] .creneau-horaire i {
+  color: #6b7280 !important;
+}
+
+/* ===== ÉTAT SÉLECTIONNÉ DU CRÉNEAU ===== */
+.creneau-card.selected {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-left-width: 6px;
+}
+
+.creneau-card .creneau-content {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.creneau-card .creneau-content:hover {
+  transform: translateX(2px);
+}
+
+/* Améliorer l'affichage des actions */
+.creneau-actions {
+  display: none;
+  opacity: 1;
+}
+
+.creneau-card.selected .creneau-actions {
+  display: flex;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

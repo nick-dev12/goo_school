@@ -16,7 +16,8 @@ def commercial_required(view_func):
             return redirect(f"school_admin:connexion_compte_user?next={next_url}")
         
         # Vérifier si l'utilisateur est un commercial
-        if request.user.fonction != 'commercial':
+        from .model.compte_user import CompteUser
+        if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'commercial':
             messages.error(request, "Vous n'avez pas accès à cette page. Vous avez été redirigé vers votre tableau de bord.")
             return redirect('school_admin:dashboard')
         
@@ -39,7 +40,8 @@ def admin_required(view_func):
             return redirect(f"school_admin:connexion_compte_user?next={next_url}")
         
         # Vérifier si l'utilisateur est un administrateur
-        if request.user.fonction != 'administrateur':
+        from .model.compte_user import CompteUser
+        if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
             messages.error(request, "Vous n'avez pas accès à cette page. Vous avez été redirigé vers votre tableau de bord.")
             return redirect('school_admin:dashboard')
         

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctions - {{ classe.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_sanctions_classe.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Breadcrumb -->
+            <nav class="breadcrumb">
+                <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+                <span class="separator">›</span>
+                <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
+                <span class="separator">›</span>
+                <span class="current">Sanctions - {{ classe.nom }}</span>
+            </nav>
+
+            <!-- Header Classe -->
+            <div class="classe-header-card">
+                <div class="classe-icon">
+                    <i class="fas fa-chalkboard"></i>
+                </div>
+                <div class="classe-header-info">
+                    <h1 class="classe-nom">{{ classe.nom }}</h1>
+                    <div class="classe-meta">
+                        <span class="meta-item"><i class="fas fa-users"></i> {{ classe.eleves_actifs.count }} élèves</span>
+                        <span class="meta-item"><i class="fas fa-school"></i> {{ classe.etablissement.nom }}</span>
+                        <span class="meta-item"><i class="fas fa-gavel"></i> {{ total_sanctions }} sanction{{ total_sanctions|pluralize }}</span>
+                    </div>
+                </div>
+                <div class="classe-header-actions">
+                    <a href="{% url 'enseignant:detail_classe' classe.id %}" class="btn-action primary" title="Détails de la classe">
+                        <i class="fas fa-eye"></i>
+                        <span>Détails</span>
+                    </a>
+                    <a href="{% url 'enseignant:liste_presence' classe.id %}" class="btn-action info" title="Liste de présence">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Présence</span>
+                    </a>
+                    <a href="{% url 'enseignant:noter_eleves' classe.id %}" class="btn-action success" title="Saisir des notes">
+                        <i class="fas fa-edit"></i>
+                        <span>Notes</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Section Statistiques Globales -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Statistiques des sanctions</h2>
+                    <span class="count-badge">{{ total_sanctions }} sanction{{ total_sanctions|pluralize }}</span>
+                </div>
+                <div class="sanction-stats-grid">
+                    <div class="sanction-stat-box legere">
+                        <div class="sanction-stat-icon"><i class="fas fa-info-circle"></i></div>
+                        <div class="sanction-stat-content">
+                            <div class="sanction-stat-value">{{ sanctions_legeres }}</div>
+                            <div class="sanction-stat-label">Légères</div>
+                        </div>
+                    </div>
+                    <div class="sanction-stat-box moyenne">
+                        <div class="sanction-stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="sanction-stat-content">
+                            <div class="sanction-stat-value">{{ sanctions_moyennes }}</div>
+                            <div class="sanction-stat-label">Moyennes</div>
+                        </div>
+                    </div>
+                    <div class="sanction-stat-box grave">
+                        <div class="sanction-stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="sanction-stat-content">
+                            <div class="sanction-stat-value">{{ sanctions_graves }}</div>
+                            <div class="sanction-stat-label">Graves</div>
+                        </div>
+                    </div>
+                    <div class="sanction-stat-box tres-grave">
+                        <div class="sanction-stat-icon"><i class="fas fa-skull-crossbones"></i></div>
+                        <div class="sanction-stat-content">
+                            <div class="sanction-stat-value">{{ sanctions_tres_graves }}</div>
+                            <div class="sanction-stat-label">Très Graves</div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if sanctions_par_type %}
+                    <div class="section-header mt-3">
+                        <h3><i class="fas fa-tags"></i> Sanctions par type</h3>
+                    </div>
+                    <div class="sanctions-type-grid">
+                        {% for type_nom, count in sanctions_par_type.items %}
+                            <div class="sanction-type-badge">
+                                {{ type_nom }} ({{ count }})
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Section Top Élèves -->
+            {% if top_eleves_sanctions %}
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user-graduate"></i> Élèves avec le plus de sanctions</h2>
+                    </div>
+                    <div class="top-eleves-grid">
+                        {% for item in top_eleves_sanctions %}
+                            <div class="top-eleve-card">
+                                <div class="eleve-avatar-small">
+                                    {{ item.eleve.prenom.0 }}{{ item.eleve.nom.0 }}
+                                </div>
+                                <div class="eleve-info">
+                                    <div class="eleve-nom">{{ item.eleve.nom|upper }} {{ item.eleve.prenom }}</div>
+                                    <div class="eleve-sanctions">
+                                        <span class="badge-sanctions {% if item.nombre_sanctions >= 3 %}danger{% elif item.nombre_sanctions >= 2 %}warning{% else %}info{% endif %}">
+                                            <i class="fas fa-gavel"></i>
+                                            {{ item.nombre_sanctions }} sanction{{ item.nombre_sanctions|pluralize }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <a href="{% url 'enseignant:historique_sanctions' item.eleve.id %}" class="btn-voir-details" title="Voir l'historique">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Section Liste Complète des Sanctions -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Liste complète des sanctions</h2>
+                </div>
+                {% if sanctions %}
+                    <div class="sanctions-timeline">
+                        {% for sanction in sanctions %}
+                            <div class="timeline-item {{ sanction.gravite }}">
+                                <div class="timeline-date">
+                                    <div class="date-jour">{{ sanction.date_sanction|date:"d" }}</div>
+                                    <div class="date-mois">{{ sanction.date_sanction|date:"M" }}</div>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="sanction-header">
+                                        <div class="sanction-title">
+                                            <span class="type-badge {{ sanction.type_sanction }}">{{ sanction.get_type_sanction_display }}</span>
+                                            <span class="raison-text">{{ sanction.get_raison_display }}</span>
+                                        </div>
+                                        <a href="{% url 'enseignant:historique_sanctions' sanction.eleve.id %}" class="btn-voir-eleve" title="Voir l'historique de l'élève">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </div>
+                                    <div class="sanction-eleve-info">
+                                        <div class="eleve-avatar-tiny">
+                                            {{ sanction.eleve.prenom.0 }}{{ sanction.eleve.nom.0 }}
+                                        </div>
+                                        <span class="eleve-nom-small">{{ sanction.eleve.nom|upper }} {{ sanction.eleve.prenom }}</span>
+                                    </div>
+                                    <div class="sanction-meta">
+                                        <span class="meta-item"><i class="fas fa-calendar-alt"></i> {{ sanction.date_sanction|date:"d F Y" }}</span>
+                                        <span class="meta-item"><i class="fas fa-user"></i> Par {{ sanction.professeur.nom_complet }}</span>
+                                        <span class="meta-item gravite-{{ sanction.gravite }}"><i class="fas fa-exclamation-circle"></i> {{ sanction.get_gravite_display }}</span>
+                                    </div>
+                                    {% if sanction.description %}
+                                        <div class="sanction-description">
+                                            <i class="fas fa-comment-alt"></i> {{ sanction.description }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-gavel"></i>
+                        <p>Aucune sanction enregistrée pour cette classe.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+        <!-- Actions Footer -->
+        <div class="actions-footer">
+            <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Retour à la liste des élèves
+            </a>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+</body>
+</html>
+

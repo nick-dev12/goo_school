@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+{% load static %}
+{% load pagination_tags %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emploi du Temps - {{ classe.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_detail.css' %}"
+    />
+  </head>
+  <body>
+    <!-- Header -->
+    {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
+    {% endif %}
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+      <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
+            <i class="fas fa-calendar-week"></i>
+            Emplois du temps
+          </a>
+          <i class="fas fa-chevron-right breadcrumb-separator"></i>
+          <span class="breadcrumb-current">{{ classe.nom }}</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-section">
+            <h1 class="page-title">
+              <i class="fas fa-calendar-alt"></i>
+              Emploi du Temps - {{ classe.nom }}
+            </h1>
+            <p class="page-subtitle">
+              {{ classe.get_niveau_display }} - {{ emploi_du_temps.annee_scolaire }}
+            </p>
+            <div class="classe-info-badges">
+              <span class="info-badge">
+                <i class="fas fa-users"></i>
+                {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}
+              </span>
+              <span class="info-badge">
+                <i class="fas fa-clock"></i>
+                {{ emploi_du_temps.nombre_creneaux }} créneau{{ emploi_du_temps.nombre_creneaux|pluralize }}
+              </span>
+              <span class="info-badge info-badge-success">
+                <i class="fas fa-check-circle"></i>
+                Actif
+              </span>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary" onclick="window.print()">
+              <i class="fas fa-print"></i>
+              <span>Imprimer</span>
+            </button>
+            <a href="{% url 'administrateur_etablissement:ajouter_creneau' emploi_du_temps.id %}" class="btn btn-primary">
+              <i class="fas fa-plus"></i>
+              <span>Ajouter un créneau</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+          <div class="messages-container">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Emploi du temps -->
+        <div class="emploi-du-temps-section">
+          <div class="emploi-du-temps-wrapper">
+            <!-- En-tête du tableau -->
+            <div class="edt-header">
+              {% for jour in jours_semaine %}
+                <div class="edt-jour-header">
+                  <div class="jour-name">{{ jour|title }}</div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- Grille de l'emploi du temps -->
+            <div class="edt-grid">
+              <!-- Colonnes des jours -->
+              {% for jour in jours_semaine %}
+                <div class="edt-jour-column">
+                  <div class="creneaux-container">
+                    {% for creneau in creneaux_par_jour|get_item:jour %}
+                      <div class="creneau-card" data-matiere="{{ creneau.matiere.nom|default:'sans-matiere' }}">
+                        <div class="creneau-content">
+                          <div class="creneau-horaire">
+                            <i class="fas fa-clock"></i>
+                            {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                          </div>
+                          <div class="creneau-matiere">{{ creneau.matiere.nom|default:"Sans matière" }}</div>
+                          <div class="creneau-professeur">{{ creneau.professeur.prenom|default:"" }} {{ creneau.professeur.nom|default:"" }}</div>
+                          <div class="creneau-salle">Salle {{ creneau.salle.numero|default:"N/A" }}</div>
+                        </div>
+                        <div class="creneau-actions">
+                          <a href="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}" class="btn-icon btn-icon-edit" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                          </a>
+                          <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-icon btn-icon-delete" title="Supprimer">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    {% empty %}
+                      <div class="no-creneau">
+                        <i class="fas fa-calendar-times"></i>
+                        <span>Aucun cours</span>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Légende -->
+        <div class="legend-section">
+          <div class="legend-card">
+            <h3 class="legend-title">
+              <i class="fas fa-info-circle"></i>
+              Légende des types de cours
+            </h3>
+            <div class="legend-items">
+              <div class="legend-item">
+                <span class="type-badge type-cours">Cours</span>
+                <span class="legend-desc">Cours magistral</span>
+              </div>
+              <div class="legend-item">
+                <span class="type-badge type-td">TD</span>
+                <span class="legend-desc">Travaux Dirigés</span>
+              </div>
+              <div class="legend-item">
+                <span class="type-badge type-tp">TP</span>
+                <span class="legend-desc">Travaux Pratiques</span>
+              </div>
+              <div class="legend-item">
+                <span class="type-badge type-controle">Contrôle</span>
+                <span class="legend-desc">Contrôle continu</span>
+              </div>
+              <div class="legend-item">
+                <span class="type-badge type-examen">Examen</span>
+                <span class="legend-desc">Examen</span>
+              </div>
+              <div class="legend-item">
+                <span class="type-badge type-sport">Sport</span>
+                <span class="legend-desc">Éducation physique</span>
+              </div>
+              <div class="legend-item">
+                <span class="type-badge type-pause">Pause</span>
+                <span class="legend-desc">Pause/Récréation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
+    <script>
+      // Filtrer les créneaux pour obtenir un dictionnaire en JavaScript
+      const creneauxParJour = {
+        {% for jour in jours_semaine %}
+          '{{ jour }}': [
+            {% for creneau in creneaux_par_jour|get_item:jour %}
+              {
+                id: {{ creneau.id }},
+                jour: '{{ creneau.jour }}',
+                heureDebut: '{{ creneau.heure_debut|time:"H:i" }}',
+                heureFin: '{{ creneau.heure_fin|time:"H:i" }}',
+                matiere: '{{ creneau.matiere.nom|default:"" }}',
+                professeur: '{{ creneau.professeur.prenom|default:"" }} {{ creneau.professeur.nom|default:"" }}',
+                salle: '{{ creneau.salle.numero|default:"" }}',
+                type: '{{ creneau.type_cours }}',
+                couleur: '{{ creneau.couleur }}'
+              }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          ]{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      };
+
+      // Gestion des interactions avec les créneaux
+      document.addEventListener('DOMContentLoaded', function() {
+        initCreneauInteractions();
+      });
+
+      function initCreneauInteractions() {
+        const creneauCards = document.querySelectorAll('.creneau-card');
+        let selectedCreneau = null;
+
+        creneauCards.forEach(card => {
+          // Ajouter un gestionnaire de clic sur le contenu du créneau
+          const content = card.querySelector('.creneau-content');
+          if (content) {
+            content.addEventListener('click', function(e) {
+              e.stopPropagation();
+              
+              // Masquer les actions du créneau précédemment sélectionné
+              if (selectedCreneau && selectedCreneau !== card) {
+                const prevActions = selectedCreneau.querySelector('.creneau-actions');
+                if (prevActions) {
+                  prevActions.style.display = 'none';
+                }
+                selectedCreneau.classList.remove('selected');
+              }
+
+              // Afficher/masquer les actions du créneau cliqué
+              const actions = card.querySelector('.creneau-actions');
+              if (actions) {
+                if (actions.style.display === 'none' || actions.style.display === '') {
+                  actions.style.display = 'flex';
+                  card.classList.add('selected');
+                  selectedCreneau = card;
+                } else {
+                  actions.style.display = 'none';
+                  card.classList.remove('selected');
+                  selectedCreneau = null;
+                }
+              }
+            });
+          }
+
+          // Empêcher la propagation du clic sur les boutons d'action
+          const actionButtons = card.querySelectorAll('.btn-icon');
+          actionButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+              e.stopPropagation();
+            });
+          });
+        });
+
+        // Masquer les actions si on clique ailleurs
+        document.addEventListener('click', function(e) {
+          if (!e.target.closest('.creneau-card')) {
+            if (selectedCreneau) {
+              const actions = selectedCreneau.querySelector('.creneau-actions');
+              if (actions) {
+                actions.style.display = 'none';
+                selectedCreneau.classList.remove('selected');
+                selectedCreneau = null;
+              }
+            }
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
+

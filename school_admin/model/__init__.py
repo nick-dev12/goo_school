@@ -10,3 +10,9 @@ from .professeur_model import Professeur
 from .affectation_model import AffectationProfesseur
 from .salle_model import Salle
 from .affectation_salle_model import AffectationSalle
+from .emploi_du_temps_model import EmploiDuTemps, CreneauEmploiDuTemps
+from .evaluation_model import Evaluation, Note
+from .moyenne_model import Moyenne
+from .releve_notes_model import ReleveNotes
+from .presence_model import Presence, ListePresence
+from .sanction_model import Sanction

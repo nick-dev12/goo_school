@@ -111,3 +111,7 @@ urlpatterns += salle_urls
 from .personal_url.affectation_salle_url import urlpatterns as affectation_salle_urls
 urlpatterns += affectation_salle_urls
 
+# Inclure les URLs des enseignants
+from .personal_url.enseignant_url import urlpatterns as enseignant_urls
+urlpatterns += enseignant_urls
+

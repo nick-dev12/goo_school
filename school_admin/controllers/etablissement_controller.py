@@ -36,7 +36,9 @@ class EtablissementController:
         prefixes = {
             'primary': 'PRI-',
             'collège': 'COL-',
-            'lycée': 'LYC-'
+            'lycée': 'LYC-',
+            'collège_lycée': 'CL-',
+            'mixte': 'MIX-'
         }
         
         prefix = prefixes.get(type_etablissement, 'ETB-')
@@ -133,7 +135,9 @@ class EtablissementController:
         type_labels = {
             'primary': 'Écoles Primaires',
             'collège': 'Collèges',
-            'lycée': 'Lycées'
+            'lycée': 'Lycées',
+            'collège_lycée': 'Collège + Lycée',
+            'mixte': 'Établissements Mixtes'
         }
         return {type_labels.get(item['type_etablissement'], item['type_etablissement']): item['count'] for item in stats}
 
@@ -222,7 +226,7 @@ class EtablissementController:
                 return False, "Le mot de passe ne respecte pas les critères de sécurité.", None, errors
             
             # Vérification du type d'établissement
-            valid_types = ['primary', 'collège', 'lycée']
+            valid_types = ['primary', 'collège', 'lycée', 'collège_lycée', 'mixte']
             if data['establishment_type'] not in valid_types:
                 errors['establishment_type'] = "Le type d'établissement n'est pas valide."
                 return False, "Le type d'établissement n'est pas valide.", None, errors

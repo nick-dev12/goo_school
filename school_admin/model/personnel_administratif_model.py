@@ -10,11 +10,42 @@ class PersonnelAdministratif(AbstractUser):
     """
     Modèle représentant le personnel administratif d'un établissement
     """
+    # Fonctions adaptées aux établissements sénégalais
     TYPE_FONCTION_CHOICES = [
-        ('secretaire', 'Secrétaire / Service de scolarité'),
-        ('surveillant_general', 'Surveillant Général (SG)'),
+        # Direction - École Primaire
+        ('directeur_adjoint_primaire', 'Directeur Adjoint (École Primaire)'),
+        
+        # Direction - Collège
+        ('principal_adjoint', 'Principal Adjoint (Collège)'),
+        
+        # Direction - Lycée
+        ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
+        
+        # Direction - Mixte
+        ('directeur_principal', 'Directeur Principal (Établissement Mixte)'),
+        ('directeur_section_primaire', 'Directeur de Section Primaire'),
+        ('principal_section_college', 'Principal de Section Collège'),
+        ('proviseur_section_lycee', 'Proviseur de Section Lycée'),
+        
+        # Administration
+        ('secretaire_principal', 'Secrétaire Principal'),
+        ('gestionnaire', 'Gestionnaire'),
+        
+        # Pédagogie - Censeurs
         ('censeur', 'Censeur'),
-        ('administrateur', 'Administrateur'),
+        ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
+        ('censeur_adjoint', 'Censeur Adjoint (Lycées)'),
+        ('censeur_premier_cycle', 'Censeur du Premier Cycle (6e à 3e)'),
+        ('censeur_second_cycle', 'Censeur du Second Cycle (2nde à Tle)'),
+        ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
+        ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
+        
+        # Vie Scolaire
+        ('surveillant_general', 'Surveillant Général'),
+        ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+        
+        # Autres
+        ('administrateur', 'Administrateur Système'),
     ]
     
     # Informations personnelles
@@ -25,6 +56,21 @@ class PersonnelAdministratif(AbstractUser):
 
     # Informations professionnelles
     fonction = models.CharField(max_length=50, choices=TYPE_FONCTION_CHOICES, verbose_name="Fonction")
+    
+    # Permissions (pour usage futur)
+    permissions = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Permissions"
+    )
+    
+    # Mot de passe provisoire (en clair, pour usage administratif uniquement)
+    mot_de_passe_provisoire = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name="Mot de passe provisoire (en clair)"
+    )
     
     # Relation avec l'établissement
     etablissement = models.ForeignKey(

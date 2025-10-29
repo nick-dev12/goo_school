@@ -1,0 +1,883 @@
+/**
+ * CSS pour la page de Gestion des Notes Primaire
+ * Système à 3 niveaux : Classes -> Matières -> Relevé de notes
+ */
+
+/* Container principal */
+.main-content-container {
+    padding: 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header de page */
+.page-header {
+    margin-bottom: 1rem;
+}
+
+.page-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-title i {
+    color: #4f46e5;
+    font-size: 1.1rem;
+}
+
+.page-subtitle {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+/* Onglets des périodes (horizontal) */
+.periodes-tabs-horizontal {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.periode-tab {
+    padding: 0.5rem 0.875rem;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #475569;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.periode-tab i {
+    font-size: 0.95rem;
+}
+
+.periode-tab:hover {
+    border-color: #4f46e5;
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.periode-tab.active {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-color: #4f46e5;
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.status-badge {
+    background: #10b981;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* NIVEAU 1 : Container des onglets de classes */
+.classes-tabs-container {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.25rem;
+}
+
+.tabs-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.75rem;
+}
+
+.tab-btn {
+    padding: 0.5rem 1rem;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #64748b;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
+}
+
+.tab-btn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: translateY(-2px);
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.tab-badge {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+.tab-btn.active .tab-badge {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.tab-btn:not(.active) .tab-badge {
+    background: #cbd5e1;
+    color: #475569;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Grille des classes */
+.classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.875rem;
+}
+
+.classe-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.classe-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.classe-card:hover::before,
+.classe-card.selected::before {
+    transform: scaleX(1);
+}
+
+.classe-card:hover {
+    border-color: #4f46e5;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15);
+}
+
+.classe-card.selected {
+    border-color: #4f46e5;
+    background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.2);
+}
+
+.classe-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.classe-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.classe-info h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.125rem 0;
+}
+
+.classe-info p {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.classe-card-badge {
+    margin-top: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+}
+
+/* NIVEAU 2 : Section des matières */
+.matieres-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.25rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-header h2 i {
+    color: #4f46e5;
+    font-size: 1rem;
+}
+
+.matieres-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 0.875rem;
+}
+
+.matiere-card {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.matiere-card:hover {
+    border-color: #10b981;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15);
+}
+
+.matiere-card.selected {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.2);
+}
+
+.matiere-icon {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.matiere-info {
+    flex: 1;
+}
+
+.matiere-info h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.125rem 0;
+    line-height: 1.2;
+}
+
+.matiere-code {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    margin: 0;
+}
+
+.matiere-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.stat-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.selection-indicator {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.85rem;
+}
+
+/* NIVEAU 3 : Relevé de notes */
+/* Backdrop sombre pour le modal */
+.releve-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.releve-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Style modal pour le relevé */
+.releve-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 95%;
+    max-width: 1400px;
+    max-height: 90vh;
+    z-index: 1000;
+    margin: 0;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.releve-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.releve-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.375rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.releve-header h2 i {
+    color: #f59e0b;
+    font-size: 1.125rem;
+}
+
+.releve-subtitle {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.releve-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Bouton de fermeture du modal */
+.btn-close-modal {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ef4444;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+.btn-close-modal:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-close-modal i {
+    font-size: 1rem;
+}
+
+/* Tableau du relevé */
+.releve-table-container {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.releve-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.releve-table thead {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+}
+
+.releve-table thead th {
+    padding: 0.65rem 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+}
+
+.releve-table thead th.eleve-col {
+    text-align: left;
+}
+
+.releve-table thead th.devoirs-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.releve-table thead tr:nth-child(2) th.eval-col {
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    font-size: 0.75rem;
+    padding: 0.625rem 0.5rem;
+}
+
+.releve-table thead tr:nth-child(2) th.eval-col small {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.releve-table tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    transition: background 0.2s ease;
+}
+
+.releve-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.releve-table tbody tr.row-even {
+    background: white;
+}
+
+.releve-table tbody tr.row-odd {
+    background: #fafafa;
+}
+
+.releve-table tbody td {
+    padding: 0.65rem 0.75rem;
+}
+
+.eleve-cell {
+    min-width: 200px;
+}
+
+.eleve-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.eleve-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.eleve-nom {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #1e293b;
+}
+
+.moyenne-cell {
+    text-align: center;
+    min-width: 120px;
+}
+
+.moyenne-badge {
+    display: inline-block;
+    font-weight: 900;
+    font-size: 0.9rem;
+    min-width: 55px;
+    text-align: center;
+}
+
+.moyenne-badge.excellent {
+    color: #10b981;
+}
+
+.moyenne-badge.tres-bien {
+    color: #3b82f6;
+}
+
+.moyenne-badge.bien {
+    color: #8b5cf6;
+}
+
+.moyenne-badge.passable {
+    color: #f59e0b;
+}
+
+.moyenne-badge.fragile {
+    color: #f97316;
+}
+
+.moyenne-badge.insuffisant {
+    color: #ef4444;
+}
+
+.moyenne-badge.non-calcule {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.appreciation-cell {
+    min-width: 160px;
+    text-align: center;
+}
+
+.appreciation-text {
+    font-style: italic;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.appreciation-text.non-evalue {
+    color: #94a3b8;
+}
+
+/* Cellules de notes des devoirs */
+.note-cell {
+    text-align: center;
+    min-width: 70px;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.note-value {
+    font-weight: 900;
+    font-size: 0.9rem;
+}
+
+/* Couleurs selon la note - TEXTE SEULEMENT */
+.note-value {
+    color: #3b82f6; /* Bleu par défaut */
+}
+
+.releve-table tbody tr:hover .note-value {
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.note-absent {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #f59e0b;
+}
+
+.note-empty {
+    color: #cbd5e1;
+    font-size: 1rem;
+    font-weight: 300;
+}
+
+/* Boutons */
+.btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Badge de relevé soumis */
+.badge-soumis {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3);
+}
+
+.badge-soumis i {
+    font-size: 1rem;
+}
+
+/* Relevé complet - style spécifique */
+.releve-complet-modal {
+    max-width: 1600px;
+}
+
+.releve-complet-table .matiere-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    font-size: 0.85rem;
+    padding: 0.75rem 0.5rem;
+    min-width: 80px;
+    text-align: center;
+}
+
+.releve-complet-table .note-cell {
+    min-width: 80px;
+    text-align: center;
+}
+
+/* État vide */
+.empty-state {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    color: #94a3b8;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.breadcrumb a {
+    color: #4f46e5;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+    color: #7c3aed;
+    text-decoration: underline;
+}
+
+.breadcrumb .separator {
+    color: #cbd5e1;
+}
+
+.breadcrumb .current {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* Alerts */
+.alert {
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+.alert-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+}
+
+.alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-content-container {
+        padding: 1rem;
+    }
+
+    .classes-grid,
+    .matieres-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .releve-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .tabs-nav {
+        flex-direction: column;
+    }
+
+    .periodes-tabs-horizontal {
+        flex-direction: column;
+    }
+}
+

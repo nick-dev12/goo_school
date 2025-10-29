@@ -141,41 +141,52 @@
                 <i class="fas fa-calendar-day"></i> {{ jour_actuel_display }} {{ date_actuelle|date:"d F Y" }}
             </div>
 
-            <div class="timetable-grid">
+            <div class="timetable-grid" style="display: flex; flex-direction: column; gap: 12px;">
                 {% for creneau in creneaux_aujourdhui %}
-                    {% cycle '' 'active' as slot_class silent %}
-                    <div class="timetable-slot {{ slot_class }}">
-                        <div class="timetable-time">
-                            <span class="hour">{{ creneau.heure_debut|time:"H:i" }}</span>
-                            <span class="duration">
-                                {% widthratio creneau.heure_fin.hour|add:0 60 1 %}h{% if creneau.heure_fin.minute %}{{ creneau.heure_fin.minute }}{% endif %}
-                            </span>
+                    <div class="creneau-aujourdhui-card" style="display: flex; align-items: center; gap: 15px; padding: 16px; background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 4px solid {{ creneau.matiere_couleur }}; transition: all 0.3s;">
+                        <div class="creneau-horaire-today" style="min-width: 100px; text-align: center; padding: 10px; background: linear-gradient(135deg, #f0f4ff, #e6f2ff); border-radius: 8px;">
+                            <div style="font-size: 18px; font-weight: 700; color: #1f2937; font-family: 'Courier New', monospace;">
+                                {{ creneau.get_heure_debut|time:"H:i" }}
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                                {{ creneau.duree_minutes }} min
+                            </div>
                         </div>
-                        <div class="timetable-content">
-                            <div class="slot-class-badge">{{ creneau.emploi_du_temps.classe.nom|slice:":3" }}</div>
-                            <h4>{{ creneau.matiere.nom }} - {{ creneau.emploi_du_temps.classe.nom }}</h4>
-                            <p><i class="fas fa-map-marker-alt"></i> Salle {{ creneau.salle.numero|default:"N/A" }}</p>
-                            <p><i class="fas fa-book"></i> {{ creneau.description|default:"Cours magistral" }}</p>
+                        <div class="creneau-infos-today" style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <i class="fas fa-{{ creneau.matiere_icone }}" style="color: {{ creneau.matiere_couleur }}; font-size: 18px;"></i>
+                                <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1f2937;">{{ creneau.matiere.nom }}</h4>
+                                <span style="padding: 4px 10px; background: {{ creneau.matiere_couleur }}; color: white; border-radius: 20px; font-size: 12px; font-weight: 600;">{{ creneau.emploi_du_temps.classe.nom }}</span>
+                            </div>
+                            <div style="display: flex; gap: 20px; font-size: 13px; color: #6b7280;">
+                                <span>
+                                    <i class="fas fa-door-open" style="margin-right: 5px;"></i>
+                                    Salle {{ creneau.salle.numero|default:"N/A" }}
+                                </span>
+                                <span>
+                                    <i class="fas fa-book" style="margin-right: 5px;"></i>
+                                    {{ creneau.get_type_cours_display }}
+                                </span>
+                            </div>
                         </div>
-                        <div class="timetable-actions">
-                            <a href="{% url 'enseignant:noter_eleves' creneau.emploi_du_temps.classe.id %}" class="timetable-action-btn" title="Notes">
+                        <div class="creneau-actions-today" style="display: flex; gap: 8px;">
+                            <a href="{% url 'enseignant:noter_eleves' creneau.emploi_du_temps.classe.id %}" style="padding: 10px 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s;" title="Noter">
                                 <i class="fas fa-edit"></i>
+                                Noter
                             </a>
-                            <a href="{% url 'enseignant:liste_presence' creneau.emploi_du_temps.classe.id %}" class="timetable-action-btn" title="Appel">
+                            <a href="{% url 'enseignant:liste_presence' creneau.emploi_du_temps.classe.id %}" style="padding: 10px 14px; background: linear-gradient(135deg, #4facfe, #00f2fe); color: white; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s;" title="Appel">
                                 <i class="fas fa-clipboard-list"></i>
+                                Appel
                             </a>
                         </div>
                     </div>
                 {% empty %}
-                    <div class="timetable-slot">
-                        <div class="timetable-time">
-                            <span class="hour">--:--</span>
-                            <span class="duration">--</span>
+                    <div style="padding: 40px; text-align: center; background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 48px; color: #e5e7eb; margin-bottom: 15px;">
+                            <i class="fas fa-calendar-times"></i>
                         </div>
-                        <div class="timetable-content empty">
-                            <h4>Pas de cours aujourd'hui</h4>
-                            <p>Profitez de votre journée libre</p>
-                        </div>
+                        <h4 style="color: #4a5568; margin-bottom: 8px;">Pas de cours aujourd'hui</h4>
+                        <p style="color: #6b7280;">Profitez de votre journée libre ! 🎉</p>
                     </div>
                 {% endfor %}
             </div>

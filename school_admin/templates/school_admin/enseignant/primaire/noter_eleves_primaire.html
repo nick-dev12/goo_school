@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+{% load static notes_tags l10n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noter les élèves - {{ classe.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/noter_eleves_primaire.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Fil d'Ariane -->
+        <div class="breadcrumb">
+            <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'enseignant_primaire:gestion_notes' %}">Gestion des notes</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Noter les élèves</span>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-info-circle"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Statut du relevé -->
+        <div class="releve-status-banner en-cours">
+            <div class="status-icon">
+                <i class="fas fa-edit"></i>
+            </div>
+            <div class="status-text">
+                <strong>Notation multi-matières</strong>
+                <p>Vous enseignez {{ matieres_data|length }} matières dans cette classe. Sélectionnez une matière pour saisir les notes.</p>
+            </div>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-edit"></i>
+                    Notation des élèves
+                </h1>
+                <p class="page-subtitle">
+                    {{ classe.nom }} - {{ periode_selectionnee.nom_periode }} - {{ eleves|length }} élève{{ eleves|length|pluralize }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Onglets de périodes -->
+        <div class="periodes-tabs">
+            <div class="tabs-container">
+                {% if periodes %}
+                    {% for periode in periodes %}
+                        <a href="?periode={{ periode.id }}" 
+                           class="periode-tab {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>{{ periode.nom_periode }}</span>
+                            {% if periode.est_active %}
+                                <span class="tab-badge en-cours" style="background: #28a745;">
+                                    <i class="fas fa-circle"></i>
+                                </span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div style="padding: 1rem; text-align: center; color: #999;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Aucune période scolaire définie. Contactez l'administration.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Information de la classe -->
+        <div class="classe-info-card">
+            <div class="info-item">
+                <i class="fas fa-chalkboard"></i>
+                <span><strong>Classe :</strong> {{ classe.nom }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-book"></i>
+                <span><strong>Matières :</strong> {{ matieres_data|length }} matières enseignées</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-users"></i>
+                <span><strong>Effectif :</strong> {{ eleves|length }} élève{{ eleves|length|pluralize }}</span>
+            </div>
+        </div>
+
+        {% if matieres_data %}
+            <!-- Onglets par matière - Mini cartes -->
+            <div class="matieres-tabs-container">
+                <div class="matieres-tabs-nav">
+                    {% for matiere_data in matieres_data %}
+                        <button class="matiere-tab-btn {% if forloop.first %}active{% endif %}" 
+                                data-tab="matiere-{{ matiere_data.matiere.id }}"
+                                onclick="switchMatiereTab('matiere-{{ matiere_data.matiere.id }}')"
+                                title="{{ matiere_data.matiere.nom }}">
+                            <span class="matiere-short-name">{{ matiere_data.matiere.code }}</span>
+                            <span class="matiere-tab-badge">{{ matiere_data.evaluations|length }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Contenu des onglets par matière -->
+                {% for matiere_data in matieres_data %}
+                    <div class="matiere-tab-content {% if forloop.first %}active{% endif %}" id="matiere-{{ matiere_data.matiere.id }}">
+                        
+                        {% if matiere_data.evaluations %}
+                            <!-- Formulaire de notation pour cette matière -->
+                            <form method="post" id="notation-form-{{ matiere_data.matiere.id }}" class="notation-form" action="?periode={{ periode_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}">
+                                {% csrf_token %}
+
+                                <!-- Bannière si relevé soumis -->
+                                {% if matiere_data.soumise %}
+                                    <div class="alert alert-warning" style="margin: 1rem 0; padding: 1rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                                        <i class="fas fa-lock" style="font-size: 1.5rem; color: #f59e0b;"></i>
+                                        <div>
+                                            <strong style="color: #856404;">Relevé soumis et verrouillé</strong>
+                                            <p style="margin: 0.25rem 0 0 0; color: #856404; font-size: 0.875rem;">Les notes pour cette matière ont été soumises. Modification impossible.</p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Section de sélection des évaluations -->
+                                <div class="evaluations-selection-section">
+                                    <div class="selection-header">
+                                        <h3>
+                                            <i class="fas fa-tasks"></i>
+                                            Sélection des évaluations à inclure
+                                        </h3>
+                                        <p class="selection-subtitle">Cochez les évaluations à prendre en compte pour le calcul de la moyenne</p>
+                                    </div>
+                                    
+                                    <div class="evaluations-checkboxes-grid">
+                                        {% for eval in matiere_data.evaluations %}
+                                            {% if not eval.est_examen %}
+                                            <div class="eval-checkbox-card">
+                                                <input type="checkbox" 
+                                                       name="evaluations_selectionnees" 
+                                                       value="{{ eval.id }}"
+                                                       id="eval-{{ eval.id }}"
+                                                       class="eval-checkbox"
+                                                       {% if matiere_data.soumise %}disabled{% endif %}>
+                                                <label for="eval-{{ eval.id }}" class="eval-checkbox-label">
+                                                    <div class="eval-type-icon">
+                                                        {% if eval.bareme == 20 %}
+                                                            <i class="fas fa-file-alt"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-clipboard-check"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="eval-info">
+                                                        <span class="eval-type-badge">{{ eval.type_label }}</span>
+                                                        <span class="eval-name">{{ eval.titre }}</span>
+                                                        <span class="eval-bareme">/{{ eval.bareme }}</span>
+                                                    </div>
+                                                    <div class="checkbox-indicator">
+                                                        <i class="fas fa-check"></i>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="selection-summary">
+                                        <span id="count-selected">0</span> évaluation(s) sélectionnée(s)
+                                    </div>
+                                </div>
+
+                                <!-- Actions formulaire -->
+                                <div class="notation-actions">
+                                    <!-- Sélecteur de mode de calcul -->
+                                    <div class="mode-calcul-selector">
+                                        <label for="mode_calcul">
+                                            <i class="fas fa-sliders-h"></i>
+                                            Mode de calcul :
+                                        </label>
+                                        <select name="mode_calcul" id="mode_calcul" class="mode-calcul-select" {% if matiere_data.soumise %}disabled{% endif %}>
+                                            <option value="toutes">Toutes les notes sélectionnées</option>
+                                            <option value="2_meilleures">2 meilleures parmi sélectionnées</option>
+                                            <option value="3_meilleures">3 meilleures parmi sélectionnées</option>
+                                            <option value="4_meilleures">4 meilleures parmi sélectionnées</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Sélecteur de pondération (si examen présent) -->
+                                    <div class="ponderation-selector">
+                                        <label for="ponderation_examen">
+                                            <i class="fas fa-balance-scale"></i>
+                                            Pondération :
+                                        </label>
+                                        <select name="ponderation_examen" id="ponderation_examen" class="ponderation-select" {% if matiere_data.soumise %}disabled{% endif %}>
+                                            <option value="40_60">40% Devoirs / 60% Examen</option>
+                                            <option value="50_50" selected>50% Devoirs / 50% Examen</option>
+                                            <option value="30_70">30% Devoirs / 70% Examen</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="submit" 
+                                            name="action"
+                                            value="calculer"
+                                            class="btn btn-secondary"
+                                            {% if matiere_data.soumise %}disabled{% endif %}>
+                                        <i class="fas fa-calculator"></i> Calculer les moyennes
+                                    </button>
+                                    <button type="submit" 
+                                            name="action"
+                                            value="arrondir"
+                                            class="btn btn-warning"
+                                            {% if matiere_data.soumise %}disabled{% endif %}>
+                                        <i class="fas fa-arrow-up"></i> Arrondir la moyenne
+                                    </button>
+                                    <button type="submit" 
+                                            name="action"
+                                            value="enregistrer"
+                                            class="btn btn-primary"
+                                            {% if matiere_data.soumise %}disabled{% endif %}>
+                                        <i class="fas fa-save"></i> Enregistrer les notes
+                                    </button>
+                                </div>
+
+                                <!-- Tableau de notation -->
+                                <div class="notation-table-container">
+                                    <table class="notation-table" id="table-{{ matiere_data.matiere.id }}">
+                                        <thead>
+                                            <tr>
+                                                <th rowspan="3" class="eleve-col">Élève</th>
+                                                <th colspan="{{ matiere_data.evaluations|length }}" class="notes-header">Évaluations</th>
+                                                <th rowspan="3" class="moyenne-col">Moyenne<br>(/20)</th>
+                                            </tr>
+                                            <tr>
+                                                {% for eval in matiere_data.evaluations %}
+                                                    <th class="note-col has-evaluation">
+                                                        {{ eval.titre|truncatewords:2 }}
+                                                        <br><small>/{{ eval.bareme|floatformat:0 }}</small>
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </th>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr class="retenue-row">
+                                                {% for eval in matiere_data.evaluations %}
+                                                    {% with nb_retenues=matiere_data.notes_retenues_par_eval|get_item:eval.id %}
+                                                    <th class="retenue-header">
+                                                        <span class="retenue-label">
+                                                            {% if nb_retenues > 0 %}
+                                                                <span class="retenue-status retenue-active" data-eval-id="{{ eval.id }}" title="{{ nb_retenues }} note(s) retenue(s) pour le calcul">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                    {{ nb_retenues }} Retenue{{ nb_retenues|pluralize }}
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="retenue-status retenue-inactive" data-eval-id="{{ eval.id }}" title="Aucune note retenue">
+                                                                    <i class="fas fa-minus-circle"></i>
+                                                                    Non retenue
+                                                                </span>
+                                                            {% endif %}
+                                                        </span>
+                                                    </th>
+                                                    {% endwith %}
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for eleve in eleves %}
+                                                <tr class="{% cycle 'row-even' 'row-odd' %}" data-eleve-id="{{ eleve.id }}">
+                                                    <td class="eleve-cell">
+                                                        <div class="eleve-info-notation">
+                                                            <div class="eleve-avatar-tiny">
+                                                                {{ eleve.prenom.0 }}{{ eleve.nom.0 }}
+                                                            </div>
+                                                            <span class="eleve-nom">{{ eleve.nom|upper }} {{ eleve.prenom }}</span>
+                                                        </div>
+                                                    </td>
+                                                    
+                                                    {% for eval in matiere_data.evaluations %}
+                                                        {% with note_obj=matiere_data.notes_existantes|get_item:eleve.id|get_item:eval.id %}
+                                                        <td class="note-cell has-evaluation {% if note_obj and note_obj.note %}note-saved{% endif %}">
+                                                            <input type="number" 
+                                                                   name="note_{{ eleve.id }}_{{ eval.id }}" 
+                                                                   class="note-input {% if note_obj and note_obj.note %}saved{% endif %} {% if matiere_data.soumise %}disabled{% endif %}" 
+                                                                   min="0" 
+                                                                   max="{{ eval.bareme }}" 
+                                                                   step="0.5" 
+                                                                   value="{% if note_obj and note_obj.note %}{{ note_obj.note|unlocalize }}{% endif %}"
+                                                                   placeholder="--"
+                                                                   data-eval-id="{{ eval.id }}"
+                                                                   data-bareme="{{ eval.bareme }}"
+                                                                   onchange="colorNote(this)"
+                                                                   {% if matiere_data.soumise %}readonly{% endif %}>
+                                                        </td>
+                                                        {% endwith %}
+                                                    {% endfor %}
+                                                    
+                                                    <!-- Moyenne -->
+                                                    <td class="moyenne-cell">
+                                                        {% with moy_data=matiere_data.moyennes|get_item:eleve.id %}
+                                                        <input type="text" 
+                                                               name="moyenne_{{ eleve.id }}"
+                                                               id="moyenne_{{ matiere_data.matiere.id }}_{{ eleve.id }}" 
+                                                               value="{% if moy_data %}{{ moy_data|floatformat:2 }}{% else %}--{% endif %}" 
+                                                               class="moyenne-input {% if moy_data %}{% if moy_data >= 16 %}excellent{% elif moy_data >= 14 %}tres-bien{% elif moy_data >= 12 %}bien{% elif moy_data >= 10 %}passable{% elif moy_data >= 8 %}fragile{% else %}insuffisant{% endif %}{% endif %}" 
+                                                               readonly>
+                                                        {% endwith %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Actions formulaire (bas) -->
+                                <div class="notation-actions">
+                                    <button type="submit" 
+                                            name="action"
+                                            value="calculer"
+                                            class="btn btn-secondary"
+                                            {% if matiere_data.soumise %}disabled{% endif %}>
+                                        <i class="fas fa-calculator"></i> Calculer les moyennes
+                                    </button>
+                                    <button type="submit" 
+                                            name="action"
+                                            value="arrondir"
+                                            class="btn btn-warning"
+                                            {% if matiere_data.soumise %}disabled{% endif %}>
+                                        <i class="fas fa-arrow-up"></i> Arrondir la moyenne
+                                    </button>
+                                    <button type="submit" 
+                                            name="action"
+                                            value="enregistrer"
+                                            class="btn btn-primary"
+                                            {% if matiere_data.soumise %}disabled{% endif %}>
+                                        <i class="fas fa-save"></i> Enregistrer les notes
+                                    </button>
+                                    <a href="{% url 'enseignant_primaire:gestion_notes' %}" class="btn btn-outline">
+                                        <i class="fas fa-arrow-left"></i> Retour
+                                    </a>
+                                </div>
+                            </form>
+                        {% else %}
+                            <!-- Aucune évaluation -->
+                            <div class="empty-state">
+                                <div class="empty-icon">
+                                    <i class="fas fa-clipboard"></i>
+                                </div>
+                                <h3>Aucune évaluation</h3>
+                                <p>Vous n'avez pas encore créé d'évaluation pour {{ matiere_data.matiere.nom }}.</p>
+                                <a href="{% url 'enseignant_primaire:creer_evaluation' classe.id %}?matiere={{ matiere_data.matiere.id }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i>
+                                    Créer une évaluation
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Aucune matière -->
+            <div class="empty-state-large">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Aucune matière affectée</h3>
+                <p>Vous n'avez aucune matière affectée à cette classe.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/primaire/noter_eleves_primaire.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/primaire/notation_ajax.js' %}"></script>
+</body>
+</html>

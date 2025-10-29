@@ -72,30 +72,36 @@
         <!-- Onglets de périodes -->
         <div class="periodes-tabs">
             <div class="tabs-container">
-                {% for periode_code, periode_nom in PERIODES %}
-                    {% if periode_code != 'annuel' %}
-                        <a href="?periode={{ periode_code }}" 
-                           class="periode-tab {% if periode_active == periode_code %}active{% endif %}">
+                {% if periodes_scolaires %}
+                    {% for periode in periodes_scolaires %}
+                        <a href="?periode={{ periode.id }}" 
+                           class="periode-tab {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
                             <i class="fas fa-calendar-check"></i>
-                            <span>{{ periode_nom }}</span>
-                            {% with releve=tous_releves|dictsort:"periode" %}
-                                {% for r in tous_releves %}
-                                    {% if r.periode == periode_code %}
-                                        {% if r.soumis %}
-                                            <span class="tab-badge soumis">
-                                                <i class="fas fa-lock"></i>
-                                            </span>
-                                        {% else %}
-                                            <span class="tab-badge en-cours">
-                                                <i class="fas fa-edit"></i>
-                                            </span>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            {% endwith %}
+                            <span>{{ periode.nom_periode }}</span>
+                            {% if periode.est_en_cours %}
+                                <span class="tab-badge en-cours" style="background: #28a745;">
+                                    <i class="fas fa-circle"></i>
+                                </span>
+                            {% endif %}
+                            {% if releve_notes and releve_notes.periode_scolaire.id == periode.id %}
+                                {% if releve_notes.soumis %}
+                                    <span class="tab-badge soumis">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                {% else %}
+                                    <span class="tab-badge en-cours">
+                                        <i class="fas fa-edit"></i>
+                                    </span>
+                                {% endif %}
+                            {% endif %}
                         </a>
-                    {% endif %}
-                {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <div style="padding: 1rem; text-align: center; color: #999;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Aucune période scolaire définie. Contactez l'administration.
+                    </div>
+                {% endif %}
             </div>
         </div>
 
@@ -192,6 +198,20 @@
 
                 <!-- Actions formulaire -->
                 <div class="notation-actions">
+                    <!-- Sélecteur du mode de calcul -->
+                    <div class="moyenne-mode-selector">
+                        <label for="modeCalculMoyenne">
+                            <i class="fas fa-cogs"></i> Mode de calcul :
+                        </label>
+                        <select id="modeCalculMoyenne" class="form-select-inline">
+                            <option value="toutes">Toutes les notes</option>
+                            <option value="2">2 meilleures notes (composées)</option>
+                            <option value="3">3 meilleures notes (composées)</option>
+                            <option value="4">4 meilleures notes (composées)</option>
+                            <option value="interro_x2">1 Meilleure interro × 2</option>
+                        </select>
+                    </div>
+                    
                     <button type="button" 
                             onclick="calculerToutesMoyennes()" 
                             class="btn btn-secondary"
@@ -204,17 +224,6 @@
                             {% if releve_notes.soumis %}disabled{% endif %}>
                         <i class="fas fa-save"></i> Enregistrer les notes
                     </button>
-                    {% if not releve_notes.soumis %}
-                        <button type="button" 
-                                onclick="if(confirm('Êtes-vous sûr de vouloir soumettre ce relevé ? Cette action est irréversible et verrouillera toutes les notes.')) { window.location.href='{% url 'enseignant:soumettre_releve' classe.id %}'; }"
-                                class="btn btn-success">
-                            <i class="fas fa-paper-plane"></i> Soumettre le relevé
-                        </button>
-                    {% else %}
-                        <div class="btn btn-locked" disabled>
-                            <i class="fas fa-lock"></i> Relevé soumis
-                        </div>
-                    {% endif %}
                 </div>
 
                 <!-- Tableau de notation -->
@@ -283,13 +292,15 @@
                                     
                                     <!-- Moyenne -->
                                     <td class="moyenne-cell">
+                                        {% with moy_data=moyennes_enregistrees|get_item:eleve.id %}
                                         <input type="text" 
                                                id="moyenne_{{ eleve.id }}" 
                                                name="notes[{{ eleve.id }}][moyenne]" 
-                                               value="{% if moyennes_enregistrees|get_note:eleve.id %}{{ moyennes_enregistrees|get_note:eleve.id|get_note:'moyenne'|format_note }}{% else %}--{% endif %}" 
-                                               class="moyenne-input {% if moyennes_enregistrees|get_note:eleve.id %}has-moyenne{% endif %}" 
+                                               value="{% if moy_data %}{{ moy_data.moyenne|floatformat:2 }}{% else %}--{% endif %}" 
+                                               class="moyenne-input {% if moy_data %}has-moyenne{% endif %}" 
                                                readonly
                                                data-eleve-id="{{ eleve.id }}">
+                                        {% endwith %}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -299,6 +310,20 @@
 
                 <!-- Actions du bas -->
                 <div class="notation-actions bottom">
+                    <!-- Sélecteur du mode de calcul -->
+                    <div class="moyenne-mode-selector">
+                        <label for="modeCalculMoyenne2">
+                            <i class="fas fa-cogs"></i> Mode de calcul :
+                        </label>
+                        <select id="modeCalculMoyenne2" class="form-select-inline">
+                            <option value="toutes">Toutes les notes</option>
+                            <option value="2">2 meilleures notes (composées)</option>
+                            <option value="3">3 meilleures notes (composées)</option>
+                            <option value="4">4 meilleures notes (composées)</option>
+                            <option value="interro_x2">1 Meilleure interro × 2</option>
+                        </select>
+                    </div>
+                    
                     <button type="button" 
                             onclick="calculerToutesMoyennes()" 
                             class="btn btn-secondary"
@@ -311,13 +336,6 @@
                             {% if releve_notes.soumis %}disabled{% endif %}>
                         <i class="fas fa-save"></i> Enregistrer les notes
                     </button>
-                    {% if not releve_notes.soumis %}
-                        <button type="button" 
-                                onclick="if(confirm('Êtes-vous sûr de vouloir soumettre ce relevé ? Cette action est irréversible et verrouillera toutes les notes.')) { window.location.href='{% url 'enseignant:soumettre_releve' classe.id %}'; }"
-                                class="btn btn-success">
-                            <i class="fas fa-paper-plane"></i> Soumettre le relevé
-                        </button>
-                    {% endif %}
                     <a href="{% url 'enseignant:gestion_notes' %}" class="btn btn-outline">
                         <i class="fas fa-arrow-left"></i> Retour
                     </a>
@@ -466,6 +484,11 @@
                 return;
             }
             
+            // Récupérer le mode de calcul sélectionné
+            const modeCalcul = document.getElementById('modeCalculMoyenne').value || 
+                              document.getElementById('modeCalculMoyenne2').value || 
+                              'toutes';
+            
             // Désactiver le bouton pendant le calcul
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calcul en cours...';
@@ -479,7 +502,8 @@
                 },
                 body: JSON.stringify({
                     colonnes_selectionnees: colonnesSelectionnees,
-                    periode: '{{ periode_active }}'
+                    periode: '{{ periode_active.id }}',
+                    nombre_meilleures_notes: modeCalcul
                 })
             })
             .then(response => response.json())
@@ -583,6 +607,20 @@
             
             // Initialiser le compteur
             updateSelectionCounter();
+            
+            // Synchroniser les deux sélecteurs de mode de calcul
+            const selector1 = document.getElementById('modeCalculMoyenne');
+            const selector2 = document.getElementById('modeCalculMoyenne2');
+            
+            if (selector1 && selector2) {
+                selector1.addEventListener('change', function() {
+                    selector2.value = this.value;
+                });
+                
+                selector2.addEventListener('change', function() {
+                    selector1.value = this.value;
+                });
+            }
             
             // Écouter les changements sur les checkboxes
             document.querySelectorAll('.eval-checkbox').forEach(checkbox => {

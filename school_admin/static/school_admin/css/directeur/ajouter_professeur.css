@@ -420,3 +420,124 @@ body {
         padding: 1rem;
     }
 }
+/* ===== STYLES POUR SÉLECTION MULTIPLE DE MATIÈRES (PRIMAIRE) ===== */
+
+.form-group-full {
+    grid-column: 1 / -1;
+    margin-bottom: 1.5rem;
+}
+
+.label-hint {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 400;
+    margin-left: 0.5rem;
+}
+
+.matieres-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.checkbox-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.checkbox-card:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.checkbox-card input[type='checkbox'] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.checkbox-card input[type='checkbox']:checked ~ .checkbox-content {
+    color: #4f46e5;
+}
+
+.checkbox-card input[type='checkbox']:checked ~ .checkbox-check {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    opacity: 1;
+}
+
+.checkbox-card input[type='checkbox']:checked {
+    & ~ * {
+        font-weight: 600;
+    }
+}
+
+.checkbox-card:has(input:checked) {
+    background: #eef2ff;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.checkbox-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.checkbox-content i {
+    font-size: 1.25rem;
+    color: #6366f1;
+    margin-bottom: 0.5rem;
+}
+
+.matiere-nom {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #1f2937;
+}
+
+.matiere-code {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.checkbox-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+.checkbox-check i {
+    font-size: 0.75rem;
+}
+
+.matieres-checkbox-grid.is-invalid {
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.text-muted {
+    color: #6b7280;
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 2rem;
+}

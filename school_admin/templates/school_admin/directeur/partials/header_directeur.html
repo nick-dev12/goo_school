@@ -31,9 +31,9 @@
         </button>
 
         <div class="header-profile">
-          <div class="header-avatar">JD</div>
+          <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
           <div class="header-user-info">
-            <div class="header-user-name">Jean Dupont</div>
+            <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
             <div class="header-user-role">Directeur</div>
           </div>
         </div>
@@ -43,9 +43,9 @@
     <!-- Welcome Banner -->
     <section class="welcome-banner">
       <div class="banner-content">
-        <h1 class="banner-title">Bienvenue, Jean Dupont</h1>
+        <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
         <p class="banner-subtitle">
-          Collège Saint-Exupéry - Année scolaire 2023-2024
+          {{ request.user.nom }} - Année scolaire 2024-2025
         </p>
       </div>
       <button
@@ -113,6 +113,16 @@
           <div class="nav-link-content">
             <h3>Gestion des élèves</h3>
             <p>Accès complet aux outils de gestion des élèves</p>
+          </div>
+        </a>
+
+        <a href="{% url 'directeur:gestion_examens' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-orange">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Gestion des examens</h3>
+            <p>Programmer et gérer les sessions d'examens</p>
           </div>
         </a>
 

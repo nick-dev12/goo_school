@@ -1186,12 +1186,12 @@ def mettre_a_jour_statuts_factures(request):
             nombre_mises_a_jour = Facturation.mettre_a_jour_tous_les_statuts()
             
             if nombre_mises_a_jour > 0:
-                messages.success(request, f"✅ Mise à jour terminée: {nombre_mises_a_jour} factures mises à jour")
+                messages.success(request, f"[SUCCES] Mise a jour terminee: {nombre_mises_a_jour} factures mises a jour")
             else:
-                messages.info(request, "ℹ️ Aucune facture à mettre à jour")
+                messages.info(request, "[INFO] Aucune facture a mettre a jour")
                 
         except Exception as e:
-            messages.error(request, f"❌ Erreur lors de la mise à jour: {str(e)}")
+            messages.error(request, f"[ERREUR] Erreur lors de la mise a jour: {str(e)}")
     
     # Récupérer les statistiques des statuts
     stats_statuts = {

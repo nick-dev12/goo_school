@@ -82,6 +82,21 @@ class Eleve(AbstractUser):
         help_text="Numéro unique d'identification de l'élève"
     )
     
+    matricule_eleve = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="Matricule élève",
+        help_text="Matricule de connexion de l'élève (ex: BP2025001)"
+    )
+    
+    mot_de_passe_eleve_modifie = models.BooleanField(
+        default=False,
+        verbose_name="Mot de passe élève modifié",
+        help_text="Indique si l'élève a changé son mot de passe initial"
+    )
+    
     etablissement = models.ForeignKey(
         Etablissement,
         on_delete=models.CASCADE,
@@ -403,6 +418,50 @@ class Eleve(AbstractUser):
     def nombre_documents_fournis(self):
         """Retourne le nombre de documents fournis"""
         return len(self.documents_fournis_liste)
+    
+    @staticmethod
+    def generer_matricule_eleve(etablissement):
+        """
+        Génère un matricule unique pour un élève
+        Format : [XX][ANNEE][NUMERO]
+        Exemple : BP2025001 (Blaise Pascal, année 2025, élève 001)
+        """
+        from datetime import datetime
+        
+        # Extraire les initiales de l'établissement (2 premiers mots)
+        mots = etablissement.nom.split()[:2]
+        initiales = ''.join([mot[0].upper() for mot in mots if mot])
+        
+        # Année en cours
+        annee = datetime.now().year
+        
+        # Compter les élèves existants pour cette année
+        prefix = f"{initiales}{annee}"
+        count = Eleve.objects.filter(
+            etablissement=etablissement,
+            matricule_eleve__startswith=prefix
+        ).count() + 1
+        
+        matricule = f"{prefix}{count:03d}"
+        
+        # Vérifier l'unicité et ajuster si nécessaire
+        while Eleve.objects.filter(matricule_eleve=matricule).exists():
+            count += 1
+            matricule = f"{prefix}{count:03d}"
+        
+        return matricule
+    
+    @staticmethod
+    def generer_mot_de_passe():
+        """
+        Génère un mot de passe provisoire de 6 chiffres séparés par un tiret
+        Format : XXX-XXX
+        Exemple : 487-293
+        """
+        import random
+        partie1 = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+        partie2 = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+        return f"{partie1}-{partie2}"
     
     def get_statut_display(self):
         """Retourne l'affichage du statut d'inscription"""

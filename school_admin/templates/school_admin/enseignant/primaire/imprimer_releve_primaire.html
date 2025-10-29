@@ -1,0 +1,163 @@
+{% load static notes_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relevé de Notes - {{ classe.nom }} - {{ periode_selectionnee.nom_periode }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/imprimer_releve_primaire.css' %}">
+</head>
+<body>
+    <!-- En-tête du document -->
+    <div class="print-header">
+        <div class="etablissement-logo">
+            <i class="fas fa-graduation-cap logo-icon"></i>
+            <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+        </div>
+        <h2 class="document-titre">Relevé de Notes Multi-Matières</h2>
+        <div class="document-info">
+            <div class="document-info-item">
+                <i class="fas fa-chalkboard"></i>
+                <span>Classe : <strong>{{ classe.nom }}</strong></span>
+            </div>
+            <div class="document-info-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Période : <strong>{{ periode_selectionnee.nom_periode }}</strong></span>
+            </div>
+            <div class="document-info-item">
+                <i class="fas fa-users"></i>
+                <span>Effectif : <strong>{{ resultats|length }} élève{{ resultats|length|pluralize }}</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations complémentaires -->
+    <div class="info-section">
+        <div class="info-block">
+            <h3>Enseignant</h3>
+            <p>{{ professeur.nom_complet }}</p>
+        </div>
+        <div class="info-block">
+            <h3>Date d'édition</h3>
+            <p>{{ date_impression|date:"d/m/Y" }}</p>
+        </div>
+        <div class="info-block">
+            <h3>Matières enseignées</h3>
+            <p>{{ matieres|length }} matière{{ matieres|length|pluralize }}</p>
+        </div>
+    </div>
+
+    <!-- Tableau des notes -->
+    <div class="releve-table-container">
+        <table class="releve-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Élève</th>
+                    {% for matiere in matieres %}
+                        <th>{{ matiere.nom }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for matiere in matieres %}
+                        <th class="matiere-code">({{ matiere.code }})</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for resultat in resultats %}
+                    <tr>
+                        <td class="eleve-name">{{ resultat.eleve.nom|upper }} {{ resultat.eleve.prenom }}</td>
+                        
+                        {% for matiere in matieres %}
+                            <td class="note-cell">
+                                {% with moyenne=resultat.moyennes_par_matiere|get_item:matiere.code %}
+                                    {% if moyenne.moyenne %}
+                                        <span class="note-value {% if moyenne.moyenne >= 16 %}excellent{% elif moyenne.moyenne >= 14 %}tres-bien{% elif moyenne.moyenne >= 12 %}bien{% elif moyenne.moyenne >= 10 %}assez-bien{% elif moyenne.moyenne >= 8 %}passable{% else %}insuffisant{% endif %}">
+                                            {{ moyenne.moyenne }}
+                                        </span>
+                                    {% else %}
+                                        <span class="note-empty">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="{{ matieres|length|add:1 }}" style="text-align: center; padding: 30px;">
+                            <i class="fas fa-inbox" style="font-size: 2rem; color: #9CA3AF;"></i>
+                            <p style="margin-top: 10px; color: #6B7280;">Aucun élève dans cette classe</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Légende des appréciations -->
+    <div class="legende-container">
+        <h3><i class="fas fa-palette"></i> Légende des appréciations</h3>
+        <div class="legende-grid">
+            <div class="legende-item">
+                <span class="legende-color excellent"></span>
+                <span>Excellent (≥ 16/20)</span>
+            </div>
+            <div class="legende-item">
+                <span class="legende-color tres-bien"></span>
+                <span>Très bien (14-16/20)</span>
+            </div>
+            <div class="legende-item">
+                <span class="legende-color bien"></span>
+                <span>Bien (12-14/20)</span>
+            </div>
+            <div class="legende-item">
+                <span class="legende-color assez-bien"></span>
+                <span>Assez bien (10-12/20)</span>
+            </div>
+            <div class="legende-item">
+                <span class="legende-color passable"></span>
+                <span>Passable (8-10/20)</span>
+            </div>
+            <div class="legende-item">
+                <span class="legende-color insuffisant"></span>
+                <span>Insuffisant (< 8/20)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signatures -->
+    <div class="print-footer">
+        <div class="signature-section">
+            <h4>Signature de l'enseignant</h4>
+            <div class="signature-line">{{ professeur.nom_complet }}</div>
+        </div>
+        <div class="signature-section">
+            <h4>Signature du directeur</h4>
+            <div class="signature-line">Directeur de l'établissement</div>
+        </div>
+    </div>
+
+    <!-- Boutons de contrôle -->
+    <div class="no-print">
+        <button class="btn btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            Imprimer le relevé
+        </button>
+        <button class="btn btn-secondary" onclick="window.close()">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script>
+        // Auto-print après chargement (optionnel - commenté par défaut)
+        // window.onload = function() {
+        //     setTimeout(function() {
+        //         window.print();
+        //     }, 500);
+        // };
+    </script>
+</body>
+</html>
+

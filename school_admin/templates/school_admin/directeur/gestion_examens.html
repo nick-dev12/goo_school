@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+{% load static %}
+{% load exam_filters %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_examens.css' %}">
+    <title>Gestion des Examens - {{ etablissement.nom }}</title>
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-clipboard-list"></i>
+                Gestion des Examens
+            </h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openModal()">
+                    <i class="fas fa-plus"></i>
+                    Ajouter une session d'examen
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs for Periods -->
+        <div class="tabs-container">
+            <div class="tabs">
+                {% for periode in periodes %}
+                <button class="tab-button {% if forloop.first %}active{% endif %}" onclick="showTab('periode-{{ periode.id }}')">
+                    <i class="fas fa-calendar-alt"></i>
+                    {{ periode.nom_periode }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            {% for periode in periodes %}
+            <div id="periode-{{ periode.id }}" class="tab-panel {% if forloop.first %}active{% endif %}">
+                <!-- Sub-tabs for Class Groups -->
+                <div class="sub-tabs-container">
+                    <div class="sub-tabs">
+                        {% for niveau, groupe in groupes_classes.items %}
+                        <button class="sub-tab-button {% if forloop.first %}active{% endif %}" onclick="showSubTab('periode-{{ periode.id }}-{{ niveau|slugify }}')">
+                            <i class="fas fa-users"></i>
+                            {{ niveau }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Sub-tab Content -->
+                <div class="sub-tab-content">
+                    {% for niveau, groupe in groupes_classes.items %}
+                    <div id="periode-{{ periode.id }}-{{ niveau|slugify }}" class="sub-tab-panel {% if forloop.first %}active{% endif %}">
+                        <div class="sessions-grid">
+                            {% if sessions_par_periode|get_item:periode.id %}
+                                {% for session in sessions_par_periode|get_item:periode.id|get_item:'sessions' %}
+                                    {% if session|has_classe_niveau:niveau %}
+                                        <div class="session-card">
+                                            <div class="session-header">
+                                                <h3>{{ session.nom_examen }}</h3>
+                                                <span class="session-period">{{ session.periode.nom_periode }}</span>
+                                            </div>
+                                            <div class="session-details">
+                                                <div class="detail-item">
+                                                    <i class="fas fa-users"></i>
+                                                    <span>{{ session.classes_str }}</span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <i class="fas fa-book"></i>
+                                                    <span>{{ session.nombre_matieres }} matière(s)</span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <i class="fas fa-calendar"></i>
+                                                    <span>{{ session.date_debut|date:"d/m/Y" }} - {{ session.date_fin|date:"d/m/Y" }}</span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <i class="fas fa-clock"></i>
+                                                    <span>{{ session.duree_format }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="session-actions">
+                                                <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="btn btn-sm btn-primary" title="Configurer les créneaux">
+                                                    <i class="fas fa-clock"></i> Créneaux
+                                                </a>
+                                                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="btn btn-sm btn-secondary" title="Voir l'emploi du temps">
+                                                    <i class="fas fa-calendar-alt"></i> Emploi du temps
+                                                </a>
+                                                <button class="btn btn-sm btn-warning" onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}')" title="Modifier">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="deleteSession({{ session.id }}, '{{ session.nom_examen|escapejs }}')" title="Supprimer">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal for Adding Exam Session -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter une session d'examen</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <form method="post" action="{% url 'directeur:gestion_examens' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nom_examen">Nom de la session d'examen <span class="required">*</span></label>
+                        <input type="text" id="nom_examen" name="nom_examen" class="form-control" required placeholder="Ex: Examen du 1er Trimestre" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="periode_id">Période scolaire <span class="required">*</span></label>
+                        <select id="periode_id" name="periode_id" class="form-control" required>
+                            <option value="">Sélectionnez une période</option>
+                            {% for periode in periodes %}
+                            <option value="{{ periode.id }}">{{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date_debut">Date de début <span class="required">*</span></label>
+                            <input type="date" id="date_debut" name="date_debut" class="form-control" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="date_fin">Date de fin <span class="required">*</span></label>
+                            <input type="date" id="date_fin" name="date_fin" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Groupes de classes concernés <span class="required">*</span></label>
+                        <div class="checkbox-group">
+                            {% for niveau, groupe in groupes_classes.items %}
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="groupes_classes" value="{{ niveau }}" />
+                                <span class="checkmark"></span>
+                                {{ niveau }} ({{ groupe.classes|length }} classe(s))
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matières de l'examen <span class="required">*</span></label>
+                        <div class="checkbox-group">
+                            {% for matiere in matieres %}
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="matieres" value="{{ matiere.id }}" />
+                                <span class="checkmark"></span>
+                                {{ matiere.nom }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" placeholder="Instructions ou informations supplémentaires..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Créer la session
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Exam Session -->
+    <div id="editSessionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modifier la session d'examen</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editSessionForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" id="edit_session_id" name="session_id" />
+                    
+                    <div class="form-group">
+                        <label for="edit_nom_examen">Nom de la session d'examen <span class="required">*</span></label>
+                        <input type="text" id="edit_nom_examen" name="nom_examen" class="form-control" required placeholder="Ex: Examen du 1er Trimestre" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_periode_id">Période scolaire <span class="required">*</span></label>
+                        <select id="edit_periode_id" name="periode_id" class="form-control" required>
+                            <option value="">Sélectionnez une période</option>
+                            {% for periode in periodes %}
+                            <option value="{{ periode.id }}">{{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit_date_debut">Date de début <span class="required">*</span></label>
+                            <input type="date" id="edit_date_debut" name="date_debut" class="form-control" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_date_fin">Date de fin <span class="required">*</span></label>
+                            <input type="date" id="edit_date_fin" name="date_fin" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Groupes de classes concernés <span class="required">*</span></label>
+                        <div class="checkbox-group" id="edit_groupes_classes">
+                            {% for niveau, groupe in groupes_classes.items %}
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="edit_groupe_{{ niveau|slugify }}" name="groupes_classes" value="{{ niveau }}" />
+                                <label for="edit_groupe_{{ niveau|slugify }}">
+                                    <i class="fas fa-check"></i>
+                                    {{ niveau }} ({{ groupe|length }} classe(s))
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matières de l'examen <span class="required">*</span></label>
+                        <div class="checkbox-group" id="edit_matieres">
+                            {% for matiere in matieres %}
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="edit_matiere_{{ matiere.id }}" name="matieres_ids" value="{{ matiere.id }}" />
+                                <label for="edit_matiere_{{ matiere.id }}">
+                                    <i class="fas fa-check"></i>
+                                    {{ matiere.nom }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_description">Description</label>
+                        <textarea id="edit_description" name="description" class="form-control" rows="3" placeholder="Instructions ou informations supplémentaires..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Modifier la session
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=2"></script>
+</body>
+</html>

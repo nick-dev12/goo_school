@@ -1,0 +1,835 @@
+/* Styles pour le tableau de bord de l'espace élève */
+
+/* Conteneur principal du tableau de bord */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background-color: var(--gray-50);
+  border-radius: var(--radius-lg);
+}
+
+/* Titre de section */
+.dashboard-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 1.5rem 0 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  justify-content: center; /* Centrage du titre */
+}
+
+.dashboard-section-title i {
+  color: var(--eleve-primary);
+}
+
+/* Grille pour les cartes */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  align-items: stretch;
+}
+
+/* Organisation en deux colonnes pour les sections importantes */
+.dashboard-grid.two-columns {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Carte d'information */
+.info-card {
+  background-color: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--gray-100);
+}
+
+.info-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-5px);
+  border-color: var(--gray-200);
+}
+
+.info-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.info-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0;
+}
+
+.info-card-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.info-card-content {
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.info-card-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0;
+}
+
+.info-card-description {
+  font-size: 0.9rem;
+  color: var(--gray-500);
+  margin: 0.5rem 0 0 0;
+}
+
+.info-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  border-top: 1px solid var(--gray-100);
+  padding-top: 1rem;
+  margin-top: auto;
+}
+
+.info-card-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  background-color: var(--gray-50);
+}
+
+.info-card-trend.positive {
+  color: var(--success);
+  background-color: var(--success-light);
+}
+
+.info-card-trend.negative {
+  color: var(--warning);
+  background-color: var(--warning-light);
+}
+
+.info-card-link {
+  color: var(--eleve-primary);
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.info-card-link:hover {
+  background-color: var(--eleve-primary-light);
+}
+
+.info-card-link i {
+  font-size: 0.8rem;
+}
+
+/* Tableau des prochains cours */
+.schedule-card {
+  background-color: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  border: 1px solid var(--gray-100);
+  grid-column: 1 / -1; /* Prend toute la largeur */
+  transition: all 0.3s ease;
+}
+
+.schedule-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+  border-color: var(--gray-200);
+}
+
+.schedule-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.schedule-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.schedule-card-title i {
+  color: var(--eleve-primary);
+}
+
+.schedule-card-date {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  background-color: var(--gray-100);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+.schedule-table-container {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  border-radius: var(--radius);
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.schedule-table th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-200);
+  background-color: var(--gray-50);
+}
+
+.schedule-table td {
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  color: var(--gray-800);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.schedule-table tr:last-child td {
+  border-bottom: none;
+}
+
+.schedule-table tr:hover {
+  background-color: var(--gray-50);
+}
+
+.schedule-subject {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.schedule-subject-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.schedule-time {
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.schedule-location {
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.schedule-teacher {
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+/* Carte des devoirs à faire */
+.homework-card {
+  background-color: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  border: 1px solid var(--gray-100);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.homework-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+  border-color: var(--gray-200);
+}
+
+.homework-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.homework-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.homework-card-title i {
+  color: var(--warning);
+}
+
+.homework-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.homework-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  transition: all 0.2s;
+  border-radius: var(--radius);
+}
+
+.homework-item:hover {
+  background-color: var(--gray-50);
+}
+
+.homework-item:last-child {
+  border-bottom: none;
+}
+
+.homework-checkbox {
+  margin-top: 0.25rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.homework-content {
+  flex: 1;
+}
+
+.homework-subject {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0 0 0.5rem 0;
+}
+
+.homework-description {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.homework-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.homework-due-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--gray-100);
+  border-radius: var(--radius-full);
+}
+
+.homework-priority {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.homework-priority.high {
+  color: var(--white);
+  background-color: var(--warning);
+}
+
+.homework-priority.medium {
+  color: var(--white);
+  background-color: var(--accent);
+}
+
+.homework-priority.low {
+  color: var(--white);
+  background-color: var(--success);
+}
+
+/* Carte des dernières notes */
+.grades-card {
+  background-color: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  border: 1px solid var(--gray-100);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.grades-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+  border-color: var(--gray-200);
+}
+
+.grades-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.grades-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grades-card-title i {
+  color: var(--info);
+}
+
+.grades-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.grade-item {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+  border-radius: var(--radius);
+}
+
+.grade-item:hover {
+  background-color: var(--gray-50);
+}
+
+.grade-item:last-child {
+  border-bottom: none;
+}
+
+.grade-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.grade-subject {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0 0 0.25rem 0;
+}
+
+.grade-title {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.grade-value {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  min-width: 52px;
+  text-align: center;
+}
+
+.grade-value.excellent {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.grade-value.good {
+  background-color: var(--accent-light);
+  color: var(--accent);
+}
+
+.grade-value.average {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.grade-value.poor {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Carte des absences */
+.attendance-card {
+  background-color: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  border: 1px solid var(--gray-100);
+  transition: all 0.3s ease;
+  grid-column: 1 / -1; /* Prend toute la largeur */
+}
+
+.attendance-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+  border-color: var(--gray-200);
+}
+
+.attendance-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.attendance-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attendance-card-title i {
+  color: var(--eleve-primary);
+}
+
+.attendance-summary {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: var(--gray-50);
+  border-radius: var(--radius-lg);
+}
+
+.attendance-stat {
+  text-align: center;
+  flex: 1;
+  padding: 1rem;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.attendance-stat:hover {
+  background-color: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.attendance-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0 0 0.5rem 0;
+}
+
+.attendance-stat-label {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.attendance-progress {
+  height: 10px;
+  background-color: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.attendance-progress-bar {
+  height: 100%;
+  background: var(--gradient-blue);
+  border-radius: var(--radius-full);
+  transition: width 1s ease-in-out;
+}
+
+.attendance-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin-bottom: 1.5rem;
+}
+
+.attendance-legend span:nth-child(2) {
+  font-weight: 600;
+  color: var(--eleve-primary);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .dashboard-grid.two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  .schedule-card-header,
+  .homework-card-header,
+  .grades-card-header,
+  .attendance-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .schedule-card-date {
+    align-self: flex-start;
+  }
+
+  .attendance-summary {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .attendance-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+  }
+
+  .attendance-stat-value {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-section-title {
+    font-size: 1.1rem;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-card,
+  .schedule-card,
+  .homework-card,
+  .grades-card,
+  .attendance-card {
+    padding: 1rem;
+  }
+
+  .info-card-value {
+    font-size: 1.5rem;
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .homework-item,
+  .grade-item {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .homework-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* Animation des cartes au chargement */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.info-card,
+.schedule-card,
+.homework-card,
+.grades-card,
+.attendance-card {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.info-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.info-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.schedule-card {
+  animation-delay: 0.3s;
+}
+
+.homework-card {
+  animation-delay: 0.4s;
+}
+
+.grades-card {
+  animation-delay: 0.5s;
+}
+
+.attendance-card {
+  animation-delay: 0.6s;
+}
+
+/* Styles pour les devoirs complétés */
+.homework-item.completed {
+  opacity: 0.7;
+  background-color: var(--gray-50);
+}
+
+.homework-item.completed .homework-content {
+  text-decoration: line-through;
+  color: var(--gray-500);
+}
+
+/* Effet de mise en évidence des cartes */
+.card-highlight {
+  transform: translateY(-8px) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border-color: var(--eleve-primary) !important;
+}
+
+/* Message de félicitations */
+.congrats-message {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--gradient-blue);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  max-width: 300px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.congrats-message.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.congrats-content {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  position: relative;
+}
+
+.congrats-content i.fa-award {
+  font-size: 1.5rem;
+  margin-right: 15px;
+  color: #ffd700;
+}
+
+.congrats-content p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.congrats-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.congrats-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+

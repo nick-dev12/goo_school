@@ -20,13 +20,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Gestion de la soumission du formulaire
-    const loginForm = document.getElementById('admin-login-form');
+    const loginForm = document.getElementById('admin-login-form') || document.getElementById('compte-user-login-form');
 
     if (loginForm) {
         loginForm.addEventListener('submit', function (event) {
-            // Récupérer les valeurs des champs
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
+            // Récupérer les valeurs des champs par name au lieu de id
+            const usernameField = this.querySelector('input[name="email"]');
+            const passwordField = this.querySelector('input[name="password"]');
+            
+            if (!usernameField || !passwordField) {
+                // Si les champs ne sont pas trouvés, laisser le formulaire se soumettre normalement
+                return true;
+            }
+            
+            const username = usernameField.value.trim();
+            const password = passwordField.value;
 
             // Validation simple des champs
             if (!username || !password) {
@@ -37,9 +45,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Afficher l'état de chargement
             const submitButton = this.querySelector('button[type="submit"]');
-            const originalText = submitButton.innerHTML;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
-            submitButton.disabled = true;
+            if (submitButton) {
+                const originalText = submitButton.innerHTML;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
+                submitButton.disabled = true;
+            }
 
             // Laisser le formulaire se soumettre normalement au serveur Django
             // (pas de event.preventDefault() ici)

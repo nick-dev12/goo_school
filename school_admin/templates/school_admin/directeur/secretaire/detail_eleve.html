@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load pagination_tags %}
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -20,6 +21,10 @@
   <link
     rel="stylesheet"
     href="{% static 'school_admin/css/directeur/detail_eleve.css' %}"
+  />
+  <link
+    rel="stylesheet"
+    href="{% static 'school_admin/css/directeur/detail_eleve_tabs.css' %}"
   />
   <link
     rel="stylesheet"
@@ -62,7 +67,7 @@
           <div class="student-header-info">
             <h1 class="student-full-name">{{ eleve.nom_complet }}</h1>
             <div class="student-identifiers">
-              <span class="student-matricule">{{ eleve.numero_eleve }}</span>
+              <span class="student-matricule">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
               <span class="student-class-badge">{{ eleve.classe.nom }} - {{ eleve.classe.get_niveau_display }}</span>
             </div>
             <div class="student-status-info">
@@ -72,6 +77,10 @@
             </div>
           </div>
           <div class="student-actions-header">
+            <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="btn-action btn-receipt" style="background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
+              <i class="fas fa-file-invoice"></i>
+              Voir le reçu
+            </a>
             <button type="button" class="btn-action btn-edit" onclick="toggleEditForm()">
               <i class="fas fa-edit"></i>
               Modifier
@@ -94,17 +103,17 @@
               <i class="fas fa-graduation-cap"></i>
               Académique
             </button>
-            <button class="tab-button" onclick="showTab('contact')">
-              <i class="fas fa-address-book"></i>
-              Contact
+            <button class="tab-button" onclick="showTab('presences')">
+              <i class="fas fa-clipboard-check"></i>
+              Présences
             </button>
-            <button class="tab-button" onclick="showTab('responsible')">
-              <i class="fas fa-users"></i>
-              Responsable
+            <button class="tab-button" onclick="showTab('notes')">
+              <i class="fas fa-chart-line"></i>
+              Notes
             </button>
-            <button class="tab-button" onclick="showTab('documents')">
-              <i class="fas fa-file-alt"></i>
-              Documents
+            <button class="tab-button" onclick="showTab('sanctions')">
+              <i class="fas fa-gavel"></i>
+              Sanctions
             </button>
             <button class="tab-button" onclick="showTab('login')">
               <i class="fas fa-key"></i>
@@ -117,6 +126,7 @@
         <div class="tab-content">
           <!-- Personal Information Tab -->
           <div id="personal-tab" class="tab-panel active">
+            <!-- Informations personnelles -->
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-user"></i>
@@ -149,48 +159,8 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Academic Information Tab -->
-          <div id="academic-tab" class="tab-panel">
-            <div class="info-section">
-              <h3 class="section-title">
-                <i class="fas fa-graduation-cap"></i>
-                Informations académiques
-              </h3>
-              <div class="info-grid">
-                <div class="info-field highlight-field">
-                  <label class="field-label">Matricule</label>
-                  <div class="field-value matricule-display">{{ eleve.numero_eleve }}</div>
-                </div>
-                <div class="info-field">
-                  <label class="field-label">Classe actuelle</label>
-                  <div class="field-value">{{ eleve.classe.nom }}</div>
-                </div>
-                <div class="info-field">
-                  <label class="field-label">Niveau</label>
-                  <div class="field-value">{{ eleve.classe.get_niveau_display }}</div>
-                </div>
-                <div class="info-field">
-                  <label class="field-label">Statut d'inscription</label>
-                  <div class="field-value">
-                    <span class="status-badge status-{{ eleve.statut }}">{{ eleve.get_statut_display }}</span>
-                  </div>
-                </div>
-                <div class="info-field">
-                  <label class="field-label">Date d'inscription</label>
-                  <div class="field-value">{{ eleve.date_inscription|date:"d/m/Y" }}</div>
-                </div>
-                <div class="info-field">
-                  <label class="field-label">Capacité de la classe</label>
-                  <div class="field-value">{{ eleve.classe.capacite_max }} élèves</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Contact Information Tab -->
-          <div id="contact-tab" class="tab-panel">
+            <!-- Informations de contact -->
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-address-book"></i>
@@ -211,10 +181,8 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Responsible Information Tab -->
-          <div id="responsible-tab" class="tab-panel">
+            <!-- Responsable légal -->
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-users"></i>
@@ -304,10 +272,8 @@
                 </div>
               {% endif %}
             </div>
-          </div>
 
-          <!-- Documents Information Tab -->
-          <div id="documents-tab" class="tab-panel">
+            <!-- Documents fournis -->
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-file-alt"></i>
@@ -373,6 +339,358 @@
                 <div class="no-documents">
                   <i class="fas fa-exclamation-triangle"></i>
                   <span>Aucun document fourni</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Academic Information Tab -->
+          <div id="academic-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-graduation-cap"></i>
+                Informations académiques
+              </h3>
+              <div class="info-grid">
+                <div class="info-field highlight-field">
+                  <label class="field-label">Matricule</label>
+                  <div class="field-value matricule-display">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Classe actuelle</label>
+                  <div class="field-value">{{ eleve.classe.nom }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Niveau</label>
+                  <div class="field-value">{{ eleve.classe.get_niveau_display }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Statut d'inscription</label>
+                  <div class="field-value">
+                    <span class="status-badge status-{{ eleve.statut }}">{{ eleve.get_statut_display }}</span>
+                  </div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Date d'inscription</label>
+                  <div class="field-value">{{ eleve.date_inscription|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Capacité de la classe</label>
+                  <div class="field-value">{{ eleve.classe.capacite_max }} élèves</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Presences Tab -->
+          <div id="presences-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-clipboard-check"></i>
+                Présences et Absences
+              </h3>
+              
+              {% if presences_par_mois %}
+                <!-- Sous-onglets par mois -->
+                <div class="sub-tabs-container">
+                  <div class="sub-tabs">
+                    {% for mois_key, pres_list in presences_par_mois.items %}
+                      <button class="sub-tab-button {% if forloop.first %}active{% endif %}" onclick="showSubTab('presence-{{ mois_key }}')">
+                        {{ stats_presences_par_mois|get_item:mois_key|get_item:'mois_nom' }}
+                      </button>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <!-- Contenu des sous-onglets -->
+                {% for mois_key, pres_list in presences_par_mois.items %}
+                  <div id="presence-{{ mois_key }}" class="sub-tab-content {% if forloop.first %}active{% endif %}">
+                    <!-- Statistiques du mois -->
+                    <div class="stats-grid">
+                      <div class="stat-card stat-success">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-content">
+                          <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'presents' }}</div>
+                          <div class="stat-label">Présents</div>
+                        </div>
+                      </div>
+                      <div class="stat-card stat-danger">
+                        <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+                        <div class="stat-content">
+                          <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'absents' }}</div>
+                          <div class="stat-label">Absents</div>
+                        </div>
+                      </div>
+                      <div class="stat-card stat-warning">
+                        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="stat-content">
+                          <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'absents_justifies' }}</div>
+                          <div class="stat-label">Absents Justifiés</div>
+                        </div>
+                      </div>
+                      <div class="stat-card stat-info">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-content">
+                          <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'retards' }}</div>
+                          <div class="stat-label">Retards</div>
+                        </div>
+                      </div>
+                      <div class="stat-card stat-primary">
+                        <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                        <div class="stat-content">
+                          <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'taux_presence' }}%</div>
+                          <div class="stat-label">Taux de présence</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Liste détaillée des présences -->
+                    <div class="presences-list">
+                      <table class="presences-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Justificatif</th>
+                            <th>Remarque</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for item in pres_list %}
+                            <tr class="presence-row status-{{ item.presence.statut }}">
+                              <td>{{ item.presence.date|date:"d/m/Y" }}</td>
+                              <td>
+                                <span class="status-badge badge-{{ item.presence.statut }}">
+                                  {% if item.presence.statut == 'present' %}
+                                    <i class="fas fa-check-circle"></i> Présent
+                                  {% elif item.presence.statut == 'absent' %}
+                                    <i class="fas fa-times-circle"></i> Absent
+                                  {% elif item.presence.statut == 'absent_justifie' %}
+                                    <i class="fas fa-exclamation-circle"></i> Absent Justifié
+                                  {% elif item.presence.statut == 'retard' %}
+                                    <i class="fas fa-clock"></i> Retard
+                                  {% endif %}
+                                </span>
+                              </td>
+                              <td>
+                                {% if item.presence.type_justificatif %}
+                                  {{ item.presence.get_type_justificatif_display }}
+                                  {% if item.presence.justificatif_valide %}
+                                    <i class="fas fa-check text-success" title="Validé"></i>
+                                  {% endif %}
+                                {% else %}
+                                  -
+                                {% endif %}
+                              </td>
+                              <td>{{ item.presence.remarque|default:"-" }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-clipboard-list"></i>
+                  <p>Aucune donnée de présence disponible</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Notes Tab -->
+          <div id="notes-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-chart-line"></i>
+                Relevé de Notes
+              </h3>
+              
+              {% if notes_par_trimestre %}
+                <!-- Sous-onglets par trimestre -->
+                <div class="sub-tabs-container">
+                  <div class="sub-tabs">
+                    <button class="sub-tab-button active" onclick="showSubTab('notes-trimestre1')">
+                      Trimestre 1
+                    </button>
+                    <button class="sub-tab-button" onclick="showSubTab('notes-trimestre2')">
+                      Trimestre 2
+                    </button>
+                    <button class="sub-tab-button" onclick="showSubTab('notes-trimestre3')">
+                      Trimestre 3
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Contenu par trimestre -->
+                {% for trimestre in 'trimestre1,trimestre2,trimestre3'|split:',' %}
+                  <div id="notes-{{ trimestre }}" class="sub-tab-content {% if trimestre == 'trimestre1' %}active{% endif %}">
+                    {% if notes_par_trimestre|get_item:trimestre %}
+                      <!-- Onglets des matières -->
+                      <div class="matieres-tabs-container">
+                        {% for matiere, notes_list in notes_par_trimestre|get_item:trimestre|items %}
+                          {% with notes_data=notes_list|first %}
+                          <button class="matiere-tab-btn" onclick="showMatiereModal('{{ trimestre }}', '{{ matiere }}', {{ notes_data.matiere_id }})">
+                            <i class="fas fa-book"></i>
+                            <div class="matiere-info">
+                              <span class="matiere-nom">{{ matiere }}</span>
+                              <span class="matiere-moyenne {% if moyennes_par_trimestre|get_item:trimestre|get_item:'moyennes_matieres'|get_item:matiere >= 10 %}success{% else %}danger{% endif %}">
+                                {% if moyennes_par_trimestre|get_item:trimestre|get_item:'moyennes_matieres'|get_item:matiere %}
+                                  {{ moyennes_par_trimestre|get_item:trimestre|get_item:'moyennes_matieres'|get_item:matiere|floatformat:2 }}/20
+                                {% else %}
+                                  -
+                                {% endif %}
+                              </span>
+                            </div>
+                          </button>
+                          {% endwith %}
+                        {% endfor %}
+                      </div>
+
+                      <!-- Modal pour afficher les notes détaillées -->
+                      <div id="modal-notes-{{ trimestre }}" class="notes-modal-backdrop" style="display: none;">
+                        <div class="notes-modal">
+                          <div class="notes-modal-header">
+                            <h3 id="modal-title-{{ trimestre }}">Notes détaillées</h3>
+                            <button class="btn-close-modal" onclick="closeMatiereModal('{{ trimestre }}')">
+                              <i class="fas fa-times"></i>
+                            </button>
+                          </div>
+                          <div class="notes-modal-content" id="modal-content-{{ trimestre }}">
+                            <!-- Contenu dynamique -->
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Stocker les données dans un script -->
+                      <script type="application/json" id="notes-data-{{ trimestre }}">
+                        {
+                          {% for matiere, notes_list in notes_par_trimestre|get_item:trimestre|items %}
+                          {% with notes_data=notes_list|first %}
+                          "{{ matiere|escapejs }}": {
+                            "moyenne": "{{ moyennes_par_trimestre|get_item:trimestre|get_item:'moyennes_matieres'|get_item:matiere|floatformat:2 }}",
+                            "notes_detaillees": [
+                              {% for note in notes_data.notes_detaillees %}
+                              {
+                                "type": "{{ note.type|escapejs }}",
+                                "nom": "{{ note.nom|escapejs }}",
+                                "note": {% if note.absent %}"ABS"{% else %}"{{ note.note }}"{% endif %},
+                                "bareme": "{{ note.bareme }}",
+                                "absent": {% if note.absent %}true{% else %}false{% endif %}
+                              }{% if not forloop.last %},{% endif %}
+                              {% endfor %}
+                            ]
+                          }{% if not forloop.last %},{% endif %}
+                          {% endwith %}
+                          {% endfor %}
+                        }
+                      </script>
+                    {% else %}
+                      <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <p>Aucune note pour ce trimestre</p>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-chart-bar"></i>
+                  <p>Aucune note disponible</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Sanctions Tab -->
+          <div id="sanctions-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-gavel"></i>
+                Historique des Sanctions
+              </h3>
+              
+              {% if sanctions_eleve %}
+                <!-- Statistiques des sanctions -->
+                <div class="stats-grid">
+                  <div class="stat-card stat-primary">
+                    <div class="stat-icon"><i class="fas fa-list"></i></div>
+                    <div class="stat-content">
+                      <div class="stat-value">{{ stats_sanctions.total }}</div>
+                      <div class="stat-label">Total sanctions</div>
+                    </div>
+                  </div>
+                  <div class="stat-card stat-danger">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-content">
+                      <div class="stat-value">{{ stats_sanctions.graves }}</div>
+                      <div class="stat-label">Sanctions graves</div>
+                    </div>
+                  </div>
+                  <div class="stat-card stat-warning">
+                    <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-content">
+                      <div class="stat-value">{{ stats_sanctions.moyennes }}</div>
+                      <div class="stat-label">Sanctions moyennes</div>
+                    </div>
+                  </div>
+                  <div class="stat-card stat-info">
+                    <div class="stat-icon"><i class="fas fa-info-circle"></i></div>
+                    <div class="stat-content">
+                      <div class="stat-value">{{ stats_sanctions.legeres }}</div>
+                      <div class="stat-label">Sanctions légères</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Timeline des sanctions -->
+                <div class="sanctions-timeline">
+                  <h4 class="timeline-title">Historique chronologique</h4>
+                  {% for sanction in sanctions_eleve %}
+                    <div class="timeline-item gravite-{{ sanction.gravite }}">
+                      <div class="timeline-marker"></div>
+                      <div class="timeline-content">
+                        <div class="timeline-header">
+                          <div class="timeline-date">
+                            <i class="fas fa-calendar"></i>
+                            {{ sanction.date_sanction|date:"d/m/Y" }}
+                          </div>
+                          <span class="gravite-badge badge-{{ sanction.gravite }}">
+                            {{ sanction.get_gravite_display }}
+                          </span>
+                        </div>
+                        <div class="timeline-body">
+                          <h5 class="sanction-type">
+                            <i class="fas fa-gavel"></i>
+                            {{ sanction.get_type_sanction_display }}
+                          </h5>
+                          <p class="sanction-raison">
+                            <strong>Raison :</strong> {{ sanction.get_raison_display }}
+                          </p>
+                          {% if sanction.description %}
+                            <p class="sanction-description">{{ sanction.description }}</p>
+                          {% endif %}
+                          <div class="sanction-meta">
+                            <span class="meta-item">
+                              <i class="fas fa-user"></i>
+                              Attribué par : <strong>{{ sanction.attribue_par_nom }}</strong> ({{ sanction.get_attribue_par_type_display }})
+                            </span>
+                            <span class="meta-item">
+                              <i class="fas fa-clock"></i>
+                              {{ sanction.date_creation|date:"d/m/Y à H:i" }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-check-circle"></i>
+                  <p>Aucune sanction enregistrée</p>
+                  <small>Cet élève n'a reçu aucune sanction disciplinaire</small>
                 </div>
               {% endif %}
             </div>
@@ -1146,6 +1464,112 @@
         clickedButton.classList.add('active');
       }
     }
+
+    // Sub-tab functionality for Presences and Notes
+    function showSubTab(subTabName) {
+      // Get the parent tab panel
+      const parentTab = event.target.closest('.tab-panel');
+      if (!parentTab) return;
+      
+      // Hide all sub-tab contents in this tab
+      const subTabContents = parentTab.querySelectorAll('.sub-tab-content');
+      subTabContents.forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // Remove active class from all sub-tab buttons in this tab
+      const subTabButtons = parentTab.querySelectorAll('.sub-tab-button');
+      subTabButtons.forEach(button => {
+        button.classList.remove('active');
+      });
+      
+      // Show selected sub-tab content
+      const selectedSubTab = document.getElementById(subTabName);
+      if (selectedSubTab) {
+        selectedSubTab.classList.add('active');
+      }
+      
+      // Add active class to clicked sub-tab button
+      const clickedButton = event.target.closest('.sub-tab-button');
+      if (clickedButton) {
+        clickedButton.classList.add('active');
+      }
+    }
+
+    // Functions for matiere modal
+    function showMatiereModal(trimestre, matiere, matiereId) {
+      const modal = document.getElementById('modal-notes-' + trimestre);
+      const modalTitle = document.getElementById('modal-title-' + trimestre);
+      const modalContent = document.getElementById('modal-content-' + trimestre);
+      const dataScript = document.getElementById('notes-data-' + trimestre);
+      
+      if (!modal || !dataScript) return;
+      
+      try {
+        const notesData = JSON.parse(dataScript.textContent);
+        const matiereData = notesData[matiere];
+        
+        if (!matiereData) return;
+        
+        // Update modal title
+        modalTitle.textContent = 'Notes détaillées - ' + matiere;
+        
+        // Build HTML content
+        let html = '<div class="notes-detail-container">';
+        html += '<div class="moyenne-finale-section">';
+        html += '<span class="moyenne-label">Moyenne de la matière :</span>';
+        html += '<span class="moyenne-valeur ' + (parseFloat(matiereData.moyenne) >= 10 ? 'success' : 'danger') + '">' + matiereData.moyenne + '/20</span>';
+        html += '</div>';
+        
+        if (matiereData.notes_detaillees && matiereData.notes_detaillees.length > 0) {
+          html += '<h4 class="notes-retenues-title"><i class="fas fa-check-circle"></i> Notes retenues pour le calcul</h4>';
+          html += '<div class="notes-retenues-grid">';
+          
+          matiereData.notes_detaillees.forEach(function(note) {
+            const noteValeur = note.absent ? 'ABS' : note.note + '/' + note.bareme;
+            const noteNum = parseFloat(note.note);
+            const baremeNum = parseFloat(note.bareme);
+            const noteClass = note.absent ? 'absent' : (noteNum / baremeNum * 20 >= 10 ? 'success' : 'danger');
+            
+            html += '<div class="note-retenue-card">';
+            html += '<div class="note-type-badge">' + note.type + '</div>';
+            html += '<div class="note-nom">' + note.nom + '</div>';
+            html += '<div class="note-valeur-container">';
+            html += '<span class="note-valeur ' + noteClass + '">' + noteValeur + '</span>';
+            html += '</div>';
+            html += '</div>';
+          });
+          
+          html += '</div>';
+        } else {
+          html += '<div class="empty-state-modal">';
+          html += '<i class="fas fa-info-circle"></i>';
+          html += '<p>Aucune note retenue pour cette matière</p>';
+          html += '</div>';
+        }
+        
+        html += '</div>';
+        
+        modalContent.innerHTML = html;
+        modal.style.display = 'flex';
+      } catch (e) {
+        console.error('Error parsing notes data:', e);
+      }
+    }
+    
+    function closeMatiereModal(trimestre) {
+      const modal = document.getElementById('modal-notes-' + trimestre);
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+      if (event.target.classList.contains('notes-modal-backdrop')) {
+        event.target.style.display = 'none';
+      }
+    });
 
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {

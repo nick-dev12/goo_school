@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+{% load static %}
+{% load exam_filters %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noter l'Examen - {{ session_examen.nom_examen }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_examen.css' %}?v=2">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <div class="main-content-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-clipboard-check"></i>
+                    Noter les Examens
+                </h1>
+                <p class="page-subtitle">
+                    {{ classe.nom }} - {{ matiere.nom }}
+                </p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'enseignant:gestion_notes' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Onglets des périodes -->
+        <div class="periodes-tabs">
+            {% for periode in periodes_scolaires %}
+                {% if periode.id in sessions_par_periode %}
+                <a href="?periode={{ periode.id }}" 
+                   class="periode-tab {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>{{ periode.nom_periode }}</span>
+                    {% if periode.est_en_cours %}
+                        <span class="badge-en-cours">En cours</span>
+                    {% endif %}
+                </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Sous-onglets des sessions -->
+        {% if sessions_par_periode|get_item:periode_active.id %}
+        <div class="sessions-tabs">
+            {% for session in sessions_par_periode|get_item:periode_active.id %}
+            <a href="{% url 'enseignant:noter_examen_session' classe.id session.id %}?periode={{ periode_active.id }}" 
+               class="session-tab {% if session.id == session_examen.id %}active{% endif %}">
+                <i class="fas fa-file-invoice"></i>
+                <span>{{ session.nom_examen }}</span>
+                <small>{{ session.date_debut|date:"d/m" }} - {{ session.date_fin|date:"d/m/Y" }}</small>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Informations de la session -->
+        <div class="session-info-card">
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="fas fa-calendar"></i>
+                    <span><strong>Période:</strong> {{ session_examen.date_debut|date:"d/m/Y" }} - {{ session_examen.date_fin|date:"d/m/Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-users"></i>
+                    <span><strong>Élèves:</strong> {{ eleves.count }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-book"></i>
+                    <span><strong>Matière:</strong> {{ matiere.nom }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-chalkboard"></i>
+                    <span><strong>Classe:</strong> {{ classe.nom }}</span>
+                </div>
+                {% if notes_soumises %}
+                <div class="info-item status-soumis">
+                    <i class="fas fa-lock"></i>
+                    <span><strong>Statut:</strong> Notes soumises et verrouillées</span>
+                </div>
+                {% else %}
+                <div class="info-item status-en-cours">
+                    <i class="fas fa-edit"></i>
+                    <span><strong>Statut:</strong> Saisie en cours</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Formulaire de saisie des notes -->
+        <form method="post" action="{% url 'enseignant:noter_examen_session' classe.id session_examen.id %}?periode={{ periode_active.id }}" id="notesForm">
+            {% csrf_token %}
+            
+            <div class="notes-table-container">
+                <table class="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="th-numero">#</th>
+                            <th class="th-eleve">Élève</th>
+                            <th class="th-matricule">Matricule</th>
+                            <th class="th-note">Note / {{ bareme }}</th>
+                            <th class="th-note-sur-20">Note /20</th>
+                            <th class="th-absent">Absent</th>
+                            <th class="th-commentaire">Commentaire</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eleve in eleves %}
+                        {% with note_exam=notes_existantes|get_item:eleve.id %}
+                        <tr class="eleve-row {% if note_exam and note_exam.absent %}absent-row{% endif %}">
+                            <td class="td-numero">{{ forloop.counter }}</td>
+                            <td class="td-eleve">
+                                <div class="eleve-info">
+                                    <span class="eleve-nom">{{ eleve.prenom }} {{ eleve.nom }}</span>
+                                </div>
+                            </td>
+                            <td class="td-matricule">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</td>
+                            <td class="td-note">
+                                <input type="number" 
+                                       name="note_{{ eleve.id }}" 
+                                       class="input-note" 
+                                       min="0" 
+                                       max="{{ bareme }}" 
+                                       step="0.25" 
+                                       value="{% if note_exam and not note_exam.absent and note_exam.note %}{{ note_exam.note|floatformat:2 }}{% endif %}"
+                                       placeholder="0"
+                                       {% if notes_soumises %}disabled{% endif %}
+                                       {% if note_exam and note_exam.absent %}disabled{% endif %}>
+                            </td>
+                            <td class="td-note-sur-20">
+                                <span class="note-sur-20" id="note-20-{{ eleve.id }}">
+                                    {% if note_exam and not note_exam.absent and note_exam.note_sur_20 %}{{ note_exam.note_sur_20|floatformat:2 }}{% else %}-{% endif %}
+                                </span>
+                            </td>
+                            <td class="td-absent">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" 
+                                           name="absent_{{ eleve.id }}" 
+                                           class="checkbox-absent"
+                                           data-eleve-id="{{ eleve.id }}"
+                                           {% if notes_soumises %}disabled{% endif %}
+                                           {% if note_exam and note_exam.absent %}checked{% endif %}>
+                                    <span class="checkmark"></span>
+                                </label>
+                            </td>
+                            <td class="td-commentaire">
+                                <input type="text" 
+                                       name="commentaire_{{ eleve.id }}" 
+                                       class="input-commentaire" 
+                                       value="{% if note_exam %}{{ note_exam.commentaire }}{% endif %}"
+                                       placeholder="Appréciation automatique..."
+                                       {% if notes_soumises %}disabled{% endif %}>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+                <input type="hidden" name="bareme" value="{{ bareme }}">
+                <a href="{% url 'enseignant:gestion_notes' %}" class="btn-cancel">
+                    <i class="fas fa-times"></i>
+                    Annuler
+                </a>
+                {% if not notes_soumises %}
+                <button type="submit" name="action" value="enregistrer" class="btn-save">
+                    <i class="fas fa-save"></i>
+                    Enregistrer
+                </button>
+                <button type="button" onclick="submitForm('soumettre')" class="btn-submit">
+                    <i class="fas fa-check-circle"></i>
+                    Soumettre les notes
+                </button>
+                {% else %}
+                <div class="notes-locked-message">
+                    <i class="fas fa-lock"></i>
+                    <span>Les notes ont été soumises et ne peuvent plus être modifiées.</span>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Calcul automatique de la note sur 20
+        document.addEventListener('DOMContentLoaded', function() {
+            const bareme = {{ bareme }};
+            const inputsNote = document.querySelectorAll('.input-note');
+            const checkboxesAbsent = document.querySelectorAll('.checkbox-absent');
+            const notesSoumises = {{ notes_soumises|yesno:"true,false" }};
+            
+            // Fonction pour calculer la note sur 20
+            function calculerNoteSur20(noteInput) {
+                const eleveId = noteInput.name.replace('note_', '');
+                const note = parseFloat(noteInput.value) || 0;
+                const noteSur20 = (note / bareme) * 20;
+                const spanNoteSur20 = document.getElementById('note-20-' + eleveId);
+                if (spanNoteSur20) {
+                    spanNoteSur20.textContent = noteSur20.toFixed(2);
+                }
+            }
+            
+            // Écouter les changements sur les champs de note
+            inputsNote.forEach(input => {
+                input.addEventListener('input', function() {
+                    calculerNoteSur20(this);
+                });
+            });
+            
+            // Gérer les cases à cocher "Absent"
+            checkboxesAbsent.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const eleveId = this.dataset.eleveId;
+                    const noteInput = document.querySelector(`input[name="note_${eleveId}"]`);
+                    const spanNoteSur20 = document.getElementById('note-20-' + eleveId);
+                    const row = this.closest('.eleve-row');
+                    
+                    if (this.checked) {
+                        noteInput.disabled = true;
+                        noteInput.value = '';
+                        if (spanNoteSur20) {
+                            spanNoteSur20.textContent = 'Absent';
+                        }
+                        row.classList.add('absent-row');
+                    } else {
+                        noteInput.disabled = false;
+                        if (spanNoteSur20) {
+                            spanNoteSur20.textContent = '-';
+                        }
+                        row.classList.remove('absent-row');
+                    }
+                });
+            });
+        });
+
+        // Fonction pour soumettre le formulaire avec l'action appropriée
+        function submitForm(action) {
+            if (action === 'soumettre') {
+                if (confirm('Êtes-vous sûr de vouloir soumettre les notes ? Une fois soumises, elles ne pourront plus être modifiées.')) {
+                    const form = document.getElementById('notesForm');
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    actionInput.value = 'soumettre';
+                    form.appendChild(actionInput);
+                    form.submit();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

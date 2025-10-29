@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+{% load static notes_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relevé de Notes - {{ classe.nom }} - {{ matiere.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Styles pour l'impression */
+        @media print {
+            body {
+                margin: 0;
+                padding: 20px;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: white;
+            color: #333;
+            padding: 20px;
+        }
+
+        .print-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+        }
+
+        /* En-tête */
+        .document-header {
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .etablissement-info {
+            flex: 1;
+        }
+
+        .etablissement-nom {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .etablissement-details {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            color: #999;
+            text-align: center;
+        }
+
+        .document-title {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+            margin: 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Informations du relevé */
+        .releve-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .info-row {
+            display: flex;
+            font-size: 0.95em;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+            min-width: 140px;
+        }
+
+        .info-value {
+            color: #222;
+            font-weight: 500;
+        }
+
+        /* Tableau des notes */
+        .notes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 0.9em;
+        }
+
+        .notes-table thead {
+            background: #007bff;
+            color: white;
+        }
+
+        .notes-table th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            border: 1px solid #0056b3;
+        }
+
+        .notes-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .notes-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .notes-table tbody tr:hover {
+            background: #e9ecef;
+        }
+
+        .eleve-nom {
+            text-align: left;
+            font-weight: 500;
+            padding-left: 15px;
+        }
+
+        .note-excellente { color: #28a745; font-weight: 700; }
+        .note-bonne { color: #17a2b8; font-weight: 700; }
+        .note-moyenne-faible { color: #ffc107; font-weight: 700; }
+        .note-faible { color: #dc3545; font-weight: 700; }
+        .note-absent { color: #6c757d; font-style: italic; }
+
+        .moyenne-cell {
+            background: #e7f3ff;
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        /* Pied de page */
+        .document-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+        }
+
+        .signatures-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .signature-box {
+            text-align: center;
+            padding-top: 60px;
+            border-top: 1px solid #333;
+        }
+
+        .signature-label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        /* Informations additionnelles */
+        .print-info {
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: #999;
+            text-align: center;
+        }
+
+        .mode-calcul-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .mode-calcul-info strong {
+            color: #856404;
+        }
+
+        /* Boutons d'action (non imprimés) */
+        .action-buttons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <!-- Boutons d'action (masqués à l'impression) -->
+    <div class="action-buttons no-print">
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+        <a href="{% url 'enseignant:voir_releve' classe.id %}?periode={{ periode_active.id }}" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Fermer
+        </a>
+    </div>
+
+    <div class="print-container">
+        <!-- En-tête du document -->
+        <div class="document-header">
+            <div class="header-top">
+                <div class="etablissement-info">
+                    <div class="etablissement-nom">{{ etablissement.nom }}</div>
+                    <div class="etablissement-details">
+                        {% if etablissement.adresse %}
+                            <div><strong>Adresse :</strong> {{ etablissement.adresse }}</div>
+                        {% endif %}
+                        {% if etablissement.telephone %}
+                            <div><strong>Tél :</strong> {{ etablissement.telephone }}</div>
+                        {% endif %}
+                        {% if etablissement.email %}
+                            <div><strong>Email :</strong> {{ etablissement.email }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="logo-placeholder">
+                    LOGO
+                </div>
+            </div>
+            
+            <h1 class="document-title">Relevé de Notes</h1>
+        </div>
+
+        <!-- Informations du relevé -->
+        <div class="releve-info-grid">
+            <div class="info-row">
+                <span class="info-label">Classe :</span>
+                <span class="info-value">{{ classe.nom }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Matière :</span>
+                <span class="info-value">{{ matiere.nom }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Professeur :</span>
+                <span class="info-value">{{ professeur.nom_complet }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Période :</span>
+                <span class="info-value">{{ periode_active.nom_periode }} ({{ periode_active.annee_scolaire }})</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Effectif :</span>
+                <span class="info-value">{{ eleves_avec_notes|length }} élève{{ eleves_avec_notes|length|pluralize }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date d'impression :</span>
+                <span class="info-value">{{ date_impression|date:"d/m/Y à H:i" }}</span>
+            </div>
+        </div>
+
+        <!-- Information sur le mode de calcul -->
+        {% if mode_calcul_utilise != 'toutes' %}
+            <div class="mode-calcul-info">
+                <strong>⚙️ Mode de calcul :</strong> 
+                {% if mode_calcul_utilise == '2' %}
+                    Les 2 meilleures notes ont été utilisées pour le calcul des moyennes (2 interrogations combinées = 1 note sur 20).
+                {% elif mode_calcul_utilise == '3' %}
+                    Les 3 meilleures notes ont été utilisées pour le calcul des moyennes (2 interrogations combinées = 1 note sur 20).
+                {% elif mode_calcul_utilise == '4' %}
+                    Les 4 meilleures notes ont été utilisées pour le calcul des moyennes (2 interrogations combinées = 1 note sur 20).
+                {% elif mode_calcul_utilise == 'interro_x2' %}
+                    La meilleure interrogation a été multipliée par 2 et combinée avec tous les devoirs.
+                {% endif %}
+                Seules les évaluations sélectionnées sont affichées ci-dessous.
+            </div>
+        {% endif %}
+
+        <!-- Tableau des notes -->
+        <table class="notes-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">#</th>
+                    <th style="min-width: 180px; text-align: left; padding-left: 15px;">Nom et Prénom</th>
+                    {% for colonne in colonnes_devoirs %}
+                        <th style="min-width: 80px;">
+                            {{ colonne.titre }}
+                            <br>
+                            <small style="font-size: 0.75em; font-weight: normal;">
+                                /{{ colonne.bareme }}
+                            </small>
+                        </th>
+                    {% endfor %}
+                    <th style="min-width: 80px; background: #0056b3;">Moyenne<br>/20</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eleve_data in eleves_avec_notes %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="eleve-nom">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom|title }}</td>
+                        {% for colonne in colonnes_devoirs %}
+                            <td>
+                                {% if eleve_data.notes_simplifiees and forloop.counter0 < eleve_data.notes_simplifiees|length %}
+                                    {% with note_detail=eleve_data.notes_simplifiees|get_item:forloop.counter0 %}
+                                        {% if note_detail and note_detail.note %}
+                                            <span class="{% if note_detail.note >= 14 %}note-excellente{% elif note_detail.note >= 10 %}note-bonne{% elif note_detail.note >= 8 %}note-moyenne-faible{% else %}note-faible{% endif %}">
+                                                {{ note_detail.note|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        <td class="moyenne-cell">
+                            {% if eleve_data.moyenne is not None %}
+                                <span class="{{ eleve_data.moyenne|get_note_color_class:20 }}">
+                                    {{ eleve_data.moyenne|floatformat:2 }}
+                                </span>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="{{ colonnes_devoirs|length|add:3 }}" style="text-align: center; padding: 20px;">
+                            Aucune donnée disponible
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if moyenne_classe %}
+                    <tr style="background: #e7f3ff; font-weight: 700;">
+                        <td colspan="2" style="text-align: right; padding-right: 20px;">MOYENNE DE CLASSE</td>
+                        {% for colonne in colonnes_devoirs %}
+                            <td>--</td>
+                        {% endfor %}
+                        <td class="moyenne-cell" style="font-size: 1.1em; background: #cce5ff;">
+                            {{ moyenne_classe|floatformat:2 }}
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Légende des couleurs -->
+        <div style="margin: 30px 0; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+            <strong style="display: block; margin-bottom: 10px;">Légende des couleurs :</strong>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.85em;">
+                <div><span class="note-excellente">■</span> Excellent (≥ 14/20)</div>
+                <div><span class="note-bonne">■</span> Bon (10-14/20)</div>
+                <div><span class="note-moyenne-faible">■</span> Moyen (8-10/20)</div>
+                <div><span class="note-faible">■</span> Insuffisant (< 8/20)</div>
+                <div><span class="note-absent">■</span> Absent</div>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+                <div>
+                    <div style="font-size: 1.8em; font-weight: 700; color: #007bff;">{{ colonnes_devoirs|length }}</div>
+                    <div style="font-size: 0.9em; color: #666;">Note{{ colonnes_devoirs|length|pluralize }} sur 20</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.8em; font-weight: 700; color: #28a745;">{{ eleves_avec_notes|length }}</div>
+                    <div style="font-size: 0.9em; color: #666;">Élève{{ eleves_avec_notes|length|pluralize }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.8em; font-weight: 700; color: #17a2b8;">
+                        {% if moyenne_classe %}{{ moyenne_classe }}/20{% else %}--{% endif %}
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">Moyenne de classe</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="document-footer">
+            <div class="signatures-grid">
+                <div class="signature-box">
+                    <div class="signature-label">Le Professeur</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-label">Le Directeur</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-label">Le Parent/Tuteur</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations d'impression -->
+        <div class="print-info">
+            <p>Document généré le {{ date_impression|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}</p>
+            {% if releve_notes and releve_notes.soumis %}
+                <p><strong>Relevé soumis le {{ releve_notes.date_soumission|date:"d/m/Y à H:i" }}</strong></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>
+

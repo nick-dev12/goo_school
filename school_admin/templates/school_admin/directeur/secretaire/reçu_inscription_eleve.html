@@ -37,7 +37,7 @@
         <div class="receipt-info">
           <div class="academic-year">Année Scolaire 2024-2025</div>
           <div class="receipt-title">REÇU D'INSCRIPTION N°</div>
-          <div class="receipt-number">{{ eleve_info.numero_eleve }}</div>
+          <div class="receipt-number">{{ eleve.matricule_eleve|default:eleve_info.numero_eleve }}</div>
           <div class="receipt-date">Édition du {{ "now"|date:"d/m/Y H:i:s" }}</div>
         </div>
       </div>
@@ -55,7 +55,7 @@
             <span class="label">Classe:</span>
             <span class="value">{{ eleve_info.classe }}</span>
             <span class="label">Matric:</span>
-            <span class="value">{{ eleve_info.numero_eleve }}</span>
+            <span class="value">{{ eleve.matricule_eleve|default:eleve_info.numero_eleve }}</span>
             <span class="label">Statut:</span>
             <span class="value">{{ eleve.statut|upper }}</span>
           </div>
@@ -106,15 +106,51 @@
 
       <!-- Informations de connexion -->
       <div class="login-section">
-        <div class="login-title">Informations de Connexion</div>
-        <div class="login-details">
-          <div class="login-item">
-            <span class="login-label">Nom d'utilisateur:</span>
-            <span class="login-value">{{ eleve_info.numero_eleve }}</span>
+        <div class="login-title" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 16px; border-radius: 10px 10px 0 0; margin-bottom: 0;">
+          <i class="fas fa-key" style="margin-right: 8px;"></i>
+          Informations de Connexion
+        </div>
+        
+        <!-- IDENTIFIANTS ÉLÈVE -->
+        <div class="login-details" style="padding: 20px; background: #f0f4ff; border: 2px solid #667eea; border-top: none; border-radius: 0 0 10px 10px; margin-bottom: 20px;">
+          <div style="font-size: 15px; font-weight: 700; color: #667eea; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-user-graduate"></i>
+            ESPACE ÉLÈVE
           </div>
-          <div class="login-item">
-            <span class="login-label">Mot de passe provisoire:</span>
-            <span class="login-value password-value">{{ eleve_info.mot_de_passe_provisoire }}</span>
+          <div class="login-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 8px; margin-bottom: 10px;">
+            <span class="login-label" style="font-weight: 600; color: #4b5563;">Matricule de connexion:</span>
+            <span class="login-value" style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #1f2937;">{{ identifiants_info.matricule_eleve }}</span>
+          </div>
+          <div class="login-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 8px;">
+            <span class="login-label" style="font-weight: 600; color: #4b5563;">Mot de passe:</span>
+            <span class="login-value password-value" style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #dc2626;">{{ identifiants_info.mot_de_passe_eleve }}</span>
+          </div>
+          <div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; font-size: 12px; color: #92400e;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i>
+            <strong>Important :</strong> L'élève doit modifier ce mot de passe lors de sa première connexion
+          </div>
+        </div>
+        
+        <!-- IDENTIFIANTS PARENT -->
+        <div class="login-details" style="padding: 20px; background: #fff7ed; border: 2px solid #fb923c; border-radius: 10px;">
+          <div style="font-size: 15px; font-weight: 700; color: #fb923c; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-users"></i>
+            ESPACE PARENT ({{ identifiants_info.type_parent }})
+          </div>
+          <div style="margin-bottom: 12px; padding: 8px; background: white; border-radius: 6px; font-size: 13px; color: #6b7280;">
+            <strong>Nom :</strong> {{ identifiants_info.nom_parent }}
+          </div>
+          <div class="login-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 8px; margin-bottom: 10px;">
+            <span class="login-label" style="font-weight: 600; color: #4b5563;">Matricule parental:</span>
+            <span class="login-value" style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #1f2937;">{{ identifiants_info.matricule_parent }}</span>
+          </div>
+          <div class="login-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 8px;">
+            <span class="login-label" style="font-weight: 600; color: #4b5563;">Mot de passe:</span>
+            <span class="login-value password-value" style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #dc2626;">{{ identifiants_info.mot_de_passe_parent }}</span>
+          </div>
+          <div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; font-size: 12px; color: #92400e;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i>
+            <strong>Important :</strong> Le parent doit modifier ce mot de passe lors de sa première connexion
           </div>
         </div>
       </div>

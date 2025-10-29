@@ -3,6 +3,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 
 class EmploiDuTemps(models.Model):
@@ -88,6 +89,26 @@ class CreneauEmploiDuTemps(models.Model):
         verbose_name="Emploi du temps"
     )
     
+    # Référence à la période de l'établissement
+    periode_etablissement = models.ForeignKey(
+        'PeriodeEtablissement',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='creneaux',
+        verbose_name="Période de l'établissement",
+        help_text="Période standard de l'établissement (recommandé)"
+    )
+    
+    # Groupe de créneaux (pour les cours de plusieurs heures consécutives)
+    groupe_creneau = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name="Groupe de créneau",
+        help_text="Identifiant unique pour regrouper plusieurs créneaux d'un même cours"
+    )
+    
     # Jour de la semaine
     jour = models.CharField(
         max_length=10,
@@ -95,9 +116,19 @@ class CreneauEmploiDuTemps(models.Model):
         verbose_name="Jour"
     )
     
-    # Horaires
-    heure_debut = models.TimeField(verbose_name="Heure de début")
-    heure_fin = models.TimeField(verbose_name="Heure de fin")
+    # Horaires (peuvent être surchargés si periode_etablissement n'est pas utilisée)
+    heure_debut = models.TimeField(
+        verbose_name="Heure de début",
+        null=True,
+        blank=True,
+        help_text="Laissez vide pour utiliser l'heure de la période d'établissement"
+    )
+    heure_fin = models.TimeField(
+        verbose_name="Heure de fin",
+        null=True,
+        blank=True,
+        help_text="Laissez vide pour utiliser l'heure de la période d'établissement"
+    )
     
     # Matière
     matiere = models.ForeignKey(
@@ -176,14 +207,54 @@ class CreneauEmploiDuTemps(models.Model):
     
     def __str__(self):
         matiere_nom = self.matiere.nom if self.matiere else "Sans matière"
-        return f"{self.get_jour_display()} {self.heure_debut}-{self.heure_fin} - {matiere_nom}"
+        return f"{self.get_jour_display()} {self.get_heure_debut()}-{self.get_heure_fin()} - {matiere_nom}"
+    
+    def get_heure_debut(self):
+        """Retourne l'heure de début (depuis période ou champ direct)"""
+        if self.periode_etablissement:
+            return self.periode_etablissement.heure_debut
+        return self.heure_debut
+    
+    def get_heure_fin(self):
+        """Retourne l'heure de fin (depuis période ou champ direct)"""
+        if self.periode_etablissement:
+            return self.periode_etablissement.heure_fin
+        return self.heure_fin
+    
+    def get_nom_periode(self):
+        """Retourne le nom de la période"""
+        if self.periode_etablissement:
+            return self.periode_etablissement.nom
+        return f"{self.get_heure_debut()}-{self.get_heure_fin()}"
+    
+    @property
+    def est_pause(self):
+        """Retourne True si c'est une pause"""
+        if self.periode_etablissement:
+            return self.periode_etablissement.est_pause
+        return self.type_cours == 'pause'
     
     @property
     def duree_minutes(self):
         """Retourne la durée du créneau en minutes"""
-        from datetime import datetime, timedelta
-        debut = datetime.combine(datetime.today(), self.heure_debut)
-        fin = datetime.combine(datetime.today(), self.heure_fin)
+        from datetime import datetime
+        debut = datetime.combine(datetime.today(), self.get_heure_debut())
+        fin = datetime.combine(datetime.today(), self.get_heure_fin())
         duree = (fin - debut).total_seconds() / 60
         return int(duree)
+    
+    def clean(self):
+        """Validation du créneau"""
+        # Vérifier qu'au moins une source d'horaires est présente
+        if not self.periode_etablissement and (not self.heure_debut or not self.heure_fin):
+            raise ValidationError(
+                "Vous devez soit choisir une période d'établissement, "
+                "soit spécifier les heures de début et de fin."
+            )
+        
+        # Si une période est choisie mais que c'est une pause, la matière doit être vide
+        if self.periode_etablissement and self.periode_etablissement.est_pause and self.matiere:
+            raise ValidationError(
+                "Une période de pause ne peut pas avoir de matière associée."
+            )
 

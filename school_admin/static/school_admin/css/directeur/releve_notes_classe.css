@@ -1,0 +1,320 @@
+/* Styles pour le relevé de notes dans la page de détail de classe */
+
+.periode-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+
+.periode-tab-btn {
+    padding: 12px 24px;
+    border: none;
+    background: #f8f9fa;
+    color: #495057;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.periode-tab-btn i {
+    font-size: 14px;
+}
+
+.periode-tab-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.periode-tab-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 6px rgba(102, 126, 234, 0.4);
+}
+
+.periode-tab-content {
+    display: none;
+}
+
+.periode-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.releve-notes-container {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.releve-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.releve-header h3 {
+    color: #2c3e50;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.releve-header h3 i {
+    color: #9c88ff;
+}
+
+.releve-info {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.releve-info span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.releve-info i {
+    color: #9c88ff;
+}
+
+.releve-table-wrapper {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.releve-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.releve-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.releve-table th {
+    padding: 15px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.th-eleve {
+    text-align: left !important;
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 10;
+}
+
+.th-matiere {
+    min-width: 120px;
+    writing-mode: horizontal-tb;
+}
+
+.th-moyenne-generale {
+    min-width: 150px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    font-weight: 700;
+}
+
+.releve-table tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background 0.2s ease;
+}
+
+.releve-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.releve-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+.releve-table tbody tr:nth-child(even):hover {
+    background: #f1f3f5;
+}
+
+.td-eleve {
+    padding: 12px;
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 5;
+    border-right: 2px solid #e0e0e0;
+}
+
+.releve-table tbody tr:nth-child(even) .td-eleve {
+    background: #fafbfc;
+}
+
+.releve-table tbody tr:hover .td-eleve {
+    background: #f8f9fa;
+}
+
+.eleve-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.eleve-nom {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.eleve-code {
+    font-size: 11px;
+    color: #95a5a6;
+}
+
+.td-moyenne {
+    padding: 12px;
+    text-align: center;
+    border-right: 1px solid #e0e0e0;
+}
+
+.td-moyenne-generale {
+    padding: 12px;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+    font-weight: 700;
+}
+
+.moyenne-value,
+.moyenne-generale {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* Code couleur des moyennes */
+.moyenne-value.excellent,
+.moyenne-generale.excellent {
+    background: #d4edda;
+    color: #155724;
+}
+
+.moyenne-value.tres-bien,
+.moyenne-generale.tres-bien {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.moyenne-value.bien,
+.moyenne-generale.bien {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.moyenne-value.assez-bien,
+.moyenne-generale.assez-bien {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.moyenne-value.insuffisant,
+.moyenne-generale.insuffisant {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.non-soumis {
+    color: #adb5bd;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #7f8c8d;
+}
+
+.empty-state i {
+    font-size: 80px;
+    color: #bdc3c7;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    font-size: 24px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.empty-state p {
+    font-size: 16px;
+    color: #95a5a6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .periode-tabs {
+        flex-direction: column;
+    }
+    
+    .periode-tab-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .releve-table th,
+    .releve-table td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+    
+    .th-eleve {
+        min-width: 150px;
+    }
+    
+    .th-matiere {
+        min-width: 100px;
+    }
+    
+    .eleve-nom {
+        font-size: 12px;
+    }
+    
+    .eleve-code {
+        font-size: 10px;
+    }
+}
+

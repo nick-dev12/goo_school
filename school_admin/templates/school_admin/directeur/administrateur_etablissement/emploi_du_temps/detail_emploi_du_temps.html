@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load pagination_tags %}
+{% load notes_tags %}
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -25,6 +26,10 @@
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/emploi_du_temps_detail.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_examens_classe.css' %}"
     />
   </head>
   <body>
@@ -107,54 +112,104 @@
         <!-- Emploi du temps -->
         <div class="emploi-du-temps-section">
           <div class="emploi-du-temps-wrapper">
-            <!-- En-tête du tableau -->
-            <div class="edt-header">
-              {% for jour in jours_semaine %}
-                <div class="edt-jour-header">
-                  <div class="jour-name">{{ jour|title }}</div>
-                </div>
-              {% endfor %}
-            </div>
-
-            <!-- Grille de l'emploi du temps -->
-            <div class="edt-grid">
-              <!-- Colonnes des jours -->
-              {% for jour in jours_semaine %}
-                <div class="edt-jour-column">
-                  <div class="creneaux-container">
-                    {% for creneau in creneaux_par_jour|get_item:jour %}
-                      <div class="creneau-card" data-matiere="{{ creneau.matiere.nom|default:'sans-matiere' }}">
-                        <div class="creneau-content">
-                          <div class="creneau-horaire">
-                            <i class="fas fa-clock"></i>
-                            {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+            <table class="edt-table">
+              <thead>
+                <tr>
+                  <th class="edt-horaire-header">Horaires</th>
+                  {% for jour in jours_semaine %}
+                    <th class="edt-jour-header">{{ jour|title }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for periode_info in periodes_affichage %}
+                  {% if periode_info.est_pause %}
+                    <!-- Ligne spéciale pour les pauses qui traverse tout le tableau -->
+                    <tr class="pause-row">
+                      <td class="edt-horaire-cell pause-horaire">
+                        <div class="horaire-info">
+                          <div class="periode-horaire-simple">
+                            {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
                           </div>
-                          <div class="creneau-matiere">{{ creneau.matiere.nom|default:"Sans matière" }}</div>
-                          <div class="creneau-professeur">{{ creneau.professeur.prenom|default:"" }} {{ creneau.professeur.nom|default:"" }}</div>
-                          <div class="creneau-salle">Salle {{ creneau.salle.numero|default:"N/A" }}</div>
                         </div>
-                        <div class="creneau-actions">
-                          <a href="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}" class="btn-icon btn-icon-edit" title="Modifier">
-                            <i class="fas fa-edit"></i>
-                          </a>
-                          <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn-icon btn-icon-delete" title="Supprimer">
-                              <i class="fas fa-trash"></i>
-                            </button>
-                          </form>
+                      </td>
+                      <td colspan="6" class="pause-cell-full">
+                        <div class="pause-banner {% if periode_info.type_periode == 'dejeuner' %}pause-dejeuner{% else %}pause-recreation{% endif %}">
+                          <i class="fas fa-{% if periode_info.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
+                          <span class="pause-text">{% if periode_info.type_periode == 'dejeuner' %}PAUSE DÉJEUNER{% else %}RÉCRÉATION{% endif %}</span>
                         </div>
-                      </div>
-                    {% empty %}
-                      <div class="no-creneau">
-                        <i class="fas fa-calendar-times"></i>
-                        <span>Aucun cours</span>
-                      </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
+                      </td>
+                    </tr>
+                  {% else %}
+                    <!-- Ligne normale pour les cours -->
+                    <tr>
+                      <td class="edt-horaire-cell">
+                        <div class="horaire-info">
+                          <div class="periode-horaire-simple">
+                            {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
+                          </div>
+                        </div>
+                      </td>
+                      {% for jour in jours_semaine %}
+                        {% with creneau=periode_info.creneaux_par_jour|get_item:jour %}
+                          <td class="edt-creneau-cell">
+                            {% if creneau %}
+                              <!-- Vérifier si c'est un dict (pause) ou un objet Django (cours) -->
+                              {% if creneau.est_virtual %}
+                                <!-- C'est une pause (dict) -->
+                                <div class="creneau-card creneau-pause" data-matiere="pause">
+                                  <div class="creneau-content">
+                                    <div class="pause-label">
+                                      <i class="fas fa-{% if creneau.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
+                                      {{ creneau.nom_pause|default:"Pause" }}
+                                    </div>
+                                  </div>
+                                </div>
+                              {% else %}
+                                <!-- C'est un créneau cours (objet Django) -->
+                                {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                  <div class="creneau-card creneau-cours" data-matiere="{{ matiere_nom }}" style="border-top: 4px solid {{ creneau.matiere_couleur }};">
+                                    <div class="creneau-content">
+                                      <div class="creneau-matiere">
+                                        <i class="fas fa-{{ creneau.matiere_icone }}" style="color: {{ creneau.matiere_couleur }}; margin-right: 6px;"></i>
+                                        <span>{{ matiere_nom }}</span>
+                                      </div>
+                                      <div class="creneau-professeur">
+                                        {% if creneau.professeur %}
+                                          <i class="fas fa-user" style="margin-right: 4px; font-size: 11px;"></i>
+                                          {{ creneau.professeur.prenom }} {{ creneau.professeur.nom }}
+                                        {% endif %}
+                                      </div>
+                                      <div class="creneau-salle">
+                                        {% if creneau.salle %}
+                                          <i class="fas fa-door-open" style="margin-right: 4px; font-size: 11px;"></i>
+                                          Salle {{ creneau.salle.numero }}
+                                        {% endif %}
+                                      </div>
+                                    </div>
+                                    <div class="creneau-actions">
+                                      <a href="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}" class="btn-icon btn-icon-edit" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                      </a>
+                                      <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-icon btn-icon-delete" title="Supprimer">
+                                          <i class="fas fa-trash"></i>
+                                        </button>
+                                      </form>
+                                    </div>
+                                  </div>
+                                {% endwith %}
+                              {% endif %}
+                            {% endif %}
+                          </td>
+                        {% endwith %}
+                      {% endfor %}
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -197,6 +252,98 @@
             </div>
           </div>
         </div>
+
+        <!-- Emploi du Temps des Examens -->
+        {% if sessions_examens %}
+        <div class="emploi-temps-examens-section">
+          <div class="section-header">
+            <h2>
+              <i class="fas fa-clipboard-list"></i>
+              Emploi du Temps des Examens - {{ classe.nom }}
+            </h2>
+            <p class="section-subtitle">
+              {% for session in sessions_examens %}
+                {{ session.nom_examen }} ({{ session.date_debut|date:"d/m/Y" }} - {{ session.date_fin|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          </div>
+
+          {% load exam_filters %}
+          
+          <div class="timetable-container-examens">
+            {% if grille_emploi_examens %}
+              <table class="calendar-timetable-examens">
+                <thead>
+                  <tr>
+                    {% for date in dates_examens_triees %}
+                    <th class="day-header-examens">{{ grille_emploi_examens|dict_value:date|dict_value:'jour_semaine' }} <br><small>{{ date|date:"d/m/Y" }}</small></th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for plage in plages_horaires_examens %}
+                  <tr class="time-row-examens">
+                    {% for date in dates_examens_triees %}
+                      {% comment %} Afficher la cellule seulement si ce n'est pas une continuation d'un rowspan {% endcomment %}
+                      {% with date_masquees=cellules_masquees_examens|dict_value:date %}
+                        {% if date_masquees and date_masquees|dict_value:plage.label %}
+                          {% comment %} Cette cellule est masquée par un rowspan, ne rien afficher {% endcomment %}
+                        {% else %}
+                          {% with creneaux_list=grille_emploi_examens|dict_value:date|dict_value:'plages'|dict_value:plage.label %}
+                            {% if creneaux_list and creneaux_list|length > 0 %}
+                              {% comment %} Calculer le rowspan maximal parmi tous les créneaux de cette cellule {% endcomment %}
+                              {% with max_rowspan=creneaux_list.0.rowspan %}
+                              <td class="exam-cell-classe" rowspan="{{ max_rowspan }}">
+                                {% for creneau_data in creneaux_list %}
+                                  <div class="exam-block-classe {{ creneau_data.creneau.matiere.nom|get_matiere_css_class }}">
+                                    <div class="exam-time-classe">
+                                      {{ creneau_data.creneau.heure_debut|time:"H:i" }} - {{ creneau_data.creneau.heure_fin|time:"H:i" }}
+                                    </div>
+                                    <div class="exam-subject-classe">
+                                      <i class="{{ creneau_data.creneau.matiere.nom|get_matiere_icon }}"></i>
+                                      {{ creneau_data.creneau.matiere.nom }}
+                                    </div>
+                                    {% if creneau_data.creneau.surveillant %}
+                                    <div class="exam-teacher-classe">
+                                      <i class="fas fa-user-tie"></i>
+                                      {{ creneau_data.creneau.surveillant.nom_complet }}
+                                    </div>
+                                    {% endif %}
+                                    {% if creneau_data.creneau.salle %}
+                                    <div class="exam-room-classe">
+                                      <i class="fas fa-building"></i>
+                                      {{ creneau_data.creneau.salle.nom }}
+                                    </div>
+                                    {% endif %}
+                                  </div>
+                                  {% if not forloop.last %}
+                                  <hr class="exam-separator-classe">
+                                  {% endif %}
+                                {% endfor %}
+                              </td>
+                              {% endwith %}
+                            {% else %}
+                              <td class="empty-cell-examens"></td>
+                            {% endif %}
+                          {% endwith %}
+                        {% endif %}
+                      {% endwith %}
+                    {% endfor %}
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <div class="empty-state-examens">
+                <i class="fas fa-calendar-times"></i>
+                <h3>Aucun examen programmé</h3>
+                <p>Cette classe n'a pas d'examens programmés pour le moment.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
       </div>
     </div>
 

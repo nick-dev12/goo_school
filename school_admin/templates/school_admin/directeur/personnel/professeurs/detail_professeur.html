@@ -1,396 +1,510 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static notes_tags %}
 <html lang="fr">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ professeur.nom_complet }} - Détails Professeur</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/detail_professeur.css' %}"
-    />
-  </head>
-  <body>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_professeur.css' %}" />
+</head>
+<body>
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
     <div class="main-content-container">
-      <!-- Page Header avec actions -->
-      <div class="page-header">
-        <div class="header-left">
-          <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
-            <i class="fas fa-arrow-left"></i>
-            <span>Retour à la liste</span>
-          </a>
-          <div class="page-title-section">
-            <h1 class="page-title">
-              <i class="fas fa-chalkboard-teacher"></i>
-              {{ professeur.nom_complet }}
-            </h1>
-            <p class="page-subtitle">
-              {{ professeur.matiere_display }} • {{ professeur.niveau_display }}
-            </p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <a href="{% url 'professeur:modifier_professeur' professeur.id %}" class="btn-action btn-edit">
-            <i class="fas fa-edit"></i>
-            <span>Modifier</span>
-          </a>
-          <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" style="display: inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn-action {% if professeur.actif %}btn-danger{% else %}btn-success{% endif %}">
-              <i class="fas fa-{% if professeur.actif %}pause{% else %}play{% endif %}"></i>
-              <span>{% if professeur.actif %}Désactiver{% else %}Activer{% endif %}</span>
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Status Badge -->
-      <div class="status-badge-container">
-        <div class="status-badge {% if professeur.actif %}active{% else %}inactive{% endif %}">
-          <span class="status-dot"></span>
-          <span class="status-text">{% if professeur.actif %}Actif{% else %}Inactif{% endif %}</span>
-        </div>
-        <div class="employee-number">
-          <i class="fas fa-id-card"></i>
-          <span>{{ professeur.numero_employe }}</span>
-        </div>
-      </div>
-
-      <!-- Grid de cartes d'informations -->
-      <div class="details-grid">
-        <!-- Carte Informations Personnelles -->
-        <div class="detail-card">
-          <div class="card-header">
-            <div class="card-icon personal">
-              <i class="fas fa-user"></i>
+        <!-- Page Header avec actions -->
+        <div class="page-header">
+            <div class="header-left">
+                <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour à la liste</span>
+                </a>
+                <div class="page-title-section">
+                    <h1 class="page-title">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        {{ professeur.nom_complet }}
+                    </h1>
+                    <p class="page-subtitle">
+                        {{ professeur.matiere_display }} • {{ professeur.niveau_display }}
+                    </p>
+                </div>
             </div>
-            <h2 class="card-title">Informations Personnelles</h2>
-          </div>
-          <div class="card-content">
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-user"></i>
-                <span>Nom complet</span>
-              </div>
-              <div class="info-value">{{ professeur.nom }} {{ professeur.prenom }}</div>
+            <div class="header-actions">
+                <a href="{% url 'professeur:modifier_professeur' professeur.id %}" class="btn-action btn-edit">
+                    <i class="fas fa-edit"></i>
+                    <span>Modifier</span>
+                </a>
+                <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-action {% if professeur.actif %}btn-danger{% else %}btn-success{% endif %}">
+                        <i class="fas fa-{% if professeur.actif %}pause{% else %}play{% endif %}"></i>
+                        <span>{% if professeur.actif %}Désactiver{% else %}Activer{% endif %}</span>
+                    </button>
+                </form>
             </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-envelope"></i>
-                <span>Email</span>
-              </div>
-              <div class="info-value">
-                <a href="mailto:{{ professeur.email }}" class="link-email">{{ professeur.email }}</a>
-              </div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-phone"></i>
-                <span>Téléphone</span>
-              </div>
-              <div class="info-value">
-                <a href="tel:{{ professeur.telephone }}" class="link-phone">{{ professeur.telephone }}</a>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <!-- Carte Informations Professionnelles -->
-        <div class="detail-card">
-          <div class="card-header">
-            <div class="card-icon professional">
-              <i class="fas fa-briefcase"></i>
+        <!-- Status Badge -->
+        <div class="status-badge-container">
+            <div class="status-badge {% if professeur.actif %}active{% else %}inactive{% endif %}">
+                <span class="status-dot"></span>
+                <span class="status-text">{% if professeur.actif %}Actif{% else %}Inactif{% endif %}</span>
             </div>
-            <h2 class="card-title">Informations Professionnelles</h2>
-          </div>
-          <div class="card-content">
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-book"></i>
-                <span>Matière principale</span>
-              </div>
-              <div class="info-value">
-                <span class="badge-matiere">{{ professeur.matiere_display }}</span>
-              </div>
+            <div class="employee-number">
+                <i class="fas fa-id-card"></i>
+                <span>{{ professeur.numero_employe }}</span>
             </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-books"></i>
-                <span>Matières secondaires</span>
-              </div>
-              <div class="info-value">
-                {% if professeur.matieres_secondaires.all %}
-                  <div class="matieres-list">
-                    {% for matiere in professeur.matieres_secondaires.all %}
-                      <span class="badge-matiere-secondary">{{ matiere.nom }}</span>
-                    {% endfor %}
-                  </div>
-                {% else %}
-                  <span class="text-muted">Aucune matière secondaire</span>
+        </div>
+
+        <!-- Système d'onglets -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <a href="?onglet=informations" class="tab-item {% if onglet_actif == 'informations' %}active{% endif %}">
+                    <i class="fas fa-user"></i>
+                    <span>Informations</span>
+                </a>
+                <a href="?onglet=connexion" class="tab-item {% if onglet_actif == 'connexion' %}active{% endif %}">
+                    <i class="fas fa-key"></i>
+                    <span>Connexion</span>
+                </a>
+                <a href="?onglet=classes" class="tab-item {% if onglet_actif == 'classes' %}active{% endif %}">
+                    <i class="fas fa-users-class"></i>
+                    <span>Classes affectées</span>
+                </a>
+                {% if etablissement.type_etablissement == 'primary' and affectations_primaire %}
+                    <a href="?onglet=cahier_notes" class="tab-item {% if onglet_actif == 'cahier_notes' %}active{% endif %}">
+                        <i class="fas fa-book-open"></i>
+                        <span>Cahier de notes</span>
+                    </a>
                 {% endif %}
-              </div>
             </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-graduation-cap"></i>
-                <span>Niveau d'enseignement</span>
-              </div>
-              <div class="info-value">
-                <span class="badge-niveau">{{ professeur.niveau_display }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Carte Informations Administratives -->
-        <div class="detail-card">
-          <div class="card-header">
-            <div class="card-icon administrative">
-              <i class="fas fa-building"></i>
-            </div>
-            <h2 class="card-title">Informations Administratives</h2>
-          </div>
-          <div class="card-content">
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-id-badge"></i>
-                <span>Numéro d'employé</span>
-              </div>
-              <div class="info-value">
-                <span class="badge-employee">{{ professeur.numero_employe }}</span>
-              </div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-school"></i>
-                <span>Établissement</span>
-              </div>
-              <div class="info-value">{{ professeur.etablissement.nom }}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Date d'embauche</span>
-              </div>
-              <div class="info-value">{{ professeur.date_embauche|date:"d/m/Y" }}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">
-                <i class="fas fa-toggle-on"></i>
-                <span>Statut</span>
-              </div>
-              <div class="info-value">
-                <span class="badge-status {% if professeur.actif %}active{% else %}inactive{% endif %}">
-                  {% if professeur.actif %}Actif{% else %}Inactif{% endif %}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+            <div class="tabs-content">
+                <!-- ONGLET 1: INFORMATIONS -->
+                {% if onglet_actif == 'informations' %}
+                    <div class="tab-panel active">
+                        <!-- Format professionnel : Tableau d'informations -->
+                        <div class="info-table-container">
+                            <!-- Section : Informations Personnelles -->
+                            <div class="info-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-user"></i>
+                                    Informations Personnelles
+                                </h3>
+                                <table class="info-table">
+                                    <tr>
+                                        <td class="info-label-cell">Nom complet</td>
+                                        <td class="info-value-cell">{{ professeur.nom }} {{ professeur.prenom }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Email</td>
+                                        <td class="info-value-cell">
+                                            <a href="mailto:{{ professeur.email }}" class="link-email">{{ professeur.email }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Téléphone</td>
+                                        <td class="info-value-cell">
+                                            <a href="tel:{{ professeur.telephone }}" class="link-phone">{{ professeur.telephone }}</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
 
-        <!-- Carte Informations de Connexion -->
-        <div class="detail-card full-width">
-          <div class="card-header">
-            <div class="card-icon connexion">
-              <i class="fas fa-key"></i>
-            </div>
-            <h2 class="card-title">Informations de Connexion</h2>
-          </div>
-          <div class="card-content">
-            {% if professeur.mot_de_passe_provisoire %}
-              <div class="alert alert-warning connexion-alert">
-                <div class="alert-icon">
-                  <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <div class="alert-content">
-                  <h4>Mot de passe provisoire actif</h4>
-                  <p>Le professeur utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion.</p>
-                </div>
-              </div>
-              
-              <div class="connexion-info-grid">
-                <div class="connexion-item">
-                  <div class="connexion-label">
-                    <i class="fas fa-envelope"></i>
-                    <span>Email de connexion</span>
-                  </div>
-                  <div class="connexion-value">
-                    <code class="connexion-code">{{ professeur.email }}</code>
-                    <button class="btn-copy" onclick="copyToClipboard('{{ professeur.email }}')" title="Copier l'email">
-                      <i class="fas fa-copy"></i>
-                    </button>
-                  </div>
-                </div>
-                
-                <div class="connexion-item">
-                  <div class="connexion-label">
-                    <i class="fas fa-lock"></i>
-                    <span>Mot de passe provisoire</span>
-                  </div>
-                  <div class="connexion-value">
-                    <code class="connexion-code password-code">{{ professeur.mot_de_passe_provisoire }}</code>
-                    <button class="btn-copy" onclick="copyToClipboard('{{ professeur.mot_de_passe_provisoire }}')" title="Copier le mot de passe">
-                      <i class="fas fa-copy"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="connexion-instructions">
-                <div class="instruction-icon">
-                  <i class="fas fa-info-circle"></i>
-                </div>
-                <div class="instruction-content">
-                  <h5>Instructions de première connexion</h5>
-                  <ol>
-                    <li>Utilisez l'email et le mot de passe provisoire ci-dessus</li>
-                    <li>Vous serez invité à changer votre mot de passe après la connexion</li>
-                    <li>Choisissez un mot de passe sécurisé d'au moins 8 caractères</li>
-                  </ol>
-                </div>
-              </div>
-            {% else %}
-              <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i>
-                <div>
-                  <strong>Mot de passe personnalisé</strong>
-                  <p>Le professeur a défini son propre mot de passe sécurisé.</p>
-                </div>
-              </div>
-              
-              <div class="connexion-info-grid">
-                <div class="connexion-item">
-                  <div class="connexion-label">
-                    <i class="fas fa-envelope"></i>
-                    <span>Email de connexion</span>
-                  </div>
-                  <div class="connexion-value">
-                    <code class="connexion-code">{{ professeur.email }}</code>
-                    <button class="btn-copy" onclick="copyToClipboard('{{ professeur.email }}')" title="Copier l'email">
-                      <i class="fas fa-copy"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            {% endif %}
-          </div>
-        </div>
+                            <!-- Section : Informations Professionnelles -->
+                            <div class="info-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-briefcase"></i>
+                                    Informations Professionnelles
+                                </h3>
+                                <table class="info-table">
+                                    <tr>
+                                        <td class="info-label-cell">Matière principale</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-matiere">{{ professeur.matiere_display }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Matières secondaires</td>
+                                        <td class="info-value-cell">
+                                            {% if professeur.matieres_secondaires.all %}
+                                                <div class="matieres-list">
+                                                    {% for matiere in professeur.matieres_secondaires.all %}
+                                                        <span class="badge-matiere-secondary">{{ matiere.nom }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">Aucune matière secondaire</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Niveau d'enseignement</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-niveau">{{ professeur.niveau_display }}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
 
-        <!-- Carte Classes Affectées -->
-        <div class="detail-card full-width">
-          <div class="card-header">
-            <div class="card-icon classes">
-              <i class="fas fa-users-class"></i>
-            </div>
-            <h2 class="card-title">Classes Affectées</h2>
-          </div>
-          <div class="card-content">
-            {% if professeur.classes.all %}
-              <div class="classes-grid">
-                {% for classe in professeur.classes.all %}
-                  <div class="classe-item">
-                    <div class="classe-icon">
-                      <i class="fas fa-users"></i>
+                            <!-- Section : Informations Administratives -->
+                            <div class="info-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-building"></i>
+                                    Informations Administratives
+                                </h3>
+                                <table class="info-table">
+                                    <tr>
+                                        <td class="info-label-cell">Numéro d'employé</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-employee">{{ professeur.numero_employe }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Établissement</td>
+                                        <td class="info-value-cell">{{ professeur.etablissement.nom }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Date d'embauche</td>
+                                        <td class="info-value-cell">{{ professeur.date_embauche|date:"d/m/Y" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Statut</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-status {% if professeur.actif %}active{% else %}inactive{% endif %}">
+                                                {% if professeur.actif %}Actif{% else %}Inactif{% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Date de création du compte</td>
+                                        <td class="info-value-cell">{{ professeur.date_creation|date:"d/m/Y à H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Dernière modification</td>
+                                        <td class="info-value-cell">{{ professeur.date_modification|date:"d/m/Y à H:i" }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                    <div class="classe-info">
-                      <h4 class="classe-name">{{ classe.nom }}</h4>
-                      <p class="classe-niveau">
-                        <i class="fas fa-graduation-cap"></i>
-                        {{ classe.get_niveau_display }}
-                      </p>
-                      <p class="classe-effectif">
-                        <i class="fas fa-user-friends"></i>
-                        {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }} / {{ classe.capacite_max }}
-                      </p>
-                      {% if classe.taux_occupation >= 90 %}
-                        <p class="classe-alert">
-                          <i class="fas fa-exclamation-triangle"></i>
-                          {{ classe.taux_occupation }}% de remplissage
-                        </p>
-                      {% endif %}
+                {% endif %}
+
+                <!-- ONGLET 2: CONNEXION -->
+                {% if onglet_actif == 'connexion' %}
+                    <div class="tab-panel active">
+                        <div class="detail-card full-width">
+                            <div class="card-header">
+                                <div class="card-icon connexion">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <h2 class="card-title">Informations de Connexion</h2>
+                            </div>
+                            <div class="card-content">
+                                {% if professeur.mot_de_passe_provisoire %}
+                                    <div class="alert alert-warning connexion-alert">
+                                        <div class="alert-icon">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="alert-content">
+                                            <h4>Mot de passe provisoire actif</h4>
+                                            <p>Le professeur utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="connexion-info-grid">
+                                        <div class="connexion-item">
+                                            <div class="connexion-label">
+                                                <i class="fas fa-envelope"></i>
+                                                <span>Email de connexion</span>
+                                            </div>
+                                            <div class="connexion-value">
+                                                <code class="connexion-code">{{ professeur.email }}</code>
+                                                <button class="btn-copy" onclick="copyToClipboard('{{ professeur.email }}')" title="Copier l'email">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="connexion-item">
+                                            <div class="connexion-label">
+                                                <i class="fas fa-lock"></i>
+                                                <span>Mot de passe provisoire</span>
+                                            </div>
+                                            <div class="connexion-value">
+                                                <code class="connexion-code password-code">{{ professeur.mot_de_passe_provisoire }}</code>
+                                                <button class="btn-copy" onclick="copyToClipboard('{{ professeur.mot_de_passe_provisoire }}')" title="Copier le mot de passe">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="connexion-instructions">
+                                        <div class="instruction-icon">
+                                            <i class="fas fa-info-circle"></i>
+                                        </div>
+                                        <div class="instruction-content">
+                                            <h5>Instructions de première connexion</h5>
+                                            <ol>
+                                                <li>Utilisez l'email et le mot de passe provisoire ci-dessus</li>
+                                                <li>Vous serez invité à changer votre mot de passe après la connexion</li>
+                                                <li>Choisissez un mot de passe sécurisé d'au moins 8 caractères</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i>
+                                        <div>
+                                            <strong>Mot de passe personnalisé</strong>
+                                            <p>Le professeur a défini son propre mot de passe sécurisé.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="connexion-info-grid">
+                                        <div class="connexion-item">
+                                            <div class="connexion-label">
+                                                <i class="fas fa-envelope"></i>
+                                                <span>Email de connexion</span>
+                                            </div>
+                                            <div class="connexion-value">
+                                                <code class="connexion-code">{{ professeur.email }}</code>
+                                                <button class="btn-copy" onclick="copyToClipboard('{{ professeur.email }}')" title="Copier l'email">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="empty-state-small">
-                <i class="fas fa-users-class"></i>
-                <p>Aucune classe affectée</p>
-              </div>
-            {% endif %}
-          </div>
-        </div>
+                {% endif %}
 
-        <!-- Carte Historique -->
-        <div class="detail-card full-width">
-          <div class="card-header">
-            <div class="card-icon history">
-              <i class="fas fa-history"></i>
-            </div>
-            <h2 class="card-title">Historique</h2>
-          </div>
-          <div class="card-content">
-            <div class="timeline">
-              <div class="timeline-item">
-                <div class="timeline-icon created">
-                  <i class="fas fa-plus-circle"></i>
-                </div>
-                <div class="timeline-content">
-                  <h4 class="timeline-title">Compte créé</h4>
-                  <p class="timeline-date">{{ professeur.date_creation|date:"d/m/Y à H:i" }}</p>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-icon modified">
-                  <i class="fas fa-edit"></i>
-                </div>
-                <div class="timeline-content">
-                  <h4 class="timeline-title">Dernière modification</h4>
-                  <p class="timeline-date">{{ professeur.date_modification|date:"d/m/Y à H:i" }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                <!-- ONGLET 3: CLASSES AFFECTÉES -->
+                {% if onglet_actif == 'classes' %}
+                    <div class="tab-panel active">
+                        <div class="detail-card full-width">
+                            <div class="card-header">
+                                <div class="card-icon classes">
+                                    <i class="fas fa-users-class"></i>
+                                </div>
+                                <h2 class="card-title">Classes Affectées</h2>
+                            </div>
+                            <div class="card-content">
+                                {% if affectations_primaire %}
+                                    <div class="classes-grid">
+                                        {% for affectation in affectations_primaire %}
+                                            <div class="classe-item">
+                                                <div class="classe-icon">
+                                                    <i class="fas fa-users"></i>
+                                                </div>
+                                                <div class="classe-info">
+                                                    <h4 class="classe-name">{{ affectation.classe.nom }}</h4>
+                                                    <p class="classe-niveau">
+                                                        <i class="fas fa-graduation-cap"></i>
+                                                        {{ affectation.get_statut_display }}
+                                                    </p>
+                                                    <p class="classe-effectif">
+                                                        <i class="fas fa-user-friends"></i>
+                                                        {{ affectation.classe.nombre_eleves }} élève{{ affectation.classe.nombre_eleves|pluralize }}
+                                                    </p>
+                                                    <div class="matieres-affectees">
+                                                        <i class="fas fa-book"></i>
+                                                        {% for matiere in affectation.matieres.all %}
+                                                            <span class="badge-matiere-mini">{{ matiere.code }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% elif professeur.classes.all %}
+                                    <div class="classes-grid">
+                                        {% for classe in professeur.classes.all %}
+                                            <div class="classe-item">
+                                                <div class="classe-icon">
+                                                    <i class="fas fa-users"></i>
+                                                </div>
+                                                <div class="classe-info">
+                                                    <h4 class="classe-name">{{ classe.nom }}</h4>
+                                                    <p class="classe-niveau">
+                                                        <i class="fas fa-graduation-cap"></i>
+                                                        {{ classe.get_niveau_display }}
+                                                    </p>
+                                                    <p class="classe-effectif">
+                                                        <i class="fas fa-user-friends"></i>
+                                                        {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="empty-state-small">
+                                        <i class="fas fa-users-class"></i>
+                                        <p>Aucune classe affectée</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
 
-      <!-- Actions supplémentaires -->
-      <div class="actions-footer">
-        <a href="{% url 'personnel:liste_personnel' %}" class="btn-secondary">
-          <i class="fas fa-arrow-left"></i>
-          <span>Retour à la liste</span>
-        </a>
-        <div class="actions-right">
-          <button class="btn-primary" onclick="window.print()">
-            <i class="fas fa-print"></i>
-            <span>Imprimer</span>
-          </button>
-          <button class="btn-primary" onclick="alert('Fonctionnalité d\'export à venir')">
-            <i class="fas fa-download"></i>
-            <span>Exporter PDF</span>
-          </button>
+                <!-- ONGLET 4: CAHIER DE NOTES (Primaire uniquement) -->
+                {% if onglet_actif == 'cahier_notes' %}
+                    <div class="tab-panel active">
+                        {% for classe_data in cahier_notes_data %}
+                            <div class="cahier-notes-container">
+                                <!-- En-tête de la classe -->
+                                <div class="classe-header-cahier">
+                                    <h2>
+                                        <i class="fas fa-chalkboard"></i>
+                                        {{ classe_data.classe.nom }}
+                                    </h2>
+                                    <span class="badge-info">{{ classe_data.classe.nombre_eleves }} élève{{ classe_data.classe.nombre_eleves|pluralize }}</span>
+                                </div>
+
+                                <!-- Sous-onglets pour les matières -->
+                                <div class="matieres-tabs">
+                                    {% for matiere_info in classe_data.matieres_info %}
+                                        <a href="?onglet=cahier_notes&matiere={{ matiere_info.matiere.id }}" 
+                                           class="matiere-tab {% if matiere_info.est_selectionnee %}active{% endif %}">
+                                            <i class="fas fa-book"></i>
+                                            <span>{{ matiere_info.matiere.code }}</span>
+                                            {% if matiere_info.nombre_moyennes > 0 %}
+                                                <span class="tab-badge">{{ matiere_info.nombre_moyennes }}</span>
+                                            {% endif %}
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Modal pour afficher le tableau de notes détaillé -->
+                            {% for matiere_info in classe_data.matieres_info %}
+                                {% if matiere_info.est_selectionnee %}
+                                    <div class="notes-modal-backdrop" onclick="window.location.href='?onglet=cahier_notes'"></div>
+                                    <div class="notes-modal">
+                                        <div class="notes-modal-header">
+                                            <div>
+                                                <h2>
+                                                    <i class="fas fa-book-open"></i>
+                                                    {{ matiere_info.matiere.nom }}
+                                                </h2>
+                                                <p class="modal-subtitle">{{ classe_data.classe.nom }} - {{ matiere_info.nombre_moyennes }} élève{{ matiere_info.nombre_moyennes|pluralize }}</p>
+                                            </div>
+                                            <a href="?onglet=cahier_notes" class="btn-close-modal">
+                                                <i class="fas fa-times"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="notes-modal-content">
+                                            {% if matiere_info.notes_detaillees %}
+                                                <div class="notes-table-wrapper">
+                                                    <table class="notes-detail-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th rowspan="2" class="eleve-col-header">Élève</th>
+                                                                {% if matiere_info.evaluations %}
+                                                                    <th colspan="{{ matiere_info.evaluations|length }}" class="evals-header">Évaluations</th>
+                                                                {% endif %}
+                                                                <th rowspan="2" class="moyenne-col-header">Moyenne</th>
+                                                                <th rowspan="2" class="appreciation-col-header">Appréciation</th>
+                                                            </tr>
+                                                            <tr>
+                                                                {% for eval in matiere_info.evaluations %}
+                                                                    <th class="eval-col-header">
+                                                                        {{ eval.type_label }}
+                                                                        <br><small>/{{ eval.bareme|floatformat:0 }}</small>
+                                                                    </th>
+                                                                {% endfor %}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for eleve_data in matiere_info.notes_detaillees %}
+                                                                <tr>
+                                                                    <td class="eleve-cell">
+                                                                        <div class="eleve-info-detail">
+                                                                            <div class="avatar-detail">
+                                                                                {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
+                                                                            </div>
+                                                                            <span class="eleve-nom-detail">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    
+                                                                    <!-- Notes des évaluations -->
+                                                                    {% for eval in matiere_info.evaluations %}
+                                                                        <td class="note-cell">
+                                                                            {% with note_data=eleve_data.notes_evaluations|get_item:eval.id %}
+                                                                                {% if note_data.note_obj %}
+                                                                                    {% if note_data.note_obj.absent %}
+                                                                                        <span class="note-absent">ABS</span>
+                                                                                    {% elif note_data.note_obj.note is not None %}
+                                                                                        <span class="note-valeur" style="color: {{ note_data.couleur }};">
+                                                                                            {{ note_data.note_obj.note|floatformat:2 }}
+                                                                                        </span>
+                                                                                    {% else %}
+                                                                                        <span class="note-empty">--</span>
+                                                                                    {% endif %}
+                                                                                {% else %}
+                                                                                    <span class="note-empty">--</span>
+                                                                                {% endif %}
+                                                                            {% endwith %}
+                                                                        </td>
+                                                                    {% endfor %}
+                                                                    
+                                                                    <!-- Moyenne -->
+                                                                    <td class="moyenne-cell">
+                                                                        {% if eleve_data.moyenne %}
+                                                                            <span class="moyenne-valeur" style="color: {% if eleve_data.moyenne >= 16 %}#10b981{% elif eleve_data.moyenne >= 14 %}#3b82f6{% elif eleve_data.moyenne >= 12 %}#8b5cf6{% elif eleve_data.moyenne >= 10 %}#f59e0b{% elif eleve_data.moyenne >= 8 %}#f97316{% else %}#ef4444{% endif %};">
+                                                                                {{ eleve_data.moyenne|floatformat:2 }}/20
+                                                                            </span>
+                                                                        {% else %}
+                                                                            <span class="note-empty">--</span>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    
+                                                                    <!-- Appréciation -->
+                                                                    <td class="appreciation-cell">
+                                                                        {% if eleve_data.appreciation %}
+                                                                            <span class="appreciation-text">{{ eleve_data.appreciation }}</span>
+                                                                        {% else %}
+                                                                            <span class="text-muted">--</span>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            {% else %}
+                                                <div class="empty-state-modal">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                    <p>Aucune note enregistrée pour cette matière</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% empty %}
+                            <div class="empty-state-small">
+                                <i class="fas fa-inbox"></i>
+                                <p>Aucune donnée de notes disponible</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
-      </div>
     </div>
 
     <!-- Scripts -->
     <script src="{% static 'school_admin/js/directeur/detail_professeur.js' %}"></script>
-  </body>
+</body>
 </html>
-

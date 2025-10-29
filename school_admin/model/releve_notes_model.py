@@ -6,6 +6,7 @@ from .classe_model import Classe
 from .professeur_model import Professeur
 from .matiere_model import Matiere
 from .etablissement_model import Etablissement
+from .periode_model import PeriodeScolaire
 
 
 class ReleveNotes(models.Model):
@@ -55,11 +56,13 @@ class ReleveNotes(models.Model):
         verbose_name="Établissement"
     )
     
-    periode = models.CharField(
-        max_length=20,
-        choices=PERIODE_CHOICES,
-        default='trimestre1',
-        verbose_name="Période"
+    periode_scolaire = models.ForeignKey(
+        PeriodeScolaire,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='releves_notes',
+        verbose_name="Période scolaire"
     )
     
     soumis = models.BooleanField(
@@ -97,12 +100,14 @@ class ReleveNotes(models.Model):
     class Meta:
         verbose_name = "Relevé de notes"
         verbose_name_plural = "Relevés de notes"
-        unique_together = ['classe', 'professeur', 'matiere', 'periode']
+        # Temporairement commenté pour migration progressive
+        # unique_together = ['classe', 'professeur', 'matiere', 'periode_scolaire']
         ordering = ['-date_creation']
     
     def __str__(self):
         statut = "Soumis" if self.soumis else "En cours"
-        return f"{self.classe.nom} - {self.matiere.nom} ({self.get_periode_display()}) - {statut}"
+        periode_nom = self.periode_scolaire.nom_periode if self.periode_scolaire else "Période non définie"
+        return f"{self.classe.nom} - {self.matiere.nom} ({periode_nom}) - {statut}"
     
     def soumettre(self):
         """

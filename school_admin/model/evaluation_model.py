@@ -4,6 +4,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from .professeur_model import Professeur
 from .classe_model import Classe
+from .periode_model import PeriodeScolaire
 
 
 class Evaluation(models.Model):
@@ -69,10 +70,12 @@ class Evaluation(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name="Barème (points maximum)"
     )
-    periode = models.CharField(
-        max_length=20,
-        choices=PERIODE_CHOICES,
-        default='trimestre1',
+    periode_scolaire = models.ForeignKey(
+        PeriodeScolaire,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='evaluations',
         verbose_name="Période scolaire"
     )
     duree = models.PositiveIntegerField(

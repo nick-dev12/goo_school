@@ -39,8 +39,33 @@ class MatiereController:
         # Récupérer les matières
         matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
         
-        # Récupérer les classes pour le formulaire
-        classes = Classe.objects.filter(etablissement=etablissement).order_by('nom')
+        # Récupérer les classes et créer les groupes
+        import re
+        classes = Classe.objects.filter(etablissement=etablissement).order_by('niveau', 'nom')
+        
+        # Créer les groupes de classes
+        groupes_classes = {}
+        for classe in classes:
+            # Extraire le niveau de base (ex: "6eme" de "6eme A", "Premiere L" de "Premiere L1", etc.)
+            match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+            if match:
+                groupe_nom = match.group(1)  # "6eme", "Premiere L", "Terminale S", etc.
+            else:
+                groupe_nom = classe.nom
+            
+            if groupe_nom not in groupes_classes:
+                groupes_classes[groupe_nom] = {
+                    'nom': groupe_nom,
+                    'niveau': classe.niveau,
+                    'classes': [],
+                    'count': 0
+                }
+            
+            groupes_classes[groupe_nom]['classes'].append(classe)
+            groupes_classes[groupe_nom]['count'] += 1
+        
+        # Convertir en liste triée
+        groupes_liste = sorted(groupes_classes.values(), key=lambda x: (x['niveau'], x['nom']))
         
         # Statistiques
         stats = {
@@ -66,6 +91,7 @@ class MatiereController:
         context = {
             'matieres': matieres,
             'classes': classes,
+            'groupes_classes': groupes_liste,
             'etablissement': etablissement,
             'stats': stats,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
@@ -103,7 +129,7 @@ class MatiereController:
                 'type_matiere': request.POST.get('type_matiere', ''),
                 'niveau': request.POST.get('niveau', ''),
                 'coefficient': request.POST.get('coefficient', '1.0'),
-                'classes': request.POST.getlist('classes', []),
+                'groupes_classes': request.POST.getlist('groupes_classes', []),
             }
             
             # Validation
@@ -156,11 +182,22 @@ class MatiereController:
                         )
                         matiere.save()
                         
-                        # Assigner les classes
-                        if form_data['classes']:
-                            classes_ids = [int(id) for id in form_data['classes'] if id.isdigit()]
-                            classes = Classe.objects.filter(id__in=classes_ids, etablissement=etablissement)
-                            matiere.classes.set(classes)
+                        # Assigner les classes selon les groupes sélectionnés
+                        if form_data['groupes_classes']:
+                            import re
+                            classes_a_assigner = []
+                            
+                            for groupe in form_data['groupes_classes']:
+                                # Récupérer toutes les classes de ce groupe
+                                classes_groupe = Classe.objects.filter(
+                                    etablissement=etablissement,
+                                    nom__startswith=groupe
+                                )
+                                classes_a_assigner.extend(list(classes_groupe))
+                            
+                            # Supprimer les doublons
+                            classes_uniques = list(set(classes_a_assigner))
+                            matiere.classes.set(classes_uniques)
                         
                         messages.success(request, f"La matière '{matiere.nom_complet}' a été ajoutée avec succès !")
                         return redirect('matiere:liste_matieres')
@@ -170,8 +207,33 @@ class MatiereController:
                     field_errors['__all__'] = "Une erreur est survenue lors de l'ajout de la matière."
                     is_valid = False
         
-        # Récupérer les classes pour le formulaire
-        classes = Classe.objects.filter(etablissement=etablissement).order_by('nom')
+        # Récupérer les classes et créer les groupes
+        import re
+        classes = Classe.objects.filter(etablissement=etablissement).order_by('niveau', 'nom')
+        
+        # Créer les groupes de classes
+        groupes_classes = {}
+        for classe in classes:
+            # Extraire le niveau de base (ex: "6eme" de "6eme A", "Premiere L" de "Premiere L1", etc.)
+            match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+            if match:
+                groupe_nom = match.group(1)  # "6eme", "Premiere L", "Terminale S", etc.
+            else:
+                groupe_nom = classe.nom
+            
+            if groupe_nom not in groupes_classes:
+                groupes_classes[groupe_nom] = {
+                    'nom': groupe_nom,
+                    'niveau': classe.niveau,
+                    'classes': [],
+                    'count': 0
+                }
+            
+            groupes_classes[groupe_nom]['classes'].append(classe)
+            groupes_classes[groupe_nom]['count'] += 1
+        
+        # Convertir en liste triée
+        groupes_liste = sorted(groupes_classes.values(), key=lambda x: (x['niveau'], x['nom']))
         
         context = {
             'form_data': form_data,
@@ -179,6 +241,7 @@ class MatiereController:
             'is_valid': is_valid,
             'etablissement': etablissement,
             'classes': classes,
+            'groupes_classes': groupes_liste,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
             'niveau_choices': Matiere.NIVEAU_CHOICES,
         }
@@ -239,7 +302,7 @@ class MatiereController:
                 'type_matiere': request.POST.get('type_matiere', ''),
                 'niveau': request.POST.get('niveau', ''),
                 'coefficient': request.POST.get('coefficient', '1.0'),
-                'classes': request.POST.getlist('classes', []),
+                'groupes_classes': request.POST.getlist('groupes_classes', []),
             }
             
             # Validation
@@ -287,11 +350,22 @@ class MatiereController:
                         matiere.coefficient = float(form_data['coefficient'])
                         matiere.save()
                         
-                        # Assigner les classes
-                        if form_data['classes']:
-                            classes_ids = [int(id) for id in form_data['classes'] if id.isdigit()]
-                            classes = Classe.objects.filter(id__in=classes_ids, etablissement=etablissement)
-                            matiere.classes.set(classes)
+                        # Assigner les classes selon les groupes sélectionnés
+                        if form_data['groupes_classes']:
+                            import re
+                            classes_a_assigner = []
+                            
+                            for groupe in form_data['groupes_classes']:
+                                # Récupérer toutes les classes de ce groupe
+                                classes_groupe = Classe.objects.filter(
+                                    etablissement=etablissement,
+                                    nom__startswith=groupe
+                                )
+                                classes_a_assigner.extend(list(classes_groupe))
+                            
+                            # Supprimer les doublons
+                            classes_uniques = list(set(classes_a_assigner))
+                            matiere.classes.set(classes_uniques)
                         else:
                             matiere.classes.clear()
                         

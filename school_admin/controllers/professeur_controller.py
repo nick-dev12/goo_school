@@ -128,28 +128,47 @@ class ProfesseurController:
                 'email': request.POST.get('email', '').strip(),
                 'telephone': request.POST.get('telephone', '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
+                'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
                 'niveau_enseignement': request.POST.get('niveau_enseignement', ''),
             }
             
             # Validation
             is_valid = True
             
-            # Champs obligatoires (password supprimé)
-            required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement']
-            for field in required_fields:
-                if not form_data[field]:
-                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+            # Pour le primaire, on n'exige pas de matière principale
+            # À la place, on exige au moins une matière secondaire
+            if etablissement.type_etablissement == 'primary':
+                # Champs obligatoires pour le primaire (sans matière principale)
+                required_fields = ['nom', 'prenom', 'email', 'telephone', 'niveau_enseignement']
+                for field in required_fields:
+                    if not form_data[field]:
+                        field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                        is_valid = False
+                
+                # Vérifier qu'au moins une matière est sélectionnée
+                if not form_data['matieres_secondaires']:
+                    field_errors['matieres_secondaires'] = "Veuillez sélectionner au moins une matière pour le primaire."
                     is_valid = False
-            
-            # Validation de la matière
-            matiere_principale_obj = None
-            if form_data['matiere_principale']:
-                try:
-                    from ..model.matiere_model import Matiere
-                    matiere_principale_obj = Matiere.objects.get(id=form_data['matiere_principale'], etablissement=etablissement)
-                except Matiere.DoesNotExist:
-                    field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
-                    is_valid = False
+                
+                # Pour le primaire, la matière principale sera la première matière secondaire
+                matiere_principale_obj = None
+            else:
+                # Champs obligatoires pour collège/lycée
+                required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement']
+                for field in required_fields:
+                    if not form_data[field]:
+                        field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                        is_valid = False
+                
+                # Validation de la matière
+                matiere_principale_obj = None
+                if form_data['matiere_principale']:
+                    try:
+                        from ..model.matiere_model import Matiere
+                        matiere_principale_obj = Matiere.objects.get(id=form_data['matiere_principale'], etablissement=etablissement)
+                    except Matiere.DoesNotExist:
+                        field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
+                        is_valid = False
             
             # Validation de l'email
             if form_data['email'] and '@' not in form_data['email']:
@@ -172,6 +191,12 @@ class ProfesseurController:
                         import random
                         mot_de_passe_provisoire = ''.join([str(random.randint(0, 9)) for _ in range(4)])
                         
+                        # Pour le primaire, si pas de matière principale, prendre la première matière secondaire
+                        from ..model.matiere_model import Matiere
+                        if etablissement.type_etablissement == 'primary' and not matiere_principale_obj:
+                            if form_data['matieres_secondaires']:
+                                matiere_principale_obj = Matiere.objects.get(id=form_data['matieres_secondaires'][0])
+                        
                         # Créer le professeur
                         professeur = Professeur(
                             nom=form_data['nom'],
@@ -189,6 +214,14 @@ class ProfesseurController:
                         # Définir le mot de passe provisoire hashé
                         professeur.set_password(mot_de_passe_provisoire)
                         professeur.save()
+                        
+                        # Ajouter les matières secondaires
+                        if form_data['matieres_secondaires']:
+                            matieres_secondaires_objs = Matiere.objects.filter(
+                                id__in=form_data['matieres_secondaires'],
+                                etablissement=etablissement
+                            )
+                            professeur.matieres_secondaires.set(matieres_secondaires_objs)
                         
                         messages.success(request, f"Le professeur {professeur.nom_complet} a été ajouté avec succès ! Mot de passe provisoire : {mot_de_passe_provisoire}")
                         return redirect('professeur:detail_professeur', professeur_id=professeur.id)
@@ -213,6 +246,7 @@ class ProfesseurController:
             'etablissement': etablissement,
             'matieres': matieres,
             'niveau_choices': Professeur.NIVEAU_CHOICES,
+            'type_etablissement': etablissement.type_etablissement,
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/ajouter_professeur.html', context)
@@ -254,10 +288,210 @@ class ProfesseurController:
         # Récupérer les classes affectées avec leurs informations
         classes_affectees = professeur.classes.all().order_by('nom')
         
+        # Récupérer l'onglet sélectionné
+        onglet_actif = request.GET.get('onglet', 'informations')
+        
+        # Pour les enseignants primaires, récupérer les affectations et les données de notes
+        affectations_primaire = []
+        cahier_notes_data = []
+        
+        if etablissement.type_etablissement == 'primary':
+            from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+            from ..model.periode_model import PeriodeScolaire
+            from ..model.note_primaire_model import MoyenneMatierePrimaire
+            
+            # Récupérer les affectations primaires
+            affectations_primaire = AffectationProfesseurPrimaire.objects.filter(
+                professeur=professeur,
+                actif=True
+            ).select_related('classe').prefetch_related('matieres').order_by('classe__nom')
+            
+            # Récupérer la période active
+            periodes = PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                est_active=True
+            ).order_by('date_debut')
+            
+            periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
+            
+            # Pour chaque affectation, récupérer les moyennes par matière
+            if onglet_actif == 'cahier_notes' and periode_selectionnee:
+                from ..model.evaluation_primaire_model import EvaluationPrimaire
+                from ..model.note_primaire_model import NotePrimaire
+                
+                # Récupérer la matière sélectionnée dans le sous-onglet
+                matiere_selectionnee_id = request.GET.get('matiere')
+                
+                for affectation in affectations_primaire:
+                    matieres_info = []
+                    
+                    for matiere in affectation.matieres.all():
+                        # Récupérer les évaluations normales pour cette matière
+                        evaluations_list = list(EvaluationPrimaire.objects.filter(
+                            classe=affectation.classe,
+                            professeur=professeur,
+                            matiere=matiere,
+                            periode_scolaire=periode_selectionnee,
+                            actif=True
+                        ).order_by('date_evaluation'))
+                        
+                        # Récupérer aussi les créneaux d'examens
+                        from ..model.creneau_examen_model import CreneauExamen
+                        creneaux_examens_list = list(CreneauExamen.objects.filter(
+                            session_examen__classes=affectation.classe,
+                            session_examen__periode=periode_selectionnee,
+                            matiere=matiere,
+                            actif=True
+                        ).select_related('session_examen').order_by('date_examen'))
+                        
+                        # Ajouter des numéros pour devoirs, interrogations et examens
+                        compteur_devoirs = 0
+                        compteur_interrogations = 0
+                        compteur_examens = 0
+                        evaluations_data = []
+                        
+                        # Traiter les évaluations normales
+                        for eval in evaluations_list:
+                            eval_dict = {
+                                'obj': eval,
+                                'id': eval.id,
+                                'titre': eval.titre,
+                                'bareme': eval.bareme,
+                                'date_evaluation': eval.date_evaluation,
+                                'est_examen': False
+                            }
+                            
+                            if eval.bareme == 20:
+                                compteur_devoirs += 1
+                                eval_dict['type_label'] = f'Devoir {compteur_devoirs}'
+                            else:
+                                compteur_interrogations += 1
+                                eval_dict['type_label'] = f'Interrogation {compteur_interrogations}'
+                            
+                            evaluations_data.append(eval_dict)
+                        
+                        # Traiter les examens
+                        for creneau in creneaux_examens_list:
+                            compteur_examens += 1
+                            evaluations_data.append({
+                                'obj': creneau,
+                                'id': f'examen_{creneau.id}',
+                                'creneau_id': creneau.id,
+                                'titre': creneau.session_examen.nom_examen,
+                                'bareme': 20,
+                                'date_evaluation': creneau.date_examen,
+                                'est_examen': True,
+                                'type_label': f'Examen {compteur_examens}'
+                            })
+                        
+                        # Récupérer les moyennes
+                        moyennes_list = MoyenneMatierePrimaire.objects.filter(
+                            classe=affectation.classe,
+                            matiere=matiere,
+                            periode_scolaire=periode_selectionnee
+                        ).select_related('eleve').order_by('-moyenne')
+                        
+                        # Si cette matière est sélectionnée, récupérer aussi les notes détaillées
+                        notes_detaillees = []
+                        evaluations_utilisees = []  # Liste des évaluations qui ont des notes
+                        
+                        if str(matiere.id) == matiere_selectionnee_id:
+                            from ..model.eleve_model import Eleve
+                            eleves = Eleve.objects.filter(
+                                classe=affectation.classe,
+                                actif=True
+                            ).order_by('nom', 'prenom')
+                            
+                            # Identifier les évaluations qui ont au moins une note saisie
+                            evals_avec_notes = set()
+                            
+                            for eleve in eleves:
+                                # Récupérer la moyenne
+                                moyenne_obj = moyennes_list.filter(eleve=eleve).first()
+                                
+                                # Récupérer les notes pour chaque évaluation (normales + examens)
+                                from ..model.note_examen_model import NoteExamen
+                                
+                                notes_evaluations = {}
+                                for eval_dict in evaluations_data:
+                                    # Si c'est un examen, chercher dans NoteExamen
+                                    if eval_dict.get('est_examen'):
+                                        note_obj = NoteExamen.objects.filter(
+                                            eleve=eleve,
+                                            creneau_examen_id=eval_dict['creneau_id'],
+                                            matiere=matiere,
+                                            retenue=True  # ✅ Ne prendre que les notes retenues
+                                        ).first()
+                                    else:
+                                        # Sinon, chercher dans NotePrimaire
+                                        note_obj = NotePrimaire.objects.filter(
+                                            eleve=eleve,
+                                            evaluation_primaire_id=eval_dict['id'],
+                                            retenue=True  # ✅ Ne prendre que les notes retenues
+                                        ).first()
+                                    
+                                    # Si la note retenue existe, inclure cette évaluation
+                                    if note_obj:
+                                        evals_avec_notes.add(eval_dict['id'])
+                                    
+                                    # Calculer la couleur
+                                    if note_obj and note_obj.note is not None and not note_obj.absent:
+                                        note_sur_20 = (float(note_obj.note) / float(eval_dict['bareme'])) * 20
+                                        
+                                        if note_sur_20 >= 16:
+                                            couleur = '#10b981'
+                                        elif note_sur_20 >= 14:
+                                            couleur = '#3b82f6'
+                                        elif note_sur_20 >= 12:
+                                            couleur = '#8b5cf6'
+                                        elif note_sur_20 >= 10:
+                                            couleur = '#f59e0b'
+                                        elif note_sur_20 >= 8:
+                                            couleur = '#f97316'
+                                        else:
+                                            couleur = '#ef4444'
+                                        
+                                        notes_evaluations[eval_dict['id']] = {
+                                            'note_obj': note_obj,
+                                            'couleur': couleur
+                                        }
+                                    else:
+                                        notes_evaluations[eval_dict['id']] = {
+                                            'note_obj': note_obj,
+                                            'couleur': None
+                                        }
+                                
+                                notes_detaillees.append({
+                                    'eleve': eleve,
+                                    'moyenne': moyenne_obj.moyenne if moyenne_obj else None,
+                                    'appreciation': moyenne_obj.appreciation if moyenne_obj else None,
+                                    'notes_evaluations': notes_evaluations
+                                })
+                            
+                            # Filtrer evaluations_data pour ne garder que celles avec des notes
+                            evaluations_utilisees = [e for e in evaluations_data if e['id'] in evals_avec_notes]
+                        
+                        matieres_info.append({
+                            'matiere': matiere,
+                            'moyennes': moyennes_list,
+                            'nombre_moyennes': moyennes_list.count(),
+                            'evaluations': evaluations_utilisees if evaluations_utilisees else evaluations_data,
+                            'notes_detaillees': notes_detaillees,
+                            'est_selectionnee': str(matiere.id) == matiere_selectionnee_id
+                        })
+                    
+                    cahier_notes_data.append({
+                        'classe': affectation.classe,
+                        'matieres_info': matieres_info
+                    })
+        
         context = {
             'professeur': professeur,
             'etablissement': etablissement,
             'classes_affectees': classes_affectees,
+            'affectations_primaire': affectations_primaire,
+            'onglet_actif': onglet_actif,
+            'cahier_notes_data': cahier_notes_data,
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/detail_professeur.html', context)

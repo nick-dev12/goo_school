@@ -11,6 +11,9 @@ class AuthenticationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Liste des URLs qui ne nécessitent pas d'authentification
         public_urls = [
             reverse('school_admin:connexion_compte_user'),
@@ -18,12 +21,17 @@ class AuthenticationMiddleware:
             # Ajouter d'autres URLs publiques si nécessaire
         ]
         
+        print(f"\n[MIDDLEWARE] Path: {request.path}, User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
+        logger.info(f"[MIDDLEWARE] Path: {request.path}, User: {request.user}, Authenticated: {request.user.is_authenticated}")
+        
         # Si l'URL actuelle est une URL publique, on laisse passer
         if request.path in public_urls or request.path.startswith('/admin/') or request.path.startswith('/static/'):
             return self.get_response(request)
         
         # Si l'utilisateur n'est pas connecté et qu'il n'est pas sur une URL publique
         if not request.user.is_authenticated and request.path not in public_urls:
+            print(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
+            logger.warning(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             # Sauvegarder l'URL actuelle pour rediriger l'utilisateur après connexion
             next_url = request.path
             login_url = f"{reverse('school_admin:connexion_compte_user')}?next={next_url}"

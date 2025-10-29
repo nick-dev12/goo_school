@@ -23,15 +23,173 @@ class PersonnelController:
     """
     
     @staticmethod
+    def categoriser_personnel(personnel_queryset):
+        """
+        Catégorise le personnel par type de fonction
+        """
+        categories = {
+            'direction': {'label': 'Direction', 'icon': 'fa-user-tie', 'personnel': []},
+            'censeurs': {'label': 'Censeurs', 'icon': 'fa-chalkboard-teacher', 'personnel': []},
+            'surveillants': {'label': 'Surveillants', 'icon': 'fa-eye', 'personnel': []},
+            'administration': {'label': 'Administration', 'icon': 'fa-briefcase', 'personnel': []},
+            'autres': {'label': 'Autres', 'icon': 'fa-users-cog', 'personnel': []},
+        }
+        
+        # Fonctions par catégorie
+        fonctions_direction = [
+            'directeur_adjoint_primaire', 'principal_adjoint',
+            'proviseur_adjoint', 'directeur_principal',
+            'directeur_section_primaire', 'principal_section_college', 'proviseur_section_lycee'
+        ]
+        
+        fonctions_censeurs = [
+            'censeur', 'censeur_etudes', 'censeur_adjoint',
+            'censeur_premier_cycle', 'censeur_second_cycle',
+            'censeur_pedagogie', 'censeur_vie_scolaire'
+        ]
+        
+        fonctions_surveillants = [
+            'surveillant_general'
+        ]
+        
+        fonctions_administration = [
+            'secretaire_principal', 'gestionnaire', 'secretaire_vie_scolaire'
+        ]
+        
+        # Catégoriser chaque personnel
+        for personnel in personnel_queryset:
+            if personnel.fonction in fonctions_direction:
+                categories['direction']['personnel'].append(personnel)
+            elif personnel.fonction in fonctions_censeurs:
+                categories['censeurs']['personnel'].append(personnel)
+            elif personnel.fonction in fonctions_surveillants:
+                categories['surveillants']['personnel'].append(personnel)
+            elif personnel.fonction in fonctions_administration:
+                categories['administration']['personnel'].append(personnel)
+            else:
+                categories['autres']['personnel'].append(personnel)
+        
+        return categories
+    
+    @staticmethod
+    def get_fonctions_par_type_etablissement(type_etablissement):
+        """
+        Retourne les fonctions disponibles selon le type d'établissement
+        """
+        fonctions = {
+            'primary': [
+                ('directeur_adjoint_primaire', 'Directeur Adjoint (École Primaire)'),
+                ('secretaire_principal', 'Secrétaire Principal'),
+                ('gestionnaire', 'Gestionnaire'),
+                ('surveillant_general', 'Surveillant Général'),
+            ],
+            'collège': [
+                ('principal_adjoint', 'Principal Adjoint (Collège)'),
+                ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
+                ('censeur_adjoint', 'Censeur Adjoint (Lycées)'),
+                ('censeur_premier_cycle', 'Censeur du Premier Cycle (6e à 3e)'),
+                ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
+                ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
+                ('surveillant_general', 'Surveillant Général'),
+                ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+            ],
+            'lycée': [
+                ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
+                ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
+                ('censeur_adjoint', 'Censeur Adjoint (Lycées)'),
+                ('censeur_second_cycle', 'Censeur du Second Cycle (2nde à Tle)'),
+                ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
+                ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
+                ('surveillant_general', 'Surveillant Général'),
+                ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+            ],
+            'collège_lycée': [
+                # Direction
+                ('principal_adjoint', 'Principal Adjoint (Collège)'),
+                ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
+                # Administration
+                ('secretaire_principal', 'Secrétaire Principal'),
+                # Pédagogie - Censeurs
+                ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
+                ('censeur_adjoint', 'Censeur Adjoint (Lycées)'),
+                ('censeur_premier_cycle', 'Censeur du Premier Cycle (6e à 3e)'),
+                ('censeur_second_cycle', 'Censeur du Second Cycle (2nde à Tle)'),
+                ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
+                ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
+                # Vie Scolaire
+                ('surveillant_general', 'Surveillant Général'),
+                ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+            ],
+            'mixte': [
+                # Direction générale
+                ('directeur_principal', 'Directeur Principal (Établissement Mixte)'),
+                ('directeur_section_primaire', 'Directeur de Section Primaire'),
+                ('principal_section_college', 'Principal de Section Collège'),
+                ('proviseur_section_lycee', 'Proviseur de Section Lycée'),
+                # Direction spécifiques
+                ('directeur_adjoint_primaire', 'Directeur Adjoint (École Primaire)'),
+                ('principal_adjoint', 'Principal Adjoint (Collège)'),
+                ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
+                # Administration
+                ('secretaire_principal', 'Secrétaire Principal'),
+                ('gestionnaire', 'Gestionnaire'),
+                # Pédagogie - Censeurs
+                ('censeur', 'Censeur'),
+                ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
+                ('censeur_adjoint', 'Censeur Adjoint (Lycées)'),
+                ('censeur_premier_cycle', 'Censeur du Premier Cycle (6e à 3e)'),
+                ('censeur_second_cycle', 'Censeur du Second Cycle (2nde à Tle)'),
+                ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
+                ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
+                # Vie Scolaire
+                ('surveillant_general', 'Surveillant Général'),
+                ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+            ],
+        }
+        
+        # Ajouter l'administrateur système à tous les types
+        for type_etab in fonctions:
+            fonctions[type_etab].append(('administrateur', 'Administrateur Système'))
+        
+        return fonctions.get(type_etablissement, [])
+    
+    @staticmethod
+    def generate_mot_de_passe_provisoire():
+        """
+        Génère un mot de passe provisoire de 6 chiffres
+        """
+        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    @staticmethod
     def generate_numero_employe(fonction, etablissement):
         """
         Génère un numéro d'employé unique basé sur le rôle et l'établissement
         """
         # Préfixes selon le rôle
         prefixes = {
-            'secretaire': 'SEC',
-            'surveillant_general': 'SG',
+            # Direction
+            'directeur_adjoint_primaire': 'DIR-ADJ',
+            'principal_adjoint': 'PRI-ADJ',
+            'proviseur_adjoint': 'PROV-ADJ',
+            'directeur_principal': 'DIR-P',
+            'directeur_section_primaire': 'DIR-SEC',
+            'principal_section_college': 'PRI-SEC',
+            'proviseur_section_lycee': 'PROV-SEC',
+            # Administration
+            'secretaire_principal': 'SEC-P',
+            'gestionnaire': 'GES',
+            # Pédagogie
             'censeur': 'CEN',
+            'censeur_etudes': 'CEN-ET',
+            'censeur_adjoint': 'CEN-ADJ',
+            'censeur_premier_cycle': 'CEN-C1',
+            'censeur_second_cycle': 'CEN-C2',
+            'censeur_pedagogie': 'CEN-PED',
+            'censeur_vie_scolaire': 'CEN-VS',
+            # Vie Scolaire
+            'surveillant_general': 'SG',
+            'secretaire_vie_scolaire': 'SEC-VS',
+            # Autres
             'administrateur': 'ADM',
         }
         
@@ -88,6 +246,9 @@ class PersonnelController:
             etablissement=etablissement
         ).order_by('-date_creation')
         
+        # Catégoriser le personnel
+        categories_personnel = PersonnelController.categoriser_personnel(personnel)
+        
         # Récupérer les professeurs de l'établissement
         from ..model.professeur_model import Professeur
         professeurs = Professeur.objects.filter(
@@ -128,6 +289,7 @@ class PersonnelController:
         
         context = {
             'personnel': personnel,
+            'categories_personnel': categories_personnel,
             'professeurs': professeurs,
             'matieres_avec_compteurs': matieres_avec_compteurs,
             'etablissement': etablissement,
@@ -159,14 +321,19 @@ class PersonnelController:
                 'email': request.POST.get('email', '').strip(),
                 'telephone': request.POST.get('telephone', '').strip(),
                 'fonction': request.POST.get('fonction', ''),
-                'password': request.POST.get('password', ''),
             }
             
             # Validation
             is_valid = True
             
+            # Récupérer les fonctions valides pour ce type d'établissement
+            fonctions_valides = PersonnelController.get_fonctions_par_type_etablissement(
+                etablissement.type_etablissement
+            )
+            fonctions_valides_codes = [f[0] for f in fonctions_valides]
+            
             # Champs obligatoires
-            required_fields = ['nom', 'prenom', 'email', 'telephone', 'fonction', 'password']
+            required_fields = ['nom', 'prenom', 'email', 'telephone', 'fonction']
             for field in required_fields:
                 if not form_data[field]:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -182,27 +349,22 @@ class PersonnelController:
                 field_errors['email'] = "Cette adresse email est déjà utilisée."
                 is_valid = False
             
-            # Validation des mots de passe
-            if form_data['password'] and len(form_data['password']) < 8:
-                field_errors['password'] = "Le mot de passe doit contenir au moins 8 caractères."
-                is_valid = False
-            
-            # Validation du type de personnel
-            valid_types = [choice[0] for choice in PersonnelAdministratif.TYPE_FONCTION_CHOICES]
-            if form_data['fonction'] not in valid_types:
-                field_errors['fonction'] = "Le type de fonction sélectionné n'est pas valide."
+            # Validation du type de personnel selon le type d'établissement
+            if form_data['fonction'] and form_data['fonction'] not in fonctions_valides_codes:
+                field_errors['fonction'] = f"Cette fonction n'est pas disponible pour un établissement de type {etablissement.get_type_etablissement_display()}."
                 is_valid = False
             
             # Si tout est valide, créer le personnel
             if is_valid:
                 try:
                     with transaction.atomic():
-                        # Générer le username et numéro d'employé
+                        # Générer le username, numéro d'employé et mot de passe
                         username = form_data['email']
                         numero_employe = PersonnelController.generate_numero_employe(
                             form_data['fonction'], 
                             etablissement
                         )
+                        mot_de_passe = PersonnelController.generate_mot_de_passe_provisoire()
                         
                         # Créer le personnel
                         personnel = PersonnelAdministratif(
@@ -214,13 +376,17 @@ class PersonnelController:
                             username=username,
                             numero_employe=numero_employe,
                             etablissement=etablissement,
+                            mot_de_passe_provisoire=mot_de_passe,
                         )
                         
-                        # Définir le mot de passe
-                        personnel.set_password(form_data['password'])
+                        # Définir le mot de passe (haché)
+                        personnel.set_password(mot_de_passe)
                         personnel.save()
                         
-                        messages.success(request, f"Le personnel {personnel.nom_complet} a été ajouté avec succès !")
+                        messages.success(
+                            request, 
+                            f"Le personnel {personnel.nom_complet} a été ajouté avec succès ! Mot de passe provisoire : {mot_de_passe}"
+                        )
                         return redirect('personnel:liste_personnel')
                         
                 except Exception as e:
@@ -228,11 +394,16 @@ class PersonnelController:
                     field_errors['__all__'] = "Une erreur est survenue lors de l'ajout du personnel."
                     is_valid = False
         
+        # Récupérer les fonctions disponibles selon le type d'établissement
+        fonctions_disponibles = PersonnelController.get_fonctions_par_type_etablissement(
+            etablissement.type_etablissement
+        )
+        
         context = {
             'form_data': form_data,
             'field_errors': field_errors,
             'etablissement': etablissement,
-            'type_choices': PersonnelAdministratif.TYPE_FONCTION_CHOICES,
+            'fonctions_disponibles': fonctions_disponibles,
         }
         
         return render(request, 'school_admin/directeur/personnel/ajouter_personnel.html', context)

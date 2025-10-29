@@ -65,6 +65,21 @@ class Moyenne(models.Model):
         default=0,
         verbose_name="Nombre de notes utilisées"
     )
+    mode_calcul = models.CharField(
+        max_length=20,
+        default='toutes',
+        verbose_name="Mode de calcul (toutes, 2, 3, 4)"
+    )
+    evaluations_utilisees = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="IDs des évaluations utilisées dans le calcul"
+    )
+    details_notes = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Détails des notes utilisées (valeurs, titres, barèmes)"
+    )
     date_calcul = models.DateTimeField(
         auto_now=True,
         verbose_name="Date du calcul"

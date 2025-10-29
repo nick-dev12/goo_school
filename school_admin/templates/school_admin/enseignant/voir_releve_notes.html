@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relevé de Notes - {{ classe.nom }}</title>
+    {% load static %}
+    {% load notes_tags %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant.css' %}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .main-content {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .breadcrumb {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .page-header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .badge-statut {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 1rem;
+        }
+
+        .badge-statut.soumis {
+            background-color: #28a745;
+        }
+
+        .badge-statut.en-cours {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        /* Onglets de périodes */
+        .periodes-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .periode-tab {
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .periode-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .periode-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .periode-tab .badge-en-cours {
+            background: #28a745;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+
+        /* Info card */
+        .info-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .info-item i {
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+
+        .info-item .label {
+            font-size: 0.85rem;
+            color: #999;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-item .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        .releve-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .releve-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .releve-table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .releve-table th.center {
+            text-align: center;
+        }
+
+        .releve-table tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+
+        .releve-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .releve-table td {
+            padding: 1rem;
+        }
+
+        .releve-table td.center {
+            text-align: center;
+        }
+
+        .eleve-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .eleve-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .eleve-nom {
+            font-weight: 500;
+        }
+
+        .note-cell {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .note-cell.note-examen {
+            border: 2px solid #f59e0b;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+            font-weight: 700;
+        }
+
+        .note-cell.excellent {
+            color: #28a745;
+        }
+
+        .note-cell.bien {
+            color: #17a2b8;
+        }
+
+        .note-cell.passable {
+            color: #ffc107;
+        }
+
+        .note-cell.insuffisant {
+            color: #dc3545;
+        }
+
+        .note-cell.absent {
+            color: #999;
+            font-style: italic;
+        }
+
+        .moyenne-cell {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* Actions */
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .stat-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .label {
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media print {
+            .actions-bar, .breadcrumb, .periodes-tabs {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant.html' %}
+
+    <div class="main-content">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}"><i class="fas fa-home"></i> Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'enseignant:gestion_notes' %}">Gestion des notes</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Relevé de notes - {{ classe.nom }}</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-file-alt"></i>
+                Relevé de Notes - {{ classe.nom }}
+                {% if releve_notes %}
+                    {% if releve_notes.soumis %}
+                        <span class="badge-statut soumis">
+                            <i class="fas fa-lock"></i> Soumis
+                        </span>
+                    {% else %}
+                        <span class="badge-statut en-cours">
+                            <i class="fas fa-edit"></i> En cours
+                        </span>
+                    {% endif %}
+                {% endif %}
+            </h1>
+            <p>{{ matiere.nom }} - {% if periode_active %}{{ periode_active.nom_periode }}{% endif %}</p>
+        </div>
+
+        <!-- Onglets de périodes -->
+        <div class="periodes-tabs">
+            {% if periodes_scolaires %}
+                {% for periode in periodes_scolaires %}
+                    <a href="?periode={{ periode.id }}" 
+                       class="periode-tab {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ periode.nom_periode }}</span>
+                        {% if periode.est_en_cours %}
+                            <span class="badge-en-cours">En cours</span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-bar">
+            <a href="{% url 'enseignant:gestion_notes' %}?periode={{ periode_active.id }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Retour à la gestion des notes
+            </a>
+            <div style="display: flex; gap: 1rem;">
+                {% if releve_notes and not releve_notes.soumis %}
+                    <a href="{% url 'enseignant:noter_eleves' classe.id %}?periode={{ periode_active.id }}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i>
+                        Modifier les notes
+                    </a>
+                    <button type="button" 
+                            onclick="if(confirm('Êtes-vous sûr de vouloir soumettre ce relevé ? Cette action est irréversible et verrouillera toutes les notes.')) { window.location.href='{% url 'enseignant:soumettre_releve' classe.id %}?periode={{ periode_active.id }}'; }"
+                            class="btn btn-success">
+                        <i class="fas fa-paper-plane"></i> Soumettre le relevé
+                    </button>
+                {% else %}
+                    <div class="btn btn-locked" style="background: #6c757d; color: white; cursor: not-allowed;">
+                        <i class="fas fa-lock"></i> Relevé soumis
+                    </div>
+                {% endif %}
+                <a href="{% url 'enseignant:imprimer_releve' classe.id %}?periode={{ periode_active.id }}" target="_blank" class="btn btn-info">
+                    <i class="fas fa-print"></i>
+                    Imprimer
+                </a>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="info-card">
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="fas fa-chalkboard"></i>
+                    <div>
+                        <div class="label">Classe</div>
+                        <div class="value">{{ classe.nom }}</div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-book"></i>
+                    <div>
+                        <div class="label">Matière</div>
+                        <div class="value">{{ matiere.nom }}</div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-calendar-check"></i>
+                    <div>
+                        <div class="label">Période</div>
+                        <div class="value">{% if periode_active %}{{ periode_active.nom_periode }}{% endif %}</div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <div class="label">Effectif</div>
+                        <div class="value">{{ eleves_avec_notes|length }} élève{{ eleves_avec_notes|length|pluralize }}</div>
+                    </div>
+                </div>
+                {% if releve_notes and releve_notes.soumis %}
+                <div class="info-item">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <div class="label">Soumis le</div>
+                        <div class="value">{{ releve_notes.date_soumission|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        {% if eleves_avec_notes %}
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-chart-line" style="color: #667eea;"></i></div>
+                <div class="label">Moyenne de classe</div>
+                <div class="value">
+                    {% widthratio eleves_avec_notes|length 1 1 as total %}
+                    {% with sum=0 count=0 %}
+                        {% for eleve_data in eleves_avec_notes %}
+                            {% if eleve_data.moyenne %}
+                                {% widthratio eleve_data.moyenne|add:sum 1 1 as sum %}
+                                {% widthratio count|add:1 1 1 as count %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %}
+                    --/20
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-clipboard-list" style="color: #28a745;"></i></div>
+                <div class="label">Évaluations</div>
+                <div class="value">{{ colonnes_devoirs|length }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-user-check" style="color: #17a2b8;"></i></div>
+                <div class="label">Élèves notés</div>
+                <div class="value">
+                    {% with notes_count=0 %}
+                        {% for eleve_data in eleves_avec_notes %}
+                            {% if eleve_data.nombre_notes > 0 %}
+                                {% widthratio notes_count|add:1 1 1 as notes_count %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ notes_count }}/{{ eleves_avec_notes|length }}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Table du relevé -->
+        <div class="table-container">
+            {% if eleves_avec_notes and colonnes_devoirs %}
+                <table class="releve-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Élève</th>
+                            {% for colonne in colonnes_devoirs %}
+                                <th class="center">
+                                    {{ colonne.titre }}<br>
+                                    <small style="opacity: 0.8;">/{{ colonne.bareme }}</small>
+                                </th>
+                            {% endfor %}
+                            <th class="center" style="background: rgba(102, 126, 234, 0.2); border-left: 3px solid #667eea;">
+                                <i class="fas fa-calculator"></i> Moyenne Devoirs de Classe<br>
+                                <small style="opacity: 0.9;">/20</small>
+                            </th>
+                            {% if session_examen %}
+                            <th class="center" style="background: rgba(245, 158, 11, 0.3); border-left: 3px solid #f59e0b;">
+                                <i class="fas fa-clipboard-check"></i> Note Examen<br>
+                                <small style="opacity: 0.9;">/20</small>
+                            </th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eleve_data in eleves_avec_notes %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <div class="eleve-info">
+                                    <div class="eleve-avatar">{{ eleve_data.eleve.prenom|slice:":1" }}{{ eleve_data.eleve.nom|slice:":1" }}</div>
+                                    <div class="eleve-nom">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom|title }}</div>
+                                </div>
+                            </td>
+                            {% for colonne in colonnes_devoirs %}
+                                <td class="center">
+                                    {% if eleve_data.notes_simplifiees and forloop.counter0 < eleve_data.notes_simplifiees|length %}
+                                        {% with note_detail=eleve_data.notes_simplifiees|get_item:forloop.counter0 %}
+                                            {% if note_detail and note_detail.note %}
+                                                <span class="note-cell {% if note_detail.note >= 14 %}excellent{% elif note_detail.note >= 10 %}bien{% elif note_detail.note >= 8 %}passable{% else %}insuffisant{% endif %}">
+                                                    {{ note_detail.note|floatformat:2 }}
+                                                </span>
+                                            {% else %}
+                                                <span style="color: #ccc;">--</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <span style="color: #ccc;">--</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            <td class="center" style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea;">
+                                {% if eleve_data.moyenne %}
+                                    <span class="moyenne-cell {% if eleve_data.moyenne >= 14 %}excellent{% elif eleve_data.moyenne >= 10 %}bien{% elif eleve_data.moyenne >= 8 %}passable{% else %}insuffisant{% endif %}">
+                                        {{ eleve_data.moyenne }}/20
+                                    </span>
+                                {% else %}
+                                    <span style="color: #ccc;">--</span>
+                                {% endif %}
+                            </td>
+                            {% if session_examen %}
+                            <td class="center" style="background: rgba(245, 158, 11, 0.05); border-left: 3px solid #f59e0b;">
+                                {% if eleve_data.note_examen %}
+                                    {% if eleve_data.note_examen.absent %}
+                                        <span style="color: #ef4444; font-weight: 600;">
+                                            <i class="fas fa-times-circle"></i> Absent
+                                        </span>
+                                    {% elif eleve_data.note_examen.note_sur_20 %}
+                                        <span class="note-cell note-examen {% if eleve_data.note_examen.note_sur_20 >= 14 %}excellent{% elif eleve_data.note_examen.note_sur_20 >= 10 %}bien{% elif eleve_data.note_examen.note_sur_20 >= 8 %}passable{% else %}insuffisant{% endif %}">
+                                            {{ eleve_data.note_examen.note_sur_20|floatformat:2 }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: #ccc;">--</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span style="color: #ccc;">--</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-clipboard"></i>
+                    <h3>Aucune évaluation pour cette période</h3>
+                    <p>Créez des évaluations pour commencer à noter les élèves</p>
+                    <a href="{% url 'enseignant:gestion_notes' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour à la gestion des notes
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+</body>
+</html>
+

@@ -68,13 +68,11 @@ def dashboard_enseignant(request):
         creneaux_classe = CreneauEmploiDuTemps.objects.filter(
             emploi_du_temps__classe=classe,
             professeur=professeur
-        )
+        ).select_related('periode_etablissement')
         
         heures_semaine = 0
         for creneau in creneaux_classe:
-            duree = (creneau.heure_fin.hour * 60 + creneau.heure_fin.minute) - \
-                    (creneau.heure_debut.hour * 60 + creneau.heure_debut.minute)
-            heures_semaine += duree / 60
+            heures_semaine += creneau.duree_minutes / 60
         
         # Progression fictive basée sur la date (pour avoir quelque chose de dynamique)
         mois_ecoule = datetime.now().month - 9  # Septembre = mois 1
@@ -107,7 +105,15 @@ def dashboard_enseignant(request):
     creneaux_aujourdhui = CreneauEmploiDuTemps.objects.filter(
         professeur=professeur,
         jour=jour_actuel
-    ).select_related('emploi_du_temps__classe', 'matiere', 'salle').order_by('heure_debut')
+    ).select_related('emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('periode_etablissement__ordre', 'heure_debut')
+    
+    # Ajouter icônes et couleurs aux créneaux d'aujourd'hui
+    from ..controllers.emploi_du_temps_controller import get_matiere_config
+    for creneau in creneaux_aujourdhui:
+        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
+        icone, couleur = get_matiere_config(matiere_nom)
+        creneau.matiere_icone = icone
+        creneau.matiere_couleur = couleur
     
     # ===== DEVOIRS À CORRIGER =====
     # Récupérer les évaluations avec des notes manquantes
@@ -383,10 +389,34 @@ def gestion_notes_enseignant(request):
     from ..model.affectation_model import AffectationProfesseur
     from ..model.moyenne_model import Moyenne
     from ..model.evaluation_model import Evaluation
+    from ..model.periode_model import PeriodeScolaire
     import re
     
-    # Récupérer la période sélectionnée (depuis GET ou par défaut trimestre1)
-    periode_active = request.GET.get('periode', 'trimestre1')
+    # Récupérer toutes les périodes scolaires de l'établissement
+    periodes_scolaires = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer l'ID de la période sélectionnée (depuis GET ou par défaut la période en cours)
+    periode_id = request.GET.get('periode', '')
+    periode_active_obj = None
+    
+    if periode_id:
+        try:
+            periode_active_obj = periodes_scolaires.get(id=periode_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    
+    # Si aucune période sélectionnée, prendre la période en cours ou la première
+    if not periode_active_obj:
+        # Rechercher la période en cours manuellement (est_en_cours est une propriété)
+        for periode in periodes_scolaires:
+            if periode.est_en_cours:
+                periode_active_obj = periode
+                break
+        if not periode_active_obj:
+            periode_active_obj = periodes_scolaires.first()
     
     # Récupérer toutes les affectations actives du professeur
     affectations = AffectationProfesseur.objects.filter(
@@ -422,13 +452,17 @@ def gestion_notes_enseignant(request):
         eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
         
         # Récupérer les moyennes pour cette classe et cette période
-        moyennes = Moyenne.objects.filter(
-            classe=classe,
-            professeur=professeur,
-            matiere=professeur.matiere_principale,
-            periode=periode_active,
-            actif=True
-        ).select_related('eleve')
+        # Note: Le système de moyennes utilise encore l'ancien format
+        # On peut filtrer par date à la place si période_active_obj existe
+        if periode_active_obj:
+            moyennes = Moyenne.objects.filter(
+                classe=classe,
+                professeur=professeur,
+                matiere=professeur.matiere_principale,
+                actif=True
+            ).select_related('eleve')
+        else:
+            moyennes = Moyenne.objects.none()
         
         # Créer un dictionnaire des moyennes par élève
         moyennes_par_eleve = {}
@@ -471,16 +505,261 @@ def gestion_notes_enseignant(request):
         'total_eleves': total_eleves,
     }
     
+    # Récupérer les sessions d'examens pour les classes du professeur
+    from ..model.session_examen_model import SessionExamen
+    
+    # Récupérer toutes les classes du professeur
+    classes_prof = [aff.classe for aff in affectations]
+    
+    # Trouver les sessions d'examens qui concernent:
+    # 1. Les classes du professeur
+    # 2. La matière du professeur
+    # 3. La période active
+    sessions_examens_par_classe = {}
+    
+    if professeur.matiere_principale and periode_active_obj:
+        for classe in classes_prof:
+            sessions = SessionExamen.objects.filter(
+                etablissement=professeur.etablissement,
+                classes=classe,
+                matieres=professeur.matiere_principale,
+                periode=periode_active_obj,
+                actif=True
+            ).distinct()
+            
+            if sessions.exists():
+                sessions_examens_par_classe[classe.id] = sessions.first()
+    
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
-        'periode_active': periode_active,
-        'PERIODES': Evaluation.PERIODE_CHOICES,
+        'periode_active': periode_active_obj,
+        'periodes_scolaires': periodes_scolaires,
+        'sessions_examens_par_classe': sessions_examens_par_classe,
     }
     
     return render(request, 'school_admin/enseignant/gestion_notes.html', context)
+
+
+def noter_examen_enseignant(request, classe_id, session_id=None):
+    """
+    Page pour noter les élèves d'une classe pour un examen spécifique
+    Gère les onglets par période et les sous-onglets par session
+    """
+    logger.info(f"Noter examen - User: {request.user}, Classe ID: {classe_id}, Session ID: {session_id}")
+    
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    from ..model.eleve_model import Eleve
+    from ..model.classe_model import Classe
+    from ..model.session_examen_model import SessionExamen
+    from ..model.note_examen_model import NoteExamen
+    from ..model.periode_model import PeriodeScolaire
+    from django.shortcuts import get_object_or_404
+    from django.db import transaction
+    from django.utils import timezone
+    from decimal import Decimal
+    from collections import defaultdict
+    
+    # Vérifier que la classe existe
+    classe = get_object_or_404(Classe, id=classe_id, etablissement=professeur.etablissement)
+    
+    # Récupérer toutes les périodes scolaires
+    periodes_scolaires = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer toutes les sessions d'examen pour cette classe et cette matière
+    toutes_sessions = SessionExamen.objects.filter(
+        etablissement=professeur.etablissement,
+        classes=classe,
+        matieres=professeur.matiere_principale,
+        actif=True
+    ).select_related('periode').order_by('-date_debut')
+    
+    # Organiser les sessions par période
+    sessions_par_periode = defaultdict(list)
+    for session in toutes_sessions:
+        sessions_par_periode[session.periode.id].append(session)
+    
+    # Déterminer la période et session actives
+    periode_id = request.GET.get('periode')
+    if not periode_id and toutes_sessions.exists():
+        # Par défaut, sélectionner la période de la première session
+        periode_id = str(toutes_sessions.first().periode.id)
+    
+    periode_active = None
+    if periode_id:
+        try:
+            periode_active = periodes_scolaires.get(id=periode_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    
+    # Si session_id n'est pas fourni, prendre la première session de la période active
+    if not session_id and periode_active and periode_active.id in sessions_par_periode:
+        session_examen = sessions_par_periode[periode_active.id][0]
+    elif session_id:
+        session_examen = get_object_or_404(SessionExamen, id=session_id, etablissement=professeur.etablissement)
+    else:
+        # Aucune session trouvée
+        messages.warning(request, "Aucune session d'examen trouvée pour cette classe.")
+        return redirect('enseignant:gestion_notes')
+    
+    # Vérifier que la matière du professeur fait partie de la session
+    if professeur.matiere_principale not in session_examen.matieres.all():
+        messages.error(request, "Votre matière ne fait pas partie de cette session d'examen.")
+        return redirect('enseignant:gestion_notes')
+    
+    # Vérifier que la classe fait partie de la session
+    if classe not in session_examen.classes.all():
+        messages.error(request, "Cette classe ne fait pas partie de cette session d'examen.")
+        return redirect('enseignant:gestion_notes')
+    
+    # Récupérer les élèves actifs de la classe
+    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    
+    # Barème par défaut (peut être modifié selon les besoins)
+    bareme = Decimal('20.00')
+    
+    # Fonction pour générer un commentaire automatique basé sur la note
+    def generer_commentaire_auto(note_sur_20):
+        if note_sur_20 is None:
+            return ""
+        elif note_sur_20 >= 18:
+            return "Excellent travail ! Résultats exceptionnels."
+        elif note_sur_20 >= 16:
+            return "Très bon travail ! Continue ainsi."
+        elif note_sur_20 >= 14:
+            return "Bon travail. Résultats satisfaisants."
+        elif note_sur_20 >= 12:
+            return "Travail correct. Peut mieux faire."
+        elif note_sur_20 >= 10:
+            return "Résultat moyen. Doit fournir plus d'efforts."
+        elif note_sur_20 >= 8:
+            return "Résultat fragile. Nécessite du travail supplémentaire."
+        else:
+            return "Résultat insuffisant. Besoin de soutien important."
+    
+    # Vérifier si les notes ont déjà été soumises
+    premiere_note = NoteExamen.objects.filter(
+        session_examen=session_examen,
+        matiere=professeur.matiere_principale,
+        classe=classe
+    ).first()
+    notes_soumises = premiere_note.soumis if premiere_note else False
+    
+    # Traitement du formulaire
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        # Vérifier si les notes sont déjà soumises
+        if notes_soumises and action != 'soumettre':
+            messages.error(request, "Les notes ont déjà été soumises et ne peuvent plus être modifiées.")
+            return redirect('enseignant:noter_examen', classe_id=classe.id, session_id=session_examen.id)
+        
+        try:
+            with transaction.atomic():
+                bareme_str = request.POST.get('bareme', '20').replace(',', '.')
+                bareme_post = Decimal(bareme_str)
+                notes_enregistrees = 0
+                
+                for eleve in eleves:
+                    note_value = request.POST.get(f'note_{eleve.id}', '').strip().replace(',', '.')
+                    absent = request.POST.get(f'absent_{eleve.id}') == 'on'
+                    commentaire_perso = request.POST.get(f'commentaire_{eleve.id}', '').strip()
+                    
+                    # Récupérer ou créer la note d'examen
+                    note_examen, created = NoteExamen.objects.get_or_create(
+                        eleve=eleve,
+                        session_examen=session_examen,
+                        matiere=professeur.matiere_principale,
+                        defaults={
+                            'professeur': professeur,
+                            'classe': classe,
+                            'bareme': bareme_post,
+                            'absent': absent
+                        }
+                    )
+                    
+                    # Si déjà soumis, ne pas modifier
+                    if note_examen.soumis and action != 'soumettre':
+                        continue
+                    
+                    # Mettre à jour si elle existe déjà
+                    if not created:
+                        note_examen.professeur = professeur
+                        note_examen.classe = classe
+                        note_examen.bareme = bareme_post
+                        note_examen.absent = absent
+                    
+                    # Enregistrer la note ou marquer absent
+                    if absent:
+                        note_examen.note = None
+                        note_examen.absent = True
+                        note_examen.commentaire = commentaire_perso if commentaire_perso else "Absent à l'examen"
+                    elif note_value:
+                        note_examen.note = Decimal(note_value)
+                        note_examen.absent = False
+                        # Calculer note_sur_20 pour le commentaire
+                        note_sur_20_calc = (note_examen.note / bareme_post) * 20
+                        # Utiliser le commentaire personnalisé ou générer automatiquement
+                        note_examen.commentaire = commentaire_perso if commentaire_perso else generer_commentaire_auto(note_sur_20_calc)
+                    
+                    # Si action est "soumettre", marquer comme soumis
+                    if action == 'soumettre':
+                        note_examen.soumis = True
+                        note_examen.date_soumission = timezone.now()
+                    
+                    note_examen.save()
+                    notes_enregistrees += 1
+                
+                if action == 'soumettre':
+                    messages.success(request, f"Notes soumises avec succès ! Les notes sont maintenant verrouillées et ne peuvent plus être modifiées.")
+                else:
+                    messages.success(request, f"{notes_enregistrees} note(s) d'examen enregistrée(s) avec succès pour {classe.nom} - {professeur.matiere_principale.nom}.")
+                
+                # Rediriger vers la même page avec les paramètres de période
+                from django.urls import reverse
+                url = reverse('enseignant:noter_examen_session', kwargs={'classe_id': classe.id, 'session_id': session_examen.id})
+                if periode_active:
+                    url += f"?periode={periode_active.id}"
+                return redirect(url)
+                
+        except Exception as e:
+            messages.error(request, f"Erreur lors de l'enregistrement des notes : {str(e)}")
+    
+    # Récupérer les notes existantes
+    notes_existantes_list = NoteExamen.objects.filter(
+        session_examen=session_examen,
+        matiere=professeur.matiere_principale,
+        classe=classe,
+        actif=True
+    ).select_related('eleve')
+    
+    notes_existantes = {note.eleve.id: note for note in notes_existantes_list}
+    
+    context = {
+        'professeur': professeur,
+        'classe': classe,
+        'session_examen': session_examen,
+        'matiere': professeur.matiere_principale,
+        'eleves': eleves,
+        'bareme': bareme,
+        'notes_existantes': notes_existantes,
+        'notes_soumises': notes_soumises,
+        'periodes_scolaires': periodes_scolaires,
+        'periode_active': periode_active or session_examen.periode,
+        'sessions_par_periode': dict(sessions_par_periode),
+        'toutes_sessions': toutes_sessions,
+    }
+    
+    return render(request, 'school_admin/enseignant/noter_examen.html', context)
 
 
 def noter_eleves_enseignant(request, classe_id):
@@ -499,6 +778,7 @@ def noter_eleves_enseignant(request, classe_id):
     from ..model.classe_model import Classe
     from ..model.affectation_model import AffectationProfesseur
     from ..model.evaluation_model import Evaluation, Note
+    from ..model.periode_model import PeriodeScolaire
     from django.shortcuts import get_object_or_404
     from django.db import transaction
     from decimal import Decimal
@@ -512,48 +792,75 @@ def noter_eleves_enseignant(request, classe_id):
         actif=True
     )
     
-    # Récupérer la période sélectionnée (depuis GET ou par défaut trimestre1)
-    periode_active = request.GET.get('periode', 'trimestre1')
+    # Récupérer toutes les périodes scolaires de l'établissement
+    periodes_scolaires = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer l'ID de la période sélectionnée (depuis GET ou par défaut la période en cours)
+    periode_id = request.GET.get('periode', '')
+    periode_active_obj = None
+    
+    if periode_id:
+        try:
+            periode_active_obj = periodes_scolaires.get(id=periode_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    
+    # Si aucune période sélectionnée, prendre la période en cours ou la première
+    if not periode_active_obj:
+        # Rechercher la période en cours manuellement (est_en_cours est une propriété)
+        for periode in periodes_scolaires:
+            if periode.est_en_cours:
+                periode_active_obj = periode
+                break
+        if not periode_active_obj:
+            periode_active_obj = periodes_scolaires.first()
     
     # Récupérer ou créer le relevé de notes pour cette classe/professeur/matière/période
     from ..model.releve_notes_model import ReleveNotes
-    releve_notes, created = ReleveNotes.objects.get_or_create(
-        classe=classe,
-        professeur=professeur,
-        matiere=professeur.matiere_principale,
-        periode=periode_active,
-        defaults={
-            'etablissement': classe.etablissement,
-            'soumis': False
-        }
-    )
     
-    # Récupérer tous les relevés pour afficher les onglets
-    tous_releves = ReleveNotes.objects.filter(
-        classe=classe,
-        professeur=professeur,
-        matiere=professeur.matiere_principale
-    ).order_by('periode')
+    if periode_active_obj:
+        releve_notes, created = ReleveNotes.objects.get_or_create(
+            classe=classe,
+            professeur=professeur,
+            matiere=professeur.matiere_principale,
+            periode_scolaire=periode_active_obj,
+            defaults={
+                'etablissement': classe.etablissement,
+                'soumis': False
+            }
+        )
+    else:
+        # Créer un objet fictif si aucune période
+        class FakeReleveNotes:
+            soumis = False
+        releve_notes = FakeReleveNotes()
     
     # Récupérer les élèves de la classe
     eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
     
     # Récupérer toutes les évaluations de la classe pour ce professeur pour la période active
-    evaluations_interrogations = list(Evaluation.objects.filter(
-        classe=classe,
-        professeur=professeur,
-        type_evaluation='interrogation',
-        periode=periode_active,
-        actif=True
-    ).order_by('date_evaluation'))
-    
-    evaluations_devoirs = list(Evaluation.objects.filter(
-        classe=classe,
-        professeur=professeur,
-        type_evaluation__in=['controle', 'devoir_maison'],
-        periode=periode_active,
-        actif=True
-    ).order_by('date_evaluation'))
+    if periode_active_obj:
+        evaluations_interrogations = list(Evaluation.objects.filter(
+            classe=classe,
+            professeur=professeur,
+            type_evaluation='interrogation',
+            periode_scolaire=periode_active_obj,
+            actif=True
+        ).order_by('date_evaluation'))
+        
+        evaluations_devoirs = list(Evaluation.objects.filter(
+            classe=classe,
+            professeur=professeur,
+            type_evaluation__in=['controle', 'devoir_maison'],
+            periode_scolaire=periode_active_obj,
+            actif=True
+        ).order_by('date_evaluation'))
+    else:
+        evaluations_interrogations = []
+        evaluations_devoirs = []
     
     # Créer la liste complète des évaluations avec leur clé
     evaluations_liste = []
@@ -593,20 +900,24 @@ def noter_eleves_enseignant(request, classe_id):
     # Récupérer les moyennes enregistrées
     from ..model.moyenne_model import Moyenne
     moyennes_enregistrees = {}
-    for eleve in eleves:
-        moyenne_obj = Moyenne.objects.filter(
-            eleve=eleve,
+    
+    if periode_active_obj:
+        # Récupérer les moyennes pour cette période (stockée en string avec l'ID)
+        moyennes_db = Moyenne.objects.filter(
             classe=classe,
+            professeur=professeur,
             matiere=professeur.matiere_principale,
-            periode=periode_active,
+            periode=str(periode_active_obj.id),
             actif=True
-        ).first()
-        if moyenne_obj:
-            moyennes_enregistrees[eleve.id] = {
-                'moyenne': moyenne_obj.moyenne,
-                'nombre_notes': moyenne_obj.nombre_notes,
-                'appreciation': moyenne_obj.appreciation
+        )
+        
+        for moyenne in moyennes_db:
+            moyennes_enregistrees[moyenne.eleve.id] = {
+                'moyenne': float(moyenne.moyenne),
+                'nombre_notes': moyenne.nombre_notes
             }
+        
+        logger.info(f"Moyennes chargées: {len(moyennes_enregistrees)} pour la période {periode_active_obj.nom_periode}")
     
     # Traitement du formulaire POST
     if request.method == 'POST':
@@ -703,9 +1014,8 @@ def noter_eleves_enseignant(request, classe_id):
         'moyennes_enregistrees': moyennes_enregistrees,
         'has_evaluations': len(evaluations_liste) > 0,
         'releve_notes': releve_notes,
-        'tous_releves': tous_releves,
-        'periode_active': periode_active,
-        'PERIODES': Evaluation.PERIODE_CHOICES,
+        'periode_active': periode_active_obj,
+        'periodes_scolaires': periodes_scolaires,
     }
     
     return render(request, 'school_admin/enseignant/noter_eleves.html', context)
@@ -725,6 +1035,7 @@ def creer_evaluation_enseignant(request, classe_id):
     from ..model.classe_model import Classe
     from ..model.affectation_model import AffectationProfesseur
     from ..model.evaluation_model import Evaluation
+    from ..model.periode_model import PeriodeScolaire
     from django.shortcuts import get_object_or_404
     from django.db import transaction
     
@@ -752,13 +1063,21 @@ def creer_evaluation_enseignant(request, classe_id):
         date_evaluation = request.POST.get('date_evaluation', '')
         bareme = request.POST.get('bareme', '20')
         duree = request.POST.get('duree', '')
-        periode = request.POST.get('periode', 'trimestre1')
+        periode_scolaire_id = request.POST.get('periode_scolaire', '')
         
         # Validation
         if not titre:
             errors['titre'] = "Le titre est obligatoire."
         if not date_evaluation:
             errors['date_evaluation'] = "La date est obligatoire."
+        
+        # Valider la période scolaire
+        periode_scolaire = None
+        if periode_scolaire_id:
+            try:
+                periode_scolaire = PeriodeScolaire.objects.get(id=periode_scolaire_id, etablissement=professeur.etablissement)
+            except PeriodeScolaire.DoesNotExist:
+                errors['periode_scolaire'] = "Période scolaire invalide."
         
         try:
             bareme_float = float(bareme)
@@ -787,7 +1106,7 @@ def creer_evaluation_enseignant(request, classe_id):
                         professeur=professeur,
                         date_evaluation=date_evaluation,
                         bareme=bareme_float,
-                        periode=periode,
+                        periode_scolaire=periode_scolaire,
                         duree=int(duree) if duree else None,
                         actif=True
                     )
@@ -801,11 +1120,17 @@ def creer_evaluation_enseignant(request, classe_id):
                 errors['general'] = f"Erreur lors de la création de l'évaluation : {str(e)}"
         
         # Stocker les erreurs et les données dans le contexte
+        periodes_scolaires = PeriodeScolaire.objects.filter(
+            etablissement=professeur.etablissement,
+            est_active=True
+        ).order_by('date_debut')
+        
         context = {
             'professeur': professeur,
             'classe': classe,
             'affectation': affectation,
             'matiere': professeur.matiere_principale,
+            'periodes_scolaires': periodes_scolaires,
             'errors': errors,
             'form_data': request.POST,
         }
@@ -813,11 +1138,17 @@ def creer_evaluation_enseignant(request, classe_id):
         return render(request, 'school_admin/enseignant/creer_evaluation.html', context)
     
     # GET request
+    periodes_scolaires = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
     context = {
         'professeur': professeur,
         'classe': classe,
         'affectation': affectation,
         'matiere': professeur.matiere_principale,
+        'periodes_scolaires': periodes_scolaires,
         'errors': {},
         'form_data': {},
     }
@@ -933,12 +1264,14 @@ def calculer_moyennes_classe(request, classe_id):
     try:
         body = json.loads(request.body) if request.body else {}
         colonnes_selectionnees = body.get('colonnes_selectionnees', [])
-        periode = body.get('periode', 'trimestre1')
+        periode_id = body.get('periode', '')
+        nombre_meilleures_notes = body.get('nombre_meilleures_notes', 'toutes')  # 'toutes', '2', '3', etc.
     except:
         colonnes_selectionnees = []
-        periode = 'trimestre1'
+        periode_id = ''
+        nombre_meilleures_notes = 'toutes'
     
-    logger.info(f"Colonnes sélectionnées: {colonnes_selectionnees}")
+    logger.info(f"Colonnes sélectionnées: {colonnes_selectionnees}, Période ID: {periode_id}, Meilleures notes: {nombre_meilleures_notes}")
     
     # Si aucune colonne sélectionnée, retourner une erreur
     if not colonnes_selectionnees:
@@ -946,6 +1279,18 @@ def calculer_moyennes_classe(request, classe_id):
             'success': False,
             'error': 'Veuillez sélectionner au moins une colonne pour calculer les moyennes'
         }, status=400)
+    
+    # Récupérer la période scolaire
+    from ..model.periode_model import PeriodeScolaire
+    periode_active = None
+    if periode_id:
+        try:
+            periode_active = PeriodeScolaire.objects.get(id=periode_id, etablissement=professeur.etablissement)
+        except PeriodeScolaire.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Période scolaire invalide'
+            }, status=400)
     
     # Récupérer les élèves de la classe
     eleves = Eleve.objects.filter(classe=classe, actif=True)
@@ -955,7 +1300,7 @@ def calculer_moyennes_classe(request, classe_id):
         classe=classe,
         professeur=professeur,
         type_evaluation='interrogation',
-        periode=periode,
+        periode_scolaire=periode_active,
         actif=True
     ).order_by('date_evaluation')[:3]
     
@@ -963,7 +1308,7 @@ def calculer_moyennes_classe(request, classe_id):
         classe=classe,
         professeur=professeur,
         type_evaluation__in=['controle', 'devoir_maison'],
-        periode=periode,
+        periode_scolaire=periode_active,
         actif=True
     ).order_by('date_evaluation')[:3]
     
@@ -1001,25 +1346,156 @@ def calculer_moyennes_classe(request, classe_id):
                 if notes.count() == 0:
                     continue
                 
-                # Convertir toutes les notes sur 20
-                notes_sur_20 = []
+                # Séparer les interrogations et les devoirs
+                notes_interrogations = []
+                notes_devoirs = []
+                
                 for note in notes:
                     note_sur_20 = (float(note.note) / float(note.evaluation.bareme)) * 20
-                    notes_sur_20.append(note_sur_20)
+                    note_data = {
+                        'note_sur_20': note_sur_20,
+                        'evaluation_id': note.evaluation.id,
+                        'note_originale': float(note.note),
+                        'bareme': float(note.evaluation.bareme),
+                        'type': note.evaluation.type_evaluation
+                    }
+                    
+                    if note.evaluation.type_evaluation == 'interrogation':
+                        notes_interrogations.append(note_data)
+                    else:
+                        notes_devoirs.append(note_data)
+                
+                # Créer les notes composées (2 interrogations = 1 devoir)
+                notes_composees = []
+                evaluations_retenues_ids = []
+                
+                # Mode spécial : multiplier une interrogation par 2
+                if nombre_meilleures_notes == 'interro_x2':
+                    if notes_interrogations:
+                        # Prendre la meilleure interrogation et la multiplier par 2
+                        meilleure_interro = max(notes_interrogations, key=lambda x: x['note_sur_20'])
+                        notes_composees.append({
+                            'note_sur_20': meilleure_interro['note_sur_20'],
+                            'evaluations_ids': [meilleure_interro['evaluation_id']],
+                            'type': 'interro_x2',
+                            'description': f"Interrogation × 2"
+                        })
+                        evaluations_retenues_ids.append(meilleure_interro['evaluation_id'])
+                    
+                    # Ajouter tous les devoirs
+                    for dev in notes_devoirs:
+                        notes_composees.append({
+                            'note_sur_20': dev['note_sur_20'],
+                            'evaluations_ids': [dev['evaluation_id']],
+                            'type': 'devoir',
+                            'description': 'Devoir'
+                        })
+                        evaluations_retenues_ids.append(dev['evaluation_id'])
+                    
+                    # Prendre toutes les notes composées
+                    notes_sur_20 = [n['note_sur_20'] for n in notes_composees]
+                
+                else:
+                    # Créer les paires d'interrogations
+                    paires_interrogations = []
+                    for i in range(0, len(notes_interrogations), 2):
+                        if i + 1 < len(notes_interrogations):
+                            # Paire complète
+                            interro1 = notes_interrogations[i]
+                            interro2 = notes_interrogations[i + 1]
+                            note_paire = interro1['note_sur_20'] + interro2['note_sur_20']
+                            paires_interrogations.append({
+                                'note_sur_20': note_paire / 2,  # Moyenne des 2 pour avoir sur 20
+                                'evaluations_ids': [interro1['evaluation_id'], interro2['evaluation_id']],
+                                'type': 'paire_interro',
+                                'description': f"Interro 1+2"
+                            })
+                        else:
+                            # Interrogation seule (multiplier par 2)
+                            interro = notes_interrogations[i]
+                            paires_interrogations.append({
+                                'note_sur_20': interro['note_sur_20'],
+                                'evaluations_ids': [interro['evaluation_id']],
+                                'type': 'interro_seule',
+                                'description': f"Interro × 2"
+                            })
+                    
+                    # Ajouter les paires d'interrogations aux notes composées
+                    notes_composees.extend(paires_interrogations)
+                    
+                    # Ajouter les devoirs individuels
+                    for dev in notes_devoirs:
+                        notes_composees.append({
+                            'note_sur_20': dev['note_sur_20'],
+                            'evaluations_ids': [dev['evaluation_id']],
+                            'type': 'devoir',
+                            'description': 'Devoir'
+                        })
+                    
+                    # Sélectionner les meilleures notes composées
+                    if nombre_meilleures_notes.isdigit():
+                        nb_notes = int(nombre_meilleures_notes)
+                        if nb_notes > 0 and nb_notes < len(notes_composees):
+                            # Trier par ordre décroissant et prendre les N meilleures
+                            notes_composees_triees = sorted(notes_composees, key=lambda x: x['note_sur_20'], reverse=True)
+                            notes_selectionnees = notes_composees_triees[:nb_notes]
+                            notes_sur_20 = [n['note_sur_20'] for n in notes_selectionnees]
+                            # Collecter tous les IDs d'évaluations utilisées
+                            for n in notes_selectionnees:
+                                evaluations_retenues_ids.extend(n['evaluations_ids'])
+                            logger.info(f"{eleve.nom_complet}: {len(notes_composees_triees)} notes composées -> {nb_notes} meilleures")
+                        else:
+                            notes_sur_20 = [n['note_sur_20'] for n in notes_composees]
+                            for n in notes_composees:
+                                evaluations_retenues_ids.extend(n['evaluations_ids'])
+                    else:
+                        notes_sur_20 = [n['note_sur_20'] for n in notes_composees]
+                        for n in notes_composees:
+                            evaluations_retenues_ids.extend(n['evaluations_ids'])
                 
                 # Calculer la moyenne
-                moyenne_calculee = sum(notes_sur_20) / len(notes_sur_20)
+                moyenne_calculee = sum(notes_sur_20) / len(notes_sur_20) if notes_sur_20 else 0
+                
+                # Préparer les détails des notes pour affichage simplifié
+                # Format : [{"titre": "Devoir 1", "note": 18.5, "bareme": 20}, ...]
+                details_notes_eleve = []
+                for idx, note_composee in enumerate(notes_composees if nombre_meilleures_notes != 'toutes' else notes_composees, start=1):
+                    if nombre_meilleures_notes.isdigit():
+                        nb_notes = int(nombre_meilleures_notes)
+                        # Trier et prendre les N meilleures
+                        notes_composees_triees = sorted(notes_composees, key=lambda x: x['note_sur_20'], reverse=True)
+                        notes_selectionnees_details = notes_composees_triees[:nb_notes]
+                    else:
+                        notes_selectionnees_details = notes_composees
+                    
+                    break  # On prépare une seule fois
+                
+                # Créer les détails simplifiés
+                for idx, note_composee in enumerate(notes_selectionnees_details if nombre_meilleures_notes.isdigit() else notes_composees, start=1):
+                    detail = {
+                        'titre': f"Devoir {idx}",
+                        'note': round(note_composee['note_sur_20'], 2),
+                        'bareme': 20,
+                        'evaluations_ids': note_composee['evaluations_ids'],
+                        'type': note_composee['type']
+                    }
+                    details_notes_eleve.append(detail)
                 
                 # Enregistrer ou mettre à jour la moyenne pour la période
+                # Note: Le modèle Moyenne utilise encore l'ancien système (periode string)
+                # On stocke l'ID de la période en string en attendant la migration
                 moyenne_obj, created = Moyenne.objects.update_or_create(
                     eleve=eleve,
                     classe=classe,
                     matiere=professeur.matiere_principale,
-                    periode=periode,
+                    periode=str(periode_id) if periode_id else 'trimestre1',
                     defaults={
                         'professeur': professeur,
                         'moyenne': Decimal(str(round(moyenne_calculee, 2))),
-                        'nombre_notes': notes.count(),
+                        'nombre_notes': len(notes_sur_20),  # Utiliser le nombre de notes sélectionnées
+                        'mode_calcul': nombre_meilleures_notes,
+                        'evaluations_utilisees': evaluations_retenues_ids,
+                        'details_notes': details_notes_eleve,
                         'actif': True
                     }
                 )
@@ -1064,6 +1540,7 @@ def soumettre_releve_notes(request, classe_id):
     from ..model.classe_model import Classe
     from ..model.affectation_model import AffectationProfesseur
     from ..model.releve_notes_model import ReleveNotes
+    from ..model.periode_model import PeriodeScolaire
     from django.shortcuts import get_object_or_404
     from django.utils import timezone
     
@@ -1076,14 +1553,22 @@ def soumettre_releve_notes(request, classe_id):
         actif=True
     )
     
+    # Récupérer l'ID de la période depuis les paramètres
+    periode_id = request.GET.get('periode', '')
+    
     # Récupérer le relevé de notes
     try:
-        releve_notes = ReleveNotes.objects.get(
-            classe=classe,
-            professeur=professeur,
-            matiere=professeur.matiere_principale,
-            periode='trimestre1'
-        )
+        if periode_id:
+            periode_active = PeriodeScolaire.objects.get(id=periode_id, etablissement=professeur.etablissement)
+            releve_notes = ReleveNotes.objects.get(
+                classe=classe,
+                professeur=professeur,
+                matiere=professeur.matiere_principale,
+                periode_scolaire=periode_active
+            )
+        else:
+            messages.error(request, "Veuillez sélectionner une période.")
+            return redirect('enseignant:noter_eleves', classe_id=classe_id)
         
         if releve_notes.soumis:
             messages.warning(request, "Ce relevé de notes a déjà été soumis.")
@@ -1092,16 +1577,377 @@ def soumettre_releve_notes(request, classe_id):
         # Soumettre le relevé
         releve_notes.soumettre()
         
-        logger.info(f"Relevé soumis - Classe: {classe.nom}, Professeur: {professeur.nom_complet}")
-        messages.success(request, f"✓ Relevé de notes soumis avec succès ! Les notes sont maintenant verrouillées.")
+        logger.info(f"Relevé soumis - Classe: {classe.nom}, Période: {periode_active.nom_periode}, Professeur: {professeur.nom_complet}")
+        messages.success(request, f"✓ Relevé de notes soumis avec succès pour {periode_active.nom_periode} ! Les notes sont maintenant verrouillées.")
         
+    except PeriodeScolaire.DoesNotExist:
+        messages.error(request, "Période scolaire introuvable.")
     except ReleveNotes.DoesNotExist:
-        messages.error(request, "Relevé de notes introuvable.")
+        messages.error(request, "Relevé de notes introuvable pour cette période.")
     except Exception as e:
         logger.error(f"Erreur soumission relevé: {str(e)}")
         messages.error(request, f"Erreur lors de la soumission : {str(e)}")
     
+    # Rediriger en conservant le paramètre de période
+    if periode_id:
+        return redirect(f'/enseignant/noter/{classe_id}/?periode={periode_id}')
     return redirect('enseignant:noter_eleves', classe_id=classe_id)
+
+
+def voir_releve_notes(request, classe_id):
+    """
+    Page pour afficher le relevé de notes d'une classe pour une période donnée
+    """
+    logger.info(f"Voir relevé - User: {request.user}, Classe ID: {classe_id}")
+    
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    from ..model.classe_model import Classe
+    from ..model.affectation_model import AffectationProfesseur
+    from ..model.evaluation_model import Evaluation, Note
+    from ..model.eleve_model import Eleve
+    from ..model.periode_model import PeriodeScolaire
+    from ..model.releve_notes_model import ReleveNotes
+    from django.shortcuts import get_object_or_404
+    from decimal import Decimal
+    
+    # Vérifier que la classe existe et que le professeur y est affecté
+    classe = get_object_or_404(Classe, id=classe_id)
+    affectation = get_object_or_404(
+        AffectationProfesseur,
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    )
+    
+    # Récupérer toutes les périodes scolaires
+    periodes_scolaires = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer la période sélectionnée
+    periode_id = request.GET.get('periode', '')
+    periode_active_obj = None
+    
+    if periode_id:
+        try:
+            periode_active_obj = periodes_scolaires.get(id=periode_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    
+    if not periode_active_obj:
+        for periode in periodes_scolaires:
+            if periode.est_en_cours:
+                periode_active_obj = periode
+                break
+        if not periode_active_obj:
+            periode_active_obj = periodes_scolaires.first()
+    
+    # Récupérer le relevé de notes
+    releve_notes = None
+    if periode_active_obj:
+        releve_notes = ReleveNotes.objects.filter(
+            classe=classe,
+            professeur=professeur,
+            matiere=professeur.matiere_principale,
+            periode_scolaire=periode_active_obj
+        ).first()
+    
+    # Récupérer les élèves
+    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    
+    # Récupérer les moyennes pour déterminer le mode de calcul
+    from ..model.moyenne_model import Moyenne
+    
+    mode_calcul_utilise = 'toutes'
+    nombre_devoirs_affichage = 0
+    
+    # Vérifier si au moins un élève a une moyenne calculée
+    premiere_moyenne = None
+    if periode_active_obj:
+        premiere_moyenne = Moyenne.objects.filter(
+            classe=classe,
+            matiere=professeur.matiere_principale,
+            periode=str(periode_active_obj.id),
+            actif=True
+        ).first()
+        
+        if premiere_moyenne and hasattr(premiere_moyenne, 'mode_calcul'):
+            mode_calcul_utilise = premiere_moyenne.mode_calcul
+            # Déterminer combien de colonnes "Devoir" afficher
+            if mode_calcul_utilise.isdigit():
+                nombre_devoirs_affichage = int(mode_calcul_utilise)
+            elif mode_calcul_utilise == 'interro_x2':
+                # Compter les devoirs réels dans details_notes
+                if hasattr(premiere_moyenne, 'details_notes') and premiere_moyenne.details_notes:
+                    nombre_devoirs_affichage = len(premiere_moyenne.details_notes)
+    
+    # Créer les colonnes d'affichage génériques
+    colonnes_devoirs = []
+    for i in range(1, nombre_devoirs_affichage + 1):
+        colonnes_devoirs.append({
+            'index': i,
+            'titre': f"Devoir {i}",
+            'bareme': 20
+        })
+    
+    # Récupérer les notes d'examen pour cette période
+    from ..model.note_examen_model import NoteExamen
+    from ..model.session_examen_model import SessionExamen
+    
+    # Trouver s'il y a une session d'examen pour cette période
+    session_examen = None
+    if periode_active_obj:
+        # Récupérer toutes les sessions pour cette période/classe/matière
+        sessions_possibles = SessionExamen.objects.filter(
+            etablissement=professeur.etablissement,
+            classes=classe,
+            matieres=professeur.matiere_principale,
+            periode=periode_active_obj,
+            actif=True
+        ).order_by('-date_debut')
+        
+        # Prioriser la session qui a déjà des notes enregistrées
+        for session in sessions_possibles:
+            notes_count = NoteExamen.objects.filter(
+                session_examen=session,
+                matiere=professeur.matiere_principale,
+                classe=classe,
+                actif=True
+            ).count()
+            if notes_count > 0:
+                session_examen = session
+                break
+        
+        # Si aucune session avec notes, prendre la première
+        if not session_examen and sessions_possibles.exists():
+            session_examen = sessions_possibles.first()
+    
+    # Créer un tableau avec les notes de chaque élève
+    # Utiliser les details_notes de chaque moyenne pour affichage simplifié
+    
+    eleves_avec_notes = []
+    for eleve in eleves:
+        # Récupérer la moyenne enregistrée pour cet élève
+        moyenne_obj = None
+        moyenne = None
+        appreciation = None
+        notes_simplifiees = []  # Liste des notes à afficher (Devoir 1, Devoir 2, etc.)
+        note_examen_obj = None
+        
+        if periode_active_obj:
+            moyenne_obj = Moyenne.objects.filter(
+                eleve=eleve,
+                classe=classe,
+                matiere=professeur.matiere_principale,
+                periode=str(periode_active_obj.id),
+                actif=True
+            ).first()
+            
+            if moyenne_obj:
+                moyenne = float(moyenne_obj.moyenne)
+                appreciation = moyenne_obj.appreciation if hasattr(moyenne_obj, 'appreciation') else None
+                
+                # Utiliser les details_notes pour affichage
+                if hasattr(moyenne_obj, 'details_notes') and moyenne_obj.details_notes:
+                    notes_simplifiees = moyenne_obj.details_notes
+            
+            # Récupérer la note d'examen si elle existe
+            if session_examen:
+                note_examen_obj = NoteExamen.objects.filter(
+                    eleve=eleve,
+                    session_examen=session_examen,
+                    matiere=professeur.matiere_principale,
+                    classe=classe,
+                    actif=True
+                ).first()
+        
+        eleves_avec_notes.append({
+            'eleve': eleve,
+            'notes_simplifiees': notes_simplifiees,  # Notes avec titres simplifiés (Devoir 1, Devoir 2, etc.)
+            'moyenne': moyenne,
+            'appreciation': appreciation,
+            'nombre_notes': len(notes_simplifiees),
+            'note_examen': note_examen_obj  # Ajouter la note d'examen
+        })
+    
+    context = {
+        'professeur': professeur,
+        'classe': classe,
+        'affectation': affectation,
+        'matiere': professeur.matiere_principale,
+        'periode_active': periode_active_obj,
+        'periodes_scolaires': periodes_scolaires,
+        'releve_notes': releve_notes,
+        'colonnes_devoirs': colonnes_devoirs,  # Colonnes génériques : Devoir 1, Devoir 2, etc.
+        'eleves_avec_notes': eleves_avec_notes,
+        'mode_calcul_utilise': mode_calcul_utilise,
+        'session_examen': session_examen,  # Session d'examen pour afficher la colonne
+    }
+    
+    return render(request, 'school_admin/enseignant/voir_releve_notes.html', context)
+
+
+def imprimer_releve_notes(request, classe_id):
+    """
+    Page d'impression professionnelle du relevé de notes
+    """
+    logger.info(f"Imprimer relevé - User: {request.user}, Classe ID: {classe_id}")
+    
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    from ..model.classe_model import Classe
+    from ..model.affectation_model import AffectationProfesseur
+    from ..model.evaluation_model import Evaluation, Note
+    from ..model.eleve_model import Eleve
+    from ..model.periode_model import PeriodeScolaire
+    from ..model.releve_notes_model import ReleveNotes
+    from ..model.moyenne_model import Moyenne
+    from django.shortcuts import get_object_or_404
+    from decimal import Decimal
+    from datetime import datetime
+    
+    # Vérifier que la classe existe et que le professeur y est affecté
+    classe = get_object_or_404(Classe, id=classe_id)
+    affectation = get_object_or_404(
+        AffectationProfesseur,
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    )
+    
+    # Récupérer toutes les périodes scolaires
+    periodes_scolaires = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer la période sélectionnée
+    periode_id = request.GET.get('periode', '')
+    periode_active_obj = None
+    
+    if periode_id:
+        try:
+            periode_active_obj = periodes_scolaires.get(id=periode_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    
+    if not periode_active_obj:
+        for periode in periodes_scolaires:
+            if periode.est_en_cours:
+                periode_active_obj = periode
+                break
+        if not periode_active_obj:
+            periode_active_obj = periodes_scolaires.first()
+    
+    # Récupérer le relevé de notes
+    releve_notes = None
+    if periode_active_obj:
+        releve_notes = ReleveNotes.objects.filter(
+            classe=classe,
+            professeur=professeur,
+            matiere=professeur.matiere_principale,
+            periode_scolaire=periode_active_obj
+        ).first()
+    
+    # Récupérer les élèves
+    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    
+    # Récupérer les moyennes pour déterminer le mode de calcul
+    mode_calcul_utilise = 'toutes'
+    nombre_devoirs_affichage = 0
+    
+    # Vérifier si au moins un élève a une moyenne calculée
+    premiere_moyenne = None
+    if periode_active_obj:
+        premiere_moyenne = Moyenne.objects.filter(
+            classe=classe,
+            matiere=professeur.matiere_principale,
+            periode=str(periode_active_obj.id),
+            actif=True
+        ).first()
+        
+        if premiere_moyenne and hasattr(premiere_moyenne, 'mode_calcul'):
+            mode_calcul_utilise = premiere_moyenne.mode_calcul
+            # Déterminer combien de colonnes "Devoir" afficher
+            if mode_calcul_utilise.isdigit():
+                nombre_devoirs_affichage = int(mode_calcul_utilise)
+            elif mode_calcul_utilise == 'interro_x2':
+                # Compter les devoirs réels dans details_notes
+                if hasattr(premiere_moyenne, 'details_notes') and premiere_moyenne.details_notes:
+                    nombre_devoirs_affichage = len(premiere_moyenne.details_notes)
+    
+    # Créer les colonnes d'affichage génériques
+    colonnes_devoirs = []
+    for i in range(1, nombre_devoirs_affichage + 1):
+        colonnes_devoirs.append({
+            'index': i,
+            'titre': f"Devoir {i}",
+            'bareme': 20
+        })
+    
+    # Créer un tableau avec les notes de chaque élève
+    # Utiliser les details_notes de chaque moyenne pour affichage simplifié
+    eleves_avec_notes = []
+    for eleve in eleves:
+        # Récupérer la moyenne enregistrée pour cet élève
+        moyenne_obj = None
+        moyenne = None
+        appreciation = None
+        notes_simplifiees = []  # Liste des notes à afficher (Devoir 1, Devoir 2, etc.)
+        
+        if periode_active_obj:
+            moyenne_obj = Moyenne.objects.filter(
+                eleve=eleve,
+                classe=classe,
+                matiere=professeur.matiere_principale,
+                periode=str(periode_active_obj.id),
+                actif=True
+            ).first()
+            
+            if moyenne_obj:
+                moyenne = float(moyenne_obj.moyenne)
+                appreciation = moyenne_obj.appreciation if hasattr(moyenne_obj, 'appreciation') else None
+                
+                # Utiliser les details_notes pour affichage
+                if hasattr(moyenne_obj, 'details_notes') and moyenne_obj.details_notes:
+                    notes_simplifiees = moyenne_obj.details_notes
+        
+        eleves_avec_notes.append({
+            'eleve': eleve,
+            'notes_simplifiees': notes_simplifiees,  # Notes avec titres simplifiés (Devoir 1, Devoir 2, etc.)
+            'moyenne': moyenne,
+            'appreciation': appreciation,
+            'nombre_notes': len(notes_simplifiees)
+        })
+    
+    # Calculer la moyenne de classe
+    moyennes_valides = [e['moyenne'] for e in eleves_avec_notes if e['moyenne'] is not None]
+    moyenne_classe = round(sum(moyennes_valides) / len(moyennes_valides), 2) if moyennes_valides else None
+    
+    context = {
+        'professeur': professeur,
+        'classe': classe,
+        'affectation': affectation,
+        'matiere': professeur.matiere_principale,
+        'periode_active': periode_active_obj,
+        'releve_notes': releve_notes,
+        'colonnes_devoirs': colonnes_devoirs,  # Colonnes génériques : Devoir 1, Devoir 2, etc.
+        'eleves_avec_notes': eleves_avec_notes,
+        'mode_calcul_utilise': mode_calcul_utilise,
+        'moyenne_classe': moyenne_classe,
+        'etablissement': professeur.etablissement,
+        'date_impression': datetime.now(),
+    }
+    
+    return render(request, 'school_admin/enseignant/imprimer_releve_notes.html', context)
 
 
 def liste_presence_enseignant(request, classe_id):
@@ -1320,43 +2166,144 @@ def detail_eleve_enseignant(request, eleve_id):
     onglet_actif = request.GET.get('onglet', 'notes')
     
     # === ONGLET NOTES ===
-    # Récupérer toutes les notes de l'élève pour cette matière
-    notes = Note.objects.filter(
-        eleve=eleve,
-        evaluation__professeur=professeur
-    ).select_related('evaluation').order_by('-evaluation__date_evaluation')
+    from ..model.periode_model import PeriodeScolaire
     
-    # Récupérer les moyennes par période
-    moyennes = Moyenne.objects.filter(
+    # Récupérer toutes les périodes scolaires
+    periodes = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer la période sélectionnée
+    periode_id = request.GET.get('periode')
+    if periode_id:
+        periode_selectionnee = PeriodeScolaire.objects.filter(id=periode_id).first()
+    else:
+        periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
+    
+    # Récupérer les évaluations de la matière du professeur pour cette période
+    evaluations = Evaluation.objects.filter(
+        classe=classe,
+        professeur=professeur,
+        periode_scolaire=periode_selectionnee,
+        actif=True
+    ).order_by('date_evaluation') if periode_selectionnee else []
+    
+    # Récupérer les notes de l'élève pour ces évaluations
+    notes_objs = Note.objects.filter(
+        eleve=eleve,
+        evaluation__in=evaluations
+    ).select_related('evaluation')
+    
+    # Créer un dictionnaire des notes indexé par evaluation_id
+    notes_dict = {note.evaluation.id: note for note in notes_objs}
+    
+    # Récupérer la moyenne enregistrée pour cette matière et période
+    # Le champ "periode" dans Moyenne stocke l'ID de la période en string
+    moyenne_obj = Moyenne.objects.filter(
         eleve=eleve,
         professeur=professeur,
+        periode=str(periode_selectionnee.id) if periode_selectionnee else None,
         actif=True
-    ).order_by('periode')
+    ).first() if periode_selectionnee else None
+    
+    moyenne = moyenne_obj.moyenne if moyenne_obj else None
     
     # === ONGLET PRÉSENCES ===
-    # Récupérer toutes les présences de l'élève (30 derniers jours)
-    date_debut = date.today() - timedelta(days=30)
-    presences = Presence.objects.filter(
+    # Récupérer toutes les présences de l'année scolaire en cours
+    from ..model.presence_model import ListePresence
+    import calendar
+    
+    today = date.today()
+    if today.month >= 9:
+        debut_annee = date(today.year, 9, 1)
+        fin_annee = date(today.year + 1, 6, 30)
+    else:
+        debut_annee = date(today.year - 1, 9, 1)
+        fin_annee = date(today.year, 6, 30)
+    
+    presences_query = Presence.objects.filter(
         eleve=eleve,
-        date__gte=date_debut
+        date__gte=debut_annee,
+        date__lte=fin_annee
+    ).select_related('eleve', 'classe')
+    
+    # Calculer les statistiques globales
+    total_presences = presences_query.count()
+    nombre_absences = presences_query.filter(statut__in=['absent', 'absent_justifie']).count()
+    nombre_retards = presences_query.filter(statut='retard').count()
+    nombre_presents = presences_query.filter(statut='present').count()
+    taux_presence = round((nombre_presents / total_presences * 100), 2) if total_presences > 0 else 0
+    
+    # Récupérer les listes de présences validées pour cette classe
+    listes_validees = ListePresence.objects.filter(
+        classe=eleve.classe,
+        validee=True,
+        date__gte=debut_annee,
+        date__lte=fin_annee
+    ).values_list('date', flat=True)
+    
+    # Extraire les mois uniques qui ont des listes validées
+    mois_avec_presences = set()
+    for date_presence in listes_validees:
+        mois_avec_presences.add((date_presence.year, date_presence.month))
+    
+    # Créer une liste de mois disponibles
+    mois_disponibles = []
+    noms_mois = [
+        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ]
+    for annee, mois in sorted(mois_avec_presences, reverse=True):
+        mois_disponibles.append({
+            'annee': annee,
+            'mois': mois,
+            'nom': noms_mois[mois - 1],
+            'annee_mois': f"{annee}-{mois:02d}"
+        })
+    
+    # Récupérer le mois sélectionné (par défaut: le plus récent)
+    mois_selectionne = request.GET.get('mois')
+    if mois_selectionne and '-' in mois_selectionne:
+        annee_sel, mois_sel = mois_selectionne.split('-')
+        annee_sel = int(annee_sel)
+        mois_sel = int(mois_sel)
+    elif mois_disponibles:
+        annee_sel = mois_disponibles[0]['annee']
+        mois_sel = mois_disponibles[0]['mois']
+    else:
+        annee_sel = today.year
+        mois_sel = today.month
+    
+    # Filtrer les présences pour le mois sélectionné
+    premier_jour = date(annee_sel, mois_sel, 1)
+    dernier_jour = date(annee_sel, mois_sel, calendar.monthrange(annee_sel, mois_sel)[1])
+    
+    presences = presences_query.filter(
+        date__gte=premier_jour,
+        date__lte=dernier_jour
     ).order_by('-date')
     
-    # Statistiques de présence
-    total_presences = presences.count()
-    nombre_absences = presences.filter(statut__in=['absent', 'absent_justifie']).count()
-    nombre_retards = presences.filter(statut='retard').count()
-    nombre_presents = presences.filter(statut='present').count()
-    taux_presence = round((nombre_presents / total_presences * 100), 2) if total_presences > 0 else 0
+    # Statistiques du mois
+    total_presences_mois = presences.count()
+    nombre_absences_mois = presences.filter(statut__in=['absent', 'absent_justifie']).count()
+    nombre_retards_mois = presences.filter(statut='retard').count()
+    nombre_presents_mois = presences.filter(statut='present').count()
+    taux_presence_mois = round((nombre_presents_mois / total_presences_mois * 100), 2) if total_presences_mois > 0 else 0
     
     context = {
         'professeur': professeur,
         'eleve': eleve,
         'classe': classe,
+        'affectation': affectation,
         'onglet_actif': onglet_actif,
         # Onglet Notes
-        'notes': notes,
-        'moyennes': moyennes,
-        'nombre_notes': notes.count(),
+        'periodes': periodes,
+        'periode_selectionnee': periode_selectionnee,
+        'evaluations': evaluations,
+        'notes_dict': notes_dict,
+        'moyenne': moyenne,
+        'nombre_notes': len(notes_dict),
         # Onglet Présences
         'presences': presences,
         'total_presences': total_presences,
@@ -1364,6 +2311,14 @@ def detail_eleve_enseignant(request, eleve_id):
         'nombre_retards': nombre_retards,
         'nombre_presents': nombre_presents,
         'taux_presence': taux_presence,
+        # Données pour les onglets de mois
+        'mois_disponibles': mois_disponibles,
+        'mois_selectionne': mois_selectionne,
+        'total_presences_mois': total_presences_mois,
+        'nombre_absences_mois': nombre_absences_mois,
+        'nombre_retards_mois': nombre_retards_mois,
+        'nombre_presents_mois': nombre_presents_mois,
+        'taux_presence_mois': taux_presence_mois,
     }
     
     return render(request, 'school_admin/enseignant/detail_eleve.html', context)
@@ -2173,20 +3128,84 @@ def emploi_du_temps_enseignant(request):
     # Récupérer tous les créneaux du professeur
     creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
         professeur=professeur
-    ).select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle').order_by('jour', 'heure_debut')
+    ).select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('jour', 'periode_etablissement__ordre', 'heure_debut')
     
-    # Organiser les créneaux par jour
+    # Récupérer la configuration horaire de l'établissement
+    from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
+    from ..controllers.emploi_du_temps_controller import get_matiere_config
+    config_horaire = ConfigurationHoraire.objects.filter(etablissement=professeur.etablissement, actif=True).first()
+    
+    # Organiser les créneaux par période et par jour (comme dans le contrôleur directeur)
     jours_semaine = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
-    creneaux_par_jour = defaultdict(list)
     
-    for creneau in creneaux_professeur:
-        creneaux_par_jour[creneau.jour].append(creneau)
+    periodes_affichage = []
+    
+    if config_horaire:
+        # Utiliser les périodes de l'établissement
+        periodes = config_horaire.periodes.filter(actif=True).order_by('ordre')
+        
+        # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
+        creneaux_groupes = {}
+        for creneau in creneaux_professeur:
+            if creneau.groupe_creneau:
+                if creneau.groupe_creneau not in creneaux_groupes:
+                    creneaux_groupes[creneau.groupe_creneau] = []
+                creneaux_groupes[creneau.groupe_creneau].append(creneau)
+        
+        for periode in periodes:
+            periode_info = {
+                'nom': periode.nom,
+                'heure_debut': periode.heure_debut,
+                'heure_fin': periode.heure_fin,
+                'duree': periode.duree_minutes,
+                'est_pause': periode.est_pause,
+                'type_periode': periode.type_periode,
+                'creneaux_par_jour': {},
+            }
+            
+            # Pour chaque jour, trouver le créneau correspondant à cette période
+            for jour in jours_semaine:
+                if periode.est_pause:
+                    # C'est une pause: créer un créneau virtuel
+                    periode_info['creneaux_par_jour'][jour] = {
+                        'est_pause': True,
+                        'est_virtual': True,
+                        'nom_pause': periode.nom,
+                        'type_periode': periode.type_periode
+                    }
+                else:
+                    # Chercher un créneau qui utilise cette période
+                    creneau = creneaux_professeur.filter(
+                        jour=jour,
+                        periode_etablissement=periode
+                    ).first()
+                    
+                    if creneau:
+                        # Pour les créneaux groupés, on affiche le premier créneau dans toutes les périodes du groupe
+                        if creneau.groupe_creneau:
+                            groupe_creneaux = creneaux_groupes.get(creneau.groupe_creneau, [])
+                            groupe_creneaux_jour = [c for c in groupe_creneaux if c.jour == jour]
+                            groupe_creneaux_jour.sort(key=lambda c: c.periode_etablissement.ordre)
+                            
+                            if groupe_creneaux_jour:
+                                creneau = groupe_creneaux_jour[0]
+                        
+                        # Ajouter icône et couleur au créneau
+                        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
+                        icone, couleur = get_matiere_config(matiere_nom)
+                        creneau.matiere_icone = icone
+                        creneau.matiere_couleur = couleur
+                        
+                        periode_info['creneaux_par_jour'][jour] = creneau
+                    else:
+                        periode_info['creneaux_par_jour'][jour] = None
+            
+            periodes_affichage.append(periode_info)
     
     # Statistiques
     total_heures = 0
     for creneau in creneaux_professeur:
-        duree = (creneau.heure_fin.hour * 60 + creneau.heure_fin.minute) - (creneau.heure_debut.hour * 60 + creneau.heure_debut.minute)
-        total_heures += duree / 60
+        total_heures += creneau.duree_minutes / 60
     
     nombre_classes = affectations.count()
     nombre_creneaux = creneaux_professeur.count()
@@ -2194,10 +3213,12 @@ def emploi_du_temps_enseignant(request):
     context = {
         'professeur': professeur,
         'jours_semaine': jours_semaine,
-        'creneaux_par_jour': dict(creneaux_par_jour),
+        'periodes_affichage': periodes_affichage,
+        'config_horaire': config_horaire,
         'nombre_classes': nombre_classes,
         'nombre_creneaux': nombre_creneaux,
         'total_heures': round(total_heures, 1),
+        'etablissement': professeur.etablissement,
     }
     
     return render(request, 'school_admin/enseignant/emploi_du_temps.html', context)

@@ -1071,3 +1071,383 @@
     }
 }
 
+ 
+ /* ===== STYLES POUR ONGLETS MOIS (PRÉSENCES) ===== */
+
+.mois-tabs-horizontal {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+    flex-wrap: wrap;
+}
+
+.mois-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.mois-tab:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-2px);
+}
+
+.mois-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mois-tab i {
+    font-size: 1rem;
+}
+/* ===== STYLES POUR ONGLETS PÉRIODES (NOTES) ===== */
+
+.periodes-tabs-horizontal {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+    flex-wrap: wrap;
+}
+
+.periode-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.periode-tab:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-2px);
+}
+
+.periode-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.periode-tab i {
+    font-size: 1rem;
+}
+
+.periode-tab .tab-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.periode-tab .tab-badge.active {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+/* ===== STYLES POUR TABLEAUX PAR MATIÈRE ===== */
+
+.matiere-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.matiere-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.matiere-section-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.matiere-section-header h3 i {
+    color: #6366f1;
+}
+
+.moyenne-badge-header {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.moyenne-badge-header.excellent {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.moyenne-badge-header.tres-bien {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.moyenne-badge-header.bien {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+}
+
+.moyenne-badge-header.passable {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.moyenne-badge-header.insuffisant {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.moyenne-badge-header.non-calcule {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.notes-table-matiere {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.notes-table-matiere thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.notes-table-matiere thead th {
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.notes-table-matiere .col-matiere {
+    text-align: left;
+    width: 150px;
+}
+
+.notes-table-matiere .col-devoir {
+    min-width: 120px;
+}
+
+.notes-table-matiere .col-moyenne {
+    width: 120px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.devoir-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.devoir-titre {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.devoir-info {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.devoir-date {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.notes-table-matiere tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.notes-table-matiere tbody tr:hover {
+    background: #f9fafb;
+}
+
+.notes-table-matiere tbody td {
+    padding: 1rem;
+    text-align: center;
+}
+
+.cell-matiere {
+    text-align: left !important;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 1rem;
+}
+
+.cell-note {
+    position: relative;
+}
+
+.note-value {
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: inline-block;
+    min-width: 60px;
+}
+
+.note-value.excellent {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.note-value.tres-bien {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+.note-value.bien {
+    background: #ede9fe;
+    color: #5b21b6;
+    border: 1px solid #8b5cf6;
+}
+
+.note-value.passable {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.note-value.insuffisant {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.note-absent {
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    background: #f3f4f6;
+    color: #6b7280;
+    display: inline-block;
+}
+
+.note-vide {
+    color: #9ca3af;
+    font-size: 1.25rem;
+    font-weight: 300;
+}
+
+.cell-moyenne {
+    background: #f9fafb !important;
+    border-left: 2px solid #e5e7eb;
+}
+
+.moyenne-value {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    display: inline-block;
+    min-width: 80px;
+}
+
+.moyenne-value.excellent {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.moyenne-value.tres-bien {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.moyenne-value.bien {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.moyenne-value.passable {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.moyenne-value.insuffisant {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.moyenne-vide {
+    color: #9ca3af;
+    font-size: 1rem;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 2rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    color: #6b7280;
+}
+
+.empty-state-small i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.empty-state-small p {
+    margin: 0;
+    font-size: 0.875rem;
+}

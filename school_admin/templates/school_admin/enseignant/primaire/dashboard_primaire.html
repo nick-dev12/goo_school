@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord - Enseignant Primaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+<!-- Dashboard Overview -->
+<div class="dashboard-overview">
+    <h2 class="section-title">Vue d'ensemble</h2>
+
+    <div class="key-indicators">
+        <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--blue);">
+                <i class="fas fa-chalkboard"></i>
+            </div>
+            <div class="indicator-content">
+                <h3>Classes assignées</h3>
+                <p class="indicator-value">{{ total_classes }}</p>
+                <span class="indicator-trend">Enseignement polyvalent</span>
+            </div>
+            <a href="{% url 'enseignant_primaire:gestion_classes' %}" class="indicator-link">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--purple);">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="indicator-content">
+                <h3>Élèves encadrés</h3>
+                <p class="indicator-value">{{ total_eleves }}</p>
+                <span class="indicator-trend">Dans toutes mes classes</span>
+            </div>
+            <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="indicator-link">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--orange);">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="indicator-content">
+                <h3>Matières enseignées</h3>
+                <p class="indicator-value">{{ total_matieres }}</p>
+                <span class="indicator-trend">Enseignement multi-matières</span>
+            </div>
+            <a href="{% url 'enseignant_primaire:gestion_notes' %}" class="indicator-link">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="indicator-card">
+            <div class="indicator-icon" style="background-color: var(--green);">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="indicator-content">
+                <h3>Évaluations planifiées</h3>
+                <p class="indicator-value">{{ evaluations_a_venir }}</p>
+                <span class="indicator-trend">Dans les 7 prochains jours</span>
+            </div>
+            <a href="{% url 'enseignant_primaire:liste_evaluations' %}" class="indicator-link">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Classes et cours -->
+<div class="classes-cours-section">
+    <h2 class="section-title">Mes classes et matières</h2>
+
+    <div class="classes-cours-container">
+        <!-- Liste des classes -->
+        <div class="classes-list-container">
+            <div class="classes-list-header">
+                <h3>Mes classes</h3>
+                <a href="{% url 'enseignant_primaire:gestion_classes' %}" class="view-all-link">
+                    <span>Voir tout</span>
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </div>
+
+            <div class="classes-list">
+                {% for classe_data in classes_data %}
+                    {% cycle 'linear-gradient(135deg, #0ea5e9, #38bdf8)' 'linear-gradient(135deg, #8b5cf6, #a78bfa)' 'linear-gradient(135deg, #10b981, #34d399)' as gradient_color silent %}
+                    <div class="class-item">
+                        <div class="class-icon" style="background: {{ gradient_color }};">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="class-info">
+                            <h4>{{ classe_data.classe.nom }}</h4>
+                            <div class="class-details">
+                                <span><i class="fas fa-users"></i> {{ classe_data.nombre_eleves }} élèves</span>
+                                <span><i class="fas fa-book"></i> {{ classe_data.nombre_matieres }} matières</span>
+                            </div>
+                            <div class="class-matieres">
+                                {% for matiere in classe_data.matieres|slice:":3" %}
+                                    <span class="matiere-badge">{{ matiere.code }}</span>
+                                {% endfor %}
+                                {% if classe_data.nombre_matieres > 3 %}
+                                    <span class="matiere-badge">+{{ classe_data.nombre_matieres|add:"-3" }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="class-actions">
+                            <a href="{% url 'enseignant_primaire:noter_eleves' classe_data.classe.id %}" class="action-btn" title="Noter">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'enseignant_primaire:liste_presence' classe_data.classe.id %}" class="action-btn" title="Présence">
+                                <i class="fas fa-clipboard-check"></i>
+                            </a>
+                            <a href="{% url 'enseignant_primaire:detail_classe' classe_data.classe.id %}" class="action-btn" title="Détails">
+                                <i class="fas fa-info-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Aucune classe assignée pour le moment</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Emploi du temps du jour -->
+        <div class="emploi-temps-container">
+            <div class="emploi-temps-header">
+                <h3>Emploi du temps d'aujourd'hui</h3>
+                <a href="{% url 'enseignant_primaire:emploi_du_temps' %}" class="view-all-link">
+                    <span>Voir tout</span>
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </div>
+
+            <div class="emploi-temps-list">
+                {% if creneaux_aujourdhui %}
+                    {% for creneau in creneaux_aujourdhui %}
+                        <div class="creneau-item">
+                            <div class="creneau-time">
+                                <i class="fas fa-clock"></i>
+                                <span>{{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}</span>
+                            </div>
+                            <div class="creneau-info">
+                                <h4>{{ creneau.matiere.nom }}</h4>
+                                <p>{{ creneau.emploi_du_temps.classe.nom }}</p>
+                                {% if creneau.salle %}
+                                    <span class="salle-badge">
+                                        <i class="fas fa-door-open"></i> {{ creneau.salle.nom }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Pas de cours aujourd'hui</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prochaines évaluations -->
+<div class="evaluations-section">
+    <div class="section-header">
+        <h2 class="section-title">Prochaines évaluations</h2>
+        <a href="{% url 'enseignant_primaire:liste_evaluations' %}" class="view-all-link">
+            <span>Voir toutes les évaluations</span>
+            <i class="fas fa-angle-right"></i>
+        </a>
+    </div>
+
+    <div class="evaluations-grid">
+        {% if prochaines_evaluations %}
+            {% for evaluation in prochaines_evaluations %}
+                <div class="evaluation-card">
+                    <div class="evaluation-header">
+                        <div class="evaluation-type">
+                            <i class="fas fa-file-alt"></i>
+                            <span>{{ evaluation.get_type_evaluation_display }}</span>
+                        </div>
+                        <div class="evaluation-matiere">
+                            <span class="matiere-badge">{{ evaluation.matiere.code }}</span>
+                        </div>
+                    </div>
+                    <h3>{{ evaluation.titre }}</h3>
+                    <div class="evaluation-details">
+                        <div class="detail-item">
+                            <i class="fas fa-chalkboard"></i>
+                            <span>{{ evaluation.classe.nom }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-star"></i>
+                            <span>{{ evaluation.bareme }} points</span>
+                        </div>
+                    </div>
+                    <div class="evaluation-actions">
+                        <a href="{% url 'enseignant_primaire:noter_eleves' evaluation.classe.id %}" class="btn-primary">
+                            <i class="fas fa-edit"></i> Noter
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state-large">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Aucune évaluation prévue</h3>
+                <p>Vous n'avez pas d'évaluations planifiées dans les 7 prochains jours</p>
+                <a href="{% url 'enseignant_primaire:gestion_classes' %}" class="btn-primary">
+                    <i class="fas fa-plus"></i> Créer une évaluation
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+</body>
+</html>
+

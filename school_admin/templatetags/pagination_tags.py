@@ -27,3 +27,21 @@ def get_item(dictionary, key):
     if dictionary is None:
         return None
     return dictionary.get(key)
+
+@register.filter(name='split')
+def split(value, arg):
+    """
+    Filtre pour diviser une chaîne de caractères
+    Usage: {{ 'a,b,c'|split:',' }}
+    """
+    return value.split(arg)
+
+@register.filter(name='items')
+def items(dictionary):
+    """
+    Filtre pour obtenir les paires clé-valeur d'un dictionnaire
+    Usage: {% for key, value in mon_dict|items %}
+    """
+    if dictionary is None:
+        return []
+    return dictionary.items()

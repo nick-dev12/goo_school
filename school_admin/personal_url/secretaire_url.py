@@ -16,4 +16,6 @@ urlpatterns = [
     path('gestion/classes/', gestion_classes, name='gestion_classes'),
     path('detail/classe/<int:classe_id>/', detail_classe, name='detail_classe'),
     path('imprimer/liste/eleves/<int:classe_id>/', imprimer_liste_eleves, name='imprimer_liste_eleves'),
+    # Gestion des sanctions
+    path('directeur/soumettre-sanction/', soumettre_sanction_directeur, name='soumettre_sanction_directeur'),
 ]

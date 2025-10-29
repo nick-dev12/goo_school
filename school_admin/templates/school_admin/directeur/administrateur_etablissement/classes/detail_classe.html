@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load exam_filters %}
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -20,6 +21,10 @@
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/classes_improved.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/releve_notes_classe.css' %}"
     />
   </head>
   <body>
@@ -147,6 +152,10 @@
             <button class="tab-btn" data-tab="statistiques">
               <i class="fas fa-chart-bar"></i>
               <span>Statistiques</span>
+            </button>
+            <button class="tab-btn" data-tab="releve-notes">
+              <i class="fas fa-clipboard-list"></i>
+              <span>Relevé de notes</span>
             </button>
           </div>
 
@@ -467,6 +476,92 @@
                 </div>
               </div>
             </div>
+
+            <!-- Relevé de Notes Tab -->
+            <div class="tab-panel" id="releve-notes">
+              <div class="panel-content">
+                <!-- Sous-onglets par période -->
+                <div class="periode-tabs">
+                  {% for periode in periodes %}
+                  <button class="periode-tab-btn {% if forloop.first %}active{% endif %}" 
+                          onclick="switchPeriodeTab(event, 'periode-{{ periode.id }}')">
+                    <i class="fas fa-calendar-alt"></i>
+                    {{ periode.nom_periode }}
+                  </button>
+                  {% endfor %}
+                </div>
+
+                <!-- Contenu par période -->
+                {% for periode in periodes %}
+                <div class="periode-tab-content {% if forloop.first %}active{% endif %}" id="periode-{{ periode.id }}">
+                  
+                  <div class="releve-notes-container">
+                    <div class="releve-header">
+                      <h3>
+                        <i class="fas fa-clipboard-list"></i>
+                        Relevé de notes - {{ classe.nom }} - {{ periode.nom_periode }}
+                      </h3>
+                      <div class="releve-info">
+                        <span><i class="fas fa-calendar"></i> {{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }}</span>
+                        <span><i class="fas fa-users"></i> {{ stats_eleves.total }} élève(s)</span>
+                        {% if matieres_classe %}
+                        <span><i class="fas fa-book"></i> {{ matieres_classe|length }} matière(s)</span>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    {% if matieres_classe and eleves %}
+                    <div class="releve-table-wrapper">
+                      <table class="releve-table">
+                        <thead>
+                          <tr>
+                            <th class="th-eleve">Élève</th>
+                            {% for matiere in matieres_classe %}
+                            <th class="th-matiere">{{ matiere.nom }}</th>
+                            {% endfor %}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for eleve_data in releves_notes_par_periode|get_item:periode.id %}
+                          <tr class="eleve-row">
+                            <td class="td-eleve">
+                              <div class="eleve-info">
+                                <span class="eleve-nom">{{ eleve_data.eleve.prenom }} {{ eleve_data.eleve.nom }}</span>
+                                <span class="eleve-code">{{ eleve_data.eleve.matricule }}</span>
+                              </div>
+                            </td>
+                            {% for matiere in matieres_classe %}
+                            <td class="td-moyenne">
+                              {% if eleve_data.moyennes|get_item:matiere.id %}
+                                {% with moyenne=eleve_data.moyennes|get_item:matiere.id %}
+                                <span class="moyenne-value {% if moyenne.moyenne >= 16 %}excellent{% elif moyenne.moyenne >= 14 %}tres-bien{% elif moyenne.moyenne >= 12 %}bien{% elif moyenne.moyenne >= 10 %}assez-bien{% else %}insuffisant{% endif %}">
+                                  {{ moyenne.moyenne|floatformat:2 }}
+                                </span>
+                                {% endwith %}
+                              {% else %}
+                                <span class="non-soumis">-</span>
+                              {% endif %}
+                            </td>
+                            {% endfor %}
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                      <i class="fas fa-clipboard"></i>
+                      <h3>Aucune matière ou élève</h3>
+                      <p>Cette classe n'a pas encore de matières enseignées ou d'élèves inscrits.</p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -505,6 +600,25 @@
           });
         });
       });
+
+      // Fonction pour changer de sous-onglet de période
+      function switchPeriodeTab(event, periodeId) {
+        event.preventDefault();
+        
+        // Masquer tous les contenus de période
+        const periodeContents = document.querySelectorAll('.periode-tab-content');
+        periodeContents.forEach(content => content.classList.remove('active'));
+        
+        // Désactiver tous les boutons de période
+        const periodeBtns = document.querySelectorAll('.periode-tab-btn');
+        periodeBtns.forEach(btn => btn.classList.remove('active'));
+        
+        // Afficher le contenu de la période sélectionnée
+        document.getElementById(periodeId).classList.add('active');
+        
+        // Activer le bouton cliqué
+        event.currentTarget.classList.add('active');
+      }
     </script>
   </body>
 </html>

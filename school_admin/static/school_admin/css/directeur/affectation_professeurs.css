@@ -375,8 +375,9 @@ body {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--gray-200);
-    overflow: hidden;
+    overflow: visible; /* Changé pour permettre le panneau absolu */
     transition: var(--transition);
+    position: relative; /* Ajouté pour le positionnement absolu du panneau */
 }
 
 .professor-card:hover {
@@ -453,6 +454,34 @@ body {
     gap: 0.5rem;
 }
 
+/* Bouton Affectation moderne */
+.btn-affectation {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    background: var(--white);
+    color: var(--primary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.btn-affectation:hover {
+    background: var(--primary-color);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-affectation i {
+    font-size: 1rem;
+}
+
+/* Ancien style pour compatibilité */
 .action-btn {
     width: 2rem;
     height: 2rem;
@@ -603,45 +632,76 @@ body {
     gap: 0.25rem;
 }
 
-/* Affectations Panel */
+/* Affectations Panel - Modal Overlay */
 .affectations-panel {
-    border-top: 1px solid var(--gray-200);
-    background: var(--gray-50);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    background: white;
+    z-index: 1000;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow-y: auto;
+}
+
+/* Backdrop pour l'overlay */
+.affectations-panel::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
 }
 
 .panel-header {
-    padding: 0.75rem 1rem;
-    background: var(--white);
-    border-bottom: 1px solid var(--gray-200);
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .panel-header h4 {
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: var(--gray-900);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.panel-header h4 i {
+    font-size: 1.125rem;
 }
 
 .close-panel {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 2rem;
+    height: 2rem;
     border: none;
     border-radius: 50%;
-    background: var(--gray-100);
-    color: var(--gray-600);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: var(--transition);
+    transition: var(--transition);
     font-size: 0.75rem;
 }
 
 .close-panel:hover {
-    background: var(--error-color);
-    color: var(--white);
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
 }
 
 .current-affectations,

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load exam_filters %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -47,15 +48,23 @@
             <!-- Onglets de périodes -->
             <div class="periodes-tabs-horizontal">
                 <div class="periodes-nav">
-                    {% for periode_code, periode_nom in PERIODES %}
-                        {% if periode_code != 'annuel' %}
-                            <a href="?periode={{ periode_code }}" 
-                               class="periode-tab-horizontal {% if periode_active == periode_code %}active{% endif %}">
+                    {% if periodes_scolaires %}
+                        {% for periode in periodes_scolaires %}
+                            <a href="?periode={{ periode.id }}" 
+                               class="periode-tab-horizontal {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
                                 <i class="fas fa-calendar-alt"></i>
-                                <span>{{ periode_nom }}</span>
+                                <span>{{ periode.nom_periode }}</span>
+                                {% if periode.est_en_cours %}
+                                    <span class="badge-en-cours" style="margin-left: 0.5rem; background: #28a745; color: white; padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">En cours</span>
+                                {% endif %}
                             </a>
-                        {% endif %}
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <div style="padding: 1rem; text-align: center; color: #999;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Aucune période scolaire définie. Contactez l'administration.
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -151,6 +160,18 @@
                                         <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="btn-action success" title="Noter les élèves">
                                             <i class="fas fa-edit"></i>
                                             <span>Noter élèves</span>
+                                        </a>
+                                        {% with session_examen=sessions_examens_par_classe|get_item:classe_data.classe.id %}
+                                        {% if session_examen %}
+                                        <a href="{% url 'enseignant:noter_examen' classe_data.classe.id %}" class="btn-action warning" title="Noter l'examen" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                            <i class="fas fa-clipboard-check"></i>
+                                            <span>Noter Examen</span>
+                                        </a>
+                                        {% endif %}
+                                        {% endwith %}
+                                        <a href="{% url 'enseignant:voir_releve' classe_data.classe.id %}?periode={{ periode_active.id }}" class="btn-action info" title="Voir le relevé de notes">
+                                            <i class="fas fa-file-alt"></i>
+                                            <span>Voir relevé</span>
                                         </a>
                                         <button class="btn-action secondary" onclick="window.print()" title="Imprimer le relevé">
                                             <i class="fas fa-print"></i>

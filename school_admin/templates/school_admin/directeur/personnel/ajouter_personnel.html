@@ -123,56 +123,32 @@
                         </div>
                         
                         <div class="row">
-                           
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group">
-                                    <label class="form-label" for="type_personnel">Type de fonction *</label>
+                                    <label class="form-label" for="fonction">Type de fonction *</label>
                                     <select class="form-control {% if field_errors.fonction %}is-invalid{% endif %}" 
                                             id="fonction" 
                                             name="fonction" 
                                             required>
-                                        <option value="">Sélectionnez un type</option>
-                                        <option value="secretaire" {% if form_data.fonction == 'secretaire' %}selected{% endif %}>Secrétaire / Service de scolarité</option>
-                                        <option value="surveillant_general" {% if form_data.fonction == 'surveillant_general' %}selected{% endif %}>Surveillant Général (SG)</option>
-                                        <option value="censeur" {% if form_data.fonction == 'censeur' %}selected{% endif %}>Censeur</option>
-                                        <option value="administrateur" {% if form_data.fonction == 'administrateur' %}selected{% endif %}>Administrateur</option>
+                                        <option value="">Sélectionnez une fonction</option>
+                                        {% for code, label in fonctions_disponibles %}
+                                            <option value="{{ code }}" {% if form_data.fonction == code %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
                                     </select>
                                     {% if field_errors.fonction %}
                                         <div class="invalid-feedback">{{ field_errors.fonction }}</div>
                                     {% endif %}
+                                    <small class="form-text text-muted">
+                                        Fonctions disponibles pour : {{ etablissement.get_type_etablissement_display }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                  
                     
-                    <!-- Mot de passe -->
-                    <div class="form-section">
-                        <div class="section-title">
-                            <i class="fas fa-lock"></i>
-                            Sécurité
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="password">Mot de passe provisoire*</label>
-                                    <input type="password" 
-                                           class="form-control {% if field_errors.password %}is-invalid{% endif %}" 
-                                           id="password" 
-                                           name="password" 
-                                           required>
-                                    {% if field_errors.password %}
-                                        <div class="invalid-feedback">{{ field_errors.password }}</div>
-                                    {% endif %}
-                                    <small class="form-text text-muted">Minimum 8 caractères</small>
-                                </div>
-                            </div>
-                           
-                        </div>
-                    </div>
-                    
-                <div class="form-actions">
+                    <div class="form-actions">
                     <a href="{% url 'personnel:liste_personnel' %}" class="btn-cancel">
                         <i class="fas fa-arrow-left"></i>
                         <span>Retour à la liste</span>

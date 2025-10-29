@@ -1,0 +1,645 @@
+/* Emploi du Temps des Examens - Styles */
+
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #34495e;
+    --text-color: #2c3e50;
+    --text-muted: #7f8c8d;
+    --border-color: #bdc3c7;
+    --background-color: #f8f9fa;
+    --white: #ffffff;
+    --shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+    --timetable-header-bg: #2c3e50;
+    --timetable-day-bg: #3498db;
+    --timetable-break-bg: #f39c12;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Messages */
+.messages {
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.page-header h1 {
+    color: var(--primary-color);
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-primary {
+    background-color: var(--secondary-color);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+    background-color: var(--light-color);
+    color: var(--dark-color);
+}
+
+.btn-secondary:hover {
+    background-color: #d5dbdb;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: var(--white);
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Timetable Container */
+.timetable-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+/* Day Schedule */
+.day-schedule {
+    margin-bottom: 30px;
+}
+
+.day-schedule:last-child {
+    margin-bottom: 0;
+}
+
+.day-header {
+    background: linear-gradient(135deg, var(--timetable-header-bg), #34495e);
+    color: var(--white);
+    padding: 20px;
+    text-align: center;
+}
+
+.day-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Calendar Timetable */
+.calendar-timetable {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 30px;
+    border: 2px solid #ddd;
+}
+
+/* Grid Header */
+.grid-header {
+    display: contents;
+}
+
+.day-header {
+    background: #9c88ff;
+    color: white;
+    padding: 12px 8px;
+    font-weight: bold;
+    font-size: 13px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #8b7ed8;
+    width: 200px;
+    max-width: 200px;
+}
+
+/* Time Slot */
+.time-slot {
+    display: contents;
+}
+
+.exam-cell {
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    min-height: 60px;
+    vertical-align: top;
+    background: var(--white);
+    width: 200px;
+    max-width: 200px;
+}
+
+.empty-cell {
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    min-height: 60px;
+    background: #fafafa;
+    vertical-align: middle;
+    width: 200px;
+    max-width: 200px;
+}
+
+/* Exam Block */
+.exam-block {
+    border-radius: 6px;
+    padding: 8px;
+    width: 100%;
+    min-height: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.exam-block:last-child {
+    margin-bottom: 0;
+}
+
+/* Couleurs par matière - Bordure gauche uniquement */
+.exam-block.math {
+    background-color: white;
+    border-left: 4px solid #4caf50;
+}
+
+.exam-block.francais {
+    background-color: white;
+    border-left: 4px solid #f44336;
+}
+
+.exam-block.histoire {
+    background-color: white;
+    border-left: 4px solid #f44336;
+}
+
+.exam-block.sport {
+    background-color: white;
+    border-left: 4px solid #f44336;
+}
+
+.exam-block.anglais {
+    background-color: white;
+    border-left: 4px solid #2196f3;
+}
+
+.exam-block.physique {
+    background-color: white;
+    border-left: 4px solid #2196f3;
+}
+
+.exam-block.espagnol {
+    background-color: white;
+    border-left: 4px solid #ff9800;
+}
+
+.exam-block.musique {
+    background-color: white;
+    border-left: 4px solid #ff9800;
+}
+
+.exam-block.arts {
+    background-color: white;
+    border-left: 4px solid #9c27b0;
+}
+
+.exam-block.default {
+    background-color: white;
+    border-left: 4px solid #9e9e9e;
+}
+
+.exam-time {
+    font-weight: bold;
+    color: #333;
+    font-size: 15px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    text-align: center;
+    background: rgba(0,0,0,0.05);
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.exam-subject {
+    font-weight: bold;
+    color: #333;
+    font-size: 12px;
+    margin-bottom: 3px;
+    line-height: 1.2;
+}
+
+.exam-teacher {
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.exam-room {
+    font-size: 9px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 1.2;
+}
+
+.exam-room i {
+    font-size: 8px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: auto;
+    padding: 0;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.close {
+    color: var(--white);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.close:hover {
+    opacity: 0.7;
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.required {
+    color: var(--danger-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-control:disabled {
+    background-color: var(--light-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: var(--border-color);
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .timetable-grid {
+        grid-template-columns: 100px repeat(6, 1fr);
+    }
+    
+    .time-header,
+    .day-header-cell {
+        padding: 12px;
+        font-size: 12px;
+    }
+    
+    .time-cell {
+        padding: 12px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .header-actions {
+        justify-content: center;
+    }
+    
+    .timetable-grid {
+        grid-template-columns: 80px repeat(6, 1fr);
+        font-size: 11px;
+    }
+    
+    .time-header,
+    .day-header-cell,
+    .time-cell {
+        padding: 8px;
+    }
+    
+    .exam-cell,
+    .empty-cell {
+        padding: 6px;
+        min-height: 60px;
+    }
+    
+    .exam-block {
+        padding: 8px;
+        min-height: 45px;
+    }
+    
+    .exam-subject {
+        font-size: 12px;
+    }
+    
+    .exam-classes,
+    .exam-supervisor,
+    .exam-room {
+        font-size: 10px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .day-header h2 {
+        font-size: 1.4rem;
+    }
+    
+    .timetable-grid {
+        grid-template-columns: 60px repeat(6, 1fr);
+    }
+    
+    .time-header,
+    .day-header-cell,
+    .time-cell {
+        padding: 6px;
+        font-size: 10px;
+    }
+    
+    .exam-cell,
+    .empty-cell {
+        padding: 4px;
+        min-height: 50px;
+    }
+    
+    .exam-block {
+        padding: 6px;
+        min-height: 40px;
+    }
+    
+    .exam-subject {
+        font-size: 11px;
+    }
+    
+    .exam-classes,
+    .exam-supervisor,
+    .exam-room {
+        font-size: 9px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .page-header,
+    .header-actions,
+    .modal {
+        display: none;
+    }
+    
+    .timetable-grid {
+        border: 2px solid #000;
+    }
+    
+    .exam-block {
+        border: 1px solid #000;
+        background: #fff;
+    }
+    
+    .day-header {
+        background: #000;
+        color: #fff;
+    }
+}

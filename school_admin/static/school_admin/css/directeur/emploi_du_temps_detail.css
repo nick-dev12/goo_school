@@ -4,6 +4,243 @@
 * Design élégant et fonctionnel pour la grille horaire
 */
 
+/* ===== CONTENEUR PRINCIPAL ===== */
+.content-container {
+  min-height: calc(100vh - 80px);
+  padding: 24px;
+  background: #f8f9fa;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== BREADCRUMB NAVIGATION ===== */
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+
+.breadcrumb-link:hover {
+  color: #4a90e2;
+}
+
+.breadcrumb-link i {
+  font-size: 14px;
+}
+
+.breadcrumb-separator {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.breadcrumb-current {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.page-title-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title i {
+  color: #4a90e2;
+  font-size: 28px;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.page-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ===== BOUTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn i {
+  font-size: 16px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== MESSAGES ===== */
+.messages-container {
+  margin-bottom: 24px;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+}
+
+.alert i {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.alert-info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}
+
+.btn-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.btn-close:hover {
+  opacity: 1;
+}
+
+/* ===== ÉTAT VIDE ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 20px;
+}
+
+.empty-state-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.empty-state-text {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* ===== SECTION RETOUR ===== */
+.back-section {
+  margin-top: 32px;
+  text-align: center;
+}
+
 /* ===== BADGES D'INFORMATION ===== */
 .classe-info-badges {
   display: flex;
@@ -666,4 +903,291 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ===== NOUVEAU FORMAT TABLEAU AVEC COLONNE HORAIRES ===== */
+.edt-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.edt-table thead th {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  padding: 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.edt-table thead th:last-child {
+  border-right: none;
+}
+
+.edt-horaire-header {
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  min-width: 150px;
+  width: 150px;
+}
+
+.edt-jour-header {
+  min-width: 180px;
+}
+
+.edt-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.edt-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.edt-horaire-cell {
+  background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+  padding: 16px;
+  text-align: center;
+  vertical-align: middle;
+  border-right: 2px solid #e5e7eb;
+  min-width: 150px;
+  width: 150px;
+}
+
+.horaire-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.periode-horaire-simple {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+}
+
+.edt-creneau-cell {
+  padding: 8px;
+  vertical-align: top;
+  border-right: 1px solid #e5e7eb;
+  position: relative;
+  min-height: 100px;
+}
+
+.edt-creneau-cell:last-child {
+  border-right: none;
+}
+
+.edt-creneau-cell .creneau-card {
+  height: 100%;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.creneau-cours {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 4px solid #4a90e2; /* Bordure supérieure par défaut, surchargée inline */
+}
+
+.creneau-cours:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.creneau-pause {
+  background: linear-gradient(135deg, #fff7ed, #ffe8d1);
+  border: 2px dashed #fb923c;
+}
+
+.edt-creneau-cell .creneau-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edt-creneau-cell .creneau-matiere {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 4px;
+}
+
+.edt-creneau-cell .creneau-professeur {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.edt-creneau-cell .creneau-salle {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.pause-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f97316;
+  height: 100%;
+  min-height: 70px;
+}
+
+.pause-label i {
+  font-size: 18px;
+}
+
+.edt-creneau-cell .creneau-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: none;
+  gap: 4px;
+}
+
+.edt-creneau-cell .creneau-card:hover .creneau-actions {
+  display: flex;
+}
+
+/* ===== PAUSES EN LIGNE COMPLÈTE ===== */
+.pause-row {
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border-top: 2px solid #fb923c;
+  border-bottom: 2px solid #fb923c;
+}
+
+.pause-horaire {
+  background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
+  border-right: 2px solid #fb923c !important;
+}
+
+.pause-cell-full {
+  padding: 0 !important;
+  background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 50%, #fff7ed 100%);
+}
+
+.pause-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  height: 100%;
+  min-height: 50px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pause-recreation {
+  color: #ea580c;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(251, 146, 60, 0.1) 10%, 
+    rgba(251, 146, 60, 0.15) 50%, 
+    rgba(251, 146, 60, 0.1) 90%, 
+    transparent 100%);
+}
+
+.pause-dejeuner {
+  color: #c2410c;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(234, 88, 12, 0.1) 10%, 
+    rgba(234, 88, 12, 0.2) 50%, 
+    rgba(234, 88, 12, 0.1) 90%, 
+    transparent 100%);
+}
+
+.pause-banner i {
+  font-size: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.pause-text {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* ===== NOUVEAU DESIGN DES CARTES DE COURS ===== */
+.edt-creneau-cell .creneau-matiere {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.edt-creneau-cell .creneau-matiere i {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.edt-creneau-cell .creneau-classe {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.edt-creneau-cell .creneau-classe i {
+  color: #6b7280;
+}
+
+.edt-creneau-cell .creneau-professeur {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.edt-creneau-cell .creneau-professeur i {
+  color: #6b7280;
+}
+
+.edt-creneau-cell .creneau-salle {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edt-creneau-cell .creneau-salle i {
+  color: #9ca3af;
 }

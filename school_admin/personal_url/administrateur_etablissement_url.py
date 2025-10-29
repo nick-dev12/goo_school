@@ -3,6 +3,7 @@ from django.urls import path
 from ..personal_views.administrateur_etablissement_view import *
 from ..controllers.classe_controller import ClasseController
 from ..controllers.emploi_du_temps_controller import EmploiDuTempsController
+from ..controllers.configuration_horaire_controller import ConfigurationHoraireController
 
 app_name = 'administrateur_etablissement'
 
@@ -24,4 +25,8 @@ urlpatterns = [
     path('emplois-du-temps/<int:emploi_id>/ajouter-creneau/', EmploiDuTempsController.ajouter_creneau, name='ajouter_creneau'),
     path('emplois-du-temps/creneau/<int:creneau_id>/modifier/', EmploiDuTempsController.modifier_creneau, name='modifier_creneau'),
     path('emplois-du-temps/creneau/<int:creneau_id>/supprimer/', EmploiDuTempsController.supprimer_creneau, name='supprimer_creneau'),
+    
+    # URLs pour la configuration des horaires
+    path('configuration-horaires/', ConfigurationHoraireController.gerer_configuration, name='configuration_horaires'),
+    path('configuration-horaires/periodes/', ConfigurationHoraireController.gerer_periodes, name='gerer_periodes'),
 ]

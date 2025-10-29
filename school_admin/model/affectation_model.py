@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from .professeur_model import Professeur
 from .classe_model import Classe
+from .matiere_model import Matiere
 
 
 class AffectationProfesseur(models.Model):
@@ -28,6 +29,15 @@ class AffectationProfesseur(models.Model):
         related_name='affectations',
         verbose_name="Classe"
     )
+    matiere = models.ForeignKey(
+        Matiere,
+        on_delete=models.CASCADE,
+        related_name='affectations',
+        verbose_name="Matière enseignée",
+        null=True,
+        blank=True,
+        help_text="Matière que le professeur enseigne dans cette classe"
+    )
     statut = models.CharField(
         max_length=20,
         choices=STATUT_CHOICES,
@@ -46,7 +56,7 @@ class AffectationProfesseur(models.Model):
     class Meta:
         verbose_name = "Affectation Professeur"
         verbose_name_plural = "Affectations Professeurs"
-        unique_together = ['professeur', 'classe']
+        unique_together = ['professeur', 'classe', 'matiere']
         ordering = ['-date_affectation']
     
     def __str__(self):
@@ -57,17 +67,34 @@ class AffectationProfesseur(models.Model):
         Validation personnalisée pour s'assurer qu'il n'y a qu'un seul professeur principal par classe
         et qu'il n'y a pas deux enseignants de la même matière dans la même classe
         """
+        # Si une matière est spécifiée, vérifier que le professeur peut l'enseigner
+        if self.matiere:
+            # Vérifier que la matière est soit la matière principale soit une matière secondaire du professeur
+            matieres_enseignables = [self.professeur.matiere_principale.id] + list(
+                self.professeur.matieres_secondaires.values_list('id', flat=True)
+            )
+            
+            if self.matiere.id not in matieres_enseignables:
+                raise ValidationError(
+                    f"Le professeur {self.professeur.nom_complet} ne peut pas enseigner {self.matiere.nom}. "
+                    f"Cette matière n'est ni sa matière principale ni une de ses matières secondaires."
+                )
+        
+        # Définir la matière par défaut si elle n'est pas spécifiée
+        if not self.matiere:
+            self.matiere = self.professeur.matiere_principale
+        
         # Vérifier s'il y a déjà un professeur de la même matière pour cette classe
         existing_same_matiere = AffectationProfesseur.objects.filter(
             classe=self.classe,
-            professeur__matiere_principale=self.professeur.matiere_principale,
+            matiere=self.matiere,
             actif=True
         ).exclude(pk=self.pk)
         
         if existing_same_matiere.exists():
             existing_prof = existing_same_matiere.first()
             raise ValidationError(
-                f"Il y a déjà un professeur de {self.professeur.matiere_principale.nom} "
+                f"Il y a déjà un professeur de {self.matiere.nom} "
                 f"({existing_prof.professeur.nom_complet}) affecté à la classe {self.classe.nom}. "
                 f"Une classe ne peut avoir qu'un seul enseignant par matière."
             )

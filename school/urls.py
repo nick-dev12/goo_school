@@ -29,6 +29,7 @@ urlpatterns = [
     path('', include('school_admin.personal_url.secretaire_url', namespace='secretaire')),
     path('', include('school_admin.personal_url.professeur_url', namespace='professeur')),
     path('', include('school_admin.personal_url.enseignant_url', namespace='enseignant')),
+    path('', include('school_admin.personal_url.enseignant_primaire_url', namespace='enseignant_primaire')),
     path('', include('school_admin.personal_url.eleve_url', namespace='eleve')),
     path('', include('school_admin.personal_url.matiere_url', namespace='matiere')),
     path('', include('school_admin.personal_url.affectation_url', namespace='affectation')),

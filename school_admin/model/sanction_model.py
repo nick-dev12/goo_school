@@ -62,8 +62,23 @@ class Sanction(models.Model):
     professeur = models.ForeignKey(
         Professeur,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='sanctions_donnees',
         verbose_name="Professeur"
+    )
+    # Informations sur qui a attribué la sanction (professeur ou directeur)
+    attribue_par_type = models.CharField(
+        max_length=20,
+        choices=[('professeur', 'Professeur'), ('directeur', 'Directeur')],
+        default='professeur',
+        verbose_name="Attribué par (type)"
+    )
+    attribue_par_nom = models.CharField(
+        max_length=200,
+        default='Système',
+        verbose_name="Attribué par (nom)",
+        help_text="Nom complet de la personne ayant attribué la sanction"
     )
     etablissement = models.ForeignKey(
         Etablissement,

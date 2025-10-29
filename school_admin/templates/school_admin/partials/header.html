@@ -33,13 +33,19 @@
         <a href="{% url 'school_admin:profil_admin' %}">
           <div class="header-profile">
             <div class="header-avatar">
-              <img src="{{ user.photo.url }}" alt="Photo de profil" />
+              {% if user.photo %}
+                <img src="{{ user.photo.url }}" alt="Photo de profil" />
+              {% else %}
+                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 18px;">
+                  {{ user.initiales }}
+                </div>
+              {% endif %}
             </div>
             <div class="header-user-info">
               <div class="header-user-name">
-                {{ user.nom }} {{ user.prenom }}
+                {% if user.directeur_prenom %}{{ user.directeur_prenom }} {{ user.directeur_nom }}{% else %}{{ user.nom }} {{ user.prenom }}{% endif %}
               </div>
-              <div class="header-user-role">{{ user.fonction }}</div>
+              <div class="header-user-role">{% if user.directeur_prenom %}Directeur{% else %}{{ user.fonction }}{% endif %}</div>
             </div>
           </div>
         </a>
@@ -50,9 +56,9 @@
     <section class="welcome-banner">
       <div class="banner-content">
         <h1 class="banner-title">
-          Bienvenue, {{ user.nom }} {{ user.prenom }}
+          Bienvenue, {% if user.directeur_prenom %}{{ user.directeur_prenom }} {{ user.directeur_nom }}{% else %}{{ user.nom }} {{ user.prenom }}{% endif %}
         </h1>
-        <p class="banner-subtitle">Goo-School - Année scolaire 2023-2024</p>
+        <p class="banner-subtitle">{% if user.directeur_prenom %}{{ user.nom }}{% else %}Goo-School{% endif %} - Année scolaire 2024-2025</p>
       </div>
       <button class="nav-toggle-btn" id="openNavMenu">
         menu

@@ -196,27 +196,29 @@
                         </div>
                         
                         <!-- Période -->
-                        <div class="form-group {% if errors.periode %}has-error{% endif %}">
-                            <label for="periode">
+                        <div class="form-group {% if errors.periode_scolaire %}has-error{% endif %}">
+                            <label for="periode_scolaire">
                                 <i class="fas fa-calendar-alt"></i>
-                                Période scolaire <span class="required">*</span>
+                                Période scolaire
                             </label>
-                            <select id="periode" name="periode" required>
-                                <optgroup label="Système Trimestre (Primaire & Collège)">
-                                    <option value="trimestre1" {% if form_data.periode == 'trimestre1' or not form_data.periode %}selected{% endif %}>1er Trimestre</option>
-                                    <option value="trimestre2" {% if form_data.periode == 'trimestre2' %}selected{% endif %}>2ème Trimestre</option>
-                                    <option value="trimestre3" {% if form_data.periode == 'trimestre3' %}selected{% endif %}>3ème Trimestre</option>
-                                </optgroup>
-                                <optgroup label="Système Semestre (Lycée)">
-                                    <option value="semestre1" {% if form_data.periode == 'semestre1' %}selected{% endif %}>1er Semestre</option>
-                                    <option value="semestre2" {% if form_data.periode == 'semestre2' %}selected{% endif %}>2ème Semestre</option>
-                                </optgroup>
-                                <optgroup label="Annuel">
-                                    <option value="annuel" {% if form_data.periode == 'annuel' %}selected{% endif %}>Année complète</option>
-                                </optgroup>
+                            <select id="periode_scolaire" name="periode_scolaire">
+                                <option value="">-- Sélectionner une période --</option>
+                                {% for periode in periodes_scolaires %}
+                                    <option value="{{ periode.id }}" 
+                                            {% if form_data.periode_scolaire|stringformat:"s" == periode.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})
+                                        {% if periode.est_en_cours %} - En cours{% endif %}
+                                    </option>
+                                {% endfor %}
                             </select>
-                            {% if errors.periode %}
-                                <span class="error-message">{{ errors.periode }}</span>
+                            {% if errors.periode_scolaire %}
+                                <span class="error-message">{{ errors.periode_scolaire }}</span>
+                            {% endif %}
+                            {% if not periodes_scolaires %}
+                                <p class="help-text" style="color: #f39c12; margin-top: 0.5rem;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Aucune période scolaire définie. Contactez l'administration.
+                                </p>
                             {% endif %}
                         </div>
                     </div>

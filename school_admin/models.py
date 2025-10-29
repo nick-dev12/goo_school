@@ -10,6 +10,15 @@ from .model.rendez_vous_model import RendezVous
 from .model.facturation_model import Facturation
 from .model.professeur_model import Professeur
 from .model.matiere_model import Matiere
+from .model.note_examen_model import NoteExamen
+from .model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+from .model.evaluation_primaire_model import EvaluationPrimaire
+from .model.note_primaire_model import NotePrimaire, MoyenneMatierePrimaire
 
 # Exposer les modèles au niveau du module
-__all__ = ['CompteUser', 'Etablissement', 'PersonnelAdministratif', 'Classe', 'Eleve', 'Prospection', 'NoteCommercial', 'RendezVous', 'Facturation', 'Professeur', 'Matiere']
+__all__ = [
+    'CompteUser', 'Etablissement', 'PersonnelAdministratif', 'Classe', 'Eleve', 
+    'Prospection', 'NoteCommercial', 'RendezVous', 'Facturation', 'Professeur', 
+    'Matiere', 'NoteExamen', 'AffectationProfesseurPrimaire', 'EvaluationPrimaire', 
+    'NotePrimaire', 'MoyenneMatierePrimaire'
+]

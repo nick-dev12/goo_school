@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Évaluations - Enseignant Primaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_evaluations.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-content">
+                <h1><i class="fas fa-list"></i> Mes Évaluations</h1>
+                <p>{{ total_evaluations }} évaluations créées</p>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters-container">
+            <select onchange="window.location.href='?matiere=' + this.value + '&periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}'">
+                <option value="">Toutes les matières</option>
+                {% for matiere in matieres %}
+                    <option value="{{ matiere.id }}" {% if matiere.id == matiere_selectionnee.id %}selected{% endif %}>{{ matiere.nom }}</option>
+                {% endfor %}
+            </select>
+            
+            <select onchange="window.location.href='?matiere={{ matiere_selectionnee.id }}&periode=' + this.value + '&classe={{ classe_selectionnee.id }}'">
+                <option value="">Toutes les périodes</option>
+                {% for periode in periodes %}
+                    <option value="{{ periode.id }}" {% if periode.id == periode_selectionnee.id %}selected{% endif %}>{{ periode.nom_periode }}</option>
+                {% endfor %}
+            </select>
+            
+            <select onchange="window.location.href='?matiere={{ matiere_selectionnee.id }}&periode={{ periode_selectionnee.id }}&classe=' + this.value">
+                <option value="">Toutes les classes</option>
+                {% for classe in classes %}
+                    <option value="{{ classe.id }}" {% if classe.id == classe_selectionnee.id %}selected{% endif %}>{{ classe.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Liste des évaluations -->
+        <div class="evaluations-grid">
+            {% for evaluation in evaluations %}
+                <div class="evaluation-card">
+                    <div class="evaluation-header">
+                        <span class="matiere-badge">{{ evaluation.matiere.code }}</span>
+                        <span class="type-badge">{{ evaluation.get_type_evaluation_display }}</span>
+                    </div>
+                    <h3>{{ evaluation.titre }}</h3>
+                    <div class="evaluation-details">
+                        <div class="detail-item">
+                            <i class="fas fa-chalkboard"></i>
+                            <span>{{ evaluation.classe.nom }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-star"></i>
+                            <span>{{ evaluation.bareme }} points</span>
+                        </div>
+                    </div>
+                    <div class="evaluation-actions">
+                        <a href="{% url 'enseignant_primaire:noter_eleves' evaluation.classe.id %}?evaluation={{ evaluation.id }}" class="btn-primary">
+                            <i class="fas fa-edit"></i> Noter
+                        </a>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Aucune évaluation</h3>
+                    <p>Vous n'avez pas encore créé d'évaluations</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+</body>
+</html>
+

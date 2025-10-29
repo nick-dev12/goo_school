@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from .controllers.administrateur_compte_controller import AdministrateurCompteController
 from .personal_views.administrateur_view import *
@@ -115,3 +115,10 @@ urlpatterns += affectation_salle_urls
 from .personal_url.enseignant_url import urlpatterns as enseignant_urls
 urlpatterns += enseignant_urls
 
+# Inclure les URLs des élèves
+from .personal_url.eleve_url import urlpatterns as eleve_urls
+urlpatterns += eleve_urls
+
+# Inclure les URLs du directeur
+from .personal_url.directeur_url import urlpatterns as directeur_urls
+urlpatterns += directeur_urls

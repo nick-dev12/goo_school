@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static notes_tags %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8" />
@@ -181,19 +181,26 @@
                     <div class="form-group">
                         <label class="form-label">
                             <i class="fas fa-users"></i>
-                            Classes concernées
+                            Classes concernées (Sélection par groupe)
                         </label>
+                        <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                            <i class="fas fa-info-circle"></i>
+                            Cocher un groupe sélectionne toutes les classes de ce groupe
+                        </p>
                         <div class="classes-selection">
-                            {% for classe in classes %}
-                                <label class="class-checkbox">
+                            {% for groupe in groupes_classes %}
+                                <label class="class-checkbox groupe-checkbox">
                                     <input type="checkbox" 
-                                           name="classes" 
-                                           value="{{ classe.id }}"
-                                           {% if classe.id|stringformat:"s" in form_data.classes %}checked{% endif %}>
+                                           name="groupes_classes" 
+                                           value="{{ groupe.nom }}"
+                                           {% if groupe.nom in form_data.groupes_classes %}checked{% endif %}>
                                     <span class="checkmark">
                                         <i class="fas fa-check"></i>
                                     </span>
-                                    <span class="class-name">{{ classe.nom }}</span>
+                                    <span class="class-name">
+                                        <strong>{{ groupe.nom }}</strong>
+                                        <small style="display: block; font-size: 11px; color: #888;">({{ groupe.count }} classe{{ groupe.count|pluralize }})</small>
+                                    </span>
                                 </label>
                             {% empty %}
                                 <div class="no-classes">
@@ -275,9 +282,16 @@
                                 
                                 {% if matiere.classes.exists %}
                                     <div class="classes-list">
-                                        {% for classe in matiere.classes.all %}
-                                            <span class="class-tag">{{ classe.nom }}</span>
-                                        {% endfor %}
+                                        {% with groupes=matiere.classes.all|group_classes %}
+                                            {% for groupe in groupes %}
+                                                <span class="class-tag" title="{{ groupe.count }} classe{{ groupe.count|pluralize }}">
+                                                    {{ groupe.nom }}
+                                                    {% if groupe.count > 1 %}
+                                                        <small style="font-size: 10px; opacity: 0.8;"> (×{{ groupe.count }})</small>
+                                                    {% endif %}
+                                                </span>
+                                            {% endfor %}
+                                        {% endwith %}
                                     </div>
                                 {% endif %}
                             </div>

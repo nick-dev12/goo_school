@@ -131,70 +131,39 @@
                   {% endif %}
                 </div>
 
-                <!-- Type de cours -->
-                <div class="form-group {% if field_errors.type_cours %}has-error{% endif %}">
-                  <label for="type_cours" class="form-label required">
-                    <i class="fas fa-tag"></i>
-                    Type de cours
-                  </label>
-                  <select id="type_cours" name="type_cours" class="form-control" required>
-                    {% for value, label in type_cours_choices %}
-                      <option value="{{ value }}" {% if form_data.type_cours == value %}selected{% endif %}>
-                        {{ label }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                  {% if field_errors.type_cours %}
-                    <span class="error-message">
-                      <i class="fas fa-exclamation-circle"></i>
-                      {{ field_errors.type_cours }}
-                    </span>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <!-- Heure de début -->
-                <div class="form-group {% if field_errors.heure_debut %}has-error{% endif %}">
-                  <label for="heure_debut" class="form-label required">
+                <!-- Périodes (Horaires) - Sélection multiple -->
+                <div class="form-group-full {% if field_errors.periodes_etablissement %}has-error{% endif %}" style="grid-column: 1 / -1;">
+                  <label class="form-label required" style="margin-bottom: 15px; display: block;">
                     <i class="fas fa-clock"></i>
-                    Heure de début
+                    Horaires (sélectionnez plusieurs pour un cours de 2h ou plus)
                   </label>
-                  <input 
-                    type="time" 
-                    id="heure_debut" 
-                    name="heure_debut" 
-                    class="form-control" 
-                    value="{{ form_data.heure_debut }}"
-                    required
-                  />
-                  {% if field_errors.heure_debut %}
-                    <span class="error-message">
-                      <i class="fas fa-exclamation-circle"></i>
-                      {{ field_errors.heure_debut }}
-                    </span>
-                  {% endif %}
-                </div>
-
-                <!-- Heure de fin -->
-                <div class="form-group {% if field_errors.heure_fin %}has-error{% endif %}">
-                  <label for="heure_fin" class="form-label required">
-                    <i class="fas fa-clock"></i>
-                    Heure de fin
-                  </label>
-                  <input 
-                    type="time" 
-                    id="heure_fin" 
-                    name="heure_fin" 
-                    class="form-control" 
-                    value="{{ form_data.heure_fin }}"
-                    required
-                  />
-                  {% if field_errors.heure_fin %}
-                    <span class="error-message">
-                      <i class="fas fa-exclamation-circle"></i>
-                      {{ field_errors.heure_fin }}
-                    </span>
+                  {% if periodes_etablissement %}
+                    <div class="periodes-selection-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; padding: 15px; background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 10px;">
+                      {% for periode in periodes_etablissement %}
+                        <label class="periode-checkbox-label" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 15px 10px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s; min-height: 70px; text-align: center;" data-ordre="{{ periode.ordre }}">
+                          <input type="checkbox" 
+                                 name="periodes_etablissement" 
+                                 value="{{ periode.id }}"
+                                 data-ordre="{{ periode.ordre }}"
+                                 class="periode-checkbox"
+                                 style="width: 20px; height: 20px; cursor: pointer; margin-bottom: 4px;">
+                          <div style="font-weight: 700; color: #1f2937; font-size: 14px; font-family: 'Courier New', monospace;">
+                            {{ periode.heure_debut|time:"H:i" }} - {{ periode.heure_fin|time:"H:i" }}
+                          </div>
+                        </label>
+                      {% endfor %}
+                    </div>
+                    {% if field_errors.periodes_etablissement %}
+                      <span class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        {{ field_errors.periodes_etablissement }}
+                      </span>
+                    {% endif %}
+                  {% else %}
+                    <div class="alert alert-warning" style="margin-top: 10px;">
+                      <i class="fas fa-exclamation-triangle"></i>
+                      <span>Aucune période configurée. Veuillez d'abord <a href="{% url 'administrateur_etablissement:configuration_horaires' %}" style="color: #d97706; text-decoration: underline;">configurer les horaires</a> de l'établissement.</span>
+                    </div>
                   {% endif %}
                 </div>
               </div>
@@ -292,27 +261,52 @@
     <!-- JavaScript -->
     <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
     <script>
-      // Mise à jour de l'aperçu de la couleur
-      const colorInput = document.getElementById('couleur');
-      const colorPreview = document.getElementById('colorPreview');
-      
-      colorInput.addEventListener('input', function() {
-        colorPreview.style.backgroundColor = this.value;
-        colorPreview.style.color = getContrastColor(this.value);
+      // Gestion de la sélection multiple des périodes
+      document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.periode-checkbox');
+        const labels = document.querySelectorAll('.periode-checkbox-label');
+        
+        // Style visuel pour les périodes cochées
+        checkboxes.forEach((checkbox, index) => {
+          checkbox.addEventListener('change', function() {
+            const label = labels[index];
+            if (this.checked) {
+              label.style.background = 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
+              label.style.borderColor = '#3b82f6';
+              label.style.transform = 'scale(1.02)';
+            } else {
+              label.style.background = '#f9fafb';
+              label.style.borderColor = '#e5e7eb';
+              label.style.transform = 'scale(1)';
+            }
+          });
+        });
+        
+        // Vérification de la validation côté client
+        const form = document.querySelector('.form-content-creneau');
+        form.addEventListener('submit', function(e) {
+          const checkedPeriodes = document.querySelectorAll('.periode-checkbox:checked');
+          if (checkedPeriodes.length === 0) {
+            e.preventDefault();
+            alert('Veuillez sélectionner au moins une période.');
+            return false;
+          }
+          
+          // Vérifier que les périodes sélectionnées sont consécutives
+          const ordres = Array.from(checkedPeriodes).map(cb => parseInt(cb.dataset.ordre)).sort((a, b) => a - b);
+          for (let i = 1; i < ordres.length; i++) {
+            // Pour l'instant, on ne force pas la consécutivité, mais on peut afficher un warning
+            if (ordres[i] !== ordres[i-1] + 1) {
+              const confirm = window.confirm('Les périodes sélectionnées ne sont pas consécutives. Voulez-vous continuer ?');
+              if (!confirm) {
+                e.preventDefault();
+                return false;
+              }
+              break;
+            }
+          }
+        });
       });
-      
-      // Définir la couleur initiale
-      colorPreview.style.backgroundColor = colorInput.value;
-      colorPreview.style.color = getContrastColor(colorInput.value);
-      
-      // Fonction pour déterminer la couleur de texte contrastée
-      function getContrastColor(hexColor) {
-        const r = parseInt(hexColor.substr(1, 2), 16);
-        const g = parseInt(hexColor.substr(3, 2), 16);
-        const b = parseInt(hexColor.substr(5, 2), 16);
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-        return brightness > 128 ? '#000000' : '#ffffff';
-      }
     </script>
   </body>
 </html>

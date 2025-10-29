@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+{% load static %}
+{% load pagination_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes et Résultats - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Messages -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line"></i>
+                    Notes et Résultats
+                </h1>
+                <p class="page-subtitle">
+                    Consultation des moyennes par classe et par matière
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:gestion_eleves' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Onglets principaux par niveau -->
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                {% for categorie, data in classes_grouped.items %}
+                    <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                            data-tab="tab-{{ forloop.counter }}"
+                            onclick="switchMainTab('tab-{{ forloop.counter }}')">
+                        <div class="tab-content">
+                            <span class="tab-title">{{ categorie }}</span>
+                            <span class="tab-badge">{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }}</span>
+                        </div>
+                        <div class="tab-info">
+                            <span class="tab-students">{{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</span>
+                        </div>
+                    </button>
+                {% endfor %}
+            </div>
+
+            <!-- Contenu des onglets -->
+            {% for categorie, data in classes_grouped.items %}
+                <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                    
+                    <!-- Info catégorie -->
+                    <div class="category-info">
+                        <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                        <p>{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }} - {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</p>
+                    </div>
+
+                    <!-- Sous-onglets par classe -->
+                    <div class="classes-subtabs">
+                        {% for classe_data in data.classes %}
+                            <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
+                                    onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
+                                <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Contenu des sous-onglets (classes) -->
+                    {% for classe_data in data.classes %}
+                        <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                            
+                            <!-- En-tête de la classe -->
+                            <div class="class-header">
+                                <h2 class="class-title">
+                                    <i class="fas fa-chalkboard"></i>
+                                    {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                </h2>
+                                <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
+                            </div>
+
+                            {% if classe_data.matieres %}
+                                <!-- Onglets par matière -->
+                                <div class="matieres-tabs">
+                                    {% for matiere, matiere_data in classe_data.matieres.items %}
+                                        <button class="matiere-tab-btn {% if forloop.first %}active{% endif %}"
+                                                onclick="switchMatiereTab(event, 'matiere-{{ classe_data.classe.id }}-{{ forloop.counter }}')">
+                                            <i class="fas fa-book"></i>
+                                            <span>{{ matiere }}</span>
+                                            <small>{{ matiere_data.professeur.nom_complet }}</small>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Contenu par matière -->
+                                {% for matiere, matiere_data in classe_data.matieres.items %}
+                                    <div class="matiere-content {% if forloop.first %}active{% endif %}" id="matiere-{{ classe_data.classe.id }}-{{ forloop.counter }}">
+                                        
+                                        <!-- Info matière -->
+                                        <div class="matiere-info-card">
+                                            <div class="matiere-icon">
+                                                <i class="fas fa-book-open"></i>
+                                            </div>
+                                            <div class="matiere-details">
+                                                <h4>{{ matiere }}</h4>
+                                                <p>Enseignant : {{ matiere_data.professeur.nom_complet }}</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Légende des couleurs -->
+                                        <div class="legende-couleurs">
+                                            <h5><i class="fas fa-palette"></i> Code couleur des moyennes :</h5>
+                                            <div class="legende-items">
+                                                <span class="legende-item excellente">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Excellente (≥ 16/20)</span>
+                                                </span>
+                                                <span class="legende-item bonne">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Bonne (14-15.99/20)</span>
+                                                </span>
+                                                <span class="legende-item assez-bonne">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Assez bonne (12-13.99/20)</span>
+                                                </span>
+                                                <span class="legende-item passable">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Passable (10-11.99/20)</span>
+                                                </span>
+                                                <span class="legende-item insuffisante">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Insuffisante (< 10/20)</span>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tableau des notes -->
+                                        <div class="notes-table-container">
+                                            <table class="notes-results-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Rang</th>
+                                                        <th>Élève</th>
+                                                        <th>Matricule</th>
+                                                        <th>Nombre de notes</th>
+                                                        <th>Moyenne</th>
+                                                        <th>Appréciation</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for eleve_data in matiere_data.eleves_notes %}
+                                                        <tr class="student-row {% if eleve_data.moyenne is not None %}{% if eleve_data.moyenne >= 16 %}moyenne-excellente{% elif eleve_data.moyenne >= 14 %}moyenne-bonne{% elif eleve_data.moyenne >= 12 %}moyenne-assez-bonne{% elif eleve_data.moyenne >= 10 %}moyenne-passable{% else %}moyenne-insuffisante{% endif %}{% endif %}">
+                                                            <td class="rang-cell">
+                                                                {% if eleve_data.moyenne %}
+                                                                    <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                                                        {{ forloop.counter }}
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="rang-badge">-</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td class="eleve-cell">
+                                                                <div class="eleve-info">
+                                                                    <div class="eleve-avatar">
+                                                                        <i class="fas fa-user"></i>
+                                                                    </div>
+                                                                    <span class="eleve-nom">{{ eleve_data.eleve.nom_complet }}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td class="matricule-cell">{{ eleve_data.eleve.numero_eleve }}</td>
+                                                            <td class="nombre-notes-cell">
+                                                                <span class="notes-count">{{ eleve_data.nombre_notes }}</span>
+                                                            </td>
+                                                            <td class="moyenne-cell">
+                                                                {% if eleve_data.moyenne is not None %}
+                                                                    <span class="moyenne-badge {% if eleve_data.moyenne >= 16 %}excellent{% elif eleve_data.moyenne >= 14 %}bien{% elif eleve_data.moyenne >= 12 %}assez-bien{% elif eleve_data.moyenne >= 10 %}passable{% else %}insuffisant{% endif %}">
+                                                                        {{ eleve_data.moyenne }}/20
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="moyenne-non-disponible">
+                                                                        <i class="fas fa-hourglass-half"></i>
+                                                                        Non disponible
+                                                                    </span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td class="appreciation-cell">
+                                                                {% if eleve_data.moyenne is not None %}
+                                                                    {% if eleve_data.moyenne >= 16 %}
+                                                                        <span class="appreciation-badge excellent">Excellent</span>
+                                                                    {% elif eleve_data.moyenne >= 14 %}
+                                                                        <span class="appreciation-badge bien">Bien</span>
+                                                                    {% elif eleve_data.moyenne >= 12 %}
+                                                                        <span class="appreciation-badge assez-bien">Assez bien</span>
+                                                                    {% elif eleve_data.moyenne >= 10 %}
+                                                                        <span class="appreciation-badge passable">Passable</span>
+                                                                    {% else %}
+                                                                        <span class="appreciation-badge insuffisant">Insuffisant</span>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <span class="appreciation-non-disponible">-</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                            
+                                            {% if not matiere_data.eleves_notes.0.releve_soumis %}
+                                                <div class="releve-non-soumis-notice">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    Le relevé de notes n'a pas encore été soumis par le professeur. Les moyennes seront disponibles après soumission.
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="empty-state">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                    <p>Aucun professeur affecté à cette classe</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Gestion des onglets principaux (niveaux)
+        function switchMainTab(tabId) {
+            document.querySelectorAll('.tab-content-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
+        }
+
+        // Gestion des sous-onglets (classes)
+        function switchClasseTab(event, classeId) {
+            event.stopPropagation();
+            
+            const parentPanel = event.target.closest('.tab-content-panel');
+            
+            parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(classeId).classList.add('active');
+            event.target.closest('.classe-subtab-btn').classList.add('active');
+        }
+
+        // Gestion des onglets par matière
+        function switchMatiereTab(event, matiereId) {
+            event.stopPropagation();
+            
+            const parentContent = event.target.closest('.classe-subtab-content');
+            
+            parentContent.querySelectorAll('.matiere-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            parentContent.querySelectorAll('.matiere-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(matiereId).classList.add('active');
+            event.target.closest('.matiere-tab-btn').classList.add('active');
+        }
+    </script>
+</body>
+</html>
+

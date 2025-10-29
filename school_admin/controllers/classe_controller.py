@@ -331,6 +331,105 @@ class ClasseController:
             'reinscriptions': eleves.filter(statut='reinscription').count(),
         }
         
+        # Récupérer les périodes scolaires
+        from ..model.periode_model import PeriodeScolaire
+        periodes = PeriodeScolaire.objects.filter(
+            etablissement=etablissement,
+            est_active=True
+        ).order_by('date_debut')
+        
+        # Récupérer les matières enseignées dans cette classe
+        matieres_classe = []
+        
+        # Pour le primaire, récupérer toutes les matières depuis AffectationProfesseurPrimaire
+        if etablissement.type_etablissement == 'primary':
+            from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+            affectations_primaires = AffectationProfesseurPrimaire.objects.filter(
+                classe=classe,
+                actif=True
+            ).prefetch_related('matieres')
+            
+            matieres_set = set()
+            for aff in affectations_primaires:
+                matieres_set.update(aff.matieres.all())
+            matieres_classe = list(matieres_set)
+        else:
+            # Pour les autres établissements
+            for affectation in affectations:
+                if affectation.professeur and affectation.professeur.matiere_principale:
+                    if affectation.professeur.matiere_principale not in matieres_classe:
+                        matieres_classe.append(affectation.professeur.matiere_principale)
+        
+        # Récupérer les relevés de notes par période
+        from ..model.releve_notes_model import ReleveNotes
+        from ..model.moyenne_model import Moyenne
+        
+        # Mapping des périodes scolaires vers les choix de période dans Moyenne
+        periode_mapping = {
+            '1er Trimestre': 'trimestre1',
+            '2ème Trimestre': 'trimestre2',
+            '3ème Trimestre': 'trimestre3',
+            '1er Semestre': 'semestre1',
+            '2ème Semestre': 'semestre2',
+        }
+        
+        releves_notes_par_periode = {}
+        
+        for periode in periodes:
+            eleves_data = []
+            
+            # Obtenir le code de période pour le modèle Moyenne
+            periode_code = periode_mapping.get(periode.nom_periode, 'trimestre1')
+            
+            for eleve in eleves:
+                # Récupérer les moyennes par matière pour cet élève et cette période
+                moyennes_dict = {}
+                moyenne_generale_total = 0
+                nb_matieres_avec_moyenne = 0
+                
+                for matiere in matieres_classe:
+                    # Pour le primaire, utiliser MoyenneMatierePrimaire
+                    if etablissement.type_etablissement == 'primary':
+                        from ..model.note_primaire_model import MoyenneMatierePrimaire
+                        moyenne_obj = MoyenneMatierePrimaire.objects.filter(
+                            eleve=eleve,
+                            matiere=matiere,
+                            periode_scolaire=periode
+                        ).first()
+                    else:
+                        # Pour les autres, utiliser Moyenne standard
+                        moyenne_obj = Moyenne.objects.filter(
+                            eleve=eleve,
+                            classe=classe,
+                            matiere=matiere,
+                            periode=periode_code,
+                            actif=True
+                        ).first()
+                    
+                    if moyenne_obj and moyenne_obj.moyenne is not None:
+                        moyennes_dict[matiere.id] = {
+                            'moyenne': moyenne_obj.moyenne,
+                            'nombre_notes': getattr(moyenne_obj, 'nombre_notes', None)
+                        }
+                        moyenne_generale_total += moyenne_obj.moyenne
+                        nb_matieres_avec_moyenne += 1
+                
+                # Calculer la moyenne générale
+                moyenne_generale = None
+                if nb_matieres_avec_moyenne > 0:
+                    moyenne_generale = moyenne_generale_total / nb_matieres_avec_moyenne
+                
+                # Ajouter l'élève au tableau (toujours affiché)
+                eleves_data.append({
+                    'eleve': eleve,
+                    'moyennes': moyennes_dict,
+                    'moyenne_generale': moyenne_generale,
+                    'nb_matieres': nb_matieres_avec_moyenne
+                })
+            
+            # Toujours ajouter la période
+            releves_notes_par_periode[periode.id] = eleves_data
+        
         context = {
             'classe': classe,
             'etablissement': etablissement,
@@ -341,6 +440,9 @@ class ClasseController:
             'nombre_enseignants': affectations.count(),
             'eleves': eleves,
             'stats_eleves': stats_eleves,
+            'periodes': periodes,
+            'matieres_classe': matieres_classe,
+            'releves_notes_par_periode': releves_notes_par_periode,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/detail_classe.html', context)

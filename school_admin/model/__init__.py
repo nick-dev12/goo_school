@@ -10,9 +10,16 @@ from .professeur_model import Professeur
 from .affectation_model import AffectationProfesseur
 from .salle_model import Salle
 from .affectation_salle_model import AffectationSalle
+from .configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
 from .emploi_du_temps_model import EmploiDuTemps, CreneauEmploiDuTemps
 from .evaluation_model import Evaluation, Note
 from .moyenne_model import Moyenne
 from .releve_notes_model import ReleveNotes
 from .presence_model import Presence, ListePresence
 from .sanction_model import Sanction
+from .parent_model import Parent
+from .lien_familial_model import LienFamilial
+from .demande_liaison_model import DemandeLiaisonParent
+from .periode_model import PeriodeScolaire
+from .session_examen_model import SessionExamen
+from .creneau_examen_model import CreneauExamen

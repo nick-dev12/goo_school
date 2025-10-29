@@ -100,74 +100,103 @@
                         <p>Matière : {{ professeur.matiere_principale.nom }}</p>
                     </div>
 
-                    <!-- Moyennes par période -->
-                    {% if moyennes %}
-                        <div class="moyennes-container">
-                            <h3><i class="fas fa-calculator"></i> Moyennes par période</h3>
-                            <div class="moyennes-grid">
-                                {% for moyenne in moyennes %}
-                                    <div class="moyenne-card">
-                                        <div class="moyenne-header">
-                                            <i class="fas fa-calendar-alt"></i>
-                                            <span>{{ moyenne.get_periode_display }}</span>
-                                        </div>
-                                        <div class="moyenne-value {% if moyenne.moyenne < 10 %}faible{% elif moyenne.moyenne < 14 %}bonne{% else %}excellente{% endif %}">
-                                            {{ moyenne.moyenne|floatformat:2 }}/20
-                                        </div>
-                                        {% if moyenne.appreciation %}
-                                            <div class="moyenne-appreciation">
-                                                "{{ moyenne.appreciation }}"
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
+                    <!-- Onglets des périodes -->
+                    <div class="periodes-tabs-horizontal">
+                        {% for periode in periodes %}
+                            <a href="?onglet=notes&periode={{ periode.id }}" 
+                               class="periode-tab {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>{{ periode.nom_periode }}</span>
+                                {% if periode.est_active %}
+                                    <span class="tab-badge active">En cours</span>
+                                {% endif %}
+                            </a>
+                        {% empty %}
+                            <div class="empty-state-small">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>Aucune période scolaire définie.</p>
                             </div>
-                        </div>
-                    {% endif %}
+                        {% endfor %}
+                    </div>
 
-                    <!-- Historique des notes -->
-                    <div class="notes-container">
-                        <h3><i class="fas fa-list"></i> Historique des notes</h3>
-                        {% if notes %}
+                    {% if evaluations %}
+                        <!-- Section notes avec tableau -->
+                        <div class="matiere-section">
+                            <div class="matiere-section-header">
+                                <h3>
+                                    <i class="fas fa-book"></i>
+                                    {{ professeur.matiere_principale.nom }}
+                                </h3>
+                                <span class="moyenne-badge-header {% if moyenne %}{% if moyenne >= 16 %}excellent{% elif moyenne >= 14 %}tres-bien{% elif moyenne >= 12 %}bien{% elif moyenne >= 10 %}passable{% else %}insuffisant{% endif %}{% else %}non-calcule{% endif %}">
+                                    {% if moyenne %}
+                                        Moyenne : {{ moyenne|floatformat:2 }}/20
+                                    {% else %}
+                                        Moyenne : Non calculée
+                                    {% endif %}
+                                </span>
+                            </div>
+
                             <div class="notes-table-container">
-                                <table class="notes-table">
+                                <table class="notes-table-matiere">
                                     <thead>
                                         <tr>
-                                            <th>Date</th>
-                                            <th>Évaluation</th>
-                                            <th>Type</th>
-                                            <th>Note</th>
-                                            <th>Période</th>
+                                            <th class="col-matiere">Matière</th>
+                                            {% for eval in evaluations %}
+                                                <th class="col-devoir" title="{{ eval.titre }}">
+                                                    <div class="devoir-header">
+                                                        <span class="devoir-titre">Devoir #{{ forloop.counter }}</span>
+                                                        <span class="devoir-info">{{ eval.get_type_evaluation_display }}</span>
+                                                        <span class="devoir-date">{{ eval.date_evaluation|date:"d/m/Y" }}</span>
+                                                    </div>
+                                                </th>
+                                            {% endfor %}
+                                            <th class="col-moyenne">Moyenne</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for note in notes %}
-                                            <tr>
-                                                <td>{{ note.evaluation.date_evaluation|date:"d/m/Y" }}</td>
-                                                <td class="eval-nom">{{ note.evaluation.titre }}</td>
-                                                <td>
-                                                    <span class="badge-type {{ note.evaluation.type_evaluation }}">
-                                                        {{ note.evaluation.get_type_evaluation_display }}
-                                                    </span>
+                                        <tr>
+                                            <td class="cell-matiere">
+                                                <strong>{{ affectation.matiere.code }}</strong>
+                                            </td>
+                                            {% for eval in evaluations %}
+                                                <td class="cell-note">
+                                                    {% with note=notes_dict|get_item:eval.id %}
+                                                        {% if note %}
+                                                            {% if note.absent %}
+                                                                <span class="note-absent">ABS</span>
+                                                            {% elif note.note is not None %}
+                                                                <span class="note-value {% if note.note_sur_20 >= 16 %}excellent{% elif note.note_sur_20 >= 14 %}tres-bien{% elif note.note_sur_20 >= 12 %}bien{% elif note.note_sur_20 >= 10 %}passable{% else %}insuffisant{% endif %}">
+                                                                    {{ note.note|floatformat:2 }}/{{ eval.bareme }}
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="note-vide">-</span>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="note-vide">-</span>
+                                                        {% endif %}
+                                                    {% endwith %}
                                                 </td>
-                                                <td>
-                                                    <span class="note-badge {{ note.note|get_note_color_class:note.evaluation.bareme }}">
-                                                        {{ note.note|floatformat:2 }}/{{ note.evaluation.bareme }}
+                                            {% endfor %}
+                                            <td class="cell-moyenne">
+                                                {% if moyenne %}
+                                                    <span class="moyenne-value {% if moyenne >= 16 %}excellent{% elif moyenne >= 14 %}tres-bien{% elif moyenne >= 12 %}bien{% elif moyenne >= 10 %}passable{% else %}insuffisant{% endif %}">
+                                                        {{ moyenne|floatformat:2 }}/20
                                                     </span>
-                                                </td>
-                                                <td>{{ note.evaluation.get_periode_display }}</td>
-                                            </tr>
-                                        {% endfor %}
+                                                {% else %}
+                                                    <span class="moyenne-vide">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
-                        {% else %}
-                            <div class="empty-state">
-                                <i class="fas fa-clipboard"></i>
-                                <p>Aucune note enregistrée pour cet élève</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard"></i>
+                            <p>Aucune évaluation pour cette période</p>
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
 
@@ -176,53 +205,72 @@
                 <div class="tab-content active" id="tab-presences">
                     <div class="content-header">
                         <h2><i class="fas fa-clipboard-list"></i> Suivi de présence</h2>
-                        <p>30 derniers jours</p>
+                        <p>Année scolaire en cours</p>
                     </div>
 
-                    <!-- Statistiques -->
-                    <div class="presence-stats">
-                        <div class="stat-card present">
-                            <div class="stat-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <div class="stat-number">{{ nombre_presents }}</div>
-                                <div class="stat-text">Présents</div>
-                            </div>
+                    <!-- Onglets des mois -->
+                    {% if mois_disponibles %}
+                        <div class="mois-tabs-horizontal">
+                            {% for mois_data in mois_disponibles %}
+                                <a href="?onglet=presences&mois={{ mois_data.annee_mois }}" 
+                                   class="mois-tab {% if mois_selectionne == mois_data.annee_mois %}active{% elif not mois_selectionne and forloop.first %}active{% endif %}">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>{{ mois_data.nom }} {{ mois_data.annee }}</span>
+                                </a>
+                            {% endfor %}
                         </div>
-                        <div class="stat-card absent">
-                            <div class="stat-icon">
-                                <i class="fas fa-times-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <div class="stat-number">{{ nombre_absences }}</div>
-                                <div class="stat-text">Absences</div>
-                            </div>
-                        </div>
-                        <div class="stat-card retard">
-                            <div class="stat-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-info">
-                                <div class="stat-number">{{ nombre_retards }}</div>
-                                <div class="stat-text">Retards</div>
-                            </div>
-                        </div>
-                        <div class="stat-card taux">
-                            <div class="stat-icon">
-                                <i class="fas fa-chart-pie"></i>
-                            </div>
-                            <div class="stat-info">
-                                <div class="stat-number">{{ taux_presence }}%</div>
-                                <div class="stat-text">Assiduité</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Historique des présences -->
-                    <div class="presences-container">
-                        <h3><i class="fas fa-history"></i> Historique des 30 derniers jours</h3>
-                        {% if presences %}
+                        <!-- Statistiques du mois sélectionné -->
+                        <div class="presence-stats">
+                            <div class="stat-card present">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-number">{{ nombre_presents_mois }}</div>
+                                    <div class="stat-text">Présents</div>
+                                </div>
+                            </div>
+                            <div class="stat-card absent">
+                                <div class="stat-icon">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-number">{{ nombre_absences_mois }}</div>
+                                    <div class="stat-text">Absences</div>
+                                </div>
+                            </div>
+                            <div class="stat-card retard">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-number">{{ nombre_retards_mois }}</div>
+                                    <div class="stat-text">Retards</div>
+                                </div>
+                            </div>
+                            <div class="stat-card taux">
+                                <div class="stat-icon">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-number">{{ taux_presence_mois }}%</div>
+                                    <div class="stat-text">Assiduité</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>Aucune liste de présence validée pour cette classe</p>
+                        </div>
+                    {% endif %}
+
+                    <!-- Historique des présences du mois -->
+                    {% if mois_disponibles %}
+                        <div class="presences-container">
+                            <h3><i class="fas fa-history"></i> Historique du mois sélectionné</h3>
+                            {% if presences %}
                             <div class="presences-timeline">
                                 {% for presence in presences %}
                                     <div class="presence-item {% if not presence.liste_presence.validee %}modifiable{% endif %}" data-presence-id="{{ presence.id }}">
@@ -267,13 +315,14 @@
                                     </div>
                                 {% endfor %}
                             </div>
-                        {% else %}
-                            <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <p>Aucune présence enregistrée pour les 30 derniers jours</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                            {% else %}
+                                <div class="empty-state">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <p>Aucune présence enregistrée pour ce mois</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
 

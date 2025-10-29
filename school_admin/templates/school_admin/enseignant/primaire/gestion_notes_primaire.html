@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+{% load static l10n notes_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Notes - Enseignant Primaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+    <div class="main-content-container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <span class="current">Gestion des notes</span>
+        </nav>
+
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-info-circle"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-graduation-cap"></i>
+                    Gestion des Notes Multi-Matières
+                </h1>
+                <p class="page-subtitle">
+                    {{ total_classes }} classe{{ total_classes|pluralize }} - {{ total_eleves }} élève{{ total_eleves|pluralize }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Onglets des Périodes -->
+        <div class="periodes-tabs-horizontal">
+            {% if periodes %}
+                {% for periode in periodes %}
+                    <a href="?periode={{ periode.id }}{% if classe_selectionnee %}&classe={{ classe_selectionnee.id }}{% endif %}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" 
+                       class="periode-tab {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ periode.nom_periode }}</span>
+                        {% if periode.est_active %}
+                            <span class="status-badge active">En cours</span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            {% else %}
+                <div class="empty-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Aucune période scolaire définie
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- NIVEAU 1 : Onglets des Classes (regroupées par catégorie) -->
+        <div class="classes-tabs-container">
+            <div class="tabs-nav">
+                {% for categorie, classes_list in classes_grouped.items %}
+                    <button class="tab-btn {% if forloop.first and not classe_selectionnee %}active{% elif classe_selectionnee and classe_selectionnee.nom|slice:":2" == categorie|slice:":2" or classe_selectionnee and classe_selectionnee.nom|slice:":3" == categorie %}active{% endif %}" 
+                            onclick="switchTab('categorie-{{ categorie }}')">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        {{ categorie }}
+                        <span class="tab-badge">{{ classes_list|length }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+
+            {% for categorie, classes_list in classes_grouped.items %}
+                <div class="tab-content {% if forloop.first and not classe_selectionnee %}active{% elif classe_selectionnee and classe_selectionnee.nom|slice:":2" == categorie|slice:":2" or classe_selectionnee and classe_selectionnee.nom|slice:":3" == categorie %}active{% endif %}" 
+                     id="categorie-{{ categorie }}">
+                    
+                    <div class="classes-grid">
+                        {% for classe_data in classes_list %}
+                            <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_data.classe.id }}" 
+                               class="classe-card {% if classe_selectionnee and classe_selectionnee.id == classe_data.classe.id %}selected{% endif %}">
+                                <div class="classe-card-header">
+                                    <div class="classe-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="classe-info">
+                                        <h3>{{ classe_data.classe.nom }}</h3>
+                                        <p>{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</p>
+                                    </div>
+                                </div>
+                                {% if classe_selectionnee and classe_selectionnee.id == classe_data.classe.id %}
+                                    <div class="classe-card-badge">
+                                        <i class="fas fa-check-circle"></i>
+                                        Sélectionnée
+                                    </div>
+                                {% endif %}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- NIVEAU 2 : Onglets des Matières (si une classe est sélectionnée) -->
+        {% if classe_selectionnee and matieres_data %}
+            <div class="matieres-section">
+                <div class="section-header">
+                    <div>
+                        <h2>
+                            <i class="fas fa-book"></i>
+                            Matières enseignées en {{ classe_selectionnee.nom }}
+                        </h2>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&releve_complet=1" 
+                           class="btn btn-success">
+                            <i class="fas fa-file-alt"></i>
+                            Voir le relevé de notes complet
+                        </a>
+                        <a href="{% url 'enseignant_primaire:creer_evaluation' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Créer une évaluation
+                        </a>
+                    </div>
+                </div>
+
+                <div class="matieres-grid">
+                    {% for matiere_data in matieres_data %}
+                        <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}" 
+                           class="matiere-card {% if matiere_selectionnee and matiere_selectionnee.id == matiere_data.matiere.id %}selected{% endif %}">
+                            <div class="matiere-icon">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                            <div class="matiere-info">
+                                <h4>{{ matiere_data.matiere.code }}</h4>
+                                <p class="matiere-code">{{ matiere_data.matiere.nom|truncatewords:3 }}</p>
+                            </div>
+                            <div class="matiere-stats">
+                                <span class="stat-badge">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    {{ matiere_data.nombre_evaluations }} éval{{ matiere_data.nombre_evaluations|pluralize }}
+                                </span>
+                            </div>
+                            {% if matiere_selectionnee and matiere_selectionnee.id == matiere_data.matiere.id %}
+                                <div class="selection-indicator">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% elif classe_selectionnee %}
+            <div class="empty-state">
+                <i class="fas fa-book"></i>
+                <p>Aucune matière assignée pour cette classe</p>
+            </div>
+        {% endif %}
+
+        <!-- NIVEAU 3 : Relevé de Notes (si une matière est sélectionnée) -->
+        {% if matiere_selectionnee and releve_data %}
+            <!-- Overlay backdrop -->
+            <div class="releve-modal-backdrop" onclick="window.location.href='?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}'"></div>
+            
+            <div class="releve-section releve-modal">
+                <div class="releve-header">
+                    <div>
+                        <h2>
+                            <i class="fas fa-file-alt"></i>
+                            Relevé de Notes
+                        </h2>
+                        <p class="releve-subtitle">
+                            {{ classe_selectionnee.nom }} - {{ matiere_selectionnee.nom }} - {{ periode_selectionnee.nom_periode }}
+                        </p>
+                    </div>
+                    <div class="releve-actions">
+                        <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}&matiere={{ matiere_selectionnee.id }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-edit"></i>
+                            Saisir les notes
+                        </a>
+                        <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}" 
+                           class="btn-close-modal">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="releve-table-container">
+                    <table class="releve-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="eleve-col">Élève</th>
+                                {% if evaluations_matiere %}
+                                    <th colspan="{{ evaluations_matiere|length }}" class="devoirs-header">Devoirs / Évaluations</th>
+                                {% endif %}
+                                <th rowspan="2" class="moyenne-col">Moyenne<br>(/20)</th>
+                                <th rowspan="2" class="appreciation-col">Appréciation</th>
+                            </tr>
+                            <tr>
+                                {% for eval in evaluations_matiere %}
+                                    <th class="eval-col">
+                                        {{ eval.type_label }}
+                                        <br><small>/{{ eval.bareme|floatformat:0 }}</small>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in releve_data %}
+                                <tr class="{% cycle 'row-even' 'row-odd' %}">
+                                    <td class="eleve-cell">
+                                        <div class="eleve-info">
+                                            <div class="eleve-avatar">
+                                                {{ data.eleve.prenom.0 }}{{ data.eleve.nom.0 }}
+                                            </div>
+                                            <span class="eleve-nom">{{ data.eleve.nom|upper }} {{ data.eleve.prenom }}</span>
+                                        </div>
+                                    </td>
+                                    
+                                    {% for eval in evaluations_matiere %}
+                                        <td class="note-cell">
+                                            {% with note_data=data.notes_evaluations|get_item:eval.id %}
+                                                {% if note_data.note_obj and note_data.note_obj.note %}
+                                                    <span class="note-value" style="color: {{ note_data.couleur }};">
+                                                        {{ note_data.note_obj.note|floatformat:2 }}
+                                                    </span>
+                                                {% elif note_data.note_obj and note_data.note_obj.absent %}
+                                                    <span class="note-absent">ABS</span>
+                                                {% else %}
+                                                    <span class="note-empty">--</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                    {% endfor %}
+                                    
+                                    <td class="moyenne-cell">
+                                        {% if data.moyenne is not None %}
+                                            <span class="moyenne-badge {% if data.moyenne >= 16 %}excellent{% elif data.moyenne >= 14 %}tres-bien{% elif data.moyenne >= 12 %}bien{% elif data.moyenne >= 10 %}passable{% elif data.moyenne >= 8 %}fragile{% else %}insuffisant{% endif %}">
+                                                {{ data.moyenne|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="moyenne-badge non-calcule">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="appreciation-cell">
+                                        {% if data.appreciation %}
+                                            <span class="appreciation-text">{{ data.appreciation }}</span>
+                                        {% else %}
+                                            <span class="appreciation-text non-evalue">Non évalué</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% elif classe_selectionnee and matiere_selectionnee %}
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <p>Aucune donnée disponible pour cette matière</p>
+                <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Créer une évaluation
+                </a>
+            </div>
+        {% endif %}
+        
+        <!-- MODAL : Relevé Complet Multi-Matières -->
+        {% if show_releve_complet %}
+            <!-- Overlay backdrop -->
+            <div class="releve-modal-backdrop" onclick="window.location.href='?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}'"></div>
+            
+            <div class="releve-section releve-modal releve-complet-modal">
+                <div class="releve-header">
+                    <div>
+                        <h2>
+                            <i class="fas fa-file-alt"></i>
+                            Relevé de Notes Complet
+                        </h2>
+                        <p class="releve-subtitle">
+                            {{ classe_selectionnee.nom }} - {{ periode_selectionnee.nom_periode }} - Toutes matières
+                        </p>
+                    </div>
+                    <div class="releve-actions">
+                        {% if releve_deja_soumis %}
+                            <div class="badge-soumis">
+                                <i class="fas fa-lock"></i>
+                                Relevé déjà soumis
+                            </div>
+                        {% else %}
+                            <form method="POST" action="{% url 'enseignant_primaire:soumettre_releve' classe_selectionnee.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="periode_id" value="{{ periode_selectionnee.id }}">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    Soumettre le relevé
+                                </button>
+                            </form>
+                        {% endif %}
+                        <a href="{% url 'enseignant_primaire:imprimer_releve' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}" 
+                           class="btn btn-primary" target="_blank">
+                            <i class="fas fa-print"></i>
+                            Imprimer
+                        </a>
+                        <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}" 
+                           class="btn-close-modal">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="releve-table-container">
+                    <table class="releve-table releve-complet-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="eleve-col">Élève</th>
+                                {% for matiere in matieres_releve_complet %}
+                                    <th class="matiere-header">{{ matiere.code }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in resultats_releve_complet %}
+                                <tr class="{% cycle 'row-even' 'row-odd' %}">
+                                    <td class="eleve-cell">
+                                        <div class="eleve-info">
+                                            <div class="eleve-avatar">
+                                                {{ result.eleve.prenom.0 }}{{ result.eleve.nom.0 }}
+                                            </div>
+                                            <span class="eleve-nom">{{ result.eleve.nom|upper }} {{ result.eleve.prenom }}</span>
+                                        </div>
+                                    </td>
+                                    {% for matiere in matieres_releve_complet %}
+                                        <td class="note-cell">
+                                            {% with matiere_data=result.moyennes_par_matiere|get_item:matiere.code %}
+                                                {% if matiere_data and matiere_data.moyenne %}
+                                                    <span class="note-value" style="color: {% if matiere_data.moyenne >= 16 %}#10b981{% elif matiere_data.moyenne >= 14 %}#3b82f6{% elif matiere_data.moyenne >= 12 %}#8b5cf6{% elif matiere_data.moyenne >= 10 %}#f59e0b{% elif matiere_data.moyenne >= 8 %}#f97316{% else %}#ef4444{% endif %};">
+                                                        {{ matiere_data.moyenne|floatformat:2 }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="note-empty">--</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="{{ matieres_releve_complet|length|add:1 }}" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>Aucun résultat disponible</p>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/primaire/gestion_notes_primaire.js' %}"></script>
+</body>
+</html>

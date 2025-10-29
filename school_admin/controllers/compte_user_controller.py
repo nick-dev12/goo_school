@@ -16,6 +16,7 @@ from ..model.etablissement_model import Etablissement
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.eleve_model import Eleve
 from ..model.professeur_model import Professeur
+from ..model.parent_model import Parent
 
 logger = logging.getLogger(__name__)
 
@@ -206,9 +207,15 @@ class CompteUserController:
                         elif isinstance(user, Etablissement):
                             return None, redirect('directeur:dashboard_directeur')
                         elif isinstance(user, Professeur):
-                            return None, redirect('enseignant:dashboard_enseignant')
+                            # Vérifier le type d'établissement pour rediriger vers le bon dashboard
+                            if user.etablissement.type_etablissement == 'primary':
+                                return None, redirect('enseignant_primaire:dashboard')
+                            else:
+                                return None, redirect('enseignant:dashboard_enseignant')
                         elif isinstance(user, Eleve):
                             return None, redirect('eleve:dashboard_eleve')
+                        elif isinstance(user, Parent):
+                            return None, redirect('school_admin:dashboard_parent')
                         else:
                             # Redirection basée sur la fonction de l'utilisateur (CompteUser)
                             return None, CompteUserController._redirect_based_on_function(user.fonction)

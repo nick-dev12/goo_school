@@ -166,30 +166,87 @@
                             <h3 class="section-title">Informations professionnelles</h3>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label" for="matiere_principale">
-                                    <i class="fas fa-book"></i>
-                                    Matière principale *
+                        {% if type_etablissement == 'primary' %}
+                            <!-- Pour le primaire : Sélection multiple de matières -->
+                            <div class="form-group-full">
+                                <label class="form-label">
+                                    <i class="fas fa-books"></i>
+                                    Matières enseignées *
+                                    <span class="label-hint">(Sélectionnez toutes les matières que le professeur enseignera)</span>
                                 </label>
-                                <select class="form-control {% if field_errors.matiere_principale %}is-invalid{% endif %}" 
-                                        id="matiere_principale" 
-                                        name="matiere_principale" 
-                                        required>
-                                    <option value="">Sélectionnez une matière</option>
+                                <div class="matieres-checkbox-grid {% if field_errors.matieres_secondaires %}is-invalid{% endif %}">
                                     {% for matiere in matieres %}
-                                        <option value="{{ matiere.id }}" {% if form_data.matiere_principale == matiere.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ matiere.nom }}
-                                        </option>
+                                        <label class="checkbox-card">
+                                            <input type="checkbox" 
+                                                   name="matieres_secondaires" 
+                                                   value="{{ matiere.id }}"
+                                                   {% if matiere.id|stringformat:"s" in form_data.matieres_secondaires %}checked{% endif %}>
+                                            <div class="checkbox-content">
+                                                <i class="fas fa-book"></i>
+                                                <span class="matiere-nom">{{ matiere.nom }}</span>
+                                                <span class="matiere-code">{{ matiere.code }}</span>
+                                            </div>
+                                            <div class="checkbox-check">
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                        </label>
                                     {% empty %}
-                                        <option value="" disabled>Aucune matière disponible</option>
+                                        <p class="text-muted">Aucune matière disponible. Veuillez d'abord ajouter des matières.</p>
                                     {% endfor %}
-                                </select>
-                                {% if field_errors.matiere_principale %}
-                                    <div class="invalid-feedback">{{ field_errors.matiere_principale }}</div>
+                                </div>
+                                {% if field_errors.matieres_secondaires %}
+                                    <div class="invalid-feedback">{{ field_errors.matieres_secondaires }}</div>
                                 {% endif %}
                             </div>
-                            
+                        {% else %}
+                            <!-- Pour collège/lycée : Matière principale unique -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="matiere_principale">
+                                        <i class="fas fa-book"></i>
+                                        Matière principale *
+                                    </label>
+                                    <select class="form-control {% if field_errors.matiere_principale %}is-invalid{% endif %}" 
+                                            id="matiere_principale" 
+                                            name="matiere_principale" 
+                                            required>
+                                        <option value="">Sélectionnez une matière</option>
+                                        {% for matiere in matieres %}
+                                            <option value="{{ matiere.id }}" {% if form_data.matiere_principale == matiere.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ matiere.nom }}
+                                            </option>
+                                        {% empty %}
+                                            <option value="" disabled>Aucune matière disponible</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if field_errors.matiere_principale %}
+                                        <div class="invalid-feedback">{{ field_errors.matiere_principale }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label" for="matieres_secondaires_select">
+                                        <i class="fas fa-books"></i>
+                                        Matières secondaires
+                                        <span class="label-hint">(Optionnel)</span>
+                                    </label>
+                                    <select class="form-control" 
+                                            id="matieres_secondaires_select" 
+                                            name="matieres_secondaires" 
+                                            multiple
+                                            size="5">
+                                        {% for matiere in matieres %}
+                                            <option value="{{ matiere.id }}" {% if matiere.id|stringformat:"s" in form_data.matieres_secondaires %}selected{% endif %}>
+                                                {{ matiere.nom }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text">Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs matières</small>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label" for="niveau_enseignement">
                                     <i class="fas fa-graduation-cap"></i>

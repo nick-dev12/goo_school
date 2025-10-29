@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Main Content -->
+        <main class="main-content full-width" id="mainContent">
+            <!-- Header Horizontal -->
+            <header class="dashboard-header-horizontal">
+                <div class="header-left">
+                    <div class="header-logo">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Goo-School</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div class="header-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Rechercher...">
+                    </div>
+
+                    <button class="header-button" aria-label="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">0</span>
+                    </button>
+
+                    <button class="header-button" aria-label="Messages">
+                        <i class="fas fa-envelope"></i>
+                        <span class="notification-badge">0</span>
+                    </button>
+
+                    <div class="header-profile">
+                        <div class="header-avatar">
+                            {{ eleve.prenom|slice:":1"|upper }}{{ eleve.nom|slice:":1"|upper }}
+                        </div>
+                        <div class="header-user-info">
+                            <div class="header-user-name">{{ eleve.nom_complet }}</div>
+                            <div class="header-user-role">Élève - {{ eleve.classe.nom }}</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Welcome Banner -->
+            <section class="welcome-banner">
+                <div class="banner-content">
+                    <h1 class="banner-title">Bienvenue, {{ eleve.prenom }}</h1>
+                    <p class="banner-subtitle">{{ eleve.etablissement.nom }} - Année scolaire {% now "Y" %}-{% now "Y"|add:1 %}</p>
+                </div>
+                <button class="nav-toggle-btn" id="openNavMenu" aria-label="Ouvrir le menu">
+                    <span class="d-none d-sm-inline">Menu</span>
+                    <i class="fas fa-th"></i>
+                </button>
+            </section>
+
+            <!-- Navigation Overlay -->
+            <div class="navigation-overlay" id="navOverlay"></div>
+
+            <!-- Navigation Cards Section -->
+            <section class="section-container navigation-section" id="navigationSection">
+                <button class="close-btn" id="closeNavMenu" aria-label="Fermer le menu">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <div class="nav-menu-header">
+                    <h2>Menu de Navigation</h2>
+                    <p>Accédez rapidement à toutes les fonctionnalités</p>
+                </div>
+
+                <!-- Section 1: Tableau de bord -->
+                <div class="section-title">
+                    <h2>Tableau de bord</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="{% url 'school_admin:dashboard_eleve' %}" class="nav-link-card active">
+                        <div class="nav-card-icon neo-blue">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Vue d'ensemble</h3>
+                            <p>Activités récentes</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 2: Cours et emploi du temps -->
+                <div class="section-title">
+                    <h2>Cours et planning</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-green">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Emploi du temps</h3>
+                            <p>Planning des cours</p>
+                        </div>
+                    </a>
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-teal">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Cours & Ressources</h3>
+                            <p>Supports pédagogiques</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 3: Évaluations & Notes -->
+                <div class="section-title">
+                    <h2>Évaluations & Notes</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-orange">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Notes & Résultats</h3>
+                            <p>Suivi des performances</p>
+                        </div>
+                    </a>
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-light-blue">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Bulletins scolaires</h3>
+                            <p>Bulletins trimestriels</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 4: Devoirs & Travaux -->
+                <div class="section-title">
+                    <h2>Devoirs & Travaux</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-purple">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Devoirs à faire</h3>
+                            <p>Tâches en cours</p>
+                        </div>
+                    </a>
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-blue">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Travaux rendus</h3>
+                            <p>Historique des rendus</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 5: Vie scolaire -->
+                <div class="section-title">
+                    <h2>Vie scolaire</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-red">
+                            <i class="fas fa-calendar-times"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Absences & Retards</h3>
+                            <p>Suivi d'assiduité</p>
+                        </div>
+                    </a>
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-cyan">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Événements</h3>
+                            <p>Activités à venir</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 6: Communication -->
+                <div class="section-title">
+                    <h2>Communication</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-purple">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Messagerie</h3>
+                            <p>Échanges avec les enseignants</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Section 7: Mon compte -->
+                <div class="section-title">
+                    <h2>Mon compte</h2>
+                </div>
+                <div class="nav-cards-row">
+                    <a href="#" class="nav-link-card">
+                        <div class="nav-card-icon neo-light-blue">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Profil</h3>
+                            <p>Informations personnelles</p>
+                        </div>
+                    </a>
+                    <a href="{% url 'school_admin:deconnexion_eleve' %}" class="nav-link-card logout-card">
+                        <div class="nav-card-icon neo-red">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Déconnexion</h3>
+                            <p>Quitter la session</p>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Main Content Container -->
+            <div class="content-container">
+                <!-- Le contenu de chaque page sera inséré ici -->
+

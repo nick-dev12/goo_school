@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+{% load static %}
+{% load pagination_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi de Présence - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Messages -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-calendar-check"></i>
+                    Suivi de Présence
+                </h1>
+                <p class="page-subtitle">
+                    Consultation de l'assiduité par classe et par mois
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:gestion_eleves' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Onglets principaux par niveau -->
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                {% for categorie, data in classes_grouped.items %}
+                    <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                            data-tab="tab-{{ forloop.counter }}"
+                            onclick="switchMainTab('tab-{{ forloop.counter }}')">
+                        <div class="tab-content">
+                            <span class="tab-title">{{ categorie }}</span>
+                            <span class="tab-badge">{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }}</span>
+                        </div>
+                        <div class="tab-info">
+                            <span class="tab-students">{{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</span>
+                        </div>
+                    </button>
+                {% endfor %}
+            </div>
+
+            <!-- Contenu des onglets -->
+            {% for categorie, data in classes_grouped.items %}
+                <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                    
+                    <!-- Info catégorie -->
+                    <div class="category-info">
+                        <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                        <p>{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }} - {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</p>
+                    </div>
+
+                    <!-- Sous-onglets par classe -->
+                    <div class="classes-subtabs">
+                        {% for classe_data in data.classes %}
+                            <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
+                                    onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
+                                <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Contenu des sous-onglets (classes) -->
+                    {% for classe_data in data.classes %}
+                        <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                            
+                            <!-- En-tête de la classe -->
+                            <div class="class-header">
+                                <h2 class="class-title">
+                                    <i class="fas fa-chalkboard"></i>
+                                    {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                </h2>
+                                <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
+                            </div>
+
+                            <!-- Onglets par mois -->
+                            {% if classe_data.mois_disponibles %}
+                                <div class="mois-tabs">
+                                    {% for mois in classe_data.mois_disponibles %}
+                                        <button class="mois-tab-btn {% if forloop.last %}active{% endif %}"
+                                                onclick="switchMoisTab(event, 'mois-{{ classe_data.classe.id }}-{{ forloop.counter }}')">
+                                            <i class="fas fa-calendar"></i>
+                                            <span>{{ mois.nom_court }} {{ mois.annee }}</span>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="empty-state">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <p>Aucune donnée de présence disponible pour cette classe</p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Contenu par mois -->
+                            {% for mois_key, mois_presences in classe_data.mois_presences.items %}
+                                    <div class="mois-content {% if forloop.last %}active{% endif %}" id="mois-{{ classe_data.classe.id }}-{{ forloop.counter }}">
+                                        
+                                        <!-- Info mois -->
+                                        <div class="mois-info-card">
+                                            <div class="mois-icon">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </div>
+                                            <div class="mois-details">
+                                                <h4>{{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</h4>
+                                                <p>Période de suivi : {{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Légende des couleurs -->
+                                        <div class="legende-couleurs">
+                                            <h5><i class="fas fa-palette"></i> Code couleur du taux de présence :</h5>
+                                            <div class="legende-items">
+                                                <span class="legende-item excellent">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Excellent (≥ 95%)</span>
+                                                </span>
+                                                <span class="legende-item bon">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Bon (90-94.99%)</span>
+                                                </span>
+                                                <span class="legende-item moyen">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Moyen (85-89.99%)</span>
+                                                </span>
+                                                <span class="legende-item faible">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Faible (80-84.99%)</span>
+                                                </span>
+                                                <span class="legende-item critique">
+                                                    <span class="legende-color"></span>
+                                                    <span class="legende-text">Critique (< 80%)</span>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tableau des présences -->
+                                        <div class="presence-table-container">
+                                            <table class="presence-results-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Rang</th>
+                                                        <th>Élève</th>
+                                                        <th>Matricule</th>
+                                                        <th>Jours</th>
+                                                        <th>Présents</th>
+                                                        <th>Absents</th>
+                                                        <th>Abs. justifiées</th>
+                                                        <th>Retards</th>
+                                                        <th>Taux de présence</th>
+                                                        <th>Statut</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% if mois_presences %}
+                                                        {% for eleve_data in mois_presences.eleves_presences %}
+                                                            <tr class="student-row {% if eleve_data.taux_presence is not None %}{% if eleve_data.taux_presence >= 95 %}presence-excellente{% elif eleve_data.taux_presence >= 90 %}presence-bonne{% elif eleve_data.taux_presence >= 85 %}presence-moyenne{% elif eleve_data.taux_presence >= 80 %}presence-faible{% else %}presence-critique{% endif %}{% endif %}">
+                                                                <td class="rang-cell">
+                                                                    {% if eleve_data.taux_presence %}
+                                                                        <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                                                            {{ forloop.counter }}
+                                                                        </span>
+                                                                    {% else %}
+                                                                        <span class="rang-badge">-</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="eleve-cell">
+                                                                    <div class="eleve-info">
+                                                                        <div class="eleve-avatar">
+                                                                            <i class="fas fa-user"></i>
+                                                                        </div>
+                                                                        <span class="eleve-nom">{{ eleve_data.eleve.nom_complet }}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="matricule-cell">{{ eleve_data.eleve.numero_eleve }}</td>
+                                                                <td class="jours-cell">
+                                                                    <span class="jours-count">{{ eleve_data.total_jours }}</span>
+                                                                </td>
+                                                                <td class="presents-cell">
+                                                                    <span class="presents-badge">{{ eleve_data.presents }}</span>
+                                                                </td>
+                                                                <td class="absents-cell">
+                                                                    <span class="absents-badge">{{ eleve_data.absents }}</span>
+                                                                </td>
+                                                                <td class="justifies-cell">
+                                                                    <span class="justifies-badge">{{ eleve_data.absents_justifies }}</span>
+                                                                </td>
+                                                                <td class="retards-cell">
+                                                                    <span class="retards-badge">{{ eleve_data.retards }}</span>
+                                                                </td>
+                                                                <td class="taux-cell">
+                                                                    {% if eleve_data.taux_presence is not None %}
+                                                                        <span class="taux-badge {% if eleve_data.taux_presence >= 95 %}excellent{% elif eleve_data.taux_presence >= 90 %}bon{% elif eleve_data.taux_presence >= 85 %}moyen{% elif eleve_data.taux_presence >= 80 %}faible{% else %}critique{% endif %}">
+                                                                            {{ eleve_data.taux_presence }}%
+                                                                        </span>
+                                                                    {% else %}
+                                                                        <span class="taux-non-disponible">
+                                                                            <i class="fas fa-hourglass-half"></i>
+                                                                            N/A
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="statut-cell">
+                                                                    {% if eleve_data.taux_presence is not None %}
+                                                                        {% if eleve_data.taux_presence >= 95 %}
+                                                                            <span class="statut-badge excellent">Excellent</span>
+                                                                        {% elif eleve_data.taux_presence >= 90 %}
+                                                                            <span class="statut-badge bon">Bon</span>
+                                                                        {% elif eleve_data.taux_presence >= 85 %}
+                                                                            <span class="statut-badge moyen">Moyen</span>
+                                                                        {% elif eleve_data.taux_presence >= 80 %}
+                                                                            <span class="statut-badge faible">Faible</span>
+                                                                        {% else %}
+                                                                            <span class="statut-badge critique">Critique</span>
+                                                                        {% endif %}
+                                                                    {% else %}
+                                                                        <span class="statut-non-disponible">-</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="actions-cell">
+                                                                    <div class="actions-buttons">
+                                                                        <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="Voir le profil">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </a>
+                                                                        <button class="btn-action-mini warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
+                                                                            <i class="fas fa-gavel"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <tr>
+                                                            <td colspan="11" class="no-data">
+                                                                <i class="fas fa-info-circle"></i>
+                                                                Aucune donnée de présence pour ce mois
+                                                            </td>
+                                                        </tr>
+                                                    {% endif %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal Sanction -->
+    <div id="modalSanction" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-gavel"></i>
+                    Ajouter une sanction
+                </h3>
+                <button class="modal-close" onclick="fermerModalSanction()">&times;</button>
+            </div>
+            <form action="{% url 'secretaire:soumettre_sanction_directeur' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="eleve-sanction-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="eleveNomModal">Nom de l'élève</span>
+                    </div>
+                    
+                    <input type="hidden" name="eleve_id" id="eleveIdInput">
+                    <input type="hidden" name="classe_id" id="classeIdInput">
+                    
+                    <div class="form-group">
+                        <label for="type_sanction">Type de sanction <span class="required">*</span></label>
+                        <select name="type_sanction" id="type_sanction" required>
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="avertissement">Avertissement</option>
+                            <option value="blame">Blâme</option>
+                            <option value="exclusion_cours">Exclusion de cours</option>
+                            <option value="exclusion_temporaire">Exclusion temporaire</option>
+                            <option value="travaux_interet_general">Travaux d'intérêt général</option>
+                            <option value="retenue">Retenue</option>
+                            <option value="convocation_parents">Convocation des parents</option>
+                            <option value="avertissement_conduite">Avertissement de conduite</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="raison">Raison <span class="required">*</span></label>
+                        <select name="raison" id="raison" required>
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="indiscipline">Indiscipline</option>
+                            <option value="absence_non_justifiee">Absence non justifiée répétée</option>
+                            <option value="retards_repetes">Retards répétés</option>
+                            <option value="manque_respect">Manque de respect envers le personnel</option>
+                            <option value="violence">Violence physique ou verbale</option>
+                            <option value="triche">Tricherie lors d'une évaluation</option>
+                            <option value="desobeissance">Désobéissance</option>
+                            <option value="perturbation_cours">Perturbation du cours</option>
+                            <option value="degradation_materiel">Dégradation du matériel</option>
+                            <option value="vol">Vol</option>
+                            <option value="comportement_inapproprie">Comportement inapproprié</option>
+                            <option value="non_respect_reglement">Non-respect du règlement intérieur</option>
+                            <option value="autre">Autre raison</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gravite">Gravité <span class="required">*</span></label>
+                        <select name="gravite" id="gravite" required>
+                            <option value="legere">Légère</option>
+                            <option value="moyenne" selected>Moyenne</option>
+                            <option value="grave">Grave</option>
+                            <option value="tres_grave">Très grave</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="date_sanction">Date de la sanction <span class="required">*</span></label>
+                        <input type="date" name="date_sanction" id="date_sanction" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description détaillée</label>
+                        <textarea name="description" id="description" rows="3" placeholder="Détails supplémentaires sur l'incident..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fermerModalSanction()">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Gestion des onglets principaux (niveaux)
+        function switchMainTab(tabId) {
+            document.querySelectorAll('.tab-content-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
+        }
+
+        // Gestion des sous-onglets (classes)
+        function switchClasseTab(event, classeId) {
+            event.stopPropagation();
+            
+            const parentPanel = event.target.closest('.tab-content-panel');
+            
+            parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(classeId).classList.add('active');
+            event.target.closest('.classe-subtab-btn').classList.add('active');
+        }
+
+        // Gestion des onglets par mois
+        function switchMoisTab(event, moisId) {
+            event.stopPropagation();
+            
+            const parentContent = event.target.closest('.classe-subtab-content');
+            
+            parentContent.querySelectorAll('.mois-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            parentContent.querySelectorAll('.mois-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(moisId).classList.add('active');
+            event.target.closest('.mois-tab-btn').classList.add('active');
+        }
+
+        // Gestion du modal sanction
+        function ouvrirModalSanction(eleveId, eleveNom, classeId) {
+            document.getElementById('eleveIdInput').value = eleveId;
+            document.getElementById('classeIdInput').value = classeId;
+            document.getElementById('eleveNomModal').textContent = eleveNom;
+            
+            // Définir la date du jour par défaut
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date_sanction').value = today;
+            
+            // Afficher le modal
+            document.getElementById('modalSanction').style.display = 'block';
+        }
+
+        function fermerModalSanction() {
+            document.getElementById('modalSanction').style.display = 'none';
+            
+            // Réinitialiser le formulaire
+            document.querySelector('#modalSanction form').reset();
+        }
+
+        // Fermer le modal si clic en dehors
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalSanction');
+            if (event.target === modal) {
+                fermerModalSanction();
+            }
+        }
+    </script>
+</body>
+</html>
+

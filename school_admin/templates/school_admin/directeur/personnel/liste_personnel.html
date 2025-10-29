@@ -57,28 +57,17 @@
           <button class="tab-btn active" data-tab="professeurs">
             <i class="fas fa-chalkboard-teacher"></i>
             <span>Professeurs</span>
-            <span class="tab-count" id="professeurs-count">0</span>
+            <span class="tab-count">{{ stats.total_professeurs }}</span>
           </button>
-          <button class="tab-btn" data-tab="secretaires">
-            <i class="fas fa-user-tie"></i>
-            <span>Secrétaires</span>
-            <span class="tab-count" id="secretaires-count">0</span>
-          </button>
-          <button class="tab-btn" data-tab="censeurs">
-            <i class="fas fa-graduation-cap"></i>
-            <span>Censeurs</span>
-            <span class="tab-count" id="censeurs-count">0</span>
-          </button>
-          <button class="tab-btn" data-tab="surveillants">
-            <i class="fas fa-shield-alt"></i>
-            <span>Surveillants</span>
-            <span class="tab-count" id="surveillants-count">0</span>
-          </button>
-          <button class="tab-btn" data-tab="intendants">
-            <i class="fas fa-cogs"></i>
-            <span>Intendants</span>
-            <span class="tab-count" id="intendants-count">0</span>
-          </button>
+          {% for key, categorie in categories_personnel.items %}
+            {% if categorie.personnel|length > 0 %}
+              <button class="tab-btn" data-tab="{{ key }}">
+                <i class="fas {{ categorie.icon }}"></i>
+                <span>{{ categorie.label }}</span>
+                <span class="tab-count">{{ categorie.personnel|length }}</span>
+              </button>
+            {% endif %}
+          {% endfor %}
         </div>
       </div>
 
@@ -165,19 +154,19 @@
           </div>
         </div>
 
-        <!-- Onglet Secrétaires -->
-        <div class="tab-pane" id="secretaires-pane">
-          <div class="tab-header">
-            <h2>Secrétaires</h2>
-            <p>Gérez le personnel administratif</p>
-          </div>
-          <div class="personnel-grid" id="secretaires-grid">
-            {% for membre in personnel %}
-              {% if membre.fonction == 'secretaire' %}
+        <!-- Onglets dynamiques pour les catégories de personnel -->
+        {% for key, categorie in categories_personnel.items %}
+          <div class="tab-pane" id="{{ key }}-pane">
+            <div class="tab-header">
+              <h2><i class="fas {{ categorie.icon }}"></i> {{ categorie.label }}</h2>
+              <p>Gérez le personnel de la catégorie {{ categorie.label }}</p>
+            </div>
+            <div class="personnel-grid" id="{{ key }}-grid">
+              {% for membre in categorie.personnel %}
                 <div class="personnel-card">
                   <div class="card-header">
                     <div class="avatar">
-                      <i class="fas fa-user-tie"></i>
+                      <i class="fas {{ categorie.icon }}"></i>
                     </div>
                     <div class="info">
                       <h3 class="name">{{ membre.nom_complet }}</h3>
@@ -194,62 +183,9 @@
                         <i class="fas fa-envelope"></i>
                         <span>{{ membre.email|truncatechars:25 }}</span>
                       </div>
-                    </div>
-                  </div>
-                  <div class="card-actions">
-                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
-                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
-                    </a>
-                  </div>
-                </div>
-              {% endif %}
-            {% empty %}
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-user-tie"></i>
-                </div>
-                <h3>Aucun secrétaire</h3>
-                <p>Commencez par ajouter des secrétaires</p>
-                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
-                  <i class="fas fa-plus"></i>
-                  <span>Ajouter un secrétaire</span>
-                </a>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- Onglet Censeurs -->
-        <div class="tab-pane" id="censeurs-pane">
-          <div class="tab-header">
-            <h2>Censeurs</h2>
-            <p>Gérez les censeurs de votre établissement</p>
-          </div>
-          <div class="personnel-grid" id="censeurs-grid">
-            {% for membre in personnel %}
-              {% if membre.fonction == 'censeur' %}
-                <div class="personnel-card">
-                  <div class="card-header">
-                    <div class="avatar">
-                      <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <div class="info">
-                      <h3 class="name">{{ membre.nom_complet }}</h3>
-                      <p class="role">{{ membre.get_fonction_display }}</p>
-                      <span class="badge">{{ membre.numero_employe }}</span>
-                    </div>
-                    <div class="status">
-                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
-                    </div>
-                  </div>
-                  <div class="card-content">
-                    <div class="contact-info">
                       <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>{{ membre.email|truncatechars:25 }}</span>
+                        <i class="fas fa-phone"></i>
+                        <span>{{ membre.telephone|truncatechars:15 }}</span>
                       </div>
                     </div>
                   </div>
@@ -262,136 +198,22 @@
                     </a>
                   </div>
                 </div>
-              {% endif %}
-            {% empty %}
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-graduation-cap"></i>
+              {% empty %}
+                <div class="empty-state">
+                  <div class="empty-icon">
+                    <i class="fas {{ categorie.icon }}"></i>
+                  </div>
+                  <h3>Aucun membre dans {{ categorie.label }}</h3>
+                  <p>Commencez par ajouter du personnel</p>
+                  <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
+                    <i class="fas fa-plus"></i>
+                    <span>Ajouter un membre</span>
+                  </a>
                 </div>
-                <h3>Aucun censeur</h3>
-                <p>Commencez par ajouter des censeurs</p>
-                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
-                  <i class="fas fa-plus"></i>
-                  <span>Ajouter un censeur</span>
-                </a>
-              </div>
-            {% endfor %}
+              {% endfor %}
+            </div>
           </div>
-        </div>
-
-        <!-- Onglet Surveillants -->
-        <div class="tab-pane" id="surveillants-pane">
-          <div class="tab-header">
-            <h2>Surveillants</h2>
-            <p>Gérez les surveillants généraux</p>
-          </div>
-          <div class="personnel-grid" id="surveillants-grid">
-            {% for membre in personnel %}
-              {% if membre.fonction == 'surveillant_general' %}
-                <div class="personnel-card">
-                  <div class="card-header">
-                    <div class="avatar">
-                      <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="info">
-                      <h3 class="name">{{ membre.nom_complet }}</h3>
-                      <p class="role">{{ membre.get_fonction_display }}</p>
-                      <span class="badge">{{ membre.numero_employe }}</span>
-                    </div>
-                    <div class="status">
-                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
-                    </div>
-                  </div>
-                  <div class="card-content">
-                    <div class="contact-info">
-                      <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>{{ membre.email|truncatechars:25 }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-actions">
-                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
-                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
-                    </a>
-                  </div>
-                </div>
-              {% endif %}
-            {% empty %}
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-shield-alt"></i>
-                </div>
-                <h3>Aucun surveillant</h3>
-                <p>Commencez par ajouter des surveillants</p>
-                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
-                  <i class="fas fa-plus"></i>
-                  <span>Ajouter un surveillant</span>
-                </a>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- Onglet Intendants -->
-        <div class="tab-pane" id="intendants-pane">
-          <div class="tab-header">
-            <h2>Intendants</h2>
-            <p>Gérez les intendants de votre établissement</p>
-          </div>
-          <div class="personnel-grid" id="intendants-grid">
-            {% for membre in personnel %}
-              {% if membre.fonction == 'administrateur' %}
-                <div class="personnel-card">
-                  <div class="card-header">
-                    <div class="avatar">
-                      <i class="fas fa-cogs"></i>
-                    </div>
-                    <div class="info">
-                      <h3 class="name">{{ membre.nom_complet }}</h3>
-                      <p class="role">{{ membre.get_fonction_display }}</p>
-                      <span class="badge">{{ membre.numero_employe }}</span>
-                    </div>
-                    <div class="status">
-                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
-                    </div>
-                  </div>
-                  <div class="card-content">
-                    <div class="contact-info">
-                      <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>{{ membre.email|truncatechars:25 }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-actions">
-                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
-                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
-                    </a>
-                  </div>
-                </div>
-              {% endif %}
-            {% empty %}
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-cogs"></i>
-                </div>
-                <h3>Aucun intendant</h3>
-                <p>Commencez par ajouter des intendants</p>
-                <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
-                  <i class="fas fa-plus"></i>
-                  <span>Ajouter un intendant</span>
-                </a>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </div>
 

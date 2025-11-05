@@ -15,6 +15,9 @@ class DemandeLiaisonParent(models.Model):
         ('en_attente', 'En attente de validation'),
         ('approuvee', 'Approuvée'),
         ('refusee', 'Refusée'),
+        ('reussie', 'Réussie (liaison automatique)'),
+        ('echec', 'Échec (vérification échouée)'),
+        ('bloquee', 'Bloquée (trop de tentatives)'),
     ]
     
     TYPE_LIEN_CHOICES = [
@@ -52,10 +55,39 @@ class DemandeLiaisonParent(models.Model):
         help_text="Pour vérification de l'identité"
     )
     
+    classe_eleve = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Classe de l'élève",
+        help_text="Classe fournie par le parent pour vérification"
+    )
+    
+    nom_parent_inscripteur = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name="Nom du parent inscripteur",
+        help_text="Nom ou prénom du parent qui a inscrit l'enfant"
+    )
+    
     type_lien = models.CharField(
         max_length=10,
         choices=TYPE_LIEN_CHOICES,
         verbose_name="Type de lien familial"
+    )
+    
+    nombre_tentatives = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Nombre de tentatives",
+        help_text="Compteur de tentatives de liaison pour ce parent/élève"
+    )
+    
+    raison_echec = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Raison de l'échec",
+        help_text="Détails sur pourquoi la liaison a échoué"
     )
     
     statut = models.CharField(

@@ -1,0 +1,500 @@
+/* ==========================================
+   STYLES DU CERTIFICAT DE RADIATION
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.certificat-container {
+    max-width: 800px;
+    margin: 15px auto;
+    padding: 20px;
+    background: white;
+    border: 6px double #f59e0b;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.certificat-container::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 2px solid #e0e0e0;
+    pointer-events: none;
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.certificat-header {
+    text-align: left;
+    margin-bottom: 10px;
+    padding: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.etablissement-nom {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    color: #d97706;
+    letter-spacing: 1.5px;
+}
+
+.etablissement-adresse {
+    font-size: 10px;
+    margin-bottom: 2px;
+    color: #475569;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 10px;
+    font-size: 9px;
+    color: #64748b;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ==========================================
+   LIGNE DE SÉPARATION
+   ========================================== */
+
+.separator-line {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #f59e0b, transparent);
+    margin: 8px 0;
+    opacity: 0.6;
+}
+
+/* ==========================================
+   TITRE DU DOCUMENT
+   ========================================== */
+
+.document-title {
+    text-align: center;
+    margin: 10px 0 12px 0;
+}
+
+.document-title h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #d97706;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    margin-bottom: 5px;
+    padding: 0;
+    background: none;
+    border: none;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    text-shadow: 2px 2px 4px rgba(217, 119, 6, 0.1);
+}
+
+.document-subtitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    font-style: italic;
+    margin: 0;
+}
+
+/* ==========================================
+   CORPS DU CERTIFICAT
+   ========================================== */
+
+.certificat-body {
+    margin: 12px 0;
+}
+
+/* Boîte d'informations de l'élève */
+.eleve-info-box {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 6px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-left: 4px solid #d97706;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #b45309;
+    min-width: 140px;
+}
+
+.info-value {
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Texte du certificat */
+.certificat-text {
+    margin: 15px 0;
+    text-align: justify;
+}
+
+.text-intro {
+    font-size: 12px;
+    color: #334155;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.text-certifie {
+    font-size: 14px;
+    font-weight: 700;
+    color: #d97706;
+    margin-bottom: 15px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.text-eleve {
+    font-size: 13px;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.text-content {
+    font-size: 12px;
+    color: #334155;
+    margin-bottom: 12px;
+    line-height: 1.7;
+}
+
+.text-radiation {
+    color: #d97706;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.text-remarque {
+    font-size: 11px;
+    color: #334155;
+    margin-top: 15px;
+    padding: 10px;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+}
+
+.text-mention {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 15px;
+    font-style: italic;
+    text-align: center;
+}
+
+.certificat-date {
+    margin-top: 12px;
+    margin-bottom: 10px;
+    text-align: right;
+    font-size: 11px;
+    font-style: italic;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ==========================================
+   SIGNATURE
+   ========================================== */
+
+.signature-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 15px;
+}
+
+.signature-box {
+    text-align: center;
+}
+
+.signature-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #d97706;
+    margin-bottom: 35px;
+    text-transform: uppercase;
+}
+
+.signature-line {
+    height: 2px;
+    background: #d97706;
+    margin: 5px auto;
+    width: 140px;
+}
+
+.signature-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.certificat-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 2px solid #e0e0e0;
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 8px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-print,
+.btn-close {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+}
+
+.btn-close {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-close:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .certificat-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 15px;
+        border: 6px double #f59e0b !important;
+        box-shadow: none;
+    }
+    
+    .certificat-container::before {
+        border: 2px solid #e0e0e0 !important;
+        top: 6px;
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+    }
+
+    /* Optimiser les couleurs pour l'impression */
+    .certificat-header {
+        border-bottom: 2px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .separator-line {
+        background: linear-gradient(to right, transparent, #f59e0b, transparent) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .eleve-info-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+        border: 2px solid #f59e0b !important;
+        border-left: 4px solid #d97706 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .text-remarque {
+        background: #fffbeb !important;
+        border-left: 3px solid #f59e0b !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Éviter les sauts de page */
+    .certificat-header,
+    .document-title,
+    .eleve-info-box,
+    .certificat-text,
+    .signature-section {
+        page-break-inside: avoid;
+    }
+
+    /* Format A4 portrait */
+    @page {
+        size: A4 portrait;
+        margin: 1cm;
+    }
+    
+    .certificat-header {
+        padding: 0 !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .document-title {
+        margin: 8px 0 10px 0 !important;
+    }
+    
+    .document-title h2 {
+        font-size: 22px !important;
+        letter-spacing: 4px !important;
+    }
+    
+    .certificat-body {
+        margin: 10px 0 !important;
+    }
+    
+    .eleve-info-box {
+        margin-bottom: 12px !important;
+        padding: 10px 12px !important;
+    }
+    
+    .certificat-text {
+        margin: 12px 0 !important;
+    }
+    
+    .text-content {
+        margin-bottom: 10px !important;
+        line-height: 1.6 !important;
+    }
+    
+    .text-remarque {
+        margin-top: 12px !important;
+        padding: 8px !important;
+    }
+    
+    .signature-section {
+        margin-top: 12px !important;
+    }
+    
+    .signature-title {
+        margin-bottom: 30px !important;
+    }
+    
+    .certificat-footer {
+        margin-top: 10px !important;
+        padding-top: 6px !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .certificat-container {
+        margin: 20px;
+        padding: 30px 20px;
+    }
+
+    .etablissement-nom {
+        font-size: 18px;
+    }
+
+    .document-title h2 {
+        font-size: 22px;
+    }
+
+    .print-actions {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .btn-print,
+    .btn-close {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+

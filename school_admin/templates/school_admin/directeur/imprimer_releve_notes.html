@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+{% load static %}
+{% load notes_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relevé de Notes - {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/imprimer_releve_notes.css' %}">
+</head>
+<body>
+    <div class="print-container">
+        <!-- En-tête de l'établissement et informations du document -->
+        <header class="print-header">
+            <div class="header-left">
+                <div class="header-logo">
+                    {% if etablissement.logo %}
+                        <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
+                    {% else %}
+                        <div class="logo-placeholder">
+                            <i class="fas fa-school"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="header-info">
+                    <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+                    <p class="releve-notes-titre">RELEVÉ DE NOTES</p>
+                    {% if etablissement.adresse %}
+                        <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                    {% endif %}
+                    <div class="etablissement-contact">
+                        {% if etablissement.telephone %}
+                            <span class="contact-item">
+                                <i class="fas fa-phone"></i> {{ etablissement.telephone }}
+                            </span>
+                        {% endif %}
+                        {% if etablissement.email %}
+                            <span class="contact-item">
+                                <i class="fas fa-envelope"></i> {{ etablissement.email }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="document-info-header">
+                    <div class="info-item-header">
+                        <span class="info-label-header">Classe :</span>
+                        <span class="info-value-header">{{ classe.nom }} - {{ classe.get_niveau_display }}</span>
+                    </div>
+                    <div class="info-item-header">
+                        <span class="info-label-header">Période :</span>
+                        <span class="info-value-header">{{ periode.nom_periode }}</span>
+                    </div>
+                    <div class="info-item-header">
+                        <span class="info-label-header">Année scolaire :</span>
+                        <span class="info-value-header">{{ periode.annee_scolaire }}</span>
+                    </div>
+                    <div class="info-item-header">
+                        <span class="info-label-header">Nombre d'élèves :</span>
+                        <span class="info-value-header">{{ nombre_eleves }}</span>
+                    </div>
+                    <div class="info-item-header">
+                        <span class="info-label-header">Nombre de matières :</span>
+                        <span class="info-value-header">{{ nombre_matieres }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tableau des notes -->
+        <div class="notes-table-wrapper">
+            {% if est_primaire %}
+                <!-- Vue Primaire -->
+                <table class="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="col-rang">Rang</th>
+                            <th class="col-eleve">Nom et Prénom</th>
+                            {% for matiere in matieres %}
+                                <th class="col-matiere" title="{{ matiere.nom }}">
+                                    <div class="matiere-nom">{{ matiere.nom }}</div>
+                                    <div class="matiere-coef">(Coef. {{ matiere.coefficient }})</div>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eleve_info in eleves_data %}
+                            <tr class="student-row">
+                                <td class="col-rang">
+                                    {% if eleve_info.nombre_matieres_avec_moyenne > 0 %}
+                                        <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                            {{ forloop.counter }}
+                                        </span>
+                                    {% else %}
+                                        <span class="rang-badge">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-eleve">
+                                    <div class="eleve-info">
+                                        <span class="eleve-nom">{{ eleve_info.eleve.nom_complet }}</span>
+                                    </div>
+                                </td>
+                                {% for matiere in matieres %}
+                                    <td class="col-moyenne">
+                                        {% with matiere_data=eleve_info.matieres|get_item:matiere.nom %}
+                                            {% if matiere_data.moyenne is not None %}
+                                                <span class="moyenne-value {% if matiere_data.moyenne >= 16 %}excellent{% elif matiere_data.moyenne >= 14 %}bien{% elif matiere_data.moyenne >= 12 %}assez-bien{% elif matiere_data.moyenne >= 10 %}passable{% else %}insuffisant{% endif %}">
+                                                    {{ matiere_data.moyenne|floatformat:2 }}/20
+                                                </span>
+                                            {% else %}
+                                                <span class="moyenne-non-disponible">-</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <!-- Vue Collège/Lycée -->
+                <table class="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="col-rang">Rang</th>
+                            <th class="col-eleve">Nom et Prénom</th>
+                            {% for matiere in matieres %}
+                                <th class="col-matiere" title="{{ matiere.nom }}">
+                                    <div class="matiere-nom">{{ matiere.nom }}</div>
+                                    <div class="matiere-coef">(Coef. {{ matiere.coefficient }})</div>
+                                </th>
+                            {% endfor %}
+                            <th class="col-moyenne-generale">Moyenne Générale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eleve_info in eleves_data %}
+                            <tr class="student-row">
+                                <td class="col-rang">
+                                    {% if eleve_info.moyenne_generale > 0 %}
+                                        <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                            {{ forloop.counter }}
+                                        </span>
+                                    {% else %}
+                                        <span class="rang-badge">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-eleve">
+                                    <div class="eleve-info">
+                                        <span class="eleve-nom">{{ eleve_info.eleve.nom_complet }}</span>
+                                    </div>
+                                </td>
+                                {% for matiere in matieres %}
+                                    <td class="col-moyenne">
+                                        {% with matiere_data=eleve_info.matieres_moyennes|get_item:matiere.nom %}
+                                            {% if matiere_data.moyenne is not None %}
+                                                <span class="moyenne-value {% if matiere_data.moyenne >= 16 %}excellent{% elif matiere_data.moyenne >= 14 %}bien{% elif matiere_data.moyenne >= 12 %}assez-bien{% elif matiere_data.moyenne >= 10 %}passable{% else %}insuffisant{% endif %}">
+                                                    {{ matiere_data.moyenne|floatformat:2 }}/20
+                                                </span>
+                                            {% else %}
+                                                <span class="moyenne-non-disponible">-</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                {% endfor %}
+                                <td class="col-moyenne-generale">
+                                    {% if eleve_info.moyenne_generale > 0 %}
+                                        <span class="moyenne-generale-value {% if eleve_info.moyenne_generale >= 16 %}excellent{% elif eleve_info.moyenne_generale >= 14 %}bien{% elif eleve_info.moyenne_generale >= 12 %}assez-bien{% elif eleve_info.moyenne_generale >= 10 %}passable{% else %}insuffisant{% endif %}">
+                                            {{ eleve_info.moyenne_generale|floatformat:2 }}/20
+                                        </span>
+                                    {% else %}
+                                        <span class="moyenne-non-disponible">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+
+        <!-- Pied de page -->
+        <footer class="print-footer">
+            <p class="footer-text">
+                Document officiel généré le {{ "now"|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}
+            </p>
+            <p class="footer-signature">
+                Le Directeur
+            </p>
+        </footer>
+    </div>
+
+    <!-- Bouton d'impression (caché à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer le relevé
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        // Imprimer automatiquement si le paramètre est présent dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto_print') === 'true') {
+            window.onload = function() {
+                setTimeout(function() {
+                    window.print();
+                }, 500);
+            };
+        }
+    </script>
+</body>
+</html>
+

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load exam_filters %}
+{% load notes_tags %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -40,6 +41,10 @@
                 <a href="{% url 'enseignant:liste_evaluations' %}" class="btn-action">
                     <i class="fas fa-calendar-alt"></i>
                     <span>Mes évaluations</span>
+                </a>
+                <a href="{% url 'enseignant:eleves_en_difficulte' %}?periode={{ periode_active.id }}" class="btn-action" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Élèves en difficulté</span>
                 </a>
             </div>
         </div>
@@ -133,7 +138,12 @@
                                         <i class="fas fa-users"></i>
                                     </div>
                                     <div class="classe-tab-content">
-                                        <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                        <span class="classe-tab-name">
+                                            {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge-small">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </span>
                                         {% if classe_data.est_principal %}
                                             <span class="classe-tab-badge principal">Principal</span>
                                         {% endif %}
@@ -149,15 +159,20 @@
                                 <!-- Header classe avec actions -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
-                                        <h3><i class="fas fa-chalkboard"></i> {{ classe_data.classe.nom }}</h3>
+                                        <h3>
+                                            <i class="fas fa-chalkboard"></i> {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </h3>
                                         <span class="eleves-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                                     </div>
                                     <div class="action-buttons">
-                                        <a href="{% url 'enseignant:creer_evaluation' classe_data.classe.id %}" class="btn-action primary" title="Créer une évaluation">
+                                        <a href="{% url 'enseignant:creer_evaluation' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action primary" title="Créer une évaluation">
                                             <i class="fas fa-plus"></i>
                                             <span>Créer évaluation</span>
                                         </a>
-                                        <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="btn-action success" title="Noter les élèves">
+                                        <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action success" title="Noter les élèves">
                                             <i class="fas fa-edit"></i>
                                             <span>Noter élèves</span>
                                         </a>
@@ -169,14 +184,17 @@
                                         </a>
                                         {% endif %}
                                         {% endwith %}
-                                        <a href="{% url 'enseignant:voir_releve' classe_data.classe.id %}?periode={{ periode_active.id }}" class="btn-action info" title="Voir le relevé de notes">
+                                        <button onclick="ouvrirModalReleve({{ classe_data.classe.id }}, {{ periode_active.id }}{% if classe_data.matiere %}, {{ classe_data.matiere.id }}{% endif %})" class="btn-action info" title="Voir le relevé de notes">
                                             <i class="fas fa-file-alt"></i>
                                             <span>Voir relevé</span>
-                                        </a>
-                                        <button class="btn-action secondary" onclick="window.print()" title="Imprimer le relevé">
+                                        </button>
+                                        <a href="{% url 'enseignant:imprimer_releve_enseignant' classe_data.classe.id %}?periode={{ periode_active.id }}{% if classe_data.matiere %}&matiere={{ classe_data.matiere.id }}{% endif %}" 
+                                           class="btn-action secondary" 
+                                           target="_blank"
+                                           title="Imprimer le relevé">
                                             <i class="fas fa-print"></i>
                                             <span>Imprimer</span>
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
 
@@ -255,6 +273,20 @@
                                                 <tr>
                                                     <th class="col-numero">#</th>
                                                     <th class="col-eleve">Élève</th>
+                                                    <!-- Colonnes dynamiques pour les évaluations -->
+                                                    {% if classe_data.evaluations %}
+                                                        {% for eval_item in classe_data.evaluations %}
+                                                            <th class="col-evaluation" title="{{ eval_item.evaluation.titre }}">
+                                                                <div class="eval-header-cell">
+                                                                    <span class="eval-title" title="{{ eval_item.evaluation.titre }}">{{ eval_item.evaluation.titre|truncatechars:20 }}</span>
+                                                                    <span class="eval-bareme">/{{ eval_item.evaluation.bareme }}</span>
+                                                                </div>
+                                                            </th>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                    {% if classe_data.has_examen %}
+                                                        <th class="col-examen">Examen</th>
+                                                    {% endif %}
                                                     <th class="col-moyenne">Moyenne</th>
                                                     <th class="col-appreciation">Appréciation</th>
                                                 </tr>
@@ -274,6 +306,51 @@
                                                                 </div>
                                                             </div>
                                                         </td>
+                                                        <!-- Colonnes pour les notes des évaluations -->
+                                                        {% if classe_data.evaluations %}
+                                                            {% for eval_item in classe_data.evaluations %}
+                                                                {% with eval_id=eval_item.evaluation.id %}
+                                                                    {% with note_obj=eleve_data.notes|get_item:eval_id %}
+                                                                        <td class="col-evaluation-note">
+                                                                            {% if note_obj %}
+                                                                                {% with note_value=note_obj.note bareme=eval_item.evaluation.bareme %}
+                                                                                    {% if note_obj.absent %}
+                                                                                        <span class="note-badge absent" title="Absent">ABS</span>
+                                                                                    {% else %}
+                                                                                        {% with note_class=note_value|get_note_color_class:bareme %}
+                                                                                            {% if note_class %}
+                                                                                                <span class="note-badge {{ note_class }}">{{ note_value|floatformat:2 }}/{{ bareme }}</span>
+                                                                                            {% else %}
+                                                                                                <span class="note-badge">{{ note_value|floatformat:2 }}/{{ bareme }}</span>
+                                                                                            {% endif %}
+                                                                                        {% endwith %}
+                                                                                    {% endif %}
+                                                                                {% endwith %}
+                                                                            {% else %}
+                                                                                <span class="note-badge non-renseigne">-</span>
+                                                                            {% endif %}
+                                                                        </td>
+                                                                    {% endwith %}
+                                                                {% endwith %}
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        {% if classe_data.has_examen %}
+                                                            <td class="col-examen">
+                                                                {% if eleve_data.note_examen %}
+                                                                    {% with ex_note=eleve_data.note_examen.note %}
+                                                                        {% with note_class=ex_note|get_note_color_class:20 %}
+                                                                            {% if note_class %}
+                                                                                <span class="note-badge examen {{ note_class }}">{{ ex_note|floatformat:2 }}/20</span>
+                                                                            {% else %}
+                                                                                <span class="note-badge examen">{{ ex_note|floatformat:2 }}/20</span>
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% endwith %}
+                                                                {% else %}
+                                                                    <span class="note-badge non-renseigne">-</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        {% endif %}
                                                         <td class="col-moyenne">
                                                             {% if eleve_data.moyenne %}
                                                                 {% with moy=eleve_data.moyenne.moyenne|floatformat:2 %}
@@ -372,6 +449,316 @@
         function imprimerReleve() {
             window.print();
         }
+        
+        // Modal pour afficher le relevé de notes
+        function ouvrirModalReleve(classeId, periodeId, matiereId = null) {
+            const modal = document.getElementById('modal-releve-notes');
+            const modalBody = document.getElementById('modal-releve-body');
+            
+            // Afficher le modal
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'flex-start';
+            modal.style.justifyContent = 'center';
+            document.body.style.overflow = 'hidden';
+            
+            // Afficher un loading
+            modalBody.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Chargement du relevé...</p>
+                </div>
+            `;
+            
+            // Construire l'URL de l'API
+            let url = `/enseignant/api/releve-modal/${classeId}/?periode=${periodeId}`;
+            if (matiereId) {
+                url += `&matiere=${matiereId}`;
+            }
+            
+            // Charger les données via AJAX
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    afficherReleveDansModal(data);
+                } else {
+                    modalBody.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>${data.error || 'Erreur lors du chargement du relevé'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                modalBody.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Une erreur est survenue lors du chargement du relevé.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function afficherReleveDansModal(data) {
+            const modalBody = document.getElementById('modal-releve-body');
+            const modalTitle = document.getElementById('modal-releve-title');
+            
+            // Mettre à jour le titre
+            modalTitle.textContent = `Relevé de Notes - ${data.classe.nom} - ${data.matiere.nom} - ${data.periode.nom_periode}`;
+            
+            // Construire le tableau HTML
+            let tableHTML = `
+                <div class="releve-header-info">
+                    <div class="info-item">
+                        <i class="fas fa-chalkboard"></i>
+                        <strong>Classe:</strong> ${data.classe.nom}
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-book"></i>
+                        <strong>Matière:</strong> ${data.matiere.nom}
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <strong>Période:</strong> ${data.periode.nom_periode}
+                    </div>
+                </div>
+                
+                <div class="table-responsive-releve">
+                    <table class="releve-table-modal">
+                        <thead>
+                            <tr>
+                                <th class="col-rang">#</th>
+                                <th class="col-eleve">Élève</th>
+            `;
+            
+            // Ajouter les colonnes d'évaluation
+            data.colonnes.forEach(colonne => {
+                tableHTML += `<th class="col-evaluation-retenue">${colonne.titre}</th>`;
+            });
+            
+            // Colonne pour la note d'examen si elle existe
+            if (data.a_session_examen) {
+                tableHTML += `<th class="col-examen">Examen</th>`;
+            }
+            
+            tableHTML += `
+                                <th class="col-moyenne">Moyenne</th>
+                                <th class="col-appreciation">Appréciation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            // Ajouter les lignes pour chaque élève
+            data.eleves.forEach((eleve, index) => {
+                // Générer les initiales
+                const initiales = (eleve.prenom.charAt(0) + eleve.nom.charAt(0)).toUpperCase();
+                
+                tableHTML += `
+                    <tr>
+                        <td class="col-rang">${index + 1}</td>
+                        <td class="col-eleve">
+                            <div class="eleve-info-releve">
+                                <div class="eleve-avatar-small">${initiales}</div>
+                                <div class="eleve-nom-releve">
+                                    <strong>${eleve.nom}</strong>
+                                    <span>${eleve.prenom}</span>
+                                </div>
+                            </div>
+                        </td>
+                `;
+                
+                // Afficher les notes retenues pour cet élève
+                data.colonnes.forEach((colonne, colIndex) => {
+                    const noteRetenue = eleve.notes_retenues[colIndex];
+                    if (noteRetenue) {
+                        const noteValue = parseFloat(noteRetenue.note || 0);
+                        const bareme = parseFloat(noteRetenue.bareme || 20);
+                        let colorClass = '';
+                        if (noteValue >= 16) colorClass = 'note-excellente';
+                        else if (noteValue >= 14) colorClass = 'note-bonne';
+                        else if (noteValue >= 10) colorClass = 'note-moyenne-faible';
+                        else colorClass = 'note-faible';
+                        
+                        tableHTML += `
+                            <td class="col-evaluation-retenue">
+                                <span class="note-text ${colorClass}">${noteValue.toFixed(2)}/${bareme}</span>
+                            </td>
+                        `;
+                    } else {
+                        tableHTML += `<td class="col-evaluation-retenue"><span class="note-vide">-</span></td>`;
+                    }
+                });
+                
+                // Note d'examen
+                if (data.a_session_examen) {
+                    if (eleve.note_examen) {
+                        const noteExam = parseFloat(eleve.note_examen.note);
+                        const baremeExam = parseFloat(eleve.note_examen.bareme);
+                        let colorClass = '';
+                        if (noteExam >= 16) colorClass = 'note-excellente';
+                        else if (noteExam >= 14) colorClass = 'note-bonne';
+                        else if (noteExam >= 10) colorClass = 'note-moyenne-faible';
+                        else colorClass = 'note-faible';
+                        
+                        tableHTML += `
+                            <td class="col-examen">
+                                <span class="note-text ${colorClass}">${noteExam.toFixed(2)}/${baremeExam}</span>
+                            </td>
+                        `;
+                    } else {
+                        tableHTML += `<td class="col-examen"><span class="note-vide">-</span></td>`;
+                    }
+                }
+                
+                // Moyenne
+                if (eleve.moyenne !== null) {
+                    const moyenne = parseFloat(eleve.moyenne);
+                    let colorClass = '';
+                    if (moyenne >= 16) colorClass = 'moyenne-excellente';
+                    else if (moyenne >= 14) colorClass = 'moyenne-bonne';
+                    else if (moyenne >= 10) colorClass = 'moyenne-moyenne-faible';
+                    else colorClass = 'moyenne-faible';
+                    
+                    tableHTML += `
+                        <td class="col-moyenne">
+                            <span class="moyenne-text ${colorClass}">${moyenne.toFixed(2)}/20</span>
+                        </td>
+                    `;
+                } else {
+                    tableHTML += `<td class="col-moyenne"><span class="note-vide">-</span></td>`;
+                }
+                
+                // Appréciation
+                tableHTML += `
+                    <td class="col-appreciation">
+                        <span class="appreciation-text">${eleve.appreciation || '-'}</span>
+                    </td>
+                `;
+                
+                tableHTML += `</tr>`;
+            });
+            
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            modalBody.innerHTML = tableHTML;
+
+            // Ajouter barre d'actions (soumission du relevé)
+            const actionsHTML = `
+                <div class="modal-releve-actions">
+                    <button id="btn-soumettre-releve" class="btn-action primary">
+                        <i class="fas fa-lock"></i>
+                        <span>Soumettre le relevé</span>
+                    </button>
+                </div>
+            `;
+            modalBody.insertAdjacentHTML('beforeend', actionsHTML);
+
+            // Gestion du clic sur "Soumettre le relevé"
+            const btnSoumettre = document.getElementById('btn-soumettre-releve');
+            if (btnSoumettre) {
+                // Désactiver si relevé déjà soumis
+                if (data.releve_soumis) {
+                    btnSoumettre.disabled = true;
+                    btnSoumettre.classList.add('disabled');
+                    btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> <span>Relevé soumis</span>';
+                }
+                btnSoumettre.addEventListener('click', async () => {
+                    try {
+                        btnSoumettre.disabled = true;
+                        btnSoumettre.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Soumission...';
+                        const csrfToken = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+                        const urlSoumettre = `/enseignant/soumettre-releve/${data.classe.id}/?periode=${data.periode.id}&matiere=${data.matiere.id}`;
+                        const resp = await fetch(urlSoumettre, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': csrfToken,
+                            }
+                        });
+                        if (resp.ok) {
+                            // Feedback visuel
+                            const success = document.createElement('div');
+                            success.className = 'alert alert-success';
+                            success.innerHTML = '<i class="fas fa-check-circle"></i> Relevé soumis avec succès.';
+                            modalBody.prepend(success);
+                            // Optionnel: désactiver le bouton après succès
+                            btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Relevé soumis';
+                            btnSoumettre.disabled = true;
+                            btnSoumettre.classList.add('disabled');
+                        } else {
+                            const txt = await resp.text();
+                            const error = document.createElement('div');
+                            error.className = 'alert alert-error';
+                            error.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erreur lors de la soumission: ${txt}`;
+                            modalBody.prepend(error);
+                            btnSoumettre.disabled = false;
+                            btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Soumettre le relevé';
+                        }
+                    } catch (e) {
+                        const error = document.createElement('div');
+                        error.className = 'alert alert-error';
+                        error.innerHTML = `<i class=\"fas fa-exclamation-triangle\"></i> Erreur inattendue: ${e}`;
+                        modalBody.prepend(error);
+                        btnSoumettre.disabled = false;
+                        btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Soumettre le relevé';
+                    }
+                });
+            }
+        }
+        
+        function fermerModalReleve() {
+            const modal = document.getElementById('modal-releve-notes');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        
+        // Fermer le modal quand on clique sur le backdrop
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('modal-releve-notes');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        fermerModalReleve();
+                    }
+                });
+            }
+            
+            // Fermer avec la touche Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    fermerModalReleve();
+                }
+            });
+        });
     </script>
+    
+    <!-- Modal pour le relevé de notes -->
+    <div id="modal-releve-notes" class="modal-releve-fullscreen">
+        <div class="modal-releve-content">
+            <div class="modal-releve-header">
+                <h2 id="modal-releve-title">Relevé de Notes</h2>
+                <button class="btn-close-modal-releve" onclick="fermerModalReleve()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-releve-body">
+                <div id="modal-releve-body">
+                    <!-- Le contenu sera chargé dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -113,14 +113,25 @@
                             {% for mois_key, mois_presences in classe_data.mois_presences.items %}
                                     <div class="mois-content {% if forloop.last %}active{% endif %}" id="mois-{{ classe_data.classe.id }}-{{ forloop.counter }}">
                                         
-                                        <!-- Info mois -->
-                                        <div class="mois-info-card">
-                                            <div class="mois-icon">
-                                                <i class="fas fa-calendar-alt"></i>
+                                        <!-- Info mois avec bouton d'impression -->
+                                        <div class="mois-info-header">
+                                            <div class="mois-info-card">
+                                                <div class="mois-icon">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </div>
+                                                <div class="mois-details">
+                                                    <h4>{{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</h4>
+                                                    <p>Période de suivi : {{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</p>
+                                                </div>
                                             </div>
-                                            <div class="mois-details">
-                                                <h4>{{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</h4>
-                                                <p>Période de suivi : {{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</p>
+                                            <div class="mois-actions">
+                                                <a href="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id mois_presences.mois.numero mois_presences.mois.annee %}" 
+                                                   class="btn-print-presence" 
+                                                   target="_blank"
+                                                   title="Imprimer la liste de présence">
+                                                    <i class="fas fa-print"></i>
+                                                    Imprimer liste de présence
+                                                </a>
                                             </div>
                                         </div>
 
@@ -151,6 +162,79 @@
                                             </div>
                                         </div>
 
+                                        <!-- Barre de recherche et filtres pour tous les établissements -->
+                                        <div class="search-filter-container" id="search-filter-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                            <div class="search-box" style="position: relative; margin-bottom: 16px;">
+                                                <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                                                <input type="text" 
+                                                       class="search-input" 
+                                                       id="search-input-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
+                                                       placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                                                       oninput="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')"
+                                                       style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
+                                                <button class="clear-search" 
+                                                        id="clear-search-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
+                                                        onclick="clearPresenceSearch('{{ classe_data.classe.id }}-{{ forloop.counter }}')" 
+                                                        style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                            
+                                            <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                                                <div class="filter-group" style="flex: 1; min-width: 200px;">
+                                                    <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                        <i class="fas fa-percentage"></i>
+                                                        Taux de présence
+                                                    </label>
+                                                    <select class="filter-select" id="filter-taux-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                        <option value="">Tous les taux</option>
+                                                        <option value="excellent">Excellent (≥ 95%)</option>
+                                                        <option value="bon">Bon (90-94%)</option>
+                                                        <option value="moyen">Moyen (85-89%)</option>
+                                                        <option value="faible">Faible (80-84%)</option>
+                                                        <option value="critique">Critique (< 80%)</option>
+                                                    </select>
+                                                </div>
+                                                
+                                                <div class="filter-group" style="flex: 1; min-width: 200px;">
+                                                    <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        Absences
+                                                    </label>
+                                                    <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                        <option value="">Toutes</option>
+                                                        <option value="0">Aucune absence</option>
+                                                        <option value="1-3">1-3 absences</option>
+                                                        <option value="4-6">4-6 absences</option>
+                                                        <option value="7+">7+ absences</option>
+                                                    </select>
+                                                </div>
+                                                
+                                                <div class="filter-group" style="flex: 1; min-width: 200px;">
+                                                    <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                        <i class="fas fa-clock"></i>
+                                                        Retards
+                                                    </label>
+                                                    <select class="filter-select" id="filter-retards-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                        <option value="">Tous</option>
+                                                        <option value="0">Aucun retard</option>
+                                                        <option value="1-2">1-2 retards</option>
+                                                        <option value="3-5">3-5 retards</option>
+                                                        <option value="6+">6+ retards</option>
+                                                    </select>
+                                                </div>
+                                                
+                                                <button class="btn-reset-filters" onclick="resetPresenceFilters('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                                    <i class="fas fa-redo"></i>
+                                                    Réinitialiser
+                                                </button>
+                                            </div>
+                                            
+                                            <div class="filter-results" id="filter-results-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
+                                                <span id="results-count-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">0</span> résultat(s) trouvé(s)
+                                            </div>
+                                        </div>
+                                        
                                         <!-- Tableau des présences -->
                                         <div class="presence-table-container">
                                             <table class="presence-results-table">
@@ -172,7 +256,13 @@
                                                 <tbody>
                                                     {% if mois_presences %}
                                                         {% for eleve_data in mois_presences.eleves_presences %}
-                                                            <tr class="student-row {% if eleve_data.taux_presence is not None %}{% if eleve_data.taux_presence >= 95 %}presence-excellente{% elif eleve_data.taux_presence >= 90 %}presence-bonne{% elif eleve_data.taux_presence >= 85 %}presence-moyenne{% elif eleve_data.taux_presence >= 80 %}presence-faible{% else %}presence-critique{% endif %}{% endif %}">
+                                                            <tr class="student-row {% if eleve_data.taux_presence is not None %}{% if eleve_data.taux_presence >= 95 %}presence-excellente{% elif eleve_data.taux_presence >= 90 %}presence-bonne{% elif eleve_data.taux_presence >= 85 %}presence-moyenne{% elif eleve_data.taux_presence >= 80 %}presence-faible{% else %}presence-critique{% endif %}{% endif %}"
+                                                                data-nom="{{ eleve_data.eleve.nom|lower }}"
+                                                                data-prenom="{{ eleve_data.eleve.prenom|lower }}"
+                                                                data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
+                                                                data-taux-presence="{{ eleve_data.taux_presence|default:'0' }}"
+                                                                data-absents="{{ eleve_data.absents|default:'0' }}"
+                                                                data-retards="{{ eleve_data.retards|default:'0' }}">
                                                                 <td class="rang-cell">
                                                                     {% if eleve_data.taux_presence %}
                                                                         <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
@@ -435,6 +525,120 @@
             if (event.target === modal) {
                 fermerModalSanction();
             }
+        }
+        
+        // Fonctions de filtrage pour la page de suivi de présence
+        function filterPresenceStudents(moisId) {
+            const searchInput = document.getElementById(`search-input-presence-${moisId}`);
+            const filterTaux = document.getElementById(`filter-taux-${moisId}`);
+            const filterAbsences = document.getElementById(`filter-absences-${moisId}`);
+            const filterRetards = document.getElementById(`filter-retards-${moisId}`);
+            const clearButton = document.getElementById(`clear-search-presence-${moisId}`);
+            const resultsDiv = document.getElementById(`filter-results-presence-${moisId}`);
+            const resultsCount = document.getElementById(`results-count-presence-${moisId}`);
+            
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const tauxValue = filterTaux.value;
+            const absencesValue = filterAbsences.value;
+            const retardsValue = filterRetards.value;
+            
+            // Afficher/masquer le bouton de suppression de recherche
+            clearButton.style.display = searchTerm ? 'flex' : 'none';
+            
+            // Récupérer toutes les lignes d'élèves pour ce mois
+            const moisContent = document.getElementById(`mois-${moisId}`);
+            const rows = moisContent.querySelectorAll('.student-row');
+            
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const nom = row.dataset.nom || '';
+                const prenom = row.dataset.prenom || '';
+                const matricule = row.dataset.matricule || '';
+                const tauxPresence = parseFloat(row.dataset.tauxPresence || '0');
+                const absents = parseInt(row.dataset.absents || '0');
+                const retards = parseInt(row.dataset.retards || '0');
+                
+                // Filtrage par recherche (nom, prénom, matricule)
+                const matchesSearch = !searchTerm || 
+                    nom.includes(searchTerm) || 
+                    prenom.includes(searchTerm) || 
+                    matricule.includes(searchTerm);
+                
+                // Filtrage par taux de présence
+                let matchesTaux = true;
+                if (tauxValue === 'excellent') {
+                    matchesTaux = tauxPresence >= 95;
+                } else if (tauxValue === 'bon') {
+                    matchesTaux = tauxPresence >= 90 && tauxPresence < 95;
+                } else if (tauxValue === 'moyen') {
+                    matchesTaux = tauxPresence >= 85 && tauxPresence < 90;
+                } else if (tauxValue === 'faible') {
+                    matchesTaux = tauxPresence >= 80 && tauxPresence < 85;
+                } else if (tauxValue === 'critique') {
+                    matchesTaux = tauxPresence < 80 && tauxPresence > 0;
+                }
+                
+                // Filtrage par absences
+                let matchesAbsences = true;
+                if (absencesValue === '0') {
+                    matchesAbsences = absents === 0;
+                } else if (absencesValue === '1-3') {
+                    matchesAbsences = absents >= 1 && absents <= 3;
+                } else if (absencesValue === '4-6') {
+                    matchesAbsences = absents >= 4 && absents <= 6;
+                } else if (absencesValue === '7+') {
+                    matchesAbsences = absents >= 7;
+                }
+                
+                // Filtrage par retards
+                let matchesRetards = true;
+                if (retardsValue === '0') {
+                    matchesRetards = retards === 0;
+                } else if (retardsValue === '1-2') {
+                    matchesRetards = retards >= 1 && retards <= 2;
+                } else if (retardsValue === '3-5') {
+                    matchesRetards = retards >= 3 && retards <= 5;
+                } else if (retardsValue === '6+') {
+                    matchesRetards = retards >= 6;
+                }
+                
+                // Afficher/masquer la ligne selon les critères
+                if (matchesSearch && matchesTaux && matchesAbsences && matchesRetards) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Afficher/masquer le compteur de résultats
+            if (searchTerm || tauxValue || absencesValue || retardsValue) {
+                resultsCount.textContent = visibleCount;
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        }
+        
+        function clearPresenceSearch(moisId) {
+            const searchInput = document.getElementById(`search-input-presence-${moisId}`);
+            searchInput.value = '';
+            filterPresenceStudents(moisId);
+        }
+        
+        function resetPresenceFilters(moisId) {
+            const searchInput = document.getElementById(`search-input-presence-${moisId}`);
+            const filterTaux = document.getElementById(`filter-taux-${moisId}`);
+            const filterAbsences = document.getElementById(`filter-absences-${moisId}`);
+            const filterRetards = document.getElementById(`filter-retards-${moisId}`);
+            
+            searchInput.value = '';
+            filterTaux.value = '';
+            filterAbsences.value = '';
+            filterRetards.value = '';
+            
+            filterPresenceStudents(moisId);
         }
     </script>
 </body>

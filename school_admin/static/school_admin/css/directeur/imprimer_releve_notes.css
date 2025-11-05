@@ -1,0 +1,734 @@
+/* ==========================================
+   STYLES D'IMPRESSION DU RELEVÉ DE NOTES
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.print-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px;
+    background: white;
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 12px;
+    color: #1a1a1a;
+    gap: 30px;
+    border: 2px solid #e0e0e0;
+}
+
+.header-left {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-logo {
+    flex: 0 0 auto;
+}
+
+.logo-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+}
+
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    background: #e0e0e0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: #666666;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.etablissement-nom {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #1a1a1a;
+}
+
+.releve-notes-titre {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #333333;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.etablissement-adresse {
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #333333;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #333333;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.contact-item i {
+    color: #666666;
+}
+
+.header-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.document-info-header {
+    background: #ffffff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 2px solid #e0e0e0;
+}
+
+.info-item-header {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1a1a1a;
+}
+
+.info-label-header {
+    font-weight: 600;
+    min-width: 130px;
+    color: #333333;
+}
+
+.info-value-header {
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+/* ==========================================
+   LIGNE DE SÉPARATION
+   ========================================== */
+
+.separator-line {
+    height: 2px;
+    background: #d0d0d0;
+    border-radius: 2px;
+    margin: 15px 0;
+}
+
+/* ==========================================
+   TITRE DU DOCUMENT
+   ========================================== */
+
+.document-title {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.document-title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 0;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+    border-left: 5px solid #667eea;
+    border-right: 5px solid #764ba2;
+    display: inline-block;
+}
+
+/* ==========================================
+   TABLEAU DES NOTES
+   ========================================== */
+
+.notes-table-wrapper {
+    margin: 30px 0;
+    overflow-x: auto;
+}
+
+.notes-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.notes-table thead {
+    background: #f0f0f0;
+    color: #1a1a1a;
+}
+
+.notes-table thead th {
+    padding: 14px 10px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #d0d0d0;
+    border-bottom: 2px solid #999999;
+}
+
+.notes-table thead th:last-child {
+    border-right: none;
+}
+
+.col-rang {
+    width: 60px;
+}
+
+.col-eleve {
+    width: 200px;
+    text-align: left !important;
+}
+
+.col-matricule {
+    width: 120px;
+}
+
+.col-matiere {
+    min-width: 100px;
+}
+
+.col-moyenne-generale {
+    min-width: 130px;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.matiere-nom {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    margin: 0 auto;
+}
+
+.matiere-coef {
+    font-size: 9px;
+    opacity: 0.85;
+    font-weight: 400;
+}
+
+.notes-table tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    transition: background 0.2s ease;
+}
+
+.notes-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.notes-table tbody tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+.notes-table tbody tr:nth-child(even):hover {
+    background: #f1f5f9;
+}
+
+.notes-table tbody td {
+    padding: 12px 10px;
+    text-align: center;
+    font-size: 12px;
+    color: #475569;
+}
+
+.col-eleve {
+    text-align: left;
+    padding-left: 15px;
+}
+
+.eleve-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.eleve-nom {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.col-matricule {
+    font-family: 'Courier New', monospace;
+    color: #64748b;
+    font-size: 11px;
+}
+
+/* Rang badges */
+.rang-badge {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+}
+
+.rang-badge.gold {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+}
+
+.rang-badge.silver {
+    background: linear-gradient(135deg, #d4d4d8, #a1a1aa);
+    color: white;
+    box-shadow: 0 2px 6px rgba(212, 212, 216, 0.4);
+}
+
+.rang-badge.bronze {
+    background: linear-gradient(135deg, #ea580c, #c2410c);
+    color: white;
+    box-shadow: 0 2px 6px rgba(234, 88, 12, 0.4);
+}
+
+/* Moyennes */
+.moyenne-value,
+.moyenne-generale-value {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.moyenne-value.excellent,
+.moyenne-generale-value.excellent {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #15803d;
+    border: 1px solid #22c55e;
+}
+
+.moyenne-value.bien,
+.moyenne-generale-value.bien {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+.moyenne-value.assez-bien,
+.moyenne-generale-value.assez-bien {
+    background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+    color: #115e59;
+    border: 1px solid #14b8a6;
+}
+
+.moyenne-value.passable,
+.moyenne-generale-value.passable {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.moyenne-value.insuffisant,
+.moyenne-generale-value.insuffisant {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.moyenne-generale-value {
+    font-size: 14px;
+    font-weight: 800;
+    padding: 6px 12px;
+}
+
+.moyenne-non-disponible {
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+/* ==========================================
+   LÉGENDE
+   ========================================== */
+
+.legend-section {
+    margin: 30px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+}
+
+.legend-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+}
+
+.legend-color {
+    width: 24px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.legend-color.excellent {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+}
+
+.legend-color.bien {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+}
+
+.legend-color.assez-bien {
+    background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+}
+
+.legend-color.passable {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.legend-color.insuffisant {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+.legend-text {
+    color: #475569;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.print-footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px solid #e2e8f0;
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 30px;
+}
+
+.footer-signature {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-top: 60px;
+    text-decoration: overline;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-print,
+.btn-close {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-close {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-close:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .print-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 20px;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+    }
+
+    /* Optimiser les couleurs pour l'impression */
+    .print-header {
+        background: #f5f5f5 !important;
+        border: 2px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: stretch !important;
+        flex-direction: row !important;
+        gap: 30px !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+    }
+    
+    .header-left {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 20px !important;
+    }
+    
+    .header-right {
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+    }
+    
+    .header-logo {
+        flex: 0 0 auto !important;
+    }
+    
+    .header-info {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+    
+    .document-info-header {
+        background: #ffffff !important;
+        border: 2px solid #e0e0e0 !important;
+        padding: 15px 20px !important;
+        border-radius: 8px !important;
+    }
+
+    .notes-table thead {
+        background: #f0f0f0 !important;
+        color: #1a1a1a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .notes-table thead th {
+        border-right: 1px solid #d0d0d0 !important;
+        border-bottom: 2px solid #999999 !important;
+    }
+    
+    .separator-line {
+        background: #d0d0d0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .moyenne-value,
+    .moyenne-generale-value,
+    .rang-badge,
+    .legend-color {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Éviter les sauts de page au milieu des éléments */
+    .print-header,
+    .document-title,
+    .legend-section,
+    .print-footer,
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Forcer le saut de page avant le tableau si nécessaire */
+    .notes-table-wrapper {
+        page-break-inside: auto;
+    }
+    
+    /* Empêcher la répétition de l'en-tête du tableau sur chaque page */
+    .notes-table thead {
+        display: table-row-group !important;
+    }
+    
+    .notes-table tbody {
+        display: table-row-group !important;
+    }
+
+    /* Améliorer la lisibilité */
+    .notes-table {
+        box-shadow: none;
+        border: 1px solid #e2e8f0;
+    }
+
+    .notes-table tbody tr {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Réduire les marges pour l'impression */
+    @page {
+        size: A4 landscape;
+        margin: 1cm;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .print-container {
+        padding: 20px;
+    }
+
+    .print-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .header-logo,
+    .header-academie {
+        flex: 0 0 auto;
+        margin-bottom: 15px;
+    }
+
+    .etablissement-nom {
+        font-size: 22px;
+    }
+
+    .document-info {
+        grid-template-columns: 1fr;
+    }
+
+    .notes-table {
+        font-size: 10px;
+    }
+
+    .notes-table thead th,
+    .notes-table tbody td {
+        padding: 8px 5px;
+    }
+
+    .print-actions {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .btn-print,
+    .btn-close {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiches d'Inscription - {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_inscription.css' %}">
+    <style>
+        /* Style spécifique pour l'impression multiple */
+        .fiche-container {
+            page-break-after: always;
+        }
+        
+        .fiche-container:last-child {
+            page-break-after: auto;
+        }
+    </style>
+</head>
+<body>
+    {% for eleve in eleves %}
+    <div class="fiche-container">
+        <!-- En-tête de l'établissement -->
+        <header class="fiche-header">
+            <div class="header-info">
+                <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+                <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                <div class="etablissement-contact">
+                    <span class="contact-item">{{ etablissement.telephone }}</span>
+                    <span class="contact-item">{{ etablissement.email }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ligne de séparation -->
+        <div class="separator-line"></div>
+
+        <!-- Titre du document -->
+        <div class="document-title">
+            <h2>FICHE D'INSCRIPTION / RÉINSCRIPTION</h2>
+            <p class="document-subtitle">Année scolaire {{ annee_scolaire }}</p>
+        </div>
+
+        <!-- Corps de la fiche -->
+        <div class="fiche-body">
+            <!-- Section 1: Informations personnelles de l'élève -->
+            <div class="section-box">
+                <h3 class="section-title">
+                    <i class="fas fa-user"></i>
+                    Informations personnelles de l'élève
+                </h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Nom :</span>
+                        <span class="info-value">{{ eleve.nom|upper }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Prénom :</span>
+                        <span class="info-value">{{ eleve.prenom }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Numéro d'élève :</span>
+                        <span class="info-value">{{ eleve.numero_eleve }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date de naissance :</span>
+                        <span class="info-value">{{ eleve.date_naissance|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Lieu de naissance :</span>
+                        <span class="info-value">{{ eleve.lieu_naissance }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Sexe :</span>
+                        <span class="info-value">{{ eleve.get_sexe_display }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Âge :</span>
+                        <span class="info-value">{{ eleve.age }} ans</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Nationalité :</span>
+                        <span class="info-value">{{ eleve.nationalite|default:"Non renseignée" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Informations de contact -->
+            <div class="section-box">
+                <h3 class="section-title">
+                    <i class="fas fa-address-book"></i>
+                    Coordonnées
+                </h3>
+                <div class="info-grid">
+                    <div class="info-item full-width">
+                        <span class="info-label">Adresse :</span>
+                        <span class="info-value">{{ eleve.adresse|default:"Non renseignée" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Téléphone :</span>
+                        <span class="info-value">{{ eleve.telephone|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email :</span>
+                        <span class="info-value">{{ eleve.email|default:"Non renseigné" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Scolarité -->
+            <div class="section-box">
+                <h3 class="section-title">
+                    <i class="fas fa-graduation-cap"></i>
+                    Informations de scolarité
+                </h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Classe :</span>
+                        <span class="info-value">{{ eleve.classe.nom }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Niveau :</span>
+                        <span class="info-value">{{ eleve.classe.get_niveau_display }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date d'inscription :</span>
+                        <span class="info-value">{{ eleve.date_inscription|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Statut :</span>
+                        <span class="info-value">{{ eleve.get_statut_display|default:"Actif" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Informations des parents/tuteurs -->
+            <div class="section-box">
+                <h3 class="section-title">
+                    <i class="fas fa-users"></i>
+                    Informations des parents/tuteurs
+                </h3>
+                <div class="info-grid">
+                    <div class="info-item full-width">
+                        <span class="info-label">Nom du père :</span>
+                        <span class="info-value">{{ eleve.nom_pere|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Téléphone du père :</span>
+                        <span class="info-value">{{ eleve.telephone_pere|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Profession du père :</span>
+                        <span class="info-value">{{ eleve.profession_pere|default:"Non renseignée" }}</span>
+                    </div>
+                    <div class="info-item full-width">
+                        <span class="info-label">Nom de la mère :</span>
+                        <span class="info-value">{{ eleve.nom_mere|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Téléphone de la mère :</span>
+                        <span class="info-value">{{ eleve.telephone_mere|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Profession de la mère :</span>
+                        <span class="info-value">{{ eleve.profession_mere|default:"Non renseignée" }}</span>
+                    </div>
+                    <div class="info-item full-width">
+                        <span class="info-label">Tuteur légal :</span>
+                        <span class="info-value">{{ eleve.tuteur_legal|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Téléphone du tuteur :</span>
+                        <span class="info-value">{{ eleve.telephone_tuteur|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Lien de parenté :</span>
+                        <span class="info-value">{{ eleve.lien_tuteur|default:"Non renseigné" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Engagement et signatures -->
+            <div class="section-box">
+                <h3 class="section-title">
+                    <i class="fas fa-file-signature"></i>
+                    Engagement et signatures
+                </h3>
+                <p class="engagement-text">
+                    Je soussigné(e), parent/tuteur légal de <strong>{{ eleve.nom_complet }}</strong>, 
+                    certifie l'exactitude des informations fournies ci-dessus et m'engage à respecter 
+                    le règlement intérieur de l'établissement <strong>{{ etablissement.nom }}</strong> 
+                    pour l'année scolaire {{ annee_scolaire }}.
+                </p>
+                
+                <div class="signatures-section">
+                    <div class="signature-box">
+                        <p class="signature-title">Signature du parent/tuteur</p>
+                        <div class="signature-line"></div>
+                        <p class="signature-date">Date : ________________</p>
+                    </div>
+                    
+                    <div class="signature-box">
+                        <p class="signature-title">Cachet et signature du directeur</p>
+                        <div class="signature-line"></div>
+                        <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <footer class="fiche-footer">
+            <p class="footer-text">
+                Document généré le {{ date_generation|date:"d/m/Y à H:i" }} - {{ etablissement.nom }} - Fiche {{ forloop.counter }}/{{ eleves|length }}
+            </p>
+        </footer>
+    </div>
+    {% endfor %}
+
+    <!-- Bouton d'impression (caché à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer toutes les fiches ({{ eleves|length }})
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+

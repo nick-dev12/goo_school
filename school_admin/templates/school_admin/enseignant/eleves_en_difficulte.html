@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+{% load static %}
+{% load exam_filters %}
+{% load notes_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Élèves en Difficulté - Espace Enseignant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Élèves en Difficulté
+                </h1>
+                <p class="page-subtitle">
+                    Élèves avec une moyenne inférieure à 9/20
+                </p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'enseignant:gestion_notes' %}?periode={{ periode_active.id }}" class="btn-action">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour aux notes</span>
+                </a>
+            </div>
+        </div>
+
+        {% if stats.total_classes > 0 %}
+            <!-- Onglets de périodes -->
+            <div class="periodes-tabs-horizontal">
+                <div class="periodes-nav">
+                    {% if periodes_scolaires %}
+                        {% for periode in periodes_scolaires %}
+                            <a href="?periode={{ periode.id }}" 
+                               class="periode-tab-horizontal {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>{{ periode.nom_periode }}</span>
+                                {% if periode.est_en_cours %}
+                                    <span class="badge-en-cours" style="margin-left: 0.5rem; background: #28a745; color: white; padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">En cours</span>
+                                {% endif %}
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div style="padding: 1rem; text-align: center; color: #999;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Aucune période scolaire définie. Contactez l'administration.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Statistiques globales -->
+            <div class="stats-container">
+                <div class="stat-card" style="border-left: 4px solid #ef4444;">
+                    <div class="stat-icon" style="background: #ef4444;">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_eleves }}</span>
+                        <span class="stat-label">Élève{{ stats.total_eleves|pluralize }} en difficulté</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #f59e0b;">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_classes }}</span>
+                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }} concernée{{ stats.total_classes|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglets par catégorie -->
+            <div class="tabs-container">
+                <div class="tabs-nav">
+                    {% for categorie, data in classes_grouped.items %}
+                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <span class="tab-title">{{ categorie }}</span>
+                                <span class="tab-badge" style="background: #ef4444;">{{ data.classes|length }}</span>
+                            </div>
+                            <div class="tab-info">
+                                <span class="tab-students">{{ data.total_eleves }} élève{{ data.total_eleves|pluralize }} en difficulté</span>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Contenu des onglets -->
+                {% for categorie, data in classes_grouped.items %}
+                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                        <!-- Info catégorie -->
+                        <div class="category-info" style="border-left: 4px solid #ef4444;">
+                            <div class="category-details">
+                                <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                                <p>
+                                    {{ data.classes|length }} classe{{ data.classes|length|pluralize }} - 
+                                    {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }} en difficulté
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Sous-onglets par classe -->
+                        <div class="classes-tabs">
+                            {% for classe_data in data.classes %}
+                                <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
+                                        data-classe="classe-{{ categorie }}-{{ forloop.counter }}"
+                                        onclick="showClasse('classe-{{ categorie }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
+                                    <div class="classe-tab-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="classe-tab-content">
+                                        <span class="classe-tab-name">
+                                            {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge-small">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </span>
+                                        <span class="classe-tab-badge warning" style="background: #ef4444;">{{ classe_data.nombre_eleves }}/{{ classe_data.nombre_total_eleves }}</span>
+                                    </div>
+                                    <span class="classe-tab-count" style="background: #ef4444;">{{ classe_data.nombre_eleves }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Contenu de chaque classe -->
+                        {% for classe_data in data.classes %}
+                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}">
+                                <!-- Header classe avec actions -->
+                                <div class="classe-header-actions">
+                                    <div class="classe-header-info">
+                                        <h3>
+                                            <i class="fas fa-chalkboard"></i> {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </h3>
+                                        <span class="eleves-count" style="color: #ef4444;">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} en difficulté sur {{ classe_data.nombre_total_eleves }}</span>
+                                    </div>
+                                    <div class="action-buttons">
+                                        <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action info" title="Voir les détails de la classe">
+                                            <i class="fas fa-eye"></i>
+                                            <span>Détails classe</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {% if classe_data.eleves %}
+                                    <!-- Statistiques de la classe -->
+                                    <div class="class-stats">
+                                        <div class="stat-box">
+                                            <span class="stat-label">Moyenne des élèves en difficulté</span>
+                                            {% if classe_data.moyenne_classe %}
+                                                <span class="stat-value" style="color: #ef4444;">{{ classe_data.moyenne_classe }}/20</span>
+                                            {% else %}
+                                                <span class="stat-value muted">-/20</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="stat-box">
+                                            <span class="stat-label">Période</span>
+                                            <span class="stat-value-small">{{ periode_active.nom_periode }}</span>
+                                        </div>
+                                        <div class="stat-box">
+                                            <span class="stat-label">Élèves en difficulté</span>
+                                            <span class="stat-value-small" style="color: #ef4444;">{{ classe_data.nombre_eleves }} / {{ classe_data.nombre_total_eleves }} élèves</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Alerte -->
+                                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 8px;">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 1.2rem;"></i>
+                                            <p style="margin: 0; color: #dc2626; font-weight: 600;">
+                                                Ces élèves ont une moyenne inférieure à 9/20 et nécessitent une attention particulière.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tableau relevé de notes -->
+                                    <div class="releve-table-container">
+                                        <table class="releve-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-numero">#</th>
+                                                    <th class="col-eleve">Élève</th>
+                                                    <!-- Colonnes dynamiques pour les évaluations -->
+                                                    {% if classe_data.evaluations %}
+                                                        {% for eval_item in classe_data.evaluations %}
+                                                            <th class="col-evaluation" title="{{ eval_item.evaluation.titre }}">
+                                                                <div class="eval-header-cell">
+                                                                    <span class="eval-title" title="{{ eval_item.evaluation.titre }}">{{ eval_item.evaluation.titre|truncatechars:20 }}</span>
+                                                                    <span class="eval-bareme">/{{ eval_item.evaluation.bareme }}</span>
+                                                                </div>
+                                                            </th>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                    {% if classe_data.has_examen %}
+                                                        <th class="col-examen">Examen</th>
+                                                    {% endif %}
+                                                    <th class="col-moyenne">Moyenne</th>
+                                                    <th class="col-appreciation">Appréciation</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for eleve_data in classe_data.eleves %}
+                                                    <tr class="{% cycle 'row-even' 'row-odd' %}" style="background: rgba(239, 68, 68, 0.03);">
+                                                        <td class="col-numero">{{ forloop.counter }}</td>
+                                                        <td class="col-eleve">
+                                                            <div class="eleve-info">
+                                                                <div class="eleve-avatar-tiny" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                                                                    {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
+                                                                </div>
+                                                                <div class="eleve-name">
+                                                                    <span class="nom">{{ eleve_data.eleve.nom|upper }}</span>
+                                                                    <span class="prenom">{{ eleve_data.eleve.prenom }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <!-- Colonnes pour les notes des évaluations -->
+                                                        {% if classe_data.evaluations %}
+                                                            {% for eval_item in classe_data.evaluations %}
+                                                                {% with eval_id=eval_item.evaluation.id %}
+                                                                    {% with note_obj=eleve_data.notes|get_item:eval_id %}
+                                                                        <td class="col-evaluation-note">
+                                                                            {% if note_obj %}
+                                                                                {% with note_value=note_obj.note bareme=eval_item.evaluation.bareme %}
+                                                                                    {% if note_obj.absent %}
+                                                                                        <span class="note-badge absent" title="Absent">ABS</span>
+                                                                                    {% else %}
+                                                                                        {% with note_class=note_value|get_note_color_class:bareme %}
+                                                                                            {% if note_class %}
+                                                                                                <span class="note-badge {{ note_class }}">{{ note_value|floatformat:2 }}/{{ bareme }}</span>
+                                                                                            {% else %}
+                                                                                                <span class="note-badge">{{ note_value|floatformat:2 }}/{{ bareme }}</span>
+                                                                                            {% endif %}
+                                                                                        {% endwith %}
+                                                                                    {% endif %}
+                                                                                {% endwith %}
+                                                                            {% else %}
+                                                                                <span class="note-badge non-renseigne">-</span>
+                                                                            {% endif %}
+                                                                        </td>
+                                                                    {% endwith %}
+                                                                {% endwith %}
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        {% if classe_data.has_examen %}
+                                                            <td class="col-examen">
+                                                                {% if eleve_data.note_examen %}
+                                                                    {% with ex_note=eleve_data.note_examen.note %}
+                                                                        {% with note_class=ex_note|get_note_color_class:20 %}
+                                                                            {% if note_class %}
+                                                                                <span class="note-badge examen {{ note_class }}">{{ ex_note|floatformat:2 }}/20</span>
+                                                                            {% else %}
+                                                                                <span class="note-badge examen">{{ ex_note|floatformat:2 }}/20</span>
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% endwith %}
+                                                                {% else %}
+                                                                    <span class="note-badge non-renseigne">-</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        {% endif %}
+                                                        <td class="col-moyenne">
+                                                            {% if eleve_data.moyenne %}
+                                                                <span class="moyenne-badge faible" style="background: #ef4444; color: white;">{{ eleve_data.moyenne.moyenne|floatformat:2 }}/20</span>
+                                                            {% else %}
+                                                                <span class="moyenne-badge non-calcule">-/20</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td class="col-appreciation">
+                                                            {% if eleve_data.moyenne and eleve_data.moyenne.appreciation %}
+                                                                <span class="appreciation-text">{{ eleve_data.moyenne.appreciation }}</span>
+                                                            {% else %}
+                                                                <span class="appreciation-text muted">Pas encore calculée</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="empty-class-state">
+                                        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                        <p>Aucun élève en difficulté dans cette classe ! Bravo ! 🎉</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- État vide -->
+            <div class="empty-state">
+                <div class="empty-icon" style="color: #10b981;">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <h3 style="color: #10b981;">Excellent travail !</h3>
+                <p>Aucun élève n'a une moyenne inférieure à 9/20. Vos élèves sont tous sur la bonne voie ! 🎉</p>
+                <a href="{% url 'enseignant:gestion_notes' %}?periode={{ periode_active.id }}" class="btn-action">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour aux notes</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/gestion_notes.js' %}"></script>
+    <script>
+        // Fonction pour changer d'onglet principal
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            const selectedPanel = document.getElementById(tabId);
+            
+            if (selectedBtn && selectedPanel) {
+                selectedBtn.classList.add('active');
+                selectedPanel.classList.add('active');
+            }
+        }
+        
+        // Fonction pour afficher une classe spécifique
+        function showClasse(classeId, tabId) {
+            const tabPanel = document.getElementById(tabId);
+            if (tabPanel) {
+                tabPanel.querySelectorAll('.classe-tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                tabPanel.querySelectorAll('.classe-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                const selectedBtn = tabPanel.querySelector(`[data-classe="${classeId}"]`);
+                const selectedContent = document.getElementById(classeId);
+                
+                if (selectedBtn && selectedContent) {
+                    selectedBtn.classList.add('active');
+                    selectedContent.classList.add('active');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

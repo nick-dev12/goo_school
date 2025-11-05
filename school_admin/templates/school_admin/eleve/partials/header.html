@@ -1,21 +1,4 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page_title }} - Acadeflex | Espace Élève</title>
-    <!-- Intégration de Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Intégration de Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Style CSS personnalisé -->
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
-</head>
-
-<body>
     <div class="dashboard">
         <!-- Main Content -->
         <main class="main-content full-width" id="mainContent">
@@ -103,7 +86,7 @@
                     <h2>Cours et planning</h2>
                 </div>
                 <div class="nav-cards-row">
-                    <a href="#" class="nav-link-card">
+                    <a href="{% url 'eleve:emploi_du_temps' %}" class="nav-link-card">
                         <div class="nav-card-icon neo-green">
                             <i class="fas fa-calendar-week"></i>
                         </div>
@@ -128,15 +111,15 @@
                     <h2>Évaluations & Notes</h2>
                 </div>
                 <div class="nav-cards-row">
-                    <a href="#" class="nav-link-card">
-                        <div class="nav-card-icon neo-orange">
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <div class="nav-link-content">
-                            <h3>Notes & Résultats</h3>
-                            <p>Suivi des performances</p>
-                        </div>
-                    </a>
+        <a href="{% url 'eleve:notes_evaluations' %}" class="nav-link-card">
+            <div class="nav-card-icon neo-orange">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="nav-link-content">
+                <h3>Notes & Résultats</h3>
+                <p>Suivi des performances</p>
+            </div>
+        </a>
                     <a href="#" class="nav-link-card">
                         <div class="nav-card-icon neo-light-blue">
                             <i class="fas fa-file-alt"></i>
@@ -178,7 +161,7 @@
                     <h2>Vie scolaire</h2>
                 </div>
                 <div class="nav-cards-row">
-                    <a href="#" class="nav-link-card">
+                    <a href="{% url 'school_admin:absences_retards' %}" class="nav-link-card">
                         <div class="nav-card-icon neo-red">
                             <i class="fas fa-calendar-times"></i>
                         </div>
@@ -187,6 +170,18 @@
                             <p>Suivi d'assiduité</p>
                         </div>
                     </a>
+                    <!-- Sanctions visible uniquement pour les parents -->
+                    {% if est_parent %}
+                    <a href="{% url 'school_admin:sanctions_eleve' %}" class="nav-link-card">
+                        <div class="nav-card-icon neo-orange">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Sanctions</h3>
+                            <p>Sanctions disciplinaires</p>
+                        </div>
+                    </a>
+                    {% endif %}
                     <a href="#" class="nav-link-card">
                         <div class="nav-card-icon neo-cyan">
                             <i class="fas fa-calendar-day"></i>
@@ -199,6 +194,8 @@
                 </div>
 
                 <!-- Section 6: Communication -->
+                <!-- Messagerie visible uniquement pour les parents -->
+                {% if est_parent %}
                 <div class="section-title">
                     <h2>Communication</h2>
                 </div>
@@ -213,13 +210,14 @@
                         </div>
                     </a>
                 </div>
+                {% endif %}
 
                 <!-- Section 7: Mon compte -->
                 <div class="section-title">
                     <h2>Mon compte</h2>
                 </div>
                 <div class="nav-cards-row">
-                    <a href="#" class="nav-link-card">
+                    <a href="{% url 'school_admin:profil_eleve' %}" class="nav-link-card">
                         <div class="nav-card-icon neo-light-blue">
                             <i class="fas fa-user-circle"></i>
                         </div>
@@ -228,6 +226,9 @@
                             <p>Informations personnelles</p>
                         </div>
                     </a>
+                    
+                    <!-- Déconnexion masquée uniquement pour les parents -->
+                    {% if not est_parent %}
                     <a href="{% url 'school_admin:deconnexion_eleve' %}" class="nav-link-card logout-card">
                         <div class="nav-card-icon neo-red">
                             <i class="fas fa-sign-out-alt"></i>
@@ -237,10 +238,22 @@
                             <p>Quitter la session</p>
                         </div>
                     </a>
+                    {% endif %}
+                    
+                    <!-- Bouton "Retour" uniquement pour les parents -->
+                    {% if est_parent %}
+                    <a href="{% url 'school_admin:retour_selection_enfant' %}" class="nav-link-card">
+                        <div class="nav-card-icon neo-orange">
+                            <i class="fas fa-arrow-left"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Retour</h3>
+                            <p>Sélection des enfants</p>
+                        </div>
+                    </a>
+                    {% endif %}
                 </div>
             </section>
-
-            <!-- Main Content Container -->
-            <div class="content-container">
-                <!-- Le contenu de chaque page sera inséré ici -->
+          
+            <script src="{% static 'school_admin/js/eleve/header.js' %}"></script>
 

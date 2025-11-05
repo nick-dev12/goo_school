@@ -122,26 +122,70 @@
                                     Informations Professionnelles
                                 </h3>
                                 <table class="info-table">
-                                    <tr>
-                                        <td class="info-label-cell">Matière principale</td>
-                                        <td class="info-value-cell">
-                                            <span class="badge-matiere">{{ professeur.matiere_display }}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">Matières secondaires</td>
-                                        <td class="info-value-cell">
-                                            {% if professeur.matieres_secondaires.all %}
-                                                <div class="matieres-list">
-                                                    {% for matiere in professeur.matieres_secondaires.all %}
-                                                        <span class="badge-matiere-secondary">{{ matiere.nom }}</span>
-                                                    {% endfor %}
+                                    {% if professeur.etablissement.type_etablissement == 'primary' %}
+                                        <!-- Pour les professeurs primaires, afficher les matières depuis les affectations -->
+                                        <tr>
+                                            <td class="info-label-cell">Type d'enseignant</td>
+                                            <td class="info-value-cell">
+                                                <span class="badge-matiere">Enseignant Primaire Polyvalent</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="info-label-cell">Matières enseignées</td>
+                                            <td class="info-value-cell">
+                                                <div class="matieres-secondaires-container">
+                                                    <div class="matieres-secondaires-list">
+                                                        {% if affectations_primaire %}
+                                                            {% for affectation in affectations_primaire %}
+                                                                <div style="margin-bottom: 1rem;">
+                                                                    <strong style="color: #3b82f6; display: block; margin-bottom: 0.5rem;">{{ affectation.classe.nom }}</strong>
+                                                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                                        {% for matiere in affectation.matieres.all %}
+                                                                            <span class="badge-matiere-secondary">{{ matiere.nom }}</span>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <span class="text-muted">Aucune affectation</span>
+                                                        {% endif %}
+                                                    </div>
                                                 </div>
-                                            {% else %}
-                                                <span class="text-muted">Aucune matière secondaire</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <!-- Pour les professeurs secondaire, afficher matière principale et secondaires -->
+                                        <tr>
+                                            <td class="info-label-cell">Matière principale</td>
+                                            <td class="info-value-cell">
+                                                <span class="badge-matiere">{{ professeur.matiere_display }}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="info-label-cell">Matières secondaires</td>
+                                            <td class="info-value-cell">
+                                                <div class="matieres-secondaires-container">
+                                                    <div class="matieres-secondaires-list">
+                                                        {% if professeur.matieres_secondaires.all %}
+                                                            {% for matiere in professeur.matieres_secondaires.all %}
+                                                                <span class="badge-matiere-secondary">
+                                                                    {{ matiere.nom }}
+                                                                    <button type="button" class="btn-remove-matiere" onclick="retirerMatiereSecondaire({{ professeur.id }}, {{ matiere.id }})" title="Retirer cette matière">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </button>
+                                                                </span>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <span class="text-muted">Aucune matière secondaire</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <button type="button" class="btn-add-matiere-secondary" onclick="ouvrirModalAjoutMatiere({{ professeur.id }})">
+                                                        <i class="fas fa-plus"></i> Ajouter une matière
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                     <tr>
                                         <td class="info-label-cell">Niveau d'enseignement</td>
                                         <td class="info-value-cell">
@@ -504,7 +548,115 @@
         </div>
     </div>
 
+    <!-- Modal Ajout Matière Secondaire -->
+    <div id="modal-ajout-matiere" class="modal-overlay-matiere" style="display: none;">
+        <div class="modal-content-matiere">
+            <div class="modal-header-matiere">
+                <h3><i class="fas fa-plus-circle"></i> Ajouter une matière secondaire</h3>
+                <button type="button" class="btn-close-modal-matiere" onclick="fermerModalAjoutMatiere()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body-matiere">
+                <form id="form-ajout-matiere" method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="ajouter_matiere_secondaire">
+                    <input type="hidden" name="professeur_id" id="professeur_id" value="{{ professeur.id }}">
+                    
+                    <div class="form-group-matiere">
+                        <label for="matiere_id">Sélectionnez une matière :</label>
+                        <select name="matiere_id" id="matiere_id" class="form-control-matiere" required>
+                            <option value="">-- Choisir une matière --</option>
+                            {% for matiere in matieres_disponibles %}
+                                <option value="{{ matiere.id }}">{{ matiere.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-cancel-matiere" onclick="fermerModalAjoutMatiere()">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                        <button type="submit" class="btn-submit-matiere">
+                            <i class="fas fa-check"></i> Ajouter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="{% static 'school_admin/js/directeur/detail_professeur.js' %}"></script>
+    
+    <script>
+        function ouvrirModalAjoutMatiere(professeurId) {
+            document.getElementById('modal-ajout-matiere').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function fermerModalAjoutMatiere() {
+            document.getElementById('modal-ajout-matiere').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        function retirerMatiereSecondaire(professeurId, matiereId) {
+            if (!confirm('Voulez-vous vraiment retirer cette matière secondaire ?')) {
+                return;
+            }
+            
+            // Créer un formulaire pour envoyer la requête POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            // Token CSRF
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            // Action
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'retirer_matiere_secondaire';
+            form.appendChild(actionInput);
+            
+            // ID professeur
+            const profInput = document.createElement('input');
+            profInput.type = 'hidden';
+            profInput.name = 'professeur_id';
+            profInput.value = professeurId;
+            form.appendChild(profInput);
+            
+            // ID matière
+            const matiereInput = document.createElement('input');
+            matiereInput.type = 'hidden';
+            matiereInput.name = 'matiere_id';
+            matiereInput.value = matiereId;
+            form.appendChild(matiereInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Fermer le modal en cliquant en dehors
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('modal-ajout-matiere');
+            if (event.target === modal) {
+                fermerModalAjoutMatiere();
+            }
+        });
+        
+        // Fermer avec Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                fermerModalAjoutMatiere();
+            }
+        });
+    </script>
 </body>
 </html>

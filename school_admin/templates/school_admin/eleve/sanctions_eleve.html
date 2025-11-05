@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctions disciplinaires - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/sanctions_eleve.css' %}">
+</head>
+
+<body>
+{% include 'school_admin/eleve/partials/header.html' %}
+
+<!-- Contenu principal -->
+<div class="content-container">
+    <div class="sanctions-container">
+        <!-- Titre de la page -->
+        <div class="page-header">
+            <h2 class="page-title">
+                <i class="fas fa-gavel"></i>
+                Sanctions disciplinaires
+            </h2>
+            <p class="page-subtitle">Historique des sanctions reçues par {{ eleve.nom_complet }}</p>
+        </div>
+
+        <!-- Statistiques globales -->
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_sanctions }}</div>
+                    <div class="stat-label">Total sanctions</div>
+                    <div class="stat-detail">Sur l'année scolaire</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-legere">
+                <div class="stat-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ sanctions_legeres }}</div>
+                    <div class="stat-label">Légères</div>
+                    <div class="stat-detail">Sanctions mineures</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-moyenne">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ sanctions_moyennes }}</div>
+                    <div class="stat-label">Moyennes</div>
+                    <div class="stat-detail">Sanctions modérées</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-grave">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ sanctions_graves|add:sanctions_tres_graves }}</div>
+                    <div class="stat-label">Graves</div>
+                    <div class="stat-detail">Sanctions importantes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Système d'onglets pour les périodes -->
+        {% if sanctions_par_periode %}
+        <div class="periodes-tabs-container">
+            <div class="periodes-tabs" role="tablist">
+                <div class="periode-tab active" data-periode="toutes">
+                    <div class="tab-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="tab-info">
+                        <div class="tab-title">Toutes les sanctions</div>
+                        <div class="tab-period">{{ total_sanctions }} sanction{{ total_sanctions|pluralize }}</div>
+                    </div>
+                </div>
+                {% for periode_data in sanctions_par_periode %}
+                    <div class="periode-tab {% if forloop.first and not request.GET.periode %}active{% endif %}"
+                        data-periode="{{ periode_data.periode.id }}">
+                        <div class="tab-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="tab-info">
+                            <div class="tab-title">{{ periode_data.periode.nom_periode }}</div>
+                            <div class="tab-period">{{ periode_data.periode.date_debut|date:"d/m/Y" }} - {{ periode_data.periode.date_fin|date:"d/m/Y" }}</div>
+                        </div>
+                        <div class="tab-stats">
+                            <span class="tab-stat total">{{ periode_data.nb_sanctions }} sanction{{ periode_data.nb_sanctions|pluralize }}</span>
+                            {% if periode_data.nb_graves > 0 %}
+                                <span class="tab-stat graves">{{ periode_data.nb_graves }} grave{{ periode_data.nb_graves|pluralize }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Contenu par période -->
+        <div class="periodes-content">
+            <!-- Toutes les sanctions -->
+            <div class="periode-section active" data-periode="toutes">
+                {% if sanctions %}
+                    <div class="sanctions-list">
+                        {% for sanction in sanctions %}
+                        <div class="sanction-card sanction-{{ sanction.gravite }}">
+                            <div class="sanction-header">
+                                <div class="sanction-date-box">
+                                    <div class="date-jour">{{ sanction.date_sanction|date:"d" }}</div>
+                                    <div class="date-mois">{{ sanction.date_sanction|date:"M"|upper }}</div>
+                                    <div class="date-annee">{{ sanction.date_sanction|date:"Y" }}</div>
+                                </div>
+                                <div class="sanction-main">
+                                    <div class="sanction-title-row">
+                                        <span class="sanction-type-badge badge-{{ sanction.gravite }}">
+                                            <i class="fas fa-{% if sanction.type_sanction == 'avertissement' %}exclamation-triangle{% elif sanction.type_sanction == 'blame' %}gavel{% elif sanction.type_sanction == 'exclusion_temporaire' %}ban{% elif sanction.type_sanction == 'exclusion_cours' %}door-open{% elif sanction.type_sanction == 'retenue' %}clock{% elif sanction.type_sanction == 'convocation_parents' %}phone{% else %}clipboard-list{% endif %}"></i>
+                                            {{ sanction.get_type_sanction_display }}
+                                        </span>
+                                        <span class="gravite-badge gravite-{{ sanction.gravite }}">
+                                            {{ sanction.get_gravite_display }}
+                                        </span>
+                                    </div>
+                                    <div class="sanction-raison">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Raison :</strong> {{ sanction.get_raison_display }}
+                                    </div>
+                                    {% if sanction.description %}
+                                    <div class="sanction-description">
+                                        <i class="fas fa-comment-alt"></i>
+                                        <p>{{ sanction.description }}</p>
+                                    </div>
+                                    {% endif %}
+                                    <div class="sanction-meta">
+                                        <span class="meta-item">
+                                            <i class="fas fa-user"></i>
+                                            Attribué par : {{ sanction.attribue_par_nom }}
+                                        </span>
+                                        <span class="meta-item">
+                                            <i class="fas fa-school"></i>
+                                            Classe : {{ sanction.classe.nom }}
+                                        </span>
+                                        {% if sanction.duree_jours %}
+                                        <span class="meta-item">
+                                            <i class="fas fa-calendar-day"></i>
+                                            Durée : {{ sanction.duree_jours }} jour{{ sanction.duree_jours|pluralize }}
+                                        </span>
+                                        {% endif %}
+                                        {% if sanction.executee %}
+                                        <span class="meta-item executed">
+                                            <i class="fas fa-check-circle"></i>
+                                            Sanction exécutée
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                        <h3>Aucune sanction enregistrée</h3>
+                        <p>Votre enfant n'a reçu aucune sanction disciplinaire.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Sanctions par période -->
+            {% if sanctions_par_periode %}
+                {% for periode_data in sanctions_par_periode %}
+                <div class="periode-section {% if forloop.first %}active{% endif %}" data-periode="{{ periode_data.periode.id }}">
+                    {% if periode_data.sanctions %}
+                        <div class="sanctions-list">
+                            {% for sanction in periode_data.sanctions %}
+                            <div class="sanction-card sanction-{{ sanction.gravite }}">
+                                <div class="sanction-header">
+                                    <div class="sanction-date-box">
+                                        <div class="date-jour">{{ sanction.date_sanction|date:"d" }}</div>
+                                        <div class="date-mois">{{ sanction.date_sanction|date:"M"|upper }}</div>
+                                        <div class="date-annee">{{ sanction.date_sanction|date:"Y" }}</div>
+                                    </div>
+                                    <div class="sanction-main">
+                                        <div class="sanction-title-row">
+                                            <span class="sanction-type-badge badge-{{ sanction.gravite }}">
+                                                <i class="fas fa-{% if sanction.type_sanction == 'avertissement' %}exclamation-triangle{% elif sanction.type_sanction == 'blame' %}gavel{% elif sanction.type_sanction == 'exclusion_temporaire' %}ban{% elif sanction.type_sanction == 'exclusion_cours' %}door-open{% elif sanction.type_sanction == 'retenue' %}clock{% elif sanction.type_sanction == 'convocation_parents' %}phone{% else %}clipboard-list{% endif %}"></i>
+                                                {{ sanction.get_type_sanction_display }}
+                                            </span>
+                                            <span class="gravite-badge gravite-{{ sanction.gravite }}">
+                                                {{ sanction.get_gravite_display }}
+                                            </span>
+                                        </div>
+                                        <div class="sanction-raison">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Raison :</strong> {{ sanction.get_raison_display }}
+                                        </div>
+                                        {% if sanction.description %}
+                                        <div class="sanction-description">
+                                            <i class="fas fa-comment-alt"></i>
+                                            <p>{{ sanction.description }}</p>
+                                        </div>
+                                        {% endif %}
+                                        <div class="sanction-meta">
+                                            <span class="meta-item">
+                                                <i class="fas fa-user"></i>
+                                                Attribué par : {{ sanction.attribue_par_nom }}
+                                            </span>
+                                            <span class="meta-item">
+                                                <i class="fas fa-school"></i>
+                                                Classe : {{ sanction.classe.nom }}
+                                            </span>
+                                            {% if sanction.duree_jours %}
+                                            <span class="meta-item">
+                                                <i class="fas fa-calendar-day"></i>
+                                                Durée : {{ sanction.duree_jours }} jour{{ sanction.duree_jours|pluralize }}
+                                            </span>
+                                            {% endif %}
+                                            {% if sanction.executee %}
+                                            <span class="meta-item executed">
+                                                <i class="fas fa-check-circle"></i>
+                                                Sanction exécutée
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-gavel"></i>
+                            </div>
+                            <h3>Aucune sanction pour cette période</h3>
+                            <p>Votre enfant n'a reçu aucune sanction durant {{ periode_data.periode.nom_periode }}.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script src="{% static 'school_admin/js/eleve/header_eleve.js' %}"></script>
+<script src="{% static 'school_admin/js/eleve/sanctions_eleve.js' %}"></script>
+</body>
+</html>
+

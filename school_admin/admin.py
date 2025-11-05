@@ -1,9 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CompteUser
+from .models import CompteUser, Parent, LienFamilial, DemandeLiaisonParent
 from .model.session_examen_model import SessionExamen
 from .model.creneau_examen_model import CreneauExamen
 from .model.note_examen_model import NoteExamen
+from .model.convocation_model import Convocation
 
 class CompteUserAdmin(UserAdmin):
     list_display = ('email', 'nom', 'prenom', 'type_compte', 'departement', 'is_active')
@@ -104,4 +105,129 @@ class NoteExamenAdmin(admin.ModelAdmin):
         }),
     )
 
+class ConvocationAdmin(admin.ModelAdmin):
+    list_display = ('eleve', 'objet', 'date_convocation', 'heure_convocation', 'lieu', 'statut', 'actif')
+    list_filter = ('statut', 'actif', 'date_convocation', 'etablissement')
+    search_fields = ('eleve__nom', 'eleve__prenom', 'objet', 'motif')
+    date_hierarchy = 'date_convocation'
+    ordering = ('-date_convocation', '-heure_convocation')
+    
+    fieldsets = (
+        ('Élève concerné', {
+            'fields': ('eleve', 'etablissement')
+        }),
+        ('Informations de la convocation', {
+            'fields': ('objet', 'motif', 'date_convocation', 'heure_convocation', 'lieu')
+        }),
+        ('Statut', {
+            'fields': ('statut', 'actif')
+        }),
+        ('Métadonnées', {
+            'fields': ('date_creation', 'date_modification'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ('date_creation', 'date_modification')
+
 admin.site.register(NoteExamen, NoteExamenAdmin)
+admin.site.register(Convocation, ConvocationAdmin)
+
+
+# Admin pour Parent
+class ParentAdmin(admin.ModelAdmin):
+    list_display = ('matricule_parental', 'nom', 'prenom', 'type_parent', 'telephone', 'email', 'etablissement', 'nombre_enfants', 'actif')
+    list_filter = ('type_parent', 'etablissement', 'actif', 'mot_de_passe_modifie')
+    search_fields = ('matricule_parental', 'nom', 'prenom', 'email', 'telephone')
+    ordering = ('-date_creation',)
+    
+    fieldsets = (
+        ('Informations d\'identification', {
+            'fields': ('matricule_parental', 'mot_de_passe_provisoire', 'mot_de_passe_modifie')
+        }),
+        ('Informations personnelles', {
+            'fields': ('nom', 'prenom', 'type_parent', 'telephone', 'email', 'adresse', 'profession')
+        }),
+        ('Établissement', {
+            'fields': ('etablissement',)
+        }),
+        ('Statut', {
+            'fields': ('actif', 'is_active')
+        }),
+        ('Métadonnées', {
+            'fields': ('date_creation', 'date_modification'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ('date_creation', 'date_modification')
+
+
+# Admin pour LienFamilial
+class LienFamilialAdmin(admin.ModelAdmin):
+    list_display = ('parent', 'eleve', 'type_lien', 'statut', 'est_inscripteur', 'actif', 'date_creation')
+    list_filter = ('type_lien', 'statut', 'est_inscripteur', 'actif')
+    search_fields = ('parent__nom', 'parent__prenom', 'parent__matricule_parental', 
+                    'eleve__nom', 'eleve__prenom', 'eleve__matricule_eleve')
+    ordering = ('-date_creation',)
+    
+    fieldsets = (
+        ('Relation familiale', {
+            'fields': ('parent', 'eleve', 'type_lien')
+        }),
+        ('Statut du lien', {
+            'fields': ('statut', 'est_inscripteur', 'actif', 'date_validation')
+        }),
+        ('Métadonnées', {
+            'fields': ('date_creation',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ('date_creation', 'date_validation')
+
+
+admin.site.register(Parent, ParentAdmin)
+admin.site.register(LienFamilial, LienFamilialAdmin)
+
+
+class DemandeLiaisonParentAdmin(admin.ModelAdmin):
+    list_display = ('parent_demandeur', 'matricule_eleve', 'nom_eleve', 'prenom_eleve', 
+                    'classe_eleve', 'type_lien', 'statut', 'nombre_tentatives', 'date_demande')
+    list_filter = ('statut', 'type_lien', 'nombre_tentatives', 'date_demande')
+    search_fields = ('parent_demandeur__nom', 'parent_demandeur__prenom', 'matricule_eleve', 
+                    'nom_eleve', 'prenom_eleve', 'nom_parent_inscripteur')
+    ordering = ('-date_demande',)
+    
+    fieldsets = (
+        ('Informations du parent', {
+            'fields': ('parent_demandeur',)
+        }),
+        ('Informations de l\'élève', {
+            'fields': ('matricule_eleve', 'nom_eleve', 'prenom_eleve', 'date_naissance_eleve', 
+                      'classe_eleve', 'eleve_valide')
+        }),
+        ('Informations de vérification', {
+            'fields': ('nom_parent_inscripteur', 'type_lien')
+        }),
+        ('Statut de la demande', {
+            'fields': ('statut', 'nombre_tentatives', 'raison_echec')
+        }),
+        ('Dates', {
+            'fields': ('date_demande', 'date_traitement'),
+            'classes': ('collapse',)
+        }),
+        ('Traitement administratif', {
+            'fields': ('traite_par', 'motif_refus', 'message'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ('date_demande',)
+    
+    def has_add_permission(self, request):
+        # Empêcher la création manuelle de demandes depuis l'admin
+        return False
+
+
+admin.site.register(DemandeLiaisonParent, DemandeLiaisonParentAdmin)

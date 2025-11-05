@@ -215,6 +215,7 @@ class CompteUserController:
                         elif isinstance(user, Eleve):
                             return None, redirect('eleve:dashboard_eleve')
                         elif isinstance(user, Parent):
+                            # Redirection vers le dashboard parent
                             return None, redirect('school_admin:dashboard_parent')
                         else:
                             # Redirection basée sur la fonction de l'utilisateur (CompteUser)

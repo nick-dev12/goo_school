@@ -1,4 +1,5 @@
 from django import template
+from decimal import Decimal
 
 register = template.Library()
 
@@ -167,4 +168,59 @@ def get_item(dictionary, key):
         except (ValueError, TypeError, IndexError):
             return None
     return dictionary.get(key) if hasattr(dictionary, 'get') else None
+
+
+@register.filter
+def sum_notes_sur_20(notes_list):
+    """
+    Calcule la somme des notes sur 20
+    """
+    if not notes_list:
+        return 0
+    total = 0
+    for note in notes_list:
+        if isinstance(note, dict) and 'note_sur_20' in note:
+            total += float(note['note_sur_20'])
+    return total
+
+
+@register.filter
+def divide(value, divisor):
+    """
+    Divise une valeur par un diviseur
+    """
+    try:
+        if divisor == 0:
+            return 0
+        return float(value) / float(divisor)
+    except (ValueError, TypeError, ZeroDivisionError):
+        return 0
+
+
+@register.filter
+def max_note_sur_20(notes_list):
+    """
+    Retourne la note maximale sur 20
+    """
+    if not notes_list:
+        return 0
+    notes = []
+    for note in notes_list:
+        if isinstance(note, dict) and 'note_sur_20' in note:
+            notes.append(float(note['note_sur_20']))
+    return max(notes) if notes else 0
+
+
+@register.filter
+def min_note_sur_20(notes_list):
+    """
+    Retourne la note minimale sur 20
+    """
+    if not notes_list:
+        return 0
+    notes = []
+    for note in notes_list:
+        if isinstance(note, dict) and 'note_sur_20' in note:
+            notes.append(float(note['note_sur_20']))
+    return min(notes) if notes else 0
 

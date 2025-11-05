@@ -7,12 +7,14 @@ Système parallèle avec gestion multi-matières.
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Q, Avg
 from django.db import transaction
 from datetime import datetime, timedelta, date
 from decimal import Decimal
 import logging
+from collections import defaultdict
 
 from ..model.professeur_model import Professeur
 from ..model.classe_model import Classe
@@ -433,7 +435,7 @@ def gestion_notes_primaire(request):
         ).prefetch_related('matieres').first()
         
         if affectation_selectionnee:
-            from ..model.creneau_examen_model import CreneauExamen
+            from ..model.session_examen_model import SessionExamen
             
             for matiere in affectation_selectionnee.matieres.all():
                 # Compter les évaluations normales pour cette matière
@@ -445,13 +447,13 @@ def gestion_notes_primaire(request):
                     actif=True
                 ).count()
                 
-                # Compter aussi les examens
-                nb_examens = CreneauExamen.objects.filter(
-                    session_examen__classes=classe_selectionnee,
-                    session_examen__periode=periode_selectionnee,
-                    matiere=matiere,
+                # Compter aussi les sessions d'examens (pas les créneaux)
+                nb_examens = SessionExamen.objects.filter(
+                    classes=classe_selectionnee,
+                    periode=periode_selectionnee,
+                    matieres=matiere,
                     actif=True
-                ).count()
+                ).distinct().count()
                 
                 matieres_data.append({
                     'matiere': matiere,
@@ -476,16 +478,15 @@ def gestion_notes_primaire(request):
             actif=True
         ).order_by('date_evaluation'))
         
-        # Récupérer aussi les créneaux d'examens pour cette matière et période
+        # Récupérer les sessions d'examens pour cette matière et période (PAS les créneaux!)
         from ..model.session_examen_model import SessionExamen
-        from ..model.creneau_examen_model import CreneauExamen
         
-        creneaux_examens_list = list(CreneauExamen.objects.filter(
-            session_examen__classes=classe_selectionnee,
-            session_examen__periode=periode_selectionnee,
-            matiere=matiere_selectionnee,
+        sessions_examens_list = list(SessionExamen.objects.filter(
+            classes=classe_selectionnee,
+            periode=periode_selectionnee,
+            matieres=matiere_selectionnee,
             actif=True
-        ).select_related('session_examen').order_by('date_examen'))
+        ).distinct().order_by('date_debut'))
         
         # Ajouter des numéros distincts pour devoirs, interrogations et examens
         compteur_devoirs = 0
@@ -515,16 +516,16 @@ def gestion_notes_primaire(request):
             
             evaluations_matiere.append(eval_dict)
         
-        # Traiter les examens
-        for creneau in creneaux_examens_list:
+        # Traiter les examens (basés sur les sessions, pas les créneaux)
+        for session in sessions_examens_list:
             compteur_examens += 1
             eval_dict = {
-                'obj': creneau,
-                'id': f'examen_{creneau.id}',
-                'creneau_id': creneau.id,
-                'titre': creneau.session_examen.nom_examen,
+                'obj': session,
+                'id': f'examen_{session.id}',
+                'session_id': session.id,
+                'titre': session.nom_examen,
                 'bareme': 20,  # Les examens sont sur 20
-                'date_evaluation': creneau.date_examen,
+                'date_evaluation': session.date_debut,
                 'est_examen': True,
                 'type_label': f'Examen {compteur_examens}',
                 'numero': compteur_examens
@@ -554,11 +555,11 @@ def gestion_notes_primaire(request):
             
             notes_evaluations = {}
             for eval_dict in evaluations_matiere:
-                # Si c'est un examen, chercher dans NoteExamen
+                # Si c'est un examen, chercher dans NoteExamen (basé sur session)
                 if eval_dict.get('est_examen'):
                     note_obj = NoteExamen.objects.filter(
                         eleve=eleve,
-                        creneau_examen_id=eval_dict['creneau_id'],
+                        session_examen_id=eval_dict['session_id'],
                         matiere=matiere_selectionnee
                     ).first()
                 else:
@@ -625,10 +626,11 @@ def gestion_notes_primaire(request):
         resultats_releve_complet = calculer_toutes_moyennes_classe(classe_selectionnee, periode_selectionnee)
         matieres_releve_complet = list(affectation_selectionnee.matieres.all().order_by('nom'))
         
-        # Vérifier si le relevé a déjà été soumis
+        # Vérifier si le relevé a déjà été soumis pour LES MATIÈRES DE CE PROFESSEUR
         releve_deja_soumis = MoyenneMatierePrimaire.objects.filter(
             classe=classe_selectionnee,
             periode_scolaire=periode_selectionnee,
+            matiere__in=affectation_selectionnee.matieres.all(),  # Filtrer par matières du professeur
             soumis=True
         ).exists()
     
@@ -812,33 +814,33 @@ def noter_eleves_primaire(request, classe_id):
             actif=True
         ).order_by('date_evaluation'))
         
-        # Récupérer aussi les créneaux d'examens pour cette matière et période
+        # Récupérer aussi les sessions d'examens pour cette matière et période
         from ..model.session_examen_model import SessionExamen
-        from ..model.creneau_examen_model import CreneauExamen
         
-        creneaux_examens = CreneauExamen.objects.filter(
-            session_examen__classes=classe,
-            session_examen__periode=periode_selectionnee,
-            matiere=matiere,
+        # Récupérer les sessions d'examen pour cette matière (PAS les créneaux !)
+        sessions_examens = SessionExamen.objects.filter(
+            classes=classe,
+            periode=periode_selectionnee,
+            matieres=matiere,
             actif=True
-        ).select_related('session_examen').order_by('date_examen')
+        ).distinct().order_by('date_debut')
         
-        # Créer des pseudo-évaluations à partir des créneaux d'examens
+        # Créer des pseudo-évaluations à partir des SESSIONS d'examens (pas des créneaux)
         evaluations_examens = []
-        for creneau in creneaux_examens:
+        for session in sessions_examens:
             # Créer un objet qui simule une EvaluationPrimaire pour compatibilité
             class PseudoEvaluationExamen:
-                def __init__(self, creneau):
-                    self.id = f"examen_{creneau.id}"
-                    self.creneau_id = creneau.id
-                    self.titre = f"{creneau.session_examen.nom_examen}"
+                def __init__(self, session):
+                    self.id = f"examen_{session.id}"
+                    self.session_id = session.id
+                    self.titre = f"{session.nom_examen}"
                     self.type_evaluation = 'examen'
                     self.bareme = 20  # Les examens sont généralement sur 20
-                    self.date_evaluation = creneau.date_examen
+                    self.date_evaluation = session.date_debut
                     self.actif = True
                     self.est_examen = True
                     
-            evaluations_examens.append(PseudoEvaluationExamen(creneau))
+            evaluations_examens.append(PseudoEvaluationExamen(session))
         
         # Fusionner les évaluations normales et les examens
         toutes_evaluations = evaluations + evaluations_examens
@@ -873,24 +875,28 @@ def noter_eleves_primaire(request, classe_id):
             
             # Notes des examens
             for eval_examen in evaluations_examens:
-                # Chercher la note d'examen
+                # Chercher la note d'examen basée sur (eleve, session, matiere)
+                session = SessionExamen.objects.get(id=eval_examen.session_id)
                 note_examen_obj = NoteExamen.objects.filter(
                     eleve=eleve,
-                    creneau_examen_id=eval_examen.creneau_id,
+                    session_examen=session,
                     matiere=matiere
                 ).first()
                 
-                # Créer automatiquement la note d'examen si elle n'existe pas
+                # Si la note n'existe pas (cas d'élève ajouté après la création de la session)
+                # On la crée maintenant
                 if not note_examen_obj:
-                    # Récupérer le créneau et la session
-                    creneau = CreneauExamen.objects.get(id=eval_examen.creneau_id)
-                    note_examen_obj = NoteExamen.objects.create(
+                    note_examen_obj, created = NoteExamen.objects.get_or_create(
                         eleve=eleve,
-                        session_examen=creneau.session_examen,
-                        creneau_examen=creneau,
+                        session_examen=session,
                         matiere=matiere,
-                        professeur=professeur,
-                        classe=classe
+                        defaults={
+                            'classe': classe,
+                            'professeur': professeur,
+                            'absent': False,
+                            'note': None,
+                            'bareme': 20,
+                        }
                     )
                 
                 # Créer un objet compatible avec NotePrimaire pour l'affichage
@@ -923,9 +929,9 @@ def noter_eleves_primaire(request, classe_id):
         notes_retenues_par_eval = {}
         for evaluation in toutes_evaluations:
             if hasattr(evaluation, 'est_examen') and evaluation.est_examen:
-                # Pour les examens
+                # Pour les examens - utiliser session_id au lieu de creneau_id
                 nb_retenues = NoteExamen.objects.filter(
-                    creneau_examen_id=evaluation.creneau_id,
+                    session_examen_id=evaluation.session_id,
                     matiere=matiere,
                     retenue=True,
                     absent=False
@@ -1031,10 +1037,11 @@ def noter_eleves_primaire(request, classe_id):
                 # Compter les notes retenues par évaluation
                 for eval_id_str in evaluations_selectionnees:
                     if eval_id_str.startswith('examen_'):
-                        creneau_id = int(eval_id_str.replace('examen_', ''))
+                        session_id = int(eval_id_str.replace('examen_', ''))
                         from ..model.note_examen_model import NoteExamen
                         count = NoteExamen.objects.filter(
-                            creneau_examen_id=creneau_id,
+                            session_examen_id=session_id,
+                            matiere=matiere,
                             eleve__in=eleves,
                             retenue=True
                         ).count()
@@ -1153,13 +1160,13 @@ def noter_eleves_primaire(request, classe_id):
             actif=True
         )
         
-        # Récupérer aussi les créneaux d'examens
-        creneaux_examens = CreneauExamen.objects.filter(
-            session_examen__classes=classe,
-            session_examen__periode=periode_selectionnee,
-            matiere=matiere,
+        # Récupérer les sessions d'examen (PAS les créneaux!)
+        sessions_examens = SessionExamen.objects.filter(
+            classes=classe,
+            periode=periode_selectionnee,
+            matieres=matiere,
             actif=True
-        ).select_related('session_examen')
+        ).distinct()
         
         notes_enregistrees = 0
         errors = []
@@ -1202,21 +1209,21 @@ def noter_eleves_primaire(request, classe_id):
                                 errors.append(f"Valeur invalide pour {eleve.nom_complet}: {note_value}")
                     
                     # Enregistrer les notes d'examens
-                    for creneau in creneaux_examens:
-                        # Récupérer la note saisie (format: note_{eleve_id}_examen_{creneau_id})
-                        # Le template utilise eval.id qui est "examen_{creneau.id}"
-                        note_value = request.POST.get(f'note_{eleve.id}_examen_{creneau.id}', '').strip()
+                    for session in sessions_examens:
+                        # Récupérer la note saisie (format: note_{eleve_id}_examen_{session_id})
+                        # Le template utilise eval.id qui est "examen_{session.id}"
+                        note_value = request.POST.get(f'note_{eleve.id}_examen_{session.id}', '').strip()
                         
-                        # Récupérer ou créer l'objet NoteExamen
+                        # Récupérer ou créer l'objet NoteExamen basé sur (eleve, session, matiere)
                         note_examen_obj, created = NoteExamen.objects.get_or_create(
                             eleve=eleve,
-                            creneau_examen=creneau,
+                            session_examen=session,
                             matiere=matiere,
                             defaults={
-                                'session_examen': creneau.session_examen,
                                 'professeur': professeur,
                                 'classe': classe,
-                                'absent': False
+                                'absent': False,
+                                'bareme': 20,
                             }
                         )
                         
@@ -1236,7 +1243,7 @@ def noter_eleves_primaire(request, classe_id):
                                 notes_enregistrees += 1
                                 
                                 # Ajouter au dictionnaire pour AJAX
-                                notes_dict[f'note_{eleve.id}_examen_{creneau.id}'] = str(note_decimal).replace('.', ',')
+                                notes_dict[f'note_{eleve.id}_examen_{session.id}'] = str(note_decimal).replace('.', ',')
                                 
                             except (ValueError, TypeError):
                                 errors.append(f"Valeur invalide pour {eleve.nom_complet}: {note_value}")
@@ -1353,11 +1360,16 @@ def soumettre_releve_primaire(request, classe_id):
         from django.db import transaction
         from ..model.creneau_examen_model import CreneauExamen
         from ..model.note_examen_model import NoteExamen
+        from ..model.session_examen_model import SessionExamen
         
-        # Récupérer toutes les moyennes pour cette classe et période
+        # Récupérer les matières enseignées par ce professeur dans cette classe
+        matieres_professeur = affectation.matieres.all()
+        
+        # Récupérer UNIQUEMENT les moyennes des matières enseignées par ce professeur
         moyennes = MoyenneMatierePrimaire.objects.filter(
             classe=classe,
-            periode_scolaire=periode
+            periode_scolaire=periode,
+            matiere__in=matieres_professeur
         )
         
         # Vérifier si déjà soumis
@@ -1369,19 +1381,21 @@ def soumettre_releve_primaire(request, classe_id):
                 eleves = Eleve.objects.filter(classe=classe)
                 
                 # Récupérer toutes les évaluations pour cette classe et période
+                # FILTRÉES par les matières du professeur
                 evaluations_normales = EvaluationPrimaire.objects.filter(
                     classe=classe,
                     professeur=professeur,
                     periode_scolaire=periode,
+                    matiere__in=matieres_professeur,
                     actif=True
                 )
                 
-                # Récupérer tous les créneaux d'examens pour cette classe et période
-                creneaux_examens = CreneauExamen.objects.filter(
-                    session_examen__classes=classe,
-                    session_examen__periode=periode,
+                # Récupérer toutes les sessions d'examens pour cette classe et période
+                sessions_examens = SessionExamen.objects.filter(
+                    classes=classe,
+                    periode=periode,
                     actif=True
-                )
+                ).prefetch_related('matieres').distinct()
                 
                 nb_absents_marques = 0
                 
@@ -1405,23 +1419,33 @@ def soumettre_releve_primaire(request, classe_id):
                             nb_absents_marques += 1
                     
                     # Vérifier les examens
-                    for creneau in creneaux_examens:
-                        note_examen_existe = NoteExamen.objects.filter(
-                            eleve=eleve,
-                            creneau_examen=creneau,
-                            matiere=creneau.matiere
-                        ).exists()
-                        
-                        if not note_examen_existe:
-                            # Créer une note d'examen avec absent=True
-                            NoteExamen.objects.create(
+                    for session in sessions_examens:
+                        # Pour chaque matière de la session, FILTRER par les matières du professeur
+                        for matiere in session.matieres.all():
+                            # Ne traiter que les matières enseignées par ce professeur
+                            if matiere not in matieres_professeur:
+                                continue
+                            
+                            # Utiliser get_or_create basé sur (eleve, session, matiere)
+                            note_examen_obj, created = NoteExamen.objects.get_or_create(
                                 eleve=eleve,
-                                creneau_examen=creneau,
-                                matiere=creneau.matiere,
-                                note=None,
-                                absent=True
+                                session_examen=session,
+                                matiere=matiere,
+                                defaults={
+                                    'note': None,
+                                    'absent': True,
+                                    'professeur': professeur,
+                                    'classe': classe,
+                                    'bareme': 20,
+                                }
                             )
-                            nb_absents_marques += 1
+                            # Si la note existait déjà et n'était pas marquée absente, on la met à jour
+                            if not created and not note_examen_obj.absent:
+                                note_examen_obj.absent = True
+                                note_examen_obj.save()
+                                nb_absents_marques += 1
+                            elif created:
+                                nb_absents_marques += 1
                 
                 # ÉTAPE 2 : Marquer toutes les moyennes comme soumises
                 nb_soumises = moyennes.update(
@@ -1590,6 +1614,7 @@ def calculer_moyennes_classe_primaire(request, classe_id):
 def liste_presence_primaire(request, classe_id):
     """
     Page pour prendre la liste de présence d'une classe (version primaire).
+    Gestion de 3 appels maximum par jour.
     """
     logger.info(f"Liste présence primaire - User: {request.user}, Classe ID: {classe_id}")
     
@@ -1613,45 +1638,98 @@ def liste_presence_primaire(request, classe_id):
     from ..model.presence_model import Presence, ListePresence
     today = date.today()
     
-    # Vérifier s'il existe déjà une liste de présence pour aujourd'hui
-    liste_presence, created = ListePresence.objects.get_or_create(
+    # Récupérer le numéro d'appel demandé (par défaut, le prochain disponible)
+    numero_appel_demande = request.GET.get('appel', None)
+    
+    # Compter le nombre d'appels déjà effectués aujourd'hui
+    appels_du_jour = ListePresence.objects.filter(
         classe=classe,
         date=today,
-        defaults={
-            'professeur': professeur,
-            'etablissement': classe.etablissement
-        }
-    )
+        validee=True
+    ).order_by('numero_appel')
+    
+    nombre_appels_valides = appels_du_jour.count()
+    
+    # Déterminer le prochain numéro d'appel disponible
+    if numero_appel_demande:
+        prochain_numero_appel = int(numero_appel_demande)
+    else:
+        if nombre_appels_valides == 0:
+            prochain_numero_appel = 1
+        elif nombre_appels_valides < 3:
+            # Récupérer le dernier numéro d'appel et ajouter 1
+            dernier_appel = appels_du_jour.last()
+            prochain_numero_appel = dernier_appel.numero_appel + 1 if dernier_appel else 1
+        else:
+            prochain_numero_appel = None  # Maximum atteint
+    
+    # Vérifier si le maximum d'appels est atteint
+    limite_atteinte = nombre_appels_valides >= 3
+    
+    # Vérifier s'il existe déjà une liste de présence non validée pour ce numéro d'appel
+    liste_presence_actuelle = None
+    if prochain_numero_appel:
+        liste_presence_actuelle = ListePresence.objects.filter(
+            classe=classe,
+            date=today,
+            numero_appel=prochain_numero_appel,
+            validee=False
+        ).first()
+        
+        # Si aucune liste non validée n'existe et qu'on n'a pas atteint la limite, en créer une
+        if not liste_presence_actuelle and not limite_atteinte:
+            liste_presence_actuelle = ListePresence.objects.create(
+                classe=classe,
+                date=today,
+                numero_appel=prochain_numero_appel,
+                professeur=professeur,
+                etablissement=classe.etablissement
+            )
     
     # Récupérer tous les élèves actifs de la classe
     eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
     
-    # Récupérer les présences déjà enregistrées pour aujourd'hui
-    presences_existantes = Presence.objects.filter(
-        classe=classe,
-        date=today
-    ).select_related('eleve')
-    
-    # Créer un dictionnaire des présences existantes
-    presences_dict = {p.eleve.id: p for p in presences_existantes}
-    
-    # Construire la liste des élèves avec leur statut de présence
+    # Récupérer les présences pour l'appel en cours (si existe)
     eleves_avec_presence = []
-    for eleve in eleves:
-        presence = presences_dict.get(eleve.id)
-        eleves_avec_presence.append({
-            'eleve': eleve,
-            'presence': presence,
-            'statut': presence.statut if presence else 'present'
-        })
+    if liste_presence_actuelle:
+        # Récupérer les présences liées à cet appel spécifique
+        presences_existantes = Presence.objects.filter(
+            classe=classe,
+            date=today,
+            numero_appel=prochain_numero_appel
+        ).select_related('eleve')
+        
+        # Créer un dictionnaire des présences existantes
+        presences_dict = {p.eleve.id: p for p in presences_existantes}
+        
+        # Construire la liste des élèves avec leur statut
+        for eleve in eleves:
+            presence = presences_dict.get(eleve.id)
+            eleves_avec_presence.append({
+                'eleve': eleve,
+                'presence': presence,
+                'statut': presence.statut if presence else 'present'
+            })
+    else:
+        # Aucune liste actuelle (limite atteinte)
+        for eleve in eleves:
+            eleves_avec_presence.append({
+                'eleve': eleve,
+                'presence': None,
+                'statut': 'present'
+            })
     
     context = {
         'professeur': professeur,
         'classe': classe,
         'eleves_avec_presence': eleves_avec_presence,
-        'liste_presence': liste_presence,
+        'liste_presence': liste_presence_actuelle,
         'today': today,
         'nombre_eleves': eleves.count(),
+        'numero_appel_actuel': prochain_numero_appel,
+        'nombre_appels_valides': nombre_appels_valides,
+        'limite_atteinte': limite_atteinte,
+        'appels_du_jour': appels_du_jour,
     }
     
     return render(request, 'school_admin/enseignant/primaire/liste_presence_primaire.html', context)
@@ -1660,6 +1738,7 @@ def liste_presence_primaire(request, classe_id):
 def valider_presence_primaire(request, classe_id):
     """
     Enregistre et valide la liste de présence (version primaire).
+    Gère les appels multiples avec numéro d'appel.
     """
     logger.info(f"Validation présence primaire - User: {request.user}, Classe ID: {classe_id}")
     
@@ -1687,26 +1766,28 @@ def valider_presence_primaire(request, classe_id):
     from django.utils import timezone
     today = date.today()
     
+    # Récupérer le numéro d'appel depuis le formulaire
+    numero_appel = int(request.POST.get('numero_appel', 1))
+    
     try:
         with transaction.atomic():
-            # Récupérer ou créer la liste de présence
-            liste_presence, created = ListePresence.objects.get_or_create(
+            # Récupérer la liste de présence pour ce numéro d'appel
+            liste_presence = get_object_or_404(
+                ListePresence,
                 classe=classe,
                 date=today,
-                defaults={
-                    'professeur': professeur,
-                    'etablissement': classe.etablissement
-                }
+                numero_appel=numero_appel
             )
             
             # Si déjà validée, interdire la modification
             if liste_presence.validee:
-                messages.warning(request, "La liste de présence a déjà été validée pour aujourd'hui.")
+                messages.warning(request, f"L'appel n°{numero_appel} a déjà été validé pour aujourd'hui.")
                 return redirect('enseignant_primaire:liste_presence', classe_id=classe_id)
             
             # Parcourir les données POST pour enregistrer les présences
             nombre_presents = 0
             nombre_absents = 0
+            nombre_retards = 0
             
             for key, value in request.POST.items():
                 if key.startswith('presence_'):
@@ -1714,11 +1795,12 @@ def valider_presence_primaire(request, classe_id):
                     try:
                         eleve = Eleve.objects.get(id=eleve_id, classe=classe, actif=True)
                         
-                        # Créer ou mettre à jour la présence
+                        # Créer ou mettre à jour la présence avec le numéro d'appel
                         presence, created = Presence.objects.update_or_create(
                             eleve=eleve,
                             classe=classe,
                             date=today,
+                            numero_appel=numero_appel,
                             defaults={
                                 'professeur': professeur,
                                 'etablissement': classe.etablissement,
@@ -1726,11 +1808,13 @@ def valider_presence_primaire(request, classe_id):
                             }
                         )
                         
-                        # Compter les présents et absents
+                        # Compter les présents, absents et retards
                         if value == 'present':
                             nombre_presents += 1
                         elif value in ['absent', 'absent_justifie']:
                             nombre_absents += 1
+                        elif value == 'retard':
+                            nombre_retards += 1
                     
                     except Eleve.DoesNotExist:
                         logger.warning(f"Élève {eleve_id} non trouvé ou inactif")
@@ -1745,14 +1829,14 @@ def valider_presence_primaire(request, classe_id):
             
             messages.success(
                 request, 
-                f"Liste de présence validée avec succès ! {nombre_presents} présent(s), {nombre_absents} absent(s)."
+                f"✓ Appel n°{numero_appel} validé avec succès ! {nombre_presents} présent(s), {nombre_absents} absent(s), {nombre_retards} retard(s)."
             )
             
     except Exception as e:
         logger.error(f"Erreur lors de la validation de la présence: {str(e)}")
         messages.error(request, f"Erreur lors de la validation : {str(e)}")
     
-    return redirect('enseignant_primaire:gestion_eleves')
+    return redirect('enseignant_primaire:liste_presence', classe_id=classe_id)
 
 
 def modifier_presence_eleve_primaire(request, presence_id):
@@ -2004,44 +2088,44 @@ def detail_eleve_primaire(request, eleve_id):
             # Créer un dictionnaire des notes indexé par evaluation_id
             notes_dict = {note.evaluation_primaire.id: note for note in notes_objs}
             
-            # Récupérer les examens (CreneauExamen) pour cette matière et période
-            from ..model.creneau_examen_model import CreneauExamen
+            # Récupérer les sessions d'examen (PAS les créneaux!) pour cette matière et période
             from ..model.session_examen_model import SessionExamen
-            creneaux_examen = CreneauExamen.objects.filter(
-                session_examen__classes=eleve.classe,
-                session_examen__periode=periode_selectionnee,
+            sessions_examen = SessionExamen.objects.filter(
+                classes=eleve.classe,
+                periode=periode_selectionnee,
+                matieres=matiere,
+                actif=True
+            ).distinct()
+            
+            # Récupérer les notes d'examen basées sur (eleve, session, matiere)
+            notes_examen_objs = NoteExamen.objects.filter(
+                eleve=eleve,
+                session_examen__in=sessions_examen,
                 matiere=matiere
             ).select_related('session_examen')
             
-            # Récupérer les notes d'examen
-            notes_examen_objs = NoteExamen.objects.filter(
-                eleve=eleve,
-                creneau_examen__in=creneaux_examen,
-                matiere=matiere
-            ).select_related('creneau_examen')
-            
             # Ajouter les notes d'examen au dictionnaire avec un préfixe "examen_"
             for note_examen in notes_examen_objs:
-                notes_dict[f'examen_{note_examen.creneau_examen.id}'] = note_examen
+                notes_dict[f'examen_{note_examen.session_examen.id}'] = note_examen
             
             # Créer une liste combinée d'évaluations et d'examens
             evaluations_list = list(evaluations)
-            for creneau in creneaux_examen:
+            for session in sessions_examen:
                 # Créer un pseudo-objet pour l'examen
                 class PseudoExamen:
-                    def __init__(self, creneau):
-                        self.id = f'examen_{creneau.id}'
-                        self.creneau_id = creneau.id
-                        self.titre = f"Examen {creneau.session_examen.nom_examen}"
+                    def __init__(self, session):
+                        self.id = f'examen_{session.id}'
+                        self.session_id = session.id
+                        self.titre = f"Examen {session.nom_examen}"
                         self.bareme = 20  # Les examens sont toujours sur 20
-                        self.date_evaluation = creneau.date_examen
+                        self.date_evaluation = session.date_debut
                         self.est_examen = True
                         self.type_evaluation = 'examen'
                     
                     def get_type_evaluation_display(self):
                         return "Examen"
                 
-                evaluations_list.append(PseudoExamen(creneau))
+                evaluations_list.append(PseudoExamen(session))
             
             # Récupérer la moyenne enregistrée
             moyenne_obj = MoyenneMatierePrimaire.objects.filter(
@@ -2087,11 +2171,12 @@ def detail_eleve_primaire(request, eleve_id):
         date__lte=fin_annee
     ).select_related('eleve', 'classe')
     
-    # Calculer les statistiques globales
-    total_presences = presences_query.count()
+    # Calculer les statistiques globales (par DATE unique, pas par appel)
+    total_jours = presences_query.values('date').distinct().count()
     nombre_absences = presences_query.filter(statut__in=['absent', 'absent_justifie']).count()
     nombre_retards = presences_query.filter(statut='retard').count()
     nombre_presents = presences_query.filter(statut='present').count()
+    total_presences = presences_query.count()
     taux_presence = round((nombre_presents / total_presences * 100), 2) if total_presences > 0 else 0
     
     # Données pour l'onglet présences
@@ -2140,16 +2225,30 @@ def detail_eleve_primaire(request, eleve_id):
         premier_jour = date(annee_sel, mois_sel, 1)
         dernier_jour = date(annee_sel, mois_sel, calendar.monthrange(annee_sel, mois_sel)[1])
         
-        presences = presences_query.filter(
+        presences_list = presences_query.filter(
             date__gte=premier_jour,
             date__lte=dernier_jour
-        ).order_by('-date')
+        ).order_by('-date', 'numero_appel')
         
-        # Statistiques du mois
-        total_presences_mois = presences.count()
-        nombre_absences_mois = presences.filter(statut__in=['absent', 'absent_justifie']).count()
-        nombre_retards_mois = presences.filter(statut='retard').count()
-        nombre_presents_mois = presences.filter(statut='present').count()
+        # Regrouper les présences par date
+        presences_par_date = defaultdict(list)
+        for presence in presences_list:
+            presences_par_date[presence.date].append(presence)
+        
+        # Convertir en liste triée par date décroissante
+        presences = []
+        for date_presence in sorted(presences_par_date.keys(), reverse=True):
+            presences.append({
+                'date': date_presence,
+                'appels': presences_par_date[date_presence]
+            })
+        
+        # Statistiques du mois - compter les APPELS, pas les jours
+        # Car un élève peut avoir des statuts différents selon les appels du même jour
+        nombre_presents_mois = presences_list.filter(statut='present').count()
+        nombre_absences_mois = presences_list.filter(statut__in=['absent', 'absent_justifie']).count()
+        nombre_retards_mois = presences_list.filter(statut='retard').count()
+        total_presences_mois = presences_list.count()
         taux_presence_mois = round((nombre_presents_mois / total_presences_mois * 100), 2) if total_presences_mois > 0 else 0
     else:
         presences = []
@@ -2244,16 +2343,37 @@ def detail_classe_primaire(request, classe_id):
     today = date.today()
     debut_mois = date(today.year, today.month, 1)
     
-    # Filtre par mois (GET parameter)
-    mois_filtre = request.GET.get('mois', str(today.month))
-    annee_filtre = request.GET.get('annee', str(today.year))
+    # Récupérer tous les mois distincts avec présence pour déterminer les mois disponibles
+    presences_dates = Presence.objects.filter(
+        classe=classe
+    ).dates('date', 'month', order='DESC')
     
-    try:
-        mois_filtre = int(mois_filtre)
-        annee_filtre = int(annee_filtre)
-    except (ValueError, TypeError):
-        mois_filtre = today.month
-        annee_filtre = today.year
+    # Filtre par mois (GET parameter)
+    mois_filtre = request.GET.get('mois', None)
+    annee_filtre = request.GET.get('annee', None)
+    
+    # Si aucun mois n'est spécifié, utiliser le premier mois disponible (le plus récent)
+    if mois_filtre is None or annee_filtre is None:
+        if presences_dates.exists():
+            premier_mois = presences_dates.first()
+            mois_filtre = premier_mois.month
+            annee_filtre = premier_mois.year
+        else:
+            # Si aucune présence n'existe, utiliser le mois actuel
+            mois_filtre = today.month
+            annee_filtre = today.year
+    else:
+        try:
+            mois_filtre = int(mois_filtre)
+            annee_filtre = int(annee_filtre)
+        except (ValueError, TypeError):
+            if presences_dates.exists():
+                premier_mois = presences_dates.first()
+                mois_filtre = premier_mois.month
+                annee_filtre = premier_mois.year
+            else:
+                mois_filtre = today.month
+                annee_filtre = today.year
     
     # Calculer le premier et dernier jour du mois filtré
     from calendar import monthrange
@@ -2276,31 +2396,58 @@ def detail_classe_primaire(request, classe_id):
     taux_presence_mois = round((nombre_presents_mois / total_presences_mois * 100), 1) if total_presences_mois > 0 else 0
     
     # Listes de présence validées du mois filtré
-    listes_presence_validees = ListePresence.objects.filter(
+    listes_presence_query = ListePresence.objects.filter(
         classe=classe,
         validee=True,
         date__gte=premier_jour_mois,
         date__lte=dernier_jour_mois
-    ).order_by('-date')
+    ).order_by('-date', 'numero_appel')
     
-    # Générer la liste des 12 derniers mois pour les onglets
+    # Regrouper les listes de présence par date
+    from collections import defaultdict
+    listes_par_date = defaultdict(list)
+    for liste in listes_presence_query:
+        listes_par_date[liste.date].append(liste)
+    
+    # Convertir en liste triée par date décroissante
+    listes_presence_validees = []
+    for date_liste in sorted(listes_par_date.keys(), reverse=True):
+        listes_presence_validees.append({
+            'date': date_liste,
+            'listes': listes_par_date[date_liste]
+        })
+    
+    # Générer la liste des mois qui ont des présences enregistrées
     mois_disponibles = []
-    for i in range(12):
-        mois_calc = today.month - i
-        annee_calc = today.year
-        while mois_calc <= 0:
-            mois_calc += 12
-            annee_calc -= 1
+    for date_presence in presences_dates:
         mois_disponibles.append({
-            'mois': mois_calc,
-            'annee': annee_calc,
-            'nom': date(annee_calc, mois_calc, 1).strftime('%B %Y'),
-            'nom_court': date(annee_calc, mois_calc, 1).strftime('%b %Y')
+            'mois': date_presence.month,
+            'annee': date_presence.year,
+            'nom': date_presence.strftime('%B %Y'),
+            'nom_court': date_presence.strftime('%b %Y')
         })
     
     # === STATISTIQUES DES ÉVALUATIONS ===
+    # Récupérer toutes les matières enseignées dans cette classe
+    matieres_enseignees = list(affectation.matieres.all().order_by('nom'))
+    
+    # Filtre par matière (GET parameter)
+    matiere_eval_id = request.GET.get('matiere_eval', '')
+    matiere_eval_active = None
+    
+    if matiere_eval_id == 'toutes':
+        matiere_eval_active = None
+    elif matiere_eval_id:
+        try:
+            matiere_eval_active = next((m for m in matieres_enseignees if str(m.id) == matiere_eval_id), None)
+        except:
+            pass
+    else:
+        # Par défaut, sélectionner la première matière
+        matiere_eval_active = matieres_enseignees[0] if matieres_enseignees else None
+    
     # Filtre par période (GET parameter)
-    periode_filtre = request.GET.get('periode_eval', 'toutes')
+    periode_eval_id = request.GET.get('periode_eval', '')
     
     # Périodes disponibles
     periodes_scolaires = PeriodeScolaire.objects.filter(
@@ -2308,9 +2455,25 @@ def detail_classe_primaire(request, classe_id):
         est_active=True
     ).order_by('date_debut')
     
-    PERIODES_EVAL = [('toutes', 'Toutes les périodes')]
-    for periode in periodes_scolaires:
-        PERIODES_EVAL.append((str(periode.id), periode.nom_periode))
+    periode_eval_active = None
+    
+    # Si "toutes" est spécifié, on ne filtre pas par période
+    if periode_eval_id == 'toutes':
+        periode_eval_active = None
+    # Si une période ID est spécifiée, la récupérer
+    elif periode_eval_id:
+        try:
+            periode_eval_active = periodes_scolaires.get(id=periode_eval_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    # Sinon, utiliser la période en cours par défaut
+    elif periodes_scolaires.exists():
+        for periode in periodes_scolaires:
+            if periode.est_en_cours:
+                periode_eval_active = periode
+                break
+        if not periode_eval_active:
+            periode_eval_active = periodes_scolaires.first()
     
     evaluations = EvaluationPrimaire.objects.filter(
         classe=classe,
@@ -2318,15 +2481,15 @@ def detail_classe_primaire(request, classe_id):
         actif=True
     )
     
-    # Filtrer par période si spécifiée
-    if periode_filtre != 'toutes':
-        try:
-            periode_obj = PeriodeScolaire.objects.get(id=periode_filtre)
-            evaluations = evaluations.filter(periode_scolaire=periode_obj)
-        except PeriodeScolaire.DoesNotExist:
-            pass
+    # Filtrer par matière si spécifiée
+    if matiere_eval_active:
+        evaluations = evaluations.filter(matiere=matiere_eval_active)
     
-    evaluations = evaluations.order_by('-date_evaluation')
+    # Filtrer par période si spécifiée
+    if periode_eval_active:
+        evaluations = evaluations.filter(periode_scolaire=periode_eval_active)
+    
+    evaluations = evaluations.select_related('matiere', 'periode_scolaire').order_by('-date_evaluation')
     
     nombre_evaluations_total = evaluations.count()
     nombre_evaluations_mois = evaluations.filter(
@@ -2405,8 +2568,10 @@ def detail_classe_primaire(request, classe_id):
         'nombre_evaluations_mois': nombre_evaluations_mois,
         'dernieres_evaluations': dernieres_evaluations,
         'prochaines_evaluations': prochaines_evaluations,
-        'PERIODES_EVAL': PERIODES_EVAL,
-        'periode_filtre': periode_filtre,
+        'periodes_scolaires_eval': periodes_scolaires,
+        'periode_eval_active': periode_eval_active,
+        'matieres_enseignees': matieres_enseignees,
+        'matiere_eval_active': matiere_eval_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/detail_classe_primaire.html', context)
@@ -2522,4 +2687,353 @@ def emploi_du_temps_primaire(request):
     """
     from ..personal_views.enseignant_view import emploi_du_temps_enseignant
     return emploi_du_temps_enseignant(request)
+
+
+def gestion_presence_primaire(request):
+    """
+    Page de transition pour la gestion de présence pour l'enseignant primaire
+    Même structure que gestion_notes_primaire mais pour la présence
+    """
+    logger.info(f"Gestion présence primaire - User: {request.user}, Type: {type(request.user).__name__}")
+    
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    from django.utils import timezone
+    from datetime import timedelta
+    import re
+    
+    # Récupérer toutes les affectations actives du professeur primaire
+    affectations = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        actif=True
+    ).select_related('classe', 'classe__etablissement').prefetch_related('classe__eleves').order_by('classe__nom')
+    
+    # Regrouper les classes par catégorie
+    classes_grouped = {}
+    total_eleves = 0
+    
+    # Calculer la date de début de l'année scolaire (septembre)
+    debut_annee = timezone.now().replace(month=9, day=1, hour=0, minute=0, second=0, microsecond=0)
+    if timezone.now().month < 9:
+        debut_annee = debut_annee.replace(year=debut_annee.year - 1)
+    
+    for affectation in affectations:
+        classe = affectation.classe
+        nom = classe.nom
+        
+        # Pattern pour extraire le niveau et la lettre/section
+        match = re.match(r'^(.+?)\s+-\s+([A-Z0-9]+)', nom)
+        
+        if match:
+            categorie = match.group(1)
+            section = match.group(2)
+        else:
+            categorie = nom
+            section = ""
+        
+        if categorie not in classes_grouped:
+            classes_grouped[categorie] = {
+                'classes': [],
+                'total_eleves': 0,
+            }
+        
+        # Récupérer les élèves actifs de cette classe
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        
+        # Calculer les statistiques de présence pour chaque élève
+        # IMPORTANT : Filtrer par le professeur pour afficher uniquement ses appels
+        eleves_avec_presence = []
+        for eleve in eleves:
+            # Récupérer toutes les présences de l'élève enregistrées par CE professeur depuis le début de l'année
+            presences = Presence.objects.filter(
+                eleve=eleve,
+                professeur=professeur,
+                date__gte=debut_annee
+            )
+            
+            # Compter les présences par statut
+            nombre_presences = presences.filter(statut='present').count()
+            nombre_absences = presences.filter(Q(statut='absent') | Q(statut='absent_justifie')).count()
+            nombre_retards = presences.filter(statut='retard').count()
+            # Compter le nombre de DATES uniques (plusieurs appels le même jour = 1 jour)
+            nombre_jours = presences.values('date').distinct().count()
+            
+            eleves_avec_presence.append({
+                'eleve': eleve,
+                'nombre_presences': nombre_presences,
+                'nombre_absences': nombre_absences,
+                'nombre_retards': nombre_retards,
+                'nombre_jours': nombre_jours,
+            })
+        
+        classe_data = {
+            'classe': classe,
+            'affectation': affectation,
+            'eleves': eleves_avec_presence,
+            'nombre_eleves': eleves.count(),
+        }
+        
+        classes_grouped[categorie]['classes'].append(classe_data)
+        classes_grouped[categorie]['total_eleves'] += eleves.count()
+        total_eleves += eleves.count()
+    
+    # Statistiques globales
+    stats = {
+        'total_classes': affectations.count(),
+        'total_eleves': total_eleves,
+    }
+    
+    context = {
+        'professeur': professeur,
+        'classes_grouped': classes_grouped,
+        'stats': stats,
+    }
+    
+    return render(request, 'school_admin/enseignant/primaire/gestion_presence_primaire.html', context)
+
+
+def eleves_en_difficulte_primaire(request):
+    """
+    Page pour afficher les élèves en difficulté (moyenne < 9) pour l'enseignant primaire
+    Même structure que gestion_notes_primaire mais filtré sur les élèves avec moyenne < 9
+    """
+    logger.info(f"Élèves en difficulté primaire - User: {request.user}, Type: {type(request.user).__name__}")
+    
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    import re
+    
+    # Récupérer les paramètres de navigation
+    periode_id = request.GET.get('periode')
+    
+    # Récupérer toutes les périodes
+    periodes = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Période active par défaut
+    if periode_id:
+        periode_selectionnee = get_object_or_404(PeriodeScolaire, id=periode_id)
+    else:
+        periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
+    
+    # Récupérer les affectations et grouper les classes par type
+    affectations = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        actif=True
+    ).select_related('classe').prefetch_related('matieres')
+    
+    # Grouper les classes par catégorie (CI, CP, CE1, CE2, CM1, CM2)
+    classes_grouped = {}
+    total_eleves_difficulte = 0
+    
+    for affectation in affectations:
+        classe = affectation.classe
+        nom = classe.nom
+        
+        # Pattern pour extraire le niveau
+        match = re.match(r'^(.+?)\s+-\s+([A-Z0-9]+)', nom)
+        
+        if match:
+            categorie = match.group(1)
+        else:
+            categorie = nom.split('-')[0].strip() if '-' in nom else nom
+        
+        if categorie not in classes_grouped:
+            classes_grouped[categorie] = {
+                'classes': [],
+                'total_eleves': 0,
+            }
+        
+        # Récupérer toutes les matières de cette affectation
+        matieres = affectation.matieres.all()
+        
+        # Récupérer les élèves actifs de la classe
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        
+        # Pour chaque élève, récupérer ses moyennes dans toutes les matières
+        eleves_difficulte = []
+        
+        for eleve in eleves:
+            # Récupérer toutes les moyennes de cet élève pour la période
+            moyennes = MoyenneMatierePrimaire.objects.filter(
+                eleve=eleve,
+                periode_scolaire=periode_selectionnee
+            )
+            
+            # Calculer la moyenne générale
+            if moyennes.exists():
+                moyenne_generale = moyennes.aggregate(Avg('moyenne'))['moyenne__avg']
+                
+                # Ne garder que les élèves avec moyenne < 9
+                if moyenne_generale and moyenne_generale < 9:
+                    # Récupérer le détail des moyennes par matière
+                    moyennes_matieres = {}
+                    for moy in moyennes:
+                        moyennes_matieres[moy.matiere.id] = {
+                            'moyenne': moy.moyenne,
+                            'matiere': moy.matiere
+                        }
+                    
+                    eleves_difficulte.append({
+                        'eleve': eleve,
+                        'moyenne_generale': round(moyenne_generale, 2),
+                        'moyennes_matieres': moyennes_matieres,
+                    })
+        
+        # N'ajouter la classe que si elle a des élèves en difficulté
+        if eleves_difficulte:
+            classe_data = {
+                'classe': classe,
+                'affectation': affectation,
+                'matieres': list(matieres),
+                'eleves': eleves_difficulte,
+                'nombre_eleves': len(eleves_difficulte),
+                'nombre_total_eleves': eleves.count(),
+            }
+            
+            classes_grouped[categorie]['classes'].append(classe_data)
+            classes_grouped[categorie]['total_eleves'] += len(eleves_difficulte)
+            total_eleves_difficulte += len(eleves_difficulte)
+    
+    # Supprimer les catégories vides
+    classes_grouped = {k: v for k, v in classes_grouped.items() if v['classes']}
+    
+    # Statistiques globales
+    stats = {
+        'total_classes': len([c for data in classes_grouped.values() for c in data['classes']]),
+        'total_eleves': total_eleves_difficulte,
+    }
+    
+    context = {
+        'professeur': professeur,
+        'classes_grouped': classes_grouped,
+        'stats': stats,
+        'periode_selectionnee': periode_selectionnee,
+        'periodes': periodes,
+    }
+    
+    return render(request, 'school_admin/enseignant/primaire/eleves_en_difficulte_primaire.html', context)
+
+
+@login_required
+def imprimer_tableau_presence(request, classe_id):
+    """
+    Génère un tableau de présence hebdomadaire imprimable pour une classe spécifique.
+    Format : Semaine du lundi au vendredi avec colonnes Matin/Après-midi
+    """
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    classe = get_object_or_404(Classe, id=classe_id, actif=True)
+    
+    # Vérifier que le professeur est affecté à cette classe
+    affectation = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    ).first()
+    
+    if not affectation:
+        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
+        return redirect('enseignant_primaire:gestion_presence')
+    
+    # Déterminer la semaine à afficher (semaine en cours par défaut)
+    today = date.today()
+    
+    # Calculer le lundi de la semaine en cours
+    lundi = today - timedelta(days=today.weekday())
+    samedi = lundi + timedelta(days=5)
+    
+    classes_data = []
+    
+    # Traiter uniquement la classe sélectionnée
+    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    
+    # Récupérer les présences de la semaine pour tous les élèves
+    # IMPORTANT : Filtrer par professeur pour afficher uniquement ses appels
+    presences_semaine = Presence.objects.filter(
+        classe=classe,
+        professeur=professeur,
+        date__gte=lundi,
+        date__lte=samedi
+    ).select_related('eleve')
+    
+    # Organiser les présences par élève et par date
+    presences_dict = defaultdict(lambda: defaultdict(list))
+    for presence in presences_semaine:
+        presences_dict[presence.eleve.id][presence.date].append(presence)
+    
+    # Préparer les données pour chaque élève
+    eleves_data = []
+    for eleve in eleves:
+        eleve_presences = {}
+        total_absences = 0
+        
+        # Pour chaque jour de la semaine (lundi à samedi)
+        for i in range(6):
+            jour = lundi + timedelta(days=i)
+            jour_presences = presences_dict[eleve.id].get(jour, [])
+            
+            # Compter les statuts pour le jour
+            nb_presents = 0
+            nb_absents = 0
+            nb_retards = 0
+            
+            for presence in jour_presences:
+                if presence.statut == 'present':
+                    nb_presents += 1
+                elif presence.statut in ['absent', 'absent_justifie']:
+                    nb_absents += 1
+                    total_absences += 1
+                elif presence.statut == 'retard':
+                    nb_retards += 1
+            
+            eleve_presences[i] = {
+                'presents': nb_presents,
+                'absents': nb_absents,
+                'retards': nb_retards
+            }
+        
+        eleves_data.append({
+            'eleve': eleve,
+            'presences': eleve_presences,
+            'total_absences': total_absences
+        })
+    
+    classes_data.append({
+        'classe': classe,
+        'eleves': eleves_data
+    })
+    
+    # Jours de la semaine (lundi à samedi)
+    jours_semaine = []
+    jours_noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+    for i in range(6):
+        jour = lundi + timedelta(days=i)
+        jours_semaine.append({
+            'nom': jours_noms[i],
+            'date': jour,
+            'index': i
+        })
+    
+    context = {
+        'professeur': professeur,
+        'classes_data': classes_data,
+        'lundi': lundi,
+        'samedi': samedi,
+        'jours_semaine': jours_semaine,
+        'date_impression': today,
+    }
+    
+    return render(request, 'school_admin/enseignant/primaire/imprimer_tableau_presence.html', context)
 

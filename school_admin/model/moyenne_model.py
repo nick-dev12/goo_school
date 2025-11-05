@@ -65,6 +65,11 @@ class Moyenne(models.Model):
         default=0,
         verbose_name="Nombre de notes utilisées"
     )
+    soumis = models.BooleanField(
+        default=False,
+        verbose_name="Soumis",
+        help_text="Indique si la moyenne est incluse dans un relevé officiellement soumis"
+    )
     mode_calcul = models.CharField(
         max_length=20,
         default='toutes',

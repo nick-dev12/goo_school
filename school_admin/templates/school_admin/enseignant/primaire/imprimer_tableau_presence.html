@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+{% load static %}
+{% load notes_tags %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de présence hebdomadaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .print-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Styles pour chaque classe */
+        .classe-section {
+            page-break-after: always;
+            margin-bottom: 40px;
+        }
+
+        .classe-section:last-child {
+            page-break-after: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #3b82f6;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .header h2 {
+            font-size: 18px;
+            color: #3b82f6;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-item strong {
+            color: #1f2937;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid #1d4ed8;
+        }
+
+        th.eleve-col {
+            text-align: left;
+            min-width: 150px;
+        }
+
+        th.jour-col {
+            min-width: 80px;
+        }
+
+        th.total-col {
+            min-width: 80px;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        tbody tr:hover {
+            background: #eff6ff;
+        }
+
+        td {
+            padding: 10px 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        td.eleve-name {
+            text-align: left;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .presence-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .presence-matin {
+            color: #10b981;
+        }
+
+        .presence-apres-midi {
+            color: #3b82f6;
+        }
+
+        .absence {
+            color: #ef4444;
+        }
+
+        .retard {
+            color: #f59e0b;
+        }
+
+        .total-absences {
+            font-weight: 600;
+            color: #ef4444;
+            font-size: 14px;
+        }
+
+        .signatures {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .signature-box {
+            text-align: center;
+        }
+
+        .signature-label {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 40px;
+        }
+
+        .signature-line {
+            width: 200px;
+            border-bottom: 2px solid #1f2937;
+            margin: 10px auto 0;
+        }
+
+        /* Légende */
+        .legend {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .legend-items {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .legend-symbol {
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Styles d'impression */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 15mm;
+            }
+
+            .print-button {
+                display: none;
+            }
+
+            .classe-section {
+                page-break-after: always;
+            }
+
+            .classe-section:last-child {
+                page-break-after: auto;
+            }
+
+            table {
+                font-size: 10px;
+            }
+
+            /* Empêcher la répétition du thead sur chaque page */
+            thead {
+                display: table-row-group;
+            }
+
+            th, td {
+                padding: 6px 4px;
+            }
+
+            .legend {
+                page-break-inside: avoid;
+            }
+
+            .signatures {
+                page-break-inside: avoid;
+            }
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">
+        <i class="fas fa-print"></i>
+        Imprimer
+    </button>
+
+    <div class="container">
+        {% for classe_data in classes_data %}
+        <div class="classe-section">
+            <div class="header">
+                <h1>TABLEAU DE PRÉSENCE HEBDOMADAIRE</h1>
+                <h2>Semaine du {{ lundi|date:"d" }} {{ lundi|date:"F" }} au {{ samedi|date:"d" }} {{ samedi|date:"F Y" }}</h2>
+                <div class="info-row">
+                    <div class="info-item">
+                        <i class="fas fa-chalkboard"></i>
+                        <strong>Classe :</strong> {{ classe_data.classe.nom }}
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-user-tie"></i>
+                        <strong>Enseignant :</strong> {{ professeur.prenom }} {{ professeur.nom }}
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-users"></i>
+                        <strong>Effectif :</strong> {{ classe_data.eleves|length }} élève{{ classe_data.eleves|length|pluralize }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">Légende :</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="legend-symbol presence-matin">P</span> = Présent
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-symbol absence">A</span> = Absent
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-symbol retard">R</span> = Retard
+                    </div>
+                    <div class="legend-item">
+                        <span style="font-size: 11px; color: #6b7280;">Le chiffre indique le nombre d'appels (ex: P2 = 2 présences)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="eleve-col">Élève</th>
+                            {% for jour in jours_semaine %}
+                            <th class="jour-col">
+                                {{ jour.nom }}<br>
+                                <small style="font-weight: 400;">{{ jour.date|date:"d/m" }}</small>
+                            </th>
+                            {% endfor %}
+                            <th class="total-col">Total<br>Absences</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eleve_data in classe_data.eleves %}
+                        <tr>
+                            <td class="eleve-name">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</td>
+                            {% for jour in jours_semaine %}
+                                {% with presence=eleve_data.presences|get_item:jour.index %}
+                                <td class="presence-cell">
+                                    {% if presence.presents > 0 %}
+                                        <span class="presence-matin">P{{ presence.presents }}</span>
+                                    {% endif %}
+                                    {% if presence.absents > 0 %}
+                                        {% if presence.presents > 0 %} / {% endif %}
+                                        <span class="absence">A{{ presence.absents }}</span>
+                                    {% endif %}
+                                    {% if presence.retards > 0 %}
+                                        {% if presence.presents > 0 or presence.absents > 0 %} / {% endif %}
+                                        <span class="retard">R{{ presence.retards }}</span>
+                                    {% endif %}
+                                    {% if presence.presents == 0 and presence.absents == 0 and presence.retards == 0 %}
+                                        <span style="color: #d1d5db;">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                            {% endfor %}
+                            <td class="total-absences">{{ eleve_data.total_absences }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="signatures">
+                <div class="signature-box">
+                    <div class="signature-label">Signature Enseignant</div>
+                    <div class="signature-line"></div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-label">Signature Directeur</div>
+                    <div class="signature-line"></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not classes_data %}
+        <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
+            <i class="fas fa-calendar-times" style="font-size: 48px; margin-bottom: 20px; color: #d1d5db;"></i>
+            <p style="font-size: 18px;">Aucune classe affectée</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

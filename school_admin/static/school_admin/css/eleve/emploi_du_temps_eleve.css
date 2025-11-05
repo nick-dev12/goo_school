@@ -1,0 +1,745 @@
+/* 
+* Emploi du Temps Élève - Design System
+* Styles pour l'affichage de l'emploi du temps pour les élèves
+*/
+
+/* ===== CONTENEUR PRINCIPAL ===== */
+.content-container {
+  min-height: calc(100vh - 80px);
+  padding: 24px;
+  background: #f8f9fa;
+  margin-top: 80px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== BREADCRUMB NAVIGATION ===== */
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+
+.breadcrumb-link:hover {
+  color: #4a90e2;
+}
+
+.breadcrumb-separator {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.breadcrumb-current {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.page-title-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title i {
+  color: #4a90e2;
+  font-size: 28px;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.page-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ===== BOUTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn i {
+  font-size: 16px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== ÉTAT VIDE ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin: 40px 0;
+}
+
+.empty-icon {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 20px;
+}
+
+.empty-icon i {
+  font-size: 64px;
+}
+
+.empty-state h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+/* ===== BADGES D'INFORMATION ===== */
+.classe-info-badges {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.info-badge:hover {
+  background: #e5e7eb;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.info-badge i {
+  color: #4a90e2;
+}
+
+.info-badge-success {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.info-badge-success i {
+  color: #10b981;
+}
+
+/* ===== EMPLOI DU TEMPS SECTION ===== */
+.emploi-du-temps-section {
+  margin-bottom: 32px;
+}
+
+.emploi-du-temps-wrapper {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+}
+
+/* ===== TABLEAU ===== */
+.edt-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+}
+
+.edt-table thead th {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  padding: 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.edt-table thead th:last-child {
+  border-right: none;
+}
+
+.edt-horaire-header {
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  min-width: 150px;
+  width: 150px;
+}
+
+.edt-jour-header {
+  min-width: 180px;
+}
+
+.edt-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.edt-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.edt-horaire-cell {
+  background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+  padding: 16px;
+  text-align: center;
+  vertical-align: middle;
+  border-right: 2px solid #e5e7eb;
+  min-width: 150px;
+  width: 150px;
+}
+
+.horaire-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.periode-horaire-simple {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+}
+
+.edt-creneau-cell {
+  padding: 8px;
+  vertical-align: top;
+  border-right: 1px solid #e5e7eb;
+  position: relative;
+  min-height: 100px;
+}
+
+.edt-creneau-cell:last-child {
+  border-right: none;
+}
+
+.edt-creneau-cell .creneau-card {
+  height: 100%;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.creneau-cours {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 4px solid #4a90e2;
+}
+
+.creneau-cours:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.creneau-pause {
+  background: linear-gradient(135deg, #fff7ed, #ffe8d1);
+  border: 2px dashed #fb923c;
+}
+
+.edt-creneau-cell .creneau-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edt-creneau-cell .creneau-matiere {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.edt-creneau-cell .creneau-professeur {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edt-creneau-cell .creneau-salle {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pause-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f97316;
+  height: 100%;
+  min-height: 70px;
+}
+
+.pause-label i {
+  font-size: 18px;
+}
+
+/* ===== PAUSES EN LIGNE COMPLÈTE ===== */
+.pause-row {
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border-top: 2px solid #fb923c;
+  border-bottom: 2px solid #fb923c;
+}
+
+.pause-horaire {
+  background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
+  border-right: 2px solid #fb923c !important;
+}
+
+.pause-cell-full {
+  padding: 0 !important;
+  background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 50%, #fff7ed 100%);
+}
+
+.pause-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  height: 100%;
+  min-height: 50px;
+}
+
+.pause-recreation {
+  color: #ea580c;
+}
+
+.pause-dejeuner {
+  color: #c2410c;
+}
+
+.pause-banner i {
+  font-size: 20px;
+}
+
+/* ===== LÉGENDE ===== */
+.legend-section {
+  margin-bottom: 32px;
+}
+
+.legend-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.legend-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-title i {
+  color: #4a90e2;
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.legend-desc {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.type-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.type-cours {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.type-td {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.type-tp {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.type-controle {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.type-examen {
+  background: #ede9fe;
+  color: #6b21a8;
+}
+
+.type-sport {
+  background: #cffafe;
+  color: #155e75;
+}
+
+.type-pause {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+/* ===== EMPLOI DU TEMPS DES EXAMENS ===== */
+.emploi-du-temps-examens-section {
+  margin-top: 40px;
+  margin-bottom: 32px;
+}
+
+.examens-header {
+  background: white;
+  padding: 24px;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-bottom: 3px solid #ef4444;
+}
+
+.examens-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.examens-title i {
+  color: #ef4444;
+}
+
+.examens-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.emploi-du-temps-examens-wrapper {
+  background: white;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.examens-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.examens-table thead th {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 16px 12px;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.examens-jour-header {
+  min-width: 150px;
+}
+
+.jour-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jour-nom {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.jour-date {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.examens-creneau-cell {
+  padding: 12px;
+  vertical-align: top;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fef2f2;
+  min-height: 120px;
+}
+
+.creneau-examen-card {
+  background: white;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.1);
+}
+
+.creneau-examen-card:last-child {
+  margin-bottom: 0;
+}
+
+.examen-horaire {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ef4444;
+  margin-bottom: 6px;
+  font-family: 'Courier New', monospace;
+}
+
+.examen-matiere {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.examen-matiere i {
+  color: #ef4444;
+}
+
+.examen-salle {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.examen-salle i {
+  color: #9ca3af;
+}
+
+/* ===== IMPRESSION ===== */
+@media print {
+  .page-header,
+  .breadcrumb-nav,
+  .legend-section,
+  .page-actions {
+    display: none;
+  }
+  
+  .content-container {
+    padding: 0;
+    background: white;
+  }
+  
+  .edt-table {
+    page-break-inside: auto;
+  }
+  
+  .edt-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  .creneau-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+  
+  .creneau-cours:hover {
+    transform: none;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .page-header {
+    flex-direction: column;
+  }
+  
+  .page-actions {
+    width: 100%;
+  }
+  
+  .legend-items {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    padding: 16px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .edt-horaire-header {
+    min-width: 100px;
+    width: 100px;
+  }
+  
+  .edt-jour-header {
+    min-width: 140px;
+  }
+  
+  .edt-creneau-cell .creneau-matiere {
+    font-size: 13px;
+  }
+  
+  .legend-items {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .classe-info-badges {
+    flex-direction: column;
+  }
+  
+  .info-badge {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .edt-horaire-header {
+    min-width: 80px;
+    width: 80px;
+  }
+  
+  .edt-jour-header {
+    min-width: 120px;
+  }
+  
+  .periode-horaire-simple {
+    font-size: 12px;
+  }
+}
+

@@ -385,6 +385,63 @@ class Eleve(AbstractUser):
         return self.parent_email
     
     @property
+    def parents_lies(self):
+        """Retourne la liste des parents liés à cet élève via LienFamilial"""
+        from .lien_familial_model import LienFamilial
+        from .parent_model import Parent
+        liens = LienFamilial.objects.filter(eleve=self, actif=True, statut='valide')
+        return Parent.objects.filter(id__in=liens.values_list('parent_id', flat=True))
+    
+    @property
+    def pere(self):
+        """Retourne le père de l'élève s'il existe"""
+        from .lien_familial_model import LienFamilial
+        lien = LienFamilial.objects.filter(
+            eleve=self, 
+            type_lien='pere', 
+            actif=True, 
+            statut='valide'
+        ).first()
+        return lien.parent if lien else None
+    
+    @property
+    def mere(self):
+        """Retourne la mère de l'élève si elle existe"""
+        from .lien_familial_model import LienFamilial
+        lien = LienFamilial.objects.filter(
+            eleve=self, 
+            type_lien='mere', 
+            actif=True, 
+            statut='valide'
+        ).first()
+        return lien.parent if lien else None
+    
+    @property
+    def tuteurs(self):
+        """Retourne la liste des tuteurs de l'élève"""
+        from .lien_familial_model import LienFamilial
+        from .parent_model import Parent
+        liens = LienFamilial.objects.filter(
+            eleve=self, 
+            type_lien='tuteur', 
+            actif=True, 
+            statut='valide'
+        )
+        return Parent.objects.filter(id__in=liens.values_list('parent_id', flat=True))
+    
+    @property
+    def parent_inscripteur(self):
+        """Retourne le parent qui a inscrit l'élève"""
+        from .lien_familial_model import LienFamilial
+        lien = LienFamilial.objects.filter(
+            eleve=self, 
+            est_inscripteur=True, 
+            actif=True, 
+            statut='valide'
+        ).first()
+        return lien.parent if lien else None
+    
+    @property
     def documents_fournis_liste(self):
         """Retourne la liste des documents fournis"""
         documents = []
@@ -423,8 +480,8 @@ class Eleve(AbstractUser):
     def generer_matricule_eleve(etablissement):
         """
         Génère un matricule unique pour un élève
-        Format : [XX][ANNEE][NUMERO]
-        Exemple : BP2025001 (Blaise Pascal, année 2025, élève 001)
+        Format : [XX][ANNEE]-[NUMERO]
+        Exemple : BP2025-001 (Blaise Pascal, année 2025, élève 001)
         """
         from datetime import datetime
         
@@ -435,19 +492,50 @@ class Eleve(AbstractUser):
         # Année en cours
         annee = datetime.now().year
         
-        # Compter les élèves existants pour cette année
-        prefix = f"{initiales}{annee}"
-        count = Eleve.objects.filter(
+        # Préfixe de base (sans tiret pour la recherche)
+        prefix_search = f"{initiales}{annee}"
+        
+        # Rechercher le dernier matricule utilisé pour ce préfixe
+        derniers_eleves = Eleve.objects.filter(
             etablissement=etablissement,
-            matricule_eleve__startswith=prefix
-        ).count() + 1
+            matricule_eleve__startswith=prefix_search
+        ).exclude(
+            matricule_eleve__isnull=True
+        ).order_by('-matricule_eleve')[:1]
         
-        matricule = f"{prefix}{count:03d}"
+        if derniers_eleves.exists():
+            # Extraire le numéro du dernier matricule
+            dernier_matricule = derniers_eleves[0].matricule_eleve
+            try:
+                # Extraire les 3 derniers chiffres (après le tiret si présent)
+                if '-' in dernier_matricule:
+                    dernier_numero = int(dernier_matricule.split('-')[-1])
+                else:
+                    dernier_numero = int(dernier_matricule[-3:])
+                count = dernier_numero + 1
+            except (ValueError, IndexError):
+                # Si impossible d'extraire, commencer à 1
+                count = 1
+        else:
+            count = 1
         
-        # Vérifier l'unicité et ajuster si nécessaire
-        while Eleve.objects.filter(matricule_eleve=matricule).exists():
+        # Générer le matricule avec le tiret : BP2025-001
+        matricule = f"{prefix_search}-{count:03d}"
+        
+        # Boucle de sécurité pour éviter les doublons
+        max_tentatives = 1000
+        tentatives = 0
+        while Eleve.objects.filter(matricule_eleve=matricule).exists() or \
+              Eleve.objects.filter(username=matricule).exists():
             count += 1
-            matricule = f"{prefix}{count:03d}"
+            matricule = f"{prefix_search}-{count:03d}"
+            tentatives += 1
+            if tentatives >= max_tentatives:
+                # Fallback avec timestamp si trop de tentatives
+                import time
+                timestamp = int(time.time() * 1000) % 10000
+                matricule = f"{prefix_search}-{timestamp:04d}"
+                break
         
         return matricule
     

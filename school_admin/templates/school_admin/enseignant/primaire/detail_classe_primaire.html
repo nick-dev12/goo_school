@@ -309,31 +309,31 @@
                 
                 {% if listes_presence_validees %}
                     <div class="listes-presence-container">
-                        {% for liste in listes_presence_validees %}
+                        {% for jour_data in listes_presence_validees %}
                             <div class="liste-presence-card">
                                 <div class="liste-date">
-                                    <div class="date-jour">{{ liste.date|date:"d" }}</div>
-                                    <div class="date-mois">{{ liste.date|date:"M" }}</div>
+                                    <div class="date-jour">{{ jour_data.date|date:"d" }}</div>
+                                    <div class="date-mois">{{ jour_data.date|date:"M" }}</div>
                                 </div>
-                                <div class="liste-content">
-                                    <div class="liste-title">{{ liste.date|date:"l d F Y" }}</div>
-                                    <div class="liste-stats">
-                                        <span class="liste-stat present">
-                                            <i class="fas fa-check"></i> {{ liste.nombre_presents }} présent{{ liste.nombre_presents|pluralize }}
-                                        </span>
-                                        <span class="liste-stat absent">
-                                            <i class="fas fa-times"></i> {{ liste.nombre_absents }} absent{{ liste.nombre_absents|pluralize }}
-                                        </span>
-                                        {% if liste.nombre_retards > 0 %}
-                                            <span class="liste-stat retard">
-                                                <i class="fas fa-clock"></i> {{ liste.nombre_retards }} retard{{ liste.nombre_retards|pluralize }}
-                                            </span>
-                                        {% endif %}
+                                <div class="liste-content" style="flex: 1;">
+                                    <div class="liste-title">{{ jour_data.date|date:"l d F Y" }}</div>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                                        {% for liste in jour_data.listes %}
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; background: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                                                <span class="liste-stat present" style="margin: 0;">
+                                                    <i class="fas fa-check"></i> {{ liste.nombre_presents }}
+                                                </span>
+                                                <span class="liste-stat absent" style="margin: 0;">
+                                                    <i class="fas fa-times"></i> {{ liste.nombre_absents }}
+                                                </span>
+                                                {% if liste.nombre_retards > 0 %}
+                                                    <span class="liste-stat retard" style="margin: 0;">
+                                                        <i class="fas fa-clock"></i> {{ liste.nombre_retards }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                </div>
-                                <div class="liste-badge">
-                                    <i class="fas fa-check-circle"></i>
-                                    Validée
                                 </div>
                             </div>
                         {% endfor %}
@@ -358,15 +358,45 @@
                     </a>
                 </div>
                 
+                <!-- Onglets par matière -->
+                {% if matieres_enseignees %}
+                <div class="matieres-tabs-container">
+                    <div class="matieres-tabs-nav">
+                        <a href="?onglet=evaluations&matiere_eval=toutes{% if periode_eval_active %}&periode_eval={{ periode_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                           class="matiere-tab-btn {% if request.GET.matiere_eval == 'toutes' %}active{% endif %}">
+                            <i class="fas fa-list"></i>
+                            <span>Toutes les matières</span>
+                        </a>
+                        {% for matiere in matieres_enseignees %}
+                            <a href="?onglet=evaluations&matiere_eval={{ matiere.id }}{% if periode_eval_active %}&periode_eval={{ periode_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                               class="matiere-tab-btn {% if matiere_eval_active and matiere_eval_active.id == matiere.id %}active{% endif %}"
+                               title="{{ matiere.nom }}">
+                                <i class="fas fa-book"></i>
+                                <span>{{ matiere.code }} - {{ matiere.nom }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
                 <!-- Sous-onglets par période -->
+                {% if periodes_scolaires_eval %}
                 <div class="sub-tabs-container">
-                    {% for periode_code, periode_nom in PERIODES_EVAL %}
-                        <a href="?onglet=evaluations&periode_eval={{ periode_code }}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
-                           class="sub-tab {% if periode_filtre == periode_code %}active{% endif %}">
-                            {{ periode_nom }}
+                    <a href="?onglet=evaluations&periode_eval=toutes{% if matiere_eval_active %}&matiere_eval={{ matiere_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                       class="sub-tab {% if request.GET.periode_eval == 'toutes' %}active{% endif %}">
+                        <i class="fas fa-list"></i>
+                        <span>Toutes les périodes</span>
+                    </a>
+                    {% for periode in periodes_scolaires_eval %}
+                        <a href="?onglet=evaluations&periode_eval={{ periode.id }}{% if matiere_eval_active %}&matiere_eval={{ matiere_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                           class="sub-tab {% if periode_eval_active and periode_eval_active.id == periode.id %}active{% endif %}"
+                           title="Période: {{ periode.nom_periode }}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>{{ periode.nom_periode }}</span>
                         </a>
                     {% endfor %}
                 </div>
+                {% endif %}
                 
                 <!-- Prochaines évaluations -->
                 {% if prochaines_evaluations %}
@@ -383,9 +413,19 @@
                                     <div class="eval-bareme">/{{ eval.bareme }}</div>
                                 </div>
                                 <div class="eval-title">{{ eval.titre }}</div>
-                                <div class="eval-matiere">
-                                    <i class="fas fa-book"></i>
-                                    {{ eval.matiere.nom }}
+                                <div class="eval-meta">
+                                    {% if eval.matiere %}
+                                        <div class="eval-matiere">
+                                            <i class="fas fa-book"></i>
+                                            {{ eval.matiere.nom }}
+                                        </div>
+                                    {% endif %}
+                                    {% if eval.periode_scolaire %}
+                                        <div class="eval-periode">
+                                            <i class="fas fa-calendar-week"></i>
+                                            {{ eval.periode_scolaire.nom_periode }}
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="eval-date">
                                     <i class="fas fa-calendar"></i>
@@ -414,9 +454,19 @@
                                     <div class="eval-bareme">/{{ eval.bareme }}</div>
                                 </div>
                                 <div class="eval-title">{{ eval.titre }}</div>
-                                <div class="eval-matiere">
-                                    <i class="fas fa-book"></i>
-                                    {{ eval.matiere.nom }}
+                                <div class="eval-meta">
+                                    {% if eval.matiere %}
+                                        <div class="eval-matiere">
+                                            <i class="fas fa-book"></i>
+                                            {{ eval.matiere.nom }}
+                                        </div>
+                                    {% endif %}
+                                    {% if eval.periode_scolaire %}
+                                        <div class="eval-periode">
+                                            <i class="fas fa-calendar-week"></i>
+                                            {{ eval.periode_scolaire.nom_periode }}
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="eval-date">
                                     <i class="fas fa-calendar"></i>

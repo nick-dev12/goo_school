@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attestations de Réussite - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/liste_eleves.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Messages -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-trophy"></i>
+                    Attestations de Réussite
+                </h1>
+                <p class="page-subtitle">
+                    Générer des attestations de passage en classe supérieure pour les élèves de {{ etablissement.nom }}
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:gestion_administrative' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Système d'onglets par niveau -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <div class="tabs-nav">
+                    {% for categorie, data in classes_grouped.items %}
+                        <button class="tab-button {% if forloop.first %}active{% endif %}" 
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchMainTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <div class="tab-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div class="tab-info">
+                                    <h4 class="tab-title">{{ categorie }}</h4>
+                                    <p class="tab-subtitle">{{ data.classes|length }} classe{{ data.classes|length|pluralize }}</p>
+                                </div>
+                                <div class="tab-stats">
+                                    <span class="students-count">{{ data.total_eleves }}</span>
+                                    <span class="students-label">élèves</span>
+                                </div>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="tabs-content">
+                {% for categorie, data in classes_grouped.items %}
+                    <div class="tab-panel {% if forloop.first %}active{% endif %}" 
+                         id="tab-{{ forloop.counter }}">
+                        
+                        <!-- Info catégorie -->
+                        <div class="category-info">
+                            <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                            <p>{{ data.classes|length }} classe{{ data.classes|length|pluralize }} - {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</p>
+                        </div>
+
+                        <!-- Sous-onglets par classe -->
+                        <div class="classes-subtabs">
+                            {% for classe_data in data.classes %}
+                                <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
+                                        data-subtab="classe-{{ classe_data.classe.id }}"
+                                        onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
+                                    <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                    <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Contenu des sous-onglets (classes) -->
+                        {% for classe_data in data.classes %}
+                            <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                                <!-- En-tête de la classe -->
+                                <div class="class-header">
+                                    <div class="class-info">
+                                        <h2 class="class-title">
+                                            <i class="fas fa-chalkboard"></i>
+                                            {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                        </h2>
+                                        <p class="class-description">{{ classe_data.classe.description|default:"Aucune description" }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Liste des élèves -->
+                                <div class="students-section">
+                                    <div class="section-header">
+                                        <h3 class="section-title">
+                                            <i class="fas fa-list"></i>
+                                            Liste des élèves ({{ classe_data.eleves|length }})
+                                        </h3>
+                                    </div>
+
+                                    <!-- Barre de recherche -->
+                                    <div class="search-filter-container" id="search-filter-{{ classe_data.classe.id }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                        <div class="search-box" style="position: relative; margin-bottom: 16px;">
+                                            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                                            <input type="text" 
+                                                   class="search-input" 
+                                                   id="search-input-{{ classe_data.classe.id }}" 
+                                                   placeholder="Rechercher un élève (nom, prénom, numéro...)"
+                                                   oninput="filterStudentsAttestation('{{ classe_data.classe.id }}')"
+                                                   style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
+                                            <button class="clear-search" 
+                                                    id="clear-search-{{ classe_data.classe.id }}" 
+                                                    onclick="clearSearchAttestation('{{ classe_data.classe.id }}')" 
+                                                    style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                                            <div class="filter-group" style="flex: 1; min-width: 200px;">
+                                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                    <i class="fas fa-venus-mars"></i>
+                                                    Sexe
+                                                </label>
+                                                <select class="filter-select" id="filter-sexe-{{ classe_data.classe.id }}" onchange="filterStudentsAttestation('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                    <option value="">Tous</option>
+                                                    <option value="M">Masculin</option>
+                                                    <option value="F">Féminin</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <button class="btn-reset-filters" onclick="resetFiltersAttestation('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                                <i class="fas fa-redo"></i>
+                                                Réinitialiser
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
+                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                                        </div>
+                                    </div>
+
+                                    {% if classe_data.eleves %}
+                                        <div class="students-list">
+                                            <div class="list-header">
+                                                <div class="list-cell header-cell">Élève</div>
+                                                <div class="list-cell header-cell">Numéro</div>
+                                                <div class="list-cell header-cell">Classe</div>
+                                                <div class="list-cell header-cell">Âge</div>
+                                                <div class="list-cell header-cell">Sexe</div>
+                                                <div class="list-cell header-cell">Actions</div>
+                                            </div>
+                                            
+                                            {% for eleve in classe_data.eleves %}
+                                                <div class="list-row">
+                                                    <div class="list-cell student-cell">
+                                                        <div class="student-avatar-small">
+                                                            <i class="fas fa-user"></i>
+                                                        </div>
+                                                        <div class="student-info-compact">
+                                                            <h4 class="student-name">{{ eleve.nom_complet }}</h4>
+                                                            <p class="student-email">{{ eleve.email|default:"Aucun email" }}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Numéro">
+                                                        <span class="student-number">{{ eleve.numero_eleve }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Classe">
+                                                        <span class="classe-badge">{{ classe_data.classe.nom }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Âge">
+                                                        <span class="student-age">{{ eleve.age }} ans</span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Sexe">
+                                                        <span class="sexe-badge sexe-{{ eleve.sexe }}">
+                                                            {{ eleve.get_sexe_display }}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Actions">
+                                                        <div class="student-actions-compact">
+                                                            <a href="{% url 'directeur:generer_attestation_reussite' eleve.id %}" 
+                                                               class="btn-action-small btn-attestation" 
+                                                               title="Générer attestation de réussite"
+                                                               target="_blank">
+                                                                <i class="fas fa-trophy"></i>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="empty-state">
+                                            <div class="empty-icon">
+                                                <i class="fas fa-user-slash"></i>
+                                            </div>
+                                            <h3 class="empty-title">Aucun élève inscrit</h3>
+                                            <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gestion des onglets principaux
+        function switchMainTab(tabId) {
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.closest('.tab-button').classList.add('active');
+        }
+
+        // Gestion des sous-onglets (classes)
+        function switchClasseTab(event, classeId) {
+            event.stopPropagation();
+            
+            const parentPanel = event.target.closest('.tab-panel');
+            
+            parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(classeId).classList.add('active');
+            event.target.closest('.classe-subtab-btn').classList.add('active');
+        }
+
+        // Fonction de filtrage des élèves
+        function filterStudentsAttestation(classeId) {
+            const searchInput = document.getElementById(`search-input-${classeId}`);
+            const filterSexe = document.getElementById(`filter-sexe-${classeId}`);
+            const clearButton = document.getElementById(`clear-search-${classeId}`);
+            const resultsDiv = document.getElementById(`filter-results-${classeId}`);
+            const resultsCount = document.getElementById(`results-count-${classeId}`);
+            
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const sexeValue = filterSexe.value;
+            
+            // Afficher/masquer le bouton de suppression de recherche
+            clearButton.style.display = searchTerm ? 'flex' : 'none';
+            
+            // Récupérer toutes les lignes d'élèves de cette classe
+            const classeContent = document.getElementById(`classe-${classeId}`);
+            const rows = classeContent.querySelectorAll('.list-row');
+            
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const studentCell = row.querySelector('.student-name');
+                const studentNumber = row.querySelector('.student-number');
+                const sexeBadge = row.querySelector('.sexe-badge');
+                
+                if (!studentCell) return;
+                
+                const nom = studentCell.textContent.toLowerCase();
+                const numero = studentNumber ? studentNumber.textContent.toLowerCase() : '';
+                const sexe = sexeBadge ? sexeBadge.textContent.trim() : '';
+                
+                // Filtrage par recherche (nom, numéro)
+                const matchesSearch = !searchTerm || 
+                    nom.includes(searchTerm) || 
+                    numero.includes(searchTerm);
+                
+                // Filtrage par sexe
+                let matchesSexe = true;
+                if (sexeValue === 'M') {
+                    matchesSexe = sexe === 'Masculin';
+                } else if (sexeValue === 'F') {
+                    matchesSexe = sexe === 'Féminin';
+                }
+                
+                // Afficher/masquer la ligne selon les critères
+                if (matchesSearch && matchesSexe) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Afficher/masquer le compteur de résultats
+            if (searchTerm || sexeValue) {
+                resultsCount.textContent = visibleCount;
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        }
+        
+        function clearSearchAttestation(classeId) {
+            const searchInput = document.getElementById(`search-input-${classeId}`);
+            searchInput.value = '';
+            filterStudentsAttestation(classeId);
+        }
+        
+        function resetFiltersAttestation(classeId) {
+            const searchInput = document.getElementById(`search-input-${classeId}`);
+            const filterSexe = document.getElementById(`filter-sexe-${classeId}`);
+            
+            searchInput.value = '';
+            filterSexe.value = '';
+            
+            filterStudentsAttestation(classeId);
+        }
+    </script>
+</body>
+</html>
+

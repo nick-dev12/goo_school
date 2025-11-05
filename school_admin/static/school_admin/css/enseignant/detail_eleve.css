@@ -1071,7 +1071,8 @@
     }
 }
 
- 
+
+ 
  /* ===== STYLES POUR ONGLETS MOIS (PRÉSENCES) ===== */
 
 .mois-tabs-horizontal {
@@ -1450,4 +1451,478 @@
 .empty-state-small p {
     margin: 0;
     font-size: 0.875rem;
+}
+
+/* ==== ONGLETS PAR MATIÈRE ==== */
+.matieres-tabs-horizontal {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    flex-wrap: wrap;
+}
+
+.matiere-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #475569;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.matiere-tab i {
+    color: #667eea;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.matiere-tab:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.matiere-tab:hover i {
+    color: #2563eb;
+    transform: scale(1.1);
+}
+
+.matiere-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.matiere-tab.active i {
+    color: white;
+}
+
+.matiere-tab.active:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* ==== ONGLETS PAR PÉRIODE ==== */
+.periodes-tabs-horizontal {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    flex-wrap: wrap;
+    overflow-x: auto;
+}
+
+.periode-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #475569;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.periode-tab i {
+    color: #667eea;
+    font-size: 1rem;
+}
+
+.periode-tab:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.periode-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.periode-tab.active i {
+    color: white;
+}
+
+.tab-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.periode-tab.active .tab-badge {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ==== ONGLETS PAR MOIS ==== */
+.mois-tabs-horizontal {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    flex-wrap: wrap;
+    overflow-x: auto;
+}
+
+.mois-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #475569;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.mois-tab i {
+    color: #667eea;
+    font-size: 1rem;
+}
+
+.mois-tab:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.mois-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.mois-tab.active i {
+    color: white;
+}
+
+/* ==== ONGLET SANCTIONS ==== */
+.sanctions-container {
+    margin-top: 1.5rem;
+}
+
+.sanctions-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.sanctions-stats .stat-card {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s;
+}
+
+.sanctions-stats .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sanctions-stats .stat-card.warning {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #fed7aa 0%, #fef3c7 100%);
+}
+
+.sanctions-stats .stat-card .stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: #667eea;
+    color: white;
+}
+
+.sanctions-stats .stat-card.warning .stat-icon {
+    background: #f59e0b;
+}
+
+.sanctions-list {
+    margin-top: 2rem;
+}
+
+.sanctions-list h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sanctions-list h3 i {
+    color: #667eea;
+}
+
+.sanctions-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sanction-item {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.sanction-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.sanction-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.sanction-item.sanction-legere::before {
+    background: #10b981;
+}
+
+.sanction-item.sanction-moyenne::before {
+    background: #f59e0b;
+}
+
+.sanction-item.sanction-grave::before {
+    background: #ef4444;
+}
+
+.sanction-item.sanction-tres_grave::before {
+    background: #991b1b;
+}
+
+.sanction-date {
+    width: 70px;
+    text-align: center;
+    flex-shrink: 0;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem 0.5rem;
+}
+
+.sanction-item.sanction-legere .sanction-date {
+    background: #d1fae5;
+}
+
+.sanction-item.sanction-moyenne .sanction-date {
+    background: #fed7aa;
+}
+
+.sanction-item.sanction-grave .sanction-date,
+.sanction-item.sanction-tres_grave .sanction-date {
+    background: #fee2e2;
+}
+
+.sanction-details {
+    flex: 1;
+}
+
+.sanction-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.sanction-header h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sanction-header h4 i {
+    color: #667eea;
+    font-size: 1rem;
+}
+
+.sanction-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sanction-badge.gravite-legere {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.sanction-badge.gravite-moyenne {
+    background: #fed7aa;
+    color: #9a3412;
+}
+
+.sanction-badge.gravite-grave {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.sanction-badge.gravite-tres_grave {
+    background: #dc2626;
+    color: white;
+}
+
+.sanction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sanction-info p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.sanction-info p strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.sanction-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.sanction-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.sanction-meta span i {
+    color: #667eea;
+    font-size: 0.875rem;
+}
+
+.badge-executee {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-parents {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .matieres-tabs-horizontal,
+    .periodes-tabs-horizontal,
+    .mois-tabs-horizontal {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .matiere-tab,
+    .periode-tab,
+    .mois-tab {
+        min-width: fit-content;
+    }
+
+    .sanction-item {
+        flex-direction: column;
+    }
+
+    .sanction-date {
+        width: 100%;
+        text-align: left;
+    }
+
+    .sanction-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

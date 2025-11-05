@@ -230,36 +230,80 @@
                 <div class="notation-table-container">
                     <table class="notation-table">
                         <thead>
+                            <!-- Ligne 1: En-têtes principaux -->
                             <tr>
-                                <th rowspan="2" class="eleve-col">Élève</th>
-                                {% if evaluations_interrogations %}
-                                    <th colspan="{{ evaluations_interrogations|length }}" class="notes-header">Interrogations</th>
-                                {% endif %}
-                                {% if evaluations_devoirs %}
-                                    <th colspan="{{ evaluations_devoirs|length }}" class="notes-header">Devoirs / Contrôles</th>
-                                {% endif %}
-                                <th rowspan="2" class="moyenne-col">Moyenne<br>(/20)</th>
+                                <th rowspan="3" class="eleve-col">Élève</th>
+                                
+                                <!-- Regroupement des évaluations (incluant l'examen si présent) -->
+                                <th colspan="{{ total_evaluations_count }}" class="notes-header">Évaluations</th>
+                                
+                                <!-- Colonne Moyenne -->
+                                <th rowspan="3" class="moyenne-col">Moyenne<br>(/20)</th>
                             </tr>
+                            
+                            <!-- Ligne 2: Titres des évaluations individuelles (incluant l'examen) -->
                             <tr>
-                                {% for eval in evaluations_interrogations %}
+                                {% for item in evaluations_liste %}
                                     <th class="note-col has-evaluation">
-                                        {{ eval.titre|truncatewords:2 }}
-                                        <br><small>/{{ eval.bareme|floatformat:0 }}</small>
-                                        <i class="fas fa-check-circle"></i>
+                                        <div class="eval-title-header">
+                                            {{ item.evaluation.titre|truncatewords:2 }}
+                                            <small>/{{ item.evaluation.bareme|floatformat:0 }}</small>
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
                                     </th>
                                 {% endfor %}
-                                {% for eval in evaluations_devoirs %}
-                                    <th class="note-col has-evaluation">
-                                        {{ eval.titre|truncatewords:2 }}
-                                        <br><small>/{{ eval.bareme|floatformat:0 }}</small>
-                                        <i class="fas fa-check-circle"></i>
+                                
+                                <!-- Titre de l'examen (dans le regroupement Évaluations) -->
+                                {% if session_examen %}
+                                    <th class="note-col has-evaluation examen-header">
+                                        <div class="eval-title-header">
+                                            Examen
+                                            <small>/20</small>
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
                                     </th>
+                                {% endif %}
+                            </tr>
+                            
+                            <!-- Ligne 3: Statut Retenue/Non retenue (incluant l'examen) -->
+                            <tr class="retenue-row">
+                                {% for item in evaluations_liste %}
+                                    {% with eval=item.evaluation nb_retenues=notes_retenues_par_eval|get_item:item.key|default:0 %}
+                                    <th class="retenue-header">
+                                        <span class="retenue-label">
+                                            {% if nb_retenues > 0 %}
+                                                <span class="retenue-status retenue-active" data-eval-id="{{ eval.id }}" data-note-key="{{ item.key }}" title="{{ nb_retenues }} note(s) retenue(s) pour le calcul">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    {{ nb_retenues }} Retenue{{ nb_retenues|pluralize }}
+                                                </span>
+                                            {% else %}
+                                                <span class="retenue-status retenue-inactive" data-eval-id="{{ eval.id }}" data-note-key="{{ item.key }}" title="Aucune note retenue">
+                                                    <i class="fas fa-minus-circle"></i>
+                                                    Non retenue
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    </th>
+                                    {% endwith %}
                                 {% endfor %}
+                                
+                                <!-- Statut Retenue pour l'examen (dans le regroupement Évaluations) -->
+                                {% if session_examen %}
+                                    <th class="retenue-header examen-retenue-header">
+                                        <span class="retenue-label">
+                                            <span class="retenue-status retenue-active" data-eval-id="examen_{{ session_examen.id }}" data-note-key="examen_{{ session_examen.id }}" title="Note d'examen toujours retenue">
+                                                <i class="fas fa-check-circle"></i>
+                                                Retenue
+                                            </span>
+                                        </span>
+                                    </th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for eleve in eleves %}
                                 <tr class="{% cycle 'row-even' 'row-odd' %}" data-eleve-id="{{ eleve.id }}">
+                                    <!-- Cellule Élève -->
                                     <td class="eleve-cell">
                                         <div class="eleve-info-notation">
                                             <div class="eleve-avatar-tiny">
@@ -269,6 +313,7 @@
                                         </div>
                                     </td>
                                     
+                                    <!-- Cellules des notes d'évaluations (incluant l'examen) -->
                                     {% for item in evaluations_liste %}
                                         {% with note_value=notes_existantes|get_note:eleve.id|get_note:item.key %}
                                         <td class="note-cell has-evaluation {% if note_value %}note-saved{% endif %}">
@@ -290,7 +335,34 @@
                                         {% endwith %}
                                     {% endfor %}
                                     
-                                    <!-- Moyenne -->
+                                    <!-- Cellule Note d'examen (incluse dans le regroupement Évaluations) -->
+                                    {% if session_examen %}
+                                        {% with note_examen=notes_examen_par_eleve|get_item:eleve.id %}
+                                        <td class="note-cell has-evaluation examen-cell {% if note_examen and note_examen.note %}note-saved{% endif %}">
+                                            <input type="number" 
+                                                   name="note_examen_{{ eleve.id }}" 
+                                                   class="note-input examen-input {% if note_examen and note_examen.note %}saved{% endif %}{% if releve_notes.soumis %} locked{% endif %}" 
+                                                   min="0" 
+                                                   max="20" 
+                                                   step="0.5" 
+                                                   value="{% if note_examen and not note_examen.absent and note_examen.note %}{{ note_examen.note|format_note }}{% endif %}"
+                                                   placeholder="--"
+                                                   data-type="examen" 
+                                                   data-max="20"
+                                                   data-note-key="examen_{{ session_examen.id }}"
+                                                   data-eval-id="examen_{{ session_examen.id }}"
+                                                   data-session-examen-id="{{ session_examen.id }}"
+                                                   {% if releve_notes.soumis or note_examen.soumis %}readonly{% endif %}
+                                                   {% if note_examen and note_examen.absent %}disabled{% endif %}
+                                                   onchange="colorNote(this)">
+                                            {% if note_examen and note_examen.absent %}
+                                                <span class="absent-badge" title="Absent">ABS</span>
+                                            {% endif %}
+                                        </td>
+                                        {% endwith %}
+                                    {% endif %}
+                                    
+                                    <!-- Cellule Moyenne -->
                                     <td class="moyenne-cell">
                                         {% with moy_data=moyennes_enregistrees|get_item:eleve.id %}
                                         <input type="text" 
@@ -310,32 +382,6 @@
 
                 <!-- Actions du bas -->
                 <div class="notation-actions bottom">
-                    <!-- Sélecteur du mode de calcul -->
-                    <div class="moyenne-mode-selector">
-                        <label for="modeCalculMoyenne2">
-                            <i class="fas fa-cogs"></i> Mode de calcul :
-                        </label>
-                        <select id="modeCalculMoyenne2" class="form-select-inline">
-                            <option value="toutes">Toutes les notes</option>
-                            <option value="2">2 meilleures notes (composées)</option>
-                            <option value="3">3 meilleures notes (composées)</option>
-                            <option value="4">4 meilleures notes (composées)</option>
-                            <option value="interro_x2">1 Meilleure interro × 2</option>
-                        </select>
-                    </div>
-                    
-                    <button type="button" 
-                            onclick="calculerToutesMoyennes()" 
-                            class="btn btn-secondary"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-calculator"></i> Calculer les moyennes
-                    </button>
-                    <button type="submit" 
-                            name="submit_notes" 
-                            class="btn btn-primary"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-save"></i> Enregistrer les notes
-                    </button>
                     <a href="{% url 'enseignant:gestion_notes' %}" class="btn btn-outline">
                         <i class="fas fa-arrow-left"></i> Retour
                     </a>
@@ -486,7 +532,6 @@
             
             // Récupérer le mode de calcul sélectionné
             const modeCalcul = document.getElementById('modeCalculMoyenne').value || 
-                              document.getElementById('modeCalculMoyenne2').value || 
                               'toutes';
             
             // Désactiver le bouton pendant le calcul
@@ -503,7 +548,8 @@
                 body: JSON.stringify({
                     colonnes_selectionnees: colonnesSelectionnees,
                     periode: '{{ periode_active.id }}',
-                    nombre_meilleures_notes: modeCalcul
+                    nombre_meilleures_notes: modeCalcul,
+                    matiere: '{{ matiere.id }}'
                 })
             })
             .then(response => response.json())
@@ -533,6 +579,24 @@
                             }
                         }
                     });
+                    
+                    // Mettre à jour la ligne "retenue/non retenue"
+                    if (data.notes_retenues) {
+                        // Réinitialiser toutes les lignes à "Non retenue"
+                        document.querySelectorAll('.retenue-status').forEach(status => {
+                            status.innerHTML = '<i class="fas fa-minus-circle"></i> Non retenue';
+                            status.className = 'retenue-status retenue-inactive';
+                        });
+                        
+                        // Mettre à jour celles qui sont retenues
+                        Object.entries(data.notes_retenues).forEach(([noteKey, count]) => {
+                            const retenueStatus = document.querySelector(`.retenue-status[data-note-key="${noteKey}"]`);
+                            if (retenueStatus && count > 0) {
+                                retenueStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${count} Retenue${count > 1 ? 's' : ''}`;
+                                retenueStatus.className = 'retenue-status retenue-active';
+                            }
+                        });
+                    }
                     
                     // Message de succès
                     btn.innerHTML = '<i class="fas fa-check"></i> ' + data.message;
@@ -608,19 +672,7 @@
             // Initialiser le compteur
             updateSelectionCounter();
             
-            // Synchroniser les deux sélecteurs de mode de calcul
-            const selector1 = document.getElementById('modeCalculMoyenne');
-            const selector2 = document.getElementById('modeCalculMoyenne2');
-            
-            if (selector1 && selector2) {
-                selector1.addEventListener('change', function() {
-                    selector2.value = this.value;
-                });
-                
-                selector2.addEventListener('change', function() {
-                    selector1.value = this.value;
-                });
-            }
+            // Le sélecteur de mode de calcul est unique maintenant
             
             // Écouter les changements sur les checkboxes
             document.querySelectorAll('.eval-checkbox').forEach(checkbox => {

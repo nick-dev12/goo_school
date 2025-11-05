@@ -194,6 +194,13 @@
                       Liste des élèves ({{ classe_data.eleves|length }})
                     </h3>
                     <div class="section-actions">
+                      <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}" 
+                         class="btn-print-liste" 
+                         target="_blank"
+                         title="Imprimer la liste nominative">
+                        <i class="fas fa-print"></i>
+                        Imprimer liste
+                      </a>
                       <button class="btn-filter" onclick="toggleFilter()">
                         <i class="fas fa-filter"></i>
                         Filtrer
@@ -204,6 +211,208 @@
                       </button>
                     </div>
                   </div>
+                  
+                  <!-- Barre de recherche et filtres pour tous les établissements -->
+                  <div class="search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
+                    <div class="search-box">
+                      <i class="fas fa-search"></i>
+                      <input type="text" 
+                             class="search-input" 
+                             id="search-input-{{ classe_data.classe.id }}" 
+                             placeholder="Rechercher un élève (nom, prénom, matricule, email...)"
+                             oninput="filterStudents('{{ classe_data.classe.id }}')">
+                      <button class="clear-search" id="clear-search-{{ classe_data.classe.id }}" onclick="clearSearch('{{ classe_data.classe.id }}')" style="display: none;">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="filters-box">
+                      <div class="filter-group">
+                        <label class="filter-label">
+                          <i class="fas fa-user-tag"></i>
+                          Statut
+                        </label>
+                        <select class="filter-select" id="filter-statut-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
+                          <option value="">Tous les statuts</option>
+                          <option value="nouvelle">Nouvelle inscription</option>
+                          <option value="transfert">Transfert</option>
+                          <option value="reinscription">Réinscription</option>
+                        </select>
+                      </div>
+                      
+                      <div class="filter-group">
+                        <label class="filter-label">
+                          <i class="fas fa-venus-mars"></i>
+                          Sexe
+                        </label>
+                        <select class="filter-select" id="filter-sexe-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
+                          <option value="">Tous</option>
+                          <option value="M">Masculin</option>
+                          <option value="F">Féminin</option>
+                        </select>
+                      </div>
+                      
+                      <div class="filter-group">
+                        <label class="filter-label">
+                          <i class="fas fa-exclamation-triangle"></i>
+                          Absences
+                        </label>
+                        <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
+                          <option value="">Toutes</option>
+                          <option value="0">Aucune absence</option>
+                          <option value="1-2">1-2 absences</option>
+                          <option value="3-4">3-4 absences</option>
+                          <option value="5+">5+ absences</option>
+                        </select>
+                      </div>
+                      
+                      <button class="btn-reset-filters" onclick="resetFilters('{{ classe_data.classe.id }}')">
+                        <i class="fas fa-redo"></i>
+                        Réinitialiser
+                      </button>
+                    </div>
+                    
+                    <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none;">
+                      <span id="results-count-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                    </div>
+                  </div>
+                  
+                  <style>
+                    /* Styles pour la recherche et les filtres */
+                    .search-filter-container {
+                      background: white;
+                      padding: 20px;
+                      border-radius: 12px;
+                      margin-bottom: 20px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                    }
+                    
+                    .search-box {
+                      position: relative;
+                      margin-bottom: 16px;
+                    }
+                    
+                    .search-box i.fa-search {
+                      position: absolute;
+                      left: 16px;
+                      top: 50%;
+                      transform: translateY(-50%);
+                      color: #9ca3af;
+                      font-size: 16px;
+                    }
+                    
+                    .search-input {
+                      width: 100%;
+                      padding: 12px 48px 12px 48px;
+                      border: 2px solid #e5e7eb;
+                      border-radius: 8px;
+                      font-size: 14px;
+                      transition: all 0.3s;
+                    }
+                    
+                    .search-input:focus {
+                      outline: none;
+                      border-color: #4f46e5;
+                      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                    }
+                    
+                    .clear-search {
+                      position: absolute;
+                      right: 16px;
+                      top: 50%;
+                      transform: translateY(-50%);
+                      background: #ef4444;
+                      color: white;
+                      border: none;
+                      border-radius: 50%;
+                      width: 24px;
+                      height: 24px;
+                      cursor: pointer;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      transition: all 0.2s;
+                    }
+                    
+                    .clear-search:hover {
+                      background: #dc2626;
+                      transform: translateY(-50%) scale(1.1);
+                    }
+                    
+                    .filters-box {
+                      display: flex;
+                      gap: 12px;
+                      align-items: flex-end;
+                      flex-wrap: wrap;
+                    }
+                    
+                    .filter-group {
+                      flex: 1;
+                      min-width: 180px;
+                    }
+                    
+                    .filter-label {
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      font-size: 13px;
+                      font-weight: 600;
+                      color: #4b5563;
+                      margin-bottom: 6px;
+                    }
+                    
+                    .filter-select {
+                      width: 100%;
+                      padding: 10px 12px;
+                      border: 2px solid #e5e7eb;
+                      border-radius: 8px;
+                      font-size: 13px;
+                      cursor: pointer;
+                      transition: all 0.3s;
+                      background: white;
+                    }
+                    
+                    .filter-select:focus {
+                      outline: none;
+                      border-color: #4f46e5;
+                      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                    }
+                    
+                    .btn-reset-filters {
+                      padding: 10px 16px;
+                      background: #f3f4f6;
+                      border: 2px solid #e5e7eb;
+                      border-radius: 8px;
+                      color: #4b5563;
+                      font-size: 13px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      transition: all 0.3s;
+                    }
+                    
+                    .btn-reset-filters:hover {
+                      background: #e5e7eb;
+                      border-color: #d1d5db;
+                    }
+                    
+                    .filter-results {
+                      margin-top: 12px;
+                      padding: 12px;
+                      background: #eff6ff;
+                      border-left: 4px solid #3b82f6;
+                      border-radius: 6px;
+                      font-size: 14px;
+                      color: #1e40af;
+                      font-weight: 600;
+                    }
+                    
+                    .list-row.hidden {
+                      display: none !important;
+                    }
+                  </style>
 
                   {% if classe_data.eleves %}
                     <div class="students-list">
@@ -218,7 +427,14 @@
                       </div>
                       
                       {% for eleve_data in classe_data.eleves %}
-                        <div class="list-row">
+                        <div class="list-row" 
+                             data-nom="{{ eleve_data.eleve.nom|lower }}"
+                             data-prenom="{{ eleve_data.eleve.prenom|lower }}"
+                             data-email="{{ eleve_data.eleve.email|lower|default:'' }}"
+                             data-matricule="{{ eleve_data.eleve.matricule_eleve|default:eleve_data.eleve.numero_eleve|lower }}"
+                             data-statut="{{ eleve_data.eleve.statut }}"
+                             data-sexe="{{ eleve_data.eleve.sexe }}"
+                             data-absences="{{ eleve_data.nombre_absences }}">
                           <div class="list-cell student-cell">
                             <div class="student-avatar-small">
                               <i class="fas fa-user"></i>
@@ -492,6 +708,102 @@
         if (event.target == modal) {
           fermerModalSanction();
         }
+      }
+      
+      // Fonctions de filtrage pour les établissements secondaires
+      function filterStudents(classeId) {
+        const searchInput = document.getElementById(`search-input-${classeId}`);
+        const filterStatut = document.getElementById(`filter-statut-${classeId}`);
+        const filterSexe = document.getElementById(`filter-sexe-${classeId}`);
+        const filterAbsences = document.getElementById(`filter-absences-${classeId}`);
+        const clearButton = document.getElementById(`clear-search-${classeId}`);
+        const resultsDiv = document.getElementById(`filter-results-${classeId}`);
+        const resultsCount = document.getElementById(`results-count-${classeId}`);
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const statutValue = filterStatut.value;
+        const sexeValue = filterSexe.value;
+        const absencesValue = filterAbsences.value;
+        
+        // Afficher/masquer le bouton de suppression de recherche
+        clearButton.style.display = searchTerm ? 'flex' : 'none';
+        
+        // Récupérer toutes les lignes d'élèves de cette classe
+        const classeContent = document.getElementById(`classe-${classeId}`);
+        const rows = classeContent.querySelectorAll('.list-row');
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+          const nom = row.dataset.nom || '';
+          const prenom = row.dataset.prenom || '';
+          const email = row.dataset.email || '';
+          const matricule = row.dataset.matricule || '';
+          const statut = row.dataset.statut || '';
+          const sexe = row.dataset.sexe || '';
+          const absences = parseInt(row.dataset.absences || '0');
+          
+          // Filtrage par recherche (nom, prénom, email, matricule)
+          const matchesSearch = !searchTerm || 
+            nom.includes(searchTerm) || 
+            prenom.includes(searchTerm) || 
+            email.includes(searchTerm) || 
+            matricule.includes(searchTerm);
+          
+          // Filtrage par statut
+          const matchesStatut = !statutValue || statut === statutValue;
+          
+          // Filtrage par sexe
+          const matchesSexe = !sexeValue || sexe === sexeValue;
+          
+          // Filtrage par absences
+          let matchesAbsences = true;
+          if (absencesValue === '0') {
+            matchesAbsences = absences === 0;
+          } else if (absencesValue === '1-2') {
+            matchesAbsences = absences >= 1 && absences <= 2;
+          } else if (absencesValue === '3-4') {
+            matchesAbsences = absences >= 3 && absences <= 4;
+          } else if (absencesValue === '5+') {
+            matchesAbsences = absences >= 5;
+          }
+          
+          // Afficher/masquer la ligne selon les critères
+          if (matchesSearch && matchesStatut && matchesSexe && matchesAbsences) {
+            row.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            row.classList.add('hidden');
+          }
+        });
+        
+        // Afficher/masquer le compteur de résultats
+        if (searchTerm || statutValue || sexeValue || absencesValue) {
+          resultsCount.textContent = visibleCount;
+          resultsDiv.style.display = 'block';
+        } else {
+          resultsDiv.style.display = 'none';
+        }
+      }
+      
+      function clearSearch(classeId) {
+        const searchInput = document.getElementById(`search-input-${classeId}`);
+        searchInput.value = '';
+        filterStudents(classeId);
+      }
+      
+      function resetFilters(classeId) {
+        const searchInput = document.getElementById(`search-input-${classeId}`);
+        const filterStatut = document.getElementById(`filter-statut-${classeId}`);
+        const filterSexe = document.getElementById(`filter-sexe-${classeId}`);
+        const filterAbsences = document.getElementById(`filter-absences-${classeId}`);
+        
+        searchInput.value = '';
+        filterStatut.value = '';
+        filterSexe.value = '';
+        filterAbsences.value = '';
+        
+        filterStudents(classeId);
       }
 
     </script>

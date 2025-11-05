@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convocations {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/convocation.css' %}">
+    <style>
+        .page-break {
+            page-break-after: always;
+        }
+        
+        .convocation-page:last-child .page-break {
+            page-break-after: avoid;
+        }
+    </style>
+</head>
+<body>
+    {% for convocation in convocations %}
+        <div class="convocation-page">
+            <div class="convocation-container">
+                <!-- En-tête de l'établissement -->
+                <header class="convocation-header">
+                    <div class="header-info">
+                        <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+                        <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                        <div class="etablissement-contact">
+                            <span class="contact-item">{{ etablissement.telephone }}</span>
+                            <span class="contact-item">{{ etablissement.email }}</span>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Ligne de séparation -->
+                <div class="separator-line"></div>
+
+                <!-- Titre du document -->
+                <div class="document-title">
+                    <h2>CONVOCATION</h2>
+                </div>
+
+                <!-- Corps de la convocation -->
+                <div class="convocation-body">
+                    <div class="destinataire-section">
+                        <p class="destinataire-label">À l'attention de :</p>
+                        <div class="destinataire-box">
+                            <p><strong>Parent(s) / Tuteur(s) légal(aux) de :</strong></p>
+                            <p class="eleve-nom-convocation">{{ convocation.eleve.nom|upper }} {{ convocation.eleve.prenom }}</p>
+                            <p>Élève en classe de <strong>{{ convocation.eleve.classe.nom }}</strong></p>
+                            <p>Numéro d'élève : <strong>{{ convocation.eleve.numero_eleve }}</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="objet-section">
+                        <p class="objet-label">Objet :</p>
+                        <p class="objet-text">{{ convocation.objet }}</p>
+                    </div>
+
+                    <div class="message-section">
+                        <p class="message-intro">Madame, Monsieur,</p>
+                        
+                        <p class="message-text">
+                            {{ convocation.motif|linebreaks }}
+                        </p>
+
+                        <div class="rdv-box">
+                            <div class="rdv-item">
+                                <span class="rdv-label">Date :</span>
+                                <span class="rdv-value">{{ convocation.date_convocation|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="rdv-item">
+                                <span class="rdv-label">Heure :</span>
+                                <span class="rdv-value">{{ convocation.heure_convocation }}</span>
+                            </div>
+                            <div class="rdv-item">
+                                <span class="rdv-label">Lieu :</span>
+                                <span class="rdv-value">{{ convocation.lieu }}</span>
+                            </div>
+                        </div>
+
+                        <p class="message-text">
+                            Votre présence est <strong>vivement souhaitée</strong>.
+                        </p>
+
+                        <p class="message-text">
+                            En cas d'empêchement, nous vous prions de bien vouloir prendre contact avec 
+                            l'établissement pour convenir d'un autre rendez-vous.
+                        </p>
+
+                        <p class="message-formule">
+                            Nous vous prions d'agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
+                        </p>
+                    </div>
+
+                    <div class="convocation-date">
+                        <p>Fait à {{ etablissement.ville|default:"[Ville]" }}, le {{ date_generation|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+
+                <!-- Signature -->
+                <div class="signature-section">
+                    <div class="signature-box">
+                        <p class="signature-title">Le Directeur</p>
+                        <div class="signature-line"></div>
+                        <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
+                    </div>
+                </div>
+
+                <!-- Pied de page -->
+                <footer class="convocation-footer">
+                    <p class="footer-text">
+                        Document officiel généré le {{ date_generation|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}
+                    </p>
+                </footer>
+            </div>
+
+            <!-- Saut de page après chaque convocation sauf la dernière -->
+            {% if not forloop.last %}
+                <div class="page-break"></div>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <!-- Bouton d'impression (caché à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer {{ convocations.count }} convocation{{ convocations.count|pluralize }}
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+

@@ -12,7 +12,57 @@ urlpatterns = [
     path('notes-et-resultats/', notes_et_resultats, name='notes_et_resultats'),
     path('suivi-presence/', suivi_presence, name='suivi_presence'),
     path('gestion-etablissement/', gestion_etablissement, name='gestion_etablissement'),
+    path('gestion-administrative/', gestion_administrative, name='gestion_administrative'),
     path('periodes-scolaires/', gestion_periodes_scolaires, name='gestion_periodes_scolaires'),
+    
+    # API pour les détails des notes
+    path('api/details-notes-matiere/', api_details_notes_matiere, name='api_details_notes_matiere'),
+    path('api/details-notes-matiere-secondaire/', api_details_notes_matiere_secondaire, name='api_details_notes_matiere_secondaire'),
+    
+    # Impression du relevé de notes
+    path('imprimer-releve-notes/<int:classe_id>/', imprimer_releve_notes, name='imprimer_releve_notes'),
+    
+    # Certificats de scolarité
+    path('certificat-scolarite/liste/', certificat_scolarite_liste, name='certificat_scolarite_liste'),
+    path('certificat-scolarite/generer/<int:eleve_id>/', generer_certificat_scolarite, name='generer_certificat_scolarite'),
+    
+    # Attestations de réussite
+    path('attestation-reussite/liste/', attestation_reussite_liste, name='attestation_reussite_liste'),
+    path('attestation-reussite/generer/<int:eleve_id>/', generer_attestation_reussite, name='generer_attestation_reussite'),
+    
+    # Attestations de conduite
+    path('attestation-conduite/liste/', attestation_conduite_liste, name='attestation_conduite_liste'),
+    path('attestation-conduite/generer/<int:eleve_id>/', generer_attestation_conduite, name='generer_attestation_conduite'),
+    
+    # Fiches d'inscription/réinscription
+    path('fiche-inscription/liste/', fiche_inscription_liste, name='fiche_inscription_liste'),
+    path('fiche-inscription/generer/<int:eleve_id>/', generer_fiche_inscription, name='generer_fiche_inscription'),
+    path('fiche-inscription/classe/<int:classe_id>/imprimer/', imprimer_fiches_classe, name='imprimer_fiches_classe'),
+    
+    # Certificats de radiation/transfert
+    path('certificat-radiation/liste/', certificat_radiation_liste, name='certificat_radiation_liste'),
+    path('certificat-radiation/generer/<int:eleve_id>/', generer_certificat_radiation, name='generer_certificat_radiation'),
+    
+    # Liste nominative
+    path('liste-nominative/<int:classe_id>/imprimer/', imprimer_liste_nominative, name='imprimer_liste_nominative'),
+    
+    # Liste de présence
+    path('liste-presence/<int:classe_id>/<int:mois_numero>/<int:mois_annee>/imprimer/', imprimer_liste_presence, name='imprimer_liste_presence'),
+    
+    # Convocations
+    path('convocation/liste/', convocation_liste, name='convocation_liste'),
+    path('convocation/generer/<int:eleve_id>/', generer_convocation, name='generer_convocation'),
+    path('convocation/voir/<int:eleve_id>/', voir_convocations_eleve, name='voir_convocations_eleve'),
+    path('convocation/apercu/<int:convocation_id>/', apercu_convocation, name='apercu_convocation'),
+    path('convocation/classe/<int:classe_id>/', convocation_classe, name='convocation_classe'),
+    path('convocation/classe/<int:classe_id>/liste/', convocations_classe_liste, name='convocations_classe_liste'),
+    path('convocation/classe/<int:classe_id>/imprimer/', imprimer_convocations_classe, name='imprimer_convocations_classe'),
+    
+    # Demandes de liaison parent-enfant
+    path('demandes-liaison/', demandes_liaison_liste, name='demandes_liaison_liste'),
+    path('demandes-liaison/<int:demande_id>/approuver/', approuver_demande_liaison, name='approuver_demande_liaison'),
+    path('demandes-liaison/<int:demande_id>/rejeter/', rejeter_demande_liaison, name='rejeter_demande_liaison'),
+    path('demandes-liaison/<int:demande_id>/desapprouver/', desapprouver_demande_liaison, name='desapprouver_demande_liaison'),
     
     # Gestion des examens
     path('gestion-examens/', gestion_examens, name='gestion_examens'),

@@ -323,17 +323,19 @@ def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', po
             evaluation_primaire__in=all_evaluations
         ).update(retenue=False)
         
-        # Réinitialiser aussi les notes d'examens
-        creneaux_examens_reset = CreneauExamen.objects.filter(
-            session_examen__classes=eleve.classe,
-            session_examen__periode=periode,
-            matiere=matiere,
+        # Réinitialiser aussi les notes d'examens (basé sur la session)
+        from ..model.session_examen_model import SessionExamen
+        
+        sessions_examens_reset = SessionExamen.objects.filter(
+            classes=eleve.classe,
+            periode=periode,
+            matieres=matiere,
             actif=True
         )
         
         NoteExamen.objects.filter(
             eleve=eleve,
-            creneau_examen__in=creneaux_examens_reset,
+            session_examen__in=sessions_examens_reset,
             matiere=matiere
         ).update(retenue=False)
         
@@ -386,22 +388,24 @@ def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', po
             note_val, note_obj = notes_sur_10[i]
             notes_devoirs_avec_objets.append((note_val, [note_obj]))
     
-        # ÉTAPE 2 : Récupérer la note d'EXAMEN
-        creneaux_examens = CreneauExamen.objects.filter(
-            session_examen__classes=eleve.classe,
-            session_examen__periode=periode,
-            matiere=matiere,
+        # ÉTAPE 2 : Récupérer la note d'EXAMEN (basée sur la session, pas le créneau)
+        from ..model.session_examen_model import SessionExamen
+        
+        sessions_examens = SessionExamen.objects.filter(
+            classes=eleve.classe,
+            periode=periode,
+            matieres=matiere,
             actif=True
         )
         
         note_examen_sur_20 = None
         note_examen_obj = None
-        if creneaux_examens.exists():
-            # Prendre le premier examen (normalement il n'y en a qu'un par période)
-            creneau = creneaux_examens.first()
+        if sessions_examens.exists():
+            # Prendre la première session (normalement il n'y en a qu'une par période/matière)
+            session = sessions_examens.first()
             note_examen_obj = NoteExamen.objects.filter(
                 eleve=eleve,
-                creneau_examen=creneau,
+                session_examen=session,
                 matiere=matiere,
                 absent=False
             ).exclude(note__isnull=True).first()

@@ -290,13 +290,51 @@ class MatiereController:
         # Récupérer toutes les classes pour le formulaire de modification
         toutes_classes = Classe.objects.filter(etablissement=etablissement).order_by('nom')
         
+        # Créer des groupes de classes pour l'affichage
+        import re
+        groupes_classes = {}
+        for classe in toutes_classes:
+            # Extraire le niveau (ex: "6eme" de "6eme A", "5eme" de "5eme B")
+            match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+            if match:
+                groupe_nom = match.group(1)  # "6eme", "5eme", etc.
+            else:
+                groupe_nom = classe.nom
+            
+            if groupe_nom not in groupes_classes:
+                groupes_classes[groupe_nom] = {
+                    'nom': groupe_nom,
+                    'niveau': classe.niveau,
+                    'classes': [],
+                    'count': 0
+                }
+            
+            groupes_classes[groupe_nom]['classes'].append(classe)
+            groupes_classes[groupe_nom]['count'] += 1
+        
+        # Convertir en liste triée
+        groupes_liste = sorted(groupes_classes.values(), key=lambda x: (x['niveau'], x['nom']))
+        
+        # Regrouper les classes associées par niveau
+        classes_par_groupe = {}
+        for classe in classes_associees:
+            match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+            if match:
+                groupe_nom = match.group(1)
+            else:
+                groupe_nom = classe.nom
+            
+            if groupe_nom not in classes_par_groupe:
+                classes_par_groupe[groupe_nom] = []
+            classes_par_groupe[groupe_nom].append(classe)
+        
         # Données du formulaire de modification
         form_data = {}
         field_errors = {}
         is_valid = True
         
         if request.method == 'POST':
-            # Récupération des données
+            # Récupération des données (utiliser 'groupes_classes' pour les groupes)
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'type_matiere': request.POST.get('type_matiere', ''),
@@ -378,12 +416,22 @@ class MatiereController:
                     is_valid = False
         else:
             # Pré-remplir le formulaire avec les données actuelles
+            # Extraire les groupes de classes associées
+            groupes_selectionnes = set()
+            for classe in classes_associees:
+                import re
+                match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+                if match:
+                    groupes_selectionnes.add(match.group(1))
+                else:
+                    groupes_selectionnes.add(classe.nom)
+            
             form_data = {
                 'nom': matiere.nom,
                 'type_matiere': matiere.type_matiere,
                 'niveau': matiere.niveau,
                 'coefficient': str(matiere.coefficient),
-                'classes': [str(classe.id) for classe in classes_associees],
+                'groupes_classes': list(groupes_selectionnes),
             }
         
         context = {
@@ -391,7 +439,9 @@ class MatiereController:
             'professeurs_principaux': professeurs_principaux,
             'professeurs_secondaires': professeurs_secondaires,
             'classes_associees': classes_associees,
+            'classes_par_groupe': classes_par_groupe,
             'toutes_classes': toutes_classes,
+            'groupes_classes': groupes_liste,
             'form_data': form_data,
             'field_errors': field_errors,
             'is_valid': is_valid,

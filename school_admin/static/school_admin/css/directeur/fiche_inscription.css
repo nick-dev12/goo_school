@@ -1,0 +1,587 @@
+/* ==========================================
+   STYLES DE LA FICHE D'INSCRIPTION
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    line-height: 1.5;
+}
+
+.fiche-container {
+    max-width: 850px;
+    margin: 15px auto;
+    padding: 20px;
+    background: white;
+    border: 5px double #8b5cf6;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.fiche-container::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    right: 7px;
+    bottom: 7px;
+    border: 2px solid #e0e0e0;
+    pointer-events: none;
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.fiche-header {
+    text-align: left;
+    margin-bottom: 8px;
+    padding: 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.etablissement-nom {
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    color: #7c3aed;
+    letter-spacing: 1.5px;
+}
+
+.etablissement-adresse {
+    font-size: 9px;
+    margin-bottom: 2px;
+    color: #475569;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 10px;
+    font-size: 8px;
+    color: #64748b;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ==========================================
+   LIGNE DE SÉPARATION
+   ========================================== */
+
+.separator-line {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #8b5cf6, transparent);
+    margin: 6px 0;
+    opacity: 0.6;
+}
+
+/* ==========================================
+   TITRE DU DOCUMENT
+   ========================================== */
+
+.document-title {
+    text-align: center;
+    margin: 8px 0 10px 0;
+}
+
+.document-title h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #7c3aed;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 2px;
+    padding: 0;
+    background: none;
+    border: none;
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.document-subtitle {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    font-style: italic;
+    margin: 0;
+}
+
+/* ==========================================
+   CORPS DE LA FICHE
+   ========================================== */
+
+.fiche-body {
+    margin: 10px 0;
+}
+
+/* Boîtes de section */
+.section-box {
+    background: white;
+    border: 2px solid #e9d5ff;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid #8b5cf6;
+}
+
+.section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #7c3aed;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.section-title i {
+    font-size: 13px;
+}
+
+/* Grille d'informations */
+.info-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+    width: 100%;
+}
+
+.info-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px;
+    min-width: 0;
+}
+
+.info-item.full-width {
+    grid-column: 1 / -1 !important;
+}
+
+.info-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: #6b21a8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 10px;
+    font-weight: 600;
+    color: #1a1a1a;
+    padding: 4px 6px;
+    background: #faf5ff;
+    border-radius: 3px;
+    border: 1px solid #e9d5ff;
+}
+
+/* Section engagement */
+.engagement-text {
+    font-size: 9px;
+    color: #334155;
+    margin-bottom: 10px;
+    line-height: 1.5;
+    text-align: justify;
+}
+
+/* Section signatures */
+.signatures-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.signature-box {
+    flex: 1;
+    text-align: center;
+}
+
+.signature-title {
+    font-size: 9px;
+    font-weight: 700;
+    color: #7c3aed;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+}
+
+.signature-line {
+    height: 2px;
+    background: #8b5cf6;
+    margin: 5px auto;
+    width: 120px;
+}
+
+.signature-date,
+.signature-name {
+    font-size: 8px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-top: 3px;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.fiche-footer {
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 2px solid #e0e0e0;
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 7px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-print,
+.btn-close {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
+}
+
+.btn-close {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-close:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .fiche-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 12px !important;
+        border: 4px double #8b5cf6 !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        position: relative !important;
+    }
+    
+    .fiche-container:last-child {
+        page-break-after: auto !important;
+    }
+    
+    .fiche-container::before {
+        border: 1px solid #e0e0e0 !important;
+        top: 5px !important;
+        left: 5px !important;
+        right: 5px !important;
+        bottom: 5px !important;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Optimiser les couleurs pour l'impression */
+    .fiche-header {
+        border-bottom: 1px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding: 0 !important;
+        padding-bottom: 5px !important;
+        margin-bottom: 5px !important;
+    }
+
+    .separator-line {
+        background: linear-gradient(to right, transparent, #8b5cf6, transparent) !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        height: 1px !important;
+        margin: 4px 0 !important;
+    }
+
+    .section-box {
+        border: 1px solid #e9d5ff !important;
+        border-left: 3px solid #8b5cf6 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        margin-bottom: 6px !important;
+        padding: 6px !important;
+    }
+    
+    .info-value {
+        background: #faf5ff !important;
+        border: 1px solid #e9d5ff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding: 2px 4px !important;
+    }
+
+    /* Éviter les sauts de page */
+    .fiche-header,
+    .document-title,
+    .section-box,
+    .signatures-section {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Format A4 portrait */
+    @page {
+        size: A4 portrait !important;
+        margin: 0.7cm !important;
+    }
+    
+    .etablissement-nom {
+        font-size: 14px !important;
+    }
+    
+    .etablissement-adresse {
+        font-size: 8px !important;
+    }
+    
+    .etablissement-contact {
+        font-size: 7px !important;
+    }
+    
+    .document-title {
+        margin: 5px 0 7px 0 !important;
+    }
+    
+    .document-title h2 {
+        font-size: 16px !important;
+        letter-spacing: 2px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .document-subtitle {
+        font-size: 10px !important;
+    }
+    
+    .fiche-body {
+        margin: 6px 0 !important;
+    }
+    
+    .section-title {
+        font-size: 10px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .section-title i {
+        font-size: 10px !important;
+    }
+    
+    .info-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 5px !important;
+    }
+    
+    .info-item {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+    
+    .info-item.full-width {
+        grid-column: 1 / -1 !important;
+    }
+    
+    .info-label {
+        font-size: 7px !important;
+        display: block !important;
+    }
+    
+    .info-value {
+        font-size: 8px !important;
+        display: block !important;
+    }
+    
+    .engagement-text {
+        font-size: 7px !important;
+        line-height: 1.3 !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .signatures-section {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        margin-top: 6px !important;
+        gap: 12px !important;
+    }
+    
+    .signature-box {
+        flex: 1 !important;
+        text-align: center !important;
+    }
+    
+    .signature-title {
+        margin-bottom: 20px !important;
+        font-size: 7px !important;
+    }
+    
+    .signature-line {
+        width: 100px !important;
+        margin: 5px auto !important;
+    }
+    
+    .signature-date,
+    .signature-name {
+        font-size: 7px !important;
+    }
+    
+    .fiche-footer {
+        margin-top: 6px !important;
+        padding-top: 4px !important;
+        border-top: 1px solid #e0e0e0 !important;
+    }
+    
+    .footer-text {
+        font-size: 6px !important;
+    }
+    
+    /* Forcer la position et empêcher les déplacements */
+    * {
+        box-sizing: border-box !important;
+    }
+    
+    /* Forcer le maintien de la grille et du flexbox */
+    .info-grid,
+    .signatures-section {
+        display: -ms-grid !important;
+        display: grid !important;
+    }
+    
+    .signatures-section {
+        display: -webkit-box !important;
+        display: -ms-flexbox !important;
+        display: flex !important;
+    }
+    
+    /* Empêcher tout changement de display */
+    .section-box * {
+        max-width: 100% !important;
+    }
+    
+    /* Assurer que les items restent en ligne */
+    .info-item {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    /* Forcer la largeur des colonnes */
+    .info-grid > .info-item:nth-child(2n+1):not(.full-width) {
+        grid-column: 1 !important;
+    }
+    
+    .info-grid > .info-item:nth-child(2n):not(.full-width) {
+        grid-column: 2 !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .fiche-container {
+        margin: 20px;
+        padding: 25px 15px;
+    }
+
+    .etablissement-nom {
+        font-size: 16px;
+    }
+
+    .document-title h2 {
+        font-size: 18px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .signatures-section {
+        flex-direction: column;
+    }
+
+    .print-actions {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .btn-print,
+    .btn-close {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+

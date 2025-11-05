@@ -12,6 +12,8 @@ urlpatterns = [
     path('reçu/eleve/<int:eleve_id>/', reçu_inscription_eleve, name='reçu_inscription_eleve'),
     path('supprimer/eleve/<int:eleve_id>/', supprimer_eleve, name='supprimer_eleve'),
     path('synchroniser/facturation/', synchroniser_facturation, name='synchroniser_facturation'),
+    # Notes détaillées par matière
+    path('api/notes-detail/<int:eleve_id>/<int:matiere_id>/', get_notes_detail_matiere, name='get_notes_detail_matiere'),
     # Gestion des classes
     path('gestion/classes/', gestion_classes, name='gestion_classes'),
     path('detail/classe/<int:classe_id>/', detail_classe, name='detail_classe'),

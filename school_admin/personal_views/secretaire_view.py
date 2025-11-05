@@ -840,22 +840,19 @@ def detail_eleve(request, eleve_id):
                             'absent': note.absent
                         })
                     
-                    # Récupérer les notes d'examen retenues
-                    notes_examens = NoteExamen.objects.filter(
+                    # Récupérer la note d'examen (basée sur session, pas créneau)
+                    from ..model.session_examen_model import SessionExamen
+                    note_examen_obj = NoteExamen.objects.filter(
                         eleve=eleve,
                         matiere=moyenne_obj.matiere,
-                        creneau_examen__session_examen__periode=periode,
-                        retenue=True
-                    ).select_related('creneau_examen')
+                        session_examen__periode=periode
+                    ).select_related('session_examen').first()
                     
-                    for note_ex in notes_examens:
-                        notes_retenues_detail.append({
-                            'type': 'Examen',
-                            'nom': note_ex.creneau_examen.session_examen.nom_examen,
-                            'note': note_ex.note,
-                            'bareme': note_ex.bareme,
-                            'absent': note_ex.absent
-                        })
+                    note_examen_valeur = None
+                    nom_examen = None
+                    if note_examen_obj and not note_examen_obj.absent and note_examen_obj.note is not None:
+                        note_examen_valeur = float(note_examen_obj.note)
+                        nom_examen = note_examen_obj.session_examen.nom_examen if note_examen_obj.session_examen else 'Examen'
                     
                     notes_par_trimestre[trimestre][moyenne_obj.matiere.nom].append({
                         'moyenne': moyenne_obj.moyenne,
@@ -863,7 +860,9 @@ def detail_eleve(request, eleve_id):
                         'matiere_id': moyenne_obj.matiere.id,
                         'note_sur_20': moyenne_obj.moyenne,
                         'soumis': moyenne_obj.soumis,
-                        'notes_detaillees': notes_retenues_detail
+                        'notes_detaillees': notes_retenues_detail,
+                        'note_examen': note_examen_valeur,
+                        'nom_examen': nom_examen
                     })
     else:
         # Pour les autres établissements, utiliser le système standard
@@ -900,6 +899,58 @@ def detail_eleve(request, eleve_id):
                 'evaluation': evaluation,
                 'note_sur_20': note.note_sur_20
             })
+
+    # === Ajout secondaire: matières de la classe et moyennes par matière (toutes périodes) ===
+    # Initialiser les variables pour tous les types d'établissements
+    from school_admin.model.affectation_model import AffectationProfesseur
+    from school_admin.model.matiere_model import Matiere
+    from school_admin.model.moyenne_model import Moyenne
+    from school_admin.model.periode_model import PeriodeScolaire
+    from collections import defaultdict
+    
+    matieres_classe = []
+    moyennes_par_matiere = {}
+    periode_active_notes = None
+    periodes_actives = []
+    moyennes_par_periode = defaultdict(dict)  # {periode_id: {matiere_id: moyenne_obj}}
+    
+    # Remplir les données uniquement pour les établissements secondaires
+    if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+        matieres_aff = AffectationProfesseur.objects.filter(
+            classe=eleve.classe,
+            actif=True
+        ).select_related('matiere').values_list('matiere', flat=True)
+        matieres_classe = list(Matiere.objects.filter(id__in=matieres_aff, actif=True).order_by('nom'))
+        
+        # Récupérer toutes les périodes actives
+        periodes_actives = list(PeriodeScolaire.objects.filter(
+            etablissement=etablissement,
+            est_active=True
+        ).order_by('date_debut'))
+        
+        # La période active par défaut
+        periode_active_notes = PeriodeScolaire.get_periode_active(etablissement) or (
+            periodes_actives[0] if periodes_actives else None
+        )
+        
+        if matieres_classe and periodes_actives:
+            # Récupérer toutes les moyennes pour cet élève pour toutes les périodes
+            for periode in periodes_actives:
+                moyennes = Moyenne.objects.filter(
+                    eleve=eleve,
+                    classe=eleve.classe,
+                    matiere__in=matieres_classe,
+                    periode=str(periode.id),
+                    actif=True
+                ).select_related('matiere')
+                
+                # Créer un dictionnaire avec les moyennes indexées par matière.id pour chaque période
+                for m in moyennes:
+                    moyennes_par_periode[periode.id][m.matiere.id] = m
+            
+            # Garder moyennes_par_matiere pour la période active (compatibilité)
+            if periode_active_notes:
+                moyennes_par_matiere = moyennes_par_periode.get(periode_active_notes.id, {})
     
     # Calculer les moyennes par matière et par trimestre
     # Et vérifier si le relevé a été soumis pour chaque matière
@@ -1188,6 +1239,13 @@ def detail_eleve(request, eleve_id):
         'releves_soumis_par_trimestre': releves_soumis_par_trimestre,
         'sanctions_eleve': sanctions_eleve,
         'stats_sanctions': stats_sanctions,
+        # Ajouts secondaires
+        'is_secondaire': etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée'],
+        'matieres_classe': matieres_classe,
+        'moyennes_par_matiere': moyennes_par_matiere,
+        'periode_active_notes': periode_active_notes,
+        'periodes_actives': periodes_actives,
+        'moyennes_par_periode': dict(moyennes_par_periode),
     }
     
     return render(request, 'school_admin/directeur/secretaire/detail_eleve.html', context)
@@ -1669,6 +1727,126 @@ def synchroniser_facturation(request):
     }
     
     return render(request, 'school_admin/directeur/secretaire/synchroniser_facturation.html', context)
+
+
+@login_required
+def get_notes_detail_matiere(request, eleve_id, matiere_id):
+    """
+    Vue AJAX pour récupérer les notes détaillées d'un élève pour une matière spécifique
+    Uniquement pour les établissements de type secondaire (lycée, collège, lycée+collège)
+    """
+    from django.http import JsonResponse
+    from ..model.eleve_model import Eleve
+    from ..model.matiere_model import Matiere
+    from ..model.evaluation_model import Note
+    from ..model.note_examen_model import NoteExamen
+    from ..model.moyenne_model import Moyenne
+    from ..model.periode_model import PeriodeScolaire
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+    from ..model.etablissement_model import Etablissement
+    
+    # Récupérer l'utilisateur connecté
+    user = request.user
+    
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        return JsonResponse({'error': 'Accès non autorisé'}, status=403)
+    
+    # Vérifier que l'établissement est de type secondaire
+    if etablissement.type_etablissement not in ['lycée', 'collège', 'collège_lycée']:
+        return JsonResponse({'error': 'Cette fonctionnalité est réservée aux établissements secondaires'}, status=403)
+    
+    try:
+        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
+        matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
+        
+        # Récupérer la période depuis les paramètres GET ou utiliser la période active
+        periode_id = request.GET.get('periode_id')
+        if periode_id:
+            try:
+                periode_active = PeriodeScolaire.objects.get(id=int(periode_id), etablissement=etablissement)
+            except (PeriodeScolaire.DoesNotExist, ValueError):
+                periode_active = PeriodeScolaire.get_periode_active(etablissement)
+        else:
+            periode_active = PeriodeScolaire.get_periode_active(etablissement) or PeriodeScolaire.objects.filter(
+                etablissement=etablissement, est_active=True
+            ).order_by('date_debut').first()
+        
+        if not periode_active:
+            return JsonResponse({'error': 'Aucune période active trouvée'}, status=404)
+        
+        # Récupérer toutes les notes de devoirs/interrogations retenues pour cette matière
+        notes_devoirs = Note.objects.filter(
+            eleve=eleve,
+            evaluation__matiere=matiere,
+            evaluation__periode_scolaire=periode_active,
+            retenue=True
+        ).select_related('evaluation').order_by('evaluation__date_evaluation')
+        
+        # Récupérer la note d'examen
+        note_examen = NoteExamen.objects.filter(
+            eleve=eleve,
+            matiere=matiere,
+            session_examen__periode=periode_active
+        ).select_related('session_examen').first()
+        
+        # Récupérer la moyenne
+        moyenne_obj = Moyenne.objects.filter(
+            eleve=eleve,
+            matiere=matiere,
+            periode=str(periode_active.id),
+            actif=True
+        ).first()
+        
+        # Construire la réponse
+        notes_data = []
+        for note in notes_devoirs:
+            notes_data.append({
+                'type': 'Devoir' if note.evaluation.bareme == 20 else 'Interrogation',
+                'titre': note.evaluation.titre,
+                'date': note.evaluation.date_evaluation.strftime('%d/%m/%Y') if note.evaluation.date_evaluation else '',
+                'note': str(note.note) if not note.absent else None,
+                'bareme': str(note.evaluation.bareme),
+                'absent': note.absent,
+                'note_sur_20': float(note.note_sur_20) if not note.absent else None
+            })
+        
+        examen_data = None
+        if note_examen and not note_examen.absent:
+            examen_data = {
+                'note': float(note_examen.note),
+                'bareme': 20,
+                'nom_examen': note_examen.session_examen.nom_examen if note_examen.session_examen else 'Examen'
+            }
+        
+        response_data = {
+            'success': True,
+            'eleve': {
+                'nom': eleve.nom,
+                'prenom': eleve.prenom,
+                'nom_complet': eleve.nom_complet
+            },
+            'matiere': {
+                'nom': matiere.nom
+            },
+            'notes_devoirs': notes_data,
+            'note_examen': examen_data,
+            'moyenne': float(moyenne_obj.moyenne) if moyenne_obj and moyenne_obj.moyenne else None,
+            'soumis': moyenne_obj.soumis if moyenne_obj else False
+        }
+        
+        return JsonResponse(response_data)
+        
+    except Eleve.DoesNotExist:
+        return JsonResponse({'error': 'Élève non trouvé'}, status=404)
+    except Matiere.DoesNotExist:
+        return JsonResponse({'error': 'Matière non trouvée'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required

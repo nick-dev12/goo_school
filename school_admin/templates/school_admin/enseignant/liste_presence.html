@@ -89,6 +89,24 @@
         <form method="post" action="{% url 'enseignant:valider_presence' classe.id %}" id="presence-form">
             {% csrf_token %}
             
+            <!-- Champ caché pour la matière si applicable -->
+            {% if matiere %}
+                <input type="hidden" name="matiere" value="{{ matiere.id }}">
+            {% endif %}
+            
+            <!-- Affichage de la matière sélectionnée si applicable -->
+            {% if matiere %}
+                <div class="info-card" style="margin-bottom: 1rem;">
+                    <div class="info-icon" style="background: #8b5cf6;">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="info-content">
+                        <strong>Matière :</strong>
+                        <span>{{ matiere.nom }}</span>
+                    </div>
+                </div>
+            {% endif %}
+            
             <!-- Actions buttons (top) -->
             {% if not liste_presence.validee %}
                 <div class="actions-container top-actions">

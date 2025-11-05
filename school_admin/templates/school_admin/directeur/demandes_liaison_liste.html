@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes de liaison Parent-Enfant - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
+    <style>
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid;
+        }
+
+        .stat-card.total { border-color: #3b82f6; }
+        .stat-card.en-attente { border-color: #fbbf24; }
+        .stat-card.bloquee { border-color: #ef4444; }
+        .stat-card.reussie { border-color: #10b981; }
+        .stat-card.approuvee { border-color: #8b5cf6; }
+        .stat-card.refusee { border-color: #dc2626; }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .demandes-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .table-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        thead th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        tbody td {
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-en-attente {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-bloquee {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-reussie {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-approuvee {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .badge-refusee {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-echec {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .tentatives-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .tentatives-badge.danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Système d'onglets */
+        .tabs-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 16px 24px;
+            background: transparent;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .tab-btn.active {
+            color: #3b82f6;
+            background: white;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .tab-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .tab-badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Barre de recherche et filtres */
+        .search-filters-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 16px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 16px;
+            background: #f3f4f6;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-btn:hover {
+            background: #e5e7eb;
+            border-color: var(--primary-color);
+        }
+
+        .filter-btn.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .filter-btn i {
+            font-size: 12px;
+        }
+
+        .results-count {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 12px;
+        }
+
+        .results-count strong {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .btn-disapprove {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-disapprove:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+
+        /* Messages Django */
+        .messages-container {
+            margin-bottom: 24px;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert i {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-user-friends"></i>
+                    Demandes de liaison Parent-Enfant
+                </h1>
+                <p class="page-subtitle">
+                    Gérez les demandes de liaison entre parents et élèves
+                </p>
+            </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {% if message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% elif message.tags == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Statistiques -->
+        <div class="stats-container">
+            <div class="stat-card total">
+                <div class="stat-value">{{ stats.total }}</div>
+                <div class="stat-label">Total des demandes</div>
+            </div>
+            <div class="stat-card en-attente">
+                <div class="stat-value">{{ stats.en_attente }}</div>
+                <div class="stat-label">En attente</div>
+            </div>
+            <div class="stat-card bloquee">
+                <div class="stat-value">{{ stats.bloquee }}</div>
+                <div class="stat-label">Bloquées</div>
+            </div>
+            <div class="stat-card reussie">
+                <div class="stat-value">{{ stats.reussie }}</div>
+                <div class="stat-label">Réussies</div>
+            </div>
+            <div class="stat-card approuvee">
+                <div class="stat-value">{{ stats.approuvee }}</div>
+                <div class="stat-label">Approuvées</div>
+            </div>
+            <div class="stat-card refusee">
+                <div class="stat-value">{{ stats.refusee }}</div>
+                <div class="stat-label">Refusées</div>
+            </div>
+        </div>
+
+        <!-- Système d'onglets -->
+        <div class="tabs-container">
+            <!-- En-tête des onglets -->
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('a-approuver')">
+                    <i class="fas fa-clock"></i>
+                    <span>À approuver</span>
+                    <span class="tab-badge warning">{{ stats.en_attente|add:stats.bloquee }}</span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('reussies')">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Liaisons réussies</span>
+                    <span class="tab-badge success">{{ stats.reussie|add:stats.approuvee }}</span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('refusees')">
+                    <i class="fas fa-times-circle"></i>
+                    <span>Refusées</span>
+                    <span class="tab-badge" style="background: #fee2e2; color: #991b1b;">{{ stats.refusee }}</span>
+                </button>
+            </div>
+
+            <!-- Contenu onglet "À approuver" -->
+            <div id="tab-a-approuver" class="tab-content active">
+                <!-- Barre de recherche et filtres -->
+                <div class="search-filters-container">
+                    <div class="search-box">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="searchApprouver"
+                                   placeholder="Rechercher par nom parent, élève, matricule..."
+                                   onkeyup="filterTable('tab-a-approuver')">
+                        </div>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterByStatus('tab-a-approuver', 'tous')">
+                            <i class="fas fa-list"></i> Tous
+                        </button>
+                        <button class="filter-btn" onclick="filterByStatus('tab-a-approuver', 'en_attente')">
+                            <i class="fas fa-clock"></i> En attente
+                        </button>
+                        <button class="filter-btn" onclick="filterByStatus('tab-a-approuver', 'bloquee')">
+                            <i class="fas fa-ban"></i> Bloquées
+                        </button>
+                    </div>
+                    <div class="results-count" id="count-a-approuver">
+                        <strong id="count-visible-approuver">{{ stats.en_attente|add:stats.bloquee }}</strong> demande(s) affichée(s)
+                    </div>
+                </div>
+
+                {% if demandes %}
+                    {% with demandes_a_approuver=demandes|dictsort:"statut" %}
+                    {% if stats.en_attente > 0 or stats.bloquee > 0 %}
+                        <table id="table-a-approuver">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Parent</th>
+                                    <th>Élève</th>
+                                    <th>Classe</th>
+                                    <th>Lien</th>
+                                    <th>Tentatives</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for demande in demandes %}
+                                    {% if demande.statut == 'en_attente' or demande.statut == 'bloquee' %}
+                                        <tr>
+                                            <td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td>
+                                            <td>
+                                                <strong>{{ demande.parent_demandeur.nom_complet }}</strong><br>
+                                                <small style="color: #6b7280;">{{ demande.parent_demandeur.matricule_parental }}</small><br>
+                                                <small style="color: #3b82f6;">
+                                                    <i class="fas fa-phone" style="font-size: 11px;"></i>
+                                                    {{ demande.parent_demandeur.telephone|default:"Non renseigné" }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if demande.eleve_valide %}
+                                                    <strong>{{ demande.eleve_valide.nom_complet }}</strong><br>
+                                                    <small style="color: #6b7280;">{{ demande.eleve_valide.matricule_eleve }}</small>
+                                                {% else %}
+                                                    <span style="color: #9ca3af;">{{ demande.matricule_eleve }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if demande.eleve_valide and demande.eleve_valide.classe %}
+                                                    {{ demande.eleve_valide.classe.nom }}
+                                                {% else %}
+                                                    <span style="color: #9ca3af;">{{ demande.classe_eleve }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ demande.get_type_lien_display }}</td>
+                                            <td>
+                                                <span class="tentatives-badge {% if demande.nombre_tentatives >= 3 %}danger{% endif %}">
+                                                    <i class="fas fa-redo"></i>
+                                                    {{ demande.nombre_tentatives }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-{{ demande.statut }}">
+                                                    {{ demande.get_statut_display }}
+                                                </span>
+                                                {% if demande.raison_echec %}
+                                                    <br><small style="color: #ef4444;">{{ demande.raison_echec|truncatewords:10 }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <form action="{% url 'directeur:approuver_demande_liaison' demande.id %}" method="POST" style="margin: 0;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-approve">
+                                                            <i class="fas fa-check"></i> Approuver
+                                                        </button>
+                                                    </form>
+                                                    <form action="{% url 'directeur:rejeter_demande_liaison' demande.id %}" method="POST" style="margin: 0;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-reject">
+                                                            <i class="fas fa-times"></i> Rejeter
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Aucune demande à traiter</h3>
+                            <p>Toutes les demandes ont été traitées.</p>
+                        </div>
+                    {% endif %}
+                    {% endwith %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Aucune demande de liaison</h3>
+                        <p>Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Contenu onglet "Liaisons réussies" -->
+            <div id="tab-reussies" class="tab-content">
+                <!-- Barre de recherche et filtres -->
+                <div class="search-filters-container">
+                    <div class="search-box">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="searchReussies"
+                                   placeholder="Rechercher par nom parent, élève, matricule..."
+                                   onkeyup="filterTable('tab-reussies')">
+                        </div>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterByStatus('tab-reussies', 'tous')">
+                            <i class="fas fa-list"></i> Tous
+                        </button>
+                        <button class="filter-btn" onclick="filterByStatus('tab-reussies', 'reussie')">
+                            <i class="fas fa-check-circle"></i> Réussies
+                        </button>
+                        <button class="filter-btn" onclick="filterByStatus('tab-reussies', 'approuvee')">
+                            <i class="fas fa-check-double"></i> Approuvées
+                        </button>
+                    </div>
+                    <div class="results-count" id="count-reussies">
+                        <strong id="count-visible-reussies">{{ stats.reussie|add:stats.approuvee }}</strong> demande(s) affichée(s)
+                    </div>
+                </div>
+
+                {% if demandes %}
+                    {% if stats.reussie > 0 or stats.approuvee > 0 %}
+                        <table id="table-reussies">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Parent</th>
+                                    <th>Élève</th>
+                                    <th>Classe</th>
+                                    <th>Lien</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for demande in demandes %}
+                                    {% if demande.statut == 'reussie' or demande.statut == 'approuvee' %}
+                                        <tr>
+                                            <td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td>
+                                            <td>
+                                                <strong>{{ demande.parent_demandeur.nom_complet }}</strong><br>
+                                                <small style="color: #6b7280;">{{ demande.parent_demandeur.matricule_parental }}</small><br>
+                                                <small style="color: #3b82f6;">
+                                                    <i class="fas fa-phone" style="font-size: 11px;"></i>
+                                                    {{ demande.parent_demandeur.telephone|default:"Non renseigné" }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <strong>{{ demande.eleve_valide.nom_complet }}</strong><br>
+                                                <small style="color: #6b7280;">{{ demande.eleve_valide.matricule_eleve }}</small>
+                                            </td>
+                                            <td>{{ demande.eleve_valide.classe.nom }}</td>
+                                            <td>{{ demande.get_type_lien_display }}</td>
+                                            <td>
+                                                <span class="badge badge-{{ demande.statut }}">
+                                                    {{ demande.get_statut_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <form action="{% url 'directeur:desapprouver_demande_liaison' demande.id %}" method="POST" style="margin: 0;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-disapprove">
+                                                        <i class="fas fa-ban"></i> Désapprouver
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h3>Aucune liaison réussie</h3>
+                            <p>Aucune demande de liaison n'a été approuvée pour le moment.</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Aucune demande de liaison</h3>
+                        <p>Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Contenu onglet "Refusées" -->
+            <div id="tab-refusees" class="tab-content">
+                <!-- Barre de recherche et filtres -->
+                <div class="search-filters-container">
+                    <div class="search-box">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="searchRefusees"
+                                   placeholder="Rechercher par nom parent, élève, matricule..."
+                                   onkeyup="filterTable('tab-refusees')">
+                        </div>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterByStatus('tab-refusees', 'tous')">
+                            <i class="fas fa-list"></i> Tous
+                        </button>
+                        <button class="filter-btn" onclick="filterByStatus('tab-refusees', 'refusee')">
+                            <i class="fas fa-times-circle"></i> Refusées
+                        </button>
+                        <button class="filter-btn" onclick="filterByStatus('tab-refusees', 'echec')">
+                            <i class="fas fa-exclamation-circle"></i> Échecs
+                        </button>
+                    </div>
+                    <div class="results-count" id="count-refusees">
+                        <strong id="count-visible-refusees">{{ stats.refusee|add:stats.echec }}</strong> demande(s) affichée(s)
+                    </div>
+                </div>
+
+                {% if demandes %}
+                    {% if stats.refusee > 0 or stats.echec > 0 %}
+                        <table id="table-refusees">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Parent</th>
+                                    <th>Élève</th>
+                                    <th>Classe</th>
+                                    <th>Lien</th>
+                                    <th>Tentatives</th>
+                                    <th>Statut</th>
+                                    <th>Raison</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for demande in demandes %}
+                                    {% if demande.statut == 'refusee' or demande.statut == 'echec' %}
+                                        <tr>
+                                            <td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td>
+                                            <td>
+                                                <strong>{{ demande.parent_demandeur.nom_complet }}</strong><br>
+                                                <small style="color: #6b7280;">{{ demande.parent_demandeur.matricule_parental }}</small><br>
+                                                <small style="color: #3b82f6;">
+                                                    <i class="fas fa-phone" style="font-size: 11px;"></i>
+                                                    {{ demande.parent_demandeur.telephone|default:"Non renseigné" }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if demande.eleve_valide %}
+                                                    <strong>{{ demande.eleve_valide.nom_complet }}</strong><br>
+                                                    <small style="color: #6b7280;">{{ demande.eleve_valide.matricule_eleve }}</small>
+                                                {% else %}
+                                                    <span style="color: #9ca3af;">{{ demande.matricule_eleve }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if demande.eleve_valide and demande.eleve_valide.classe %}
+                                                    {{ demande.eleve_valide.classe.nom }}
+                                                {% else %}
+                                                    <span style="color: #9ca3af;">{{ demande.classe_eleve }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ demande.get_type_lien_display }}</td>
+                                            <td>
+                                                <span class="tentatives-badge {% if demande.nombre_tentatives >= 3 %}danger{% endif %}">
+                                                    <i class="fas fa-redo"></i>
+                                                    {{ demande.nombre_tentatives }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-{{ demande.statut }}">
+                                                    {{ demande.get_statut_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small style="color: #ef4444;">{{ demande.raison_echec|default:demande.motif_refus|default:"Non spécifié" }}</small>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-smile"></i>
+                            <h3>Aucune demande refusée</h3>
+                            <p>Aucune demande n'a été refusée ou n'a échoué.</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Aucune demande de liaison</h3>
+                        <p>Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- JavaScript pour les onglets, recherche et filtres -->
+        <script>
+            function switchTab(tabName) {
+                // Désactiver tous les onglets
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Activer l'onglet sélectionné
+                event.target.closest('.tab-btn').classList.add('active');
+                document.getElementById('tab-' + tabName).classList.add('active');
+
+                // Réinitialiser les filtres et la recherche
+                resetFilters(tabName);
+            }
+
+            function filterTable(tabId) {
+                const searchInputId = tabId === 'tab-a-approuver' ? 'searchApprouver' : 
+                                     tabId === 'tab-reussies' ? 'searchReussies' : 'searchRefusees';
+                const searchValue = document.getElementById(searchInputId).value.toLowerCase();
+                const table = document.querySelector(`#${tabId} table tbody`);
+                
+                if (!table) return;
+                
+                const rows = table.querySelectorAll('tr');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    // Si la ligne est déjà cachée par le filtre de statut, on ne la traite pas
+                    if (row.style.display === 'none' && !searchValue) {
+                        return;
+                    }
+
+                    const text = row.textContent.toLowerCase();
+                    const isVisible = text.includes(searchValue);
+                    
+                    // Ne modifier que si c'était visible par le filtre de statut
+                    if (row.getAttribute('data-filtered') !== 'true') {
+                        row.style.display = isVisible ? '' : 'none';
+                        if (isVisible) visibleCount++;
+                    }
+                });
+
+                // Mettre à jour le compteur
+                updateCount(tabId, visibleCount);
+            }
+
+            function filterByStatus(tabId, status) {
+                // Mettre à jour les boutons actifs
+                const container = document.querySelector(`#${tabId} .filter-buttons`);
+                container.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+
+                const table = document.querySelector(`#${tabId} table tbody`);
+                if (!table) return;
+
+                const rows = table.querySelectorAll('tr');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const badge = row.querySelector('.badge');
+                    if (!badge) return;
+
+                    const badgeClass = badge.className;
+                    const rowStatus = badgeClass.includes('badge-en_attente') ? 'en_attente' :
+                                    badgeClass.includes('badge-bloquee') ? 'bloquee' :
+                                    badgeClass.includes('badge-reussie') ? 'reussie' :
+                                    badgeClass.includes('badge-approuvee') ? 'approuvee' :
+                                    badgeClass.includes('badge-refusee') ? 'refusee' :
+                                    badgeClass.includes('badge-echec') ? 'echec' : '';
+
+                    if (status === 'tous') {
+                        row.style.display = '';
+                        row.setAttribute('data-filtered', 'false');
+                        visibleCount++;
+                    } else {
+                        const isVisible = rowStatus === status;
+                        row.style.display = isVisible ? '' : 'none';
+                        row.setAttribute('data-filtered', isVisible ? 'false' : 'true');
+                        if (isVisible) visibleCount++;
+                    }
+                });
+
+                // Mettre à jour le compteur
+                updateCount(tabId, visibleCount);
+
+                // Réappliquer la recherche
+                filterTable(tabId);
+            }
+
+            function updateCount(tabId, count) {
+                const counterId = tabId === 'tab-a-approuver' ? 'count-visible-approuver' :
+                                 tabId === 'tab-reussies' ? 'count-visible-reussies' : 'count-visible-refusees';
+                const counter = document.getElementById(counterId);
+                if (counter) {
+                    counter.textContent = count;
+                }
+            }
+
+            function resetFilters(tabName) {
+                const tabId = 'tab-' + tabName;
+                
+                // Réinitialiser la recherche
+                const searchInput = document.querySelector(`#${tabId} .search-input`);
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+
+                // Réinitialiser les filtres (activer "Tous")
+                const filterBtns = document.querySelectorAll(`#${tabId} .filter-btn`);
+                filterBtns.forEach((btn, index) => {
+                    if (index === 0) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                // Afficher toutes les lignes
+                const table = document.querySelector(`#${tabId} table tbody`);
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        row.style.display = '';
+                        row.setAttribute('data-filtered', 'false');
+                    });
+                }
+
+                // Mettre à jour le compteur
+                const table2 = document.querySelector(`#${tabId} table tbody`);
+                if (table2) {
+                    const visibleCount = Array.from(table2.querySelectorAll('tr')).filter(r => r.style.display !== 'none').length;
+                    updateCount(tabId, visibleCount);
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>
+

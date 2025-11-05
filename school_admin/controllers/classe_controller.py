@@ -311,7 +311,7 @@ class ClasseController:
             return redirect('administrateur_etablissement:liste_classes')
         
         # Récupérer les affectations des enseignants
-        affectations = classe.affectations.filter(actif=True).select_related('professeur', 'professeur__matiere_principale')
+        affectations = classe.affectations.filter(actif=True).select_related('professeur', 'professeur__matiere_principale', 'matiere')
         
         # Organiser les enseignants par statut
         enseignants_principaux = affectations.filter(statut='principal')
@@ -353,8 +353,16 @@ class ClasseController:
             for aff in affectations_primaires:
                 matieres_set.update(aff.matieres.all())
             matieres_classe = list(matieres_set)
+        elif etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+            # Pour les établissements secondaires, récupérer TOUTES les matières de l'établissement
+            from ..model.matiere_model import Matiere
+            matieres_classe = list(Matiere.objects.filter(
+                etablissement=etablissement,
+                niveau__in=['college', 'lycee', 'tous'],
+                actif=True
+            ).order_by('nom'))
         else:
-            # Pour les autres établissements
+            # Pour les autres établissements (ancien système)
             for affectation in affectations:
                 if affectation.professeur and affectation.professeur.matiere_principale:
                     if affectation.professeur.matiere_principale not in matieres_classe:
@@ -378,14 +386,9 @@ class ClasseController:
         for periode in periodes:
             eleves_data = []
             
-            # Obtenir le code de période pour le modèle Moyenne
-            periode_code = periode_mapping.get(periode.nom_periode, 'trimestre1')
-            
             for eleve in eleves:
                 # Récupérer les moyennes par matière pour cet élève et cette période
                 moyennes_dict = {}
-                moyenne_generale_total = 0
-                nb_matieres_avec_moyenne = 0
                 
                 for matiere in matieres_classe:
                     # Pour le primaire, utiliser MoyenneMatierePrimaire
@@ -396,8 +399,19 @@ class ClasseController:
                             matiere=matiere,
                             periode_scolaire=periode
                         ).first()
+                    elif etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+                        # Pour le secondaire, utiliser Moyenne avec periode = str(periode.id)
+                        moyenne_obj = Moyenne.objects.filter(
+                            eleve=eleve,
+                            classe=classe,
+                            matiere=matiere,
+                            periode=str(periode.id),
+                            actif=True,
+                            soumis=True  # Afficher seulement les moyennes soumises
+                        ).first()
                     else:
-                        # Pour les autres, utiliser Moyenne standard
+                        # Ancien système (fallback)
+                        periode_code = periode_mapping.get(periode.nom_periode, 'trimestre1')
                         moyenne_obj = Moyenne.objects.filter(
                             eleve=eleve,
                             classe=classe,
@@ -409,23 +423,26 @@ class ClasseController:
                     if moyenne_obj and moyenne_obj.moyenne is not None:
                         moyennes_dict[matiere.id] = {
                             'moyenne': moyenne_obj.moyenne,
-                            'nombre_notes': getattr(moyenne_obj, 'nombre_notes', None)
+                            'soumis': getattr(moyenne_obj, 'soumis', True)
                         }
-                        moyenne_generale_total += moyenne_obj.moyenne
-                        nb_matieres_avec_moyenne += 1
                 
-                # Calculer la moyenne générale
-                moyenne_generale = None
-                if nb_matieres_avec_moyenne > 0:
-                    moyenne_generale = moyenne_generale_total / nb_matieres_avec_moyenne
+                # Calculer une moyenne temporaire pour le tri (pour les établissements secondaires)
+                moyenne_tri = None
+                if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+                    moyennes_valides = [m['moyenne'] for m in moyennes_dict.values() if m.get('moyenne') is not None]
+                    if moyennes_valides:
+                        moyenne_tri = sum(moyennes_valides) / len(moyennes_valides)
                 
                 # Ajouter l'élève au tableau (toujours affiché)
                 eleves_data.append({
                     'eleve': eleve,
                     'moyennes': moyennes_dict,
-                    'moyenne_generale': moyenne_generale,
-                    'nb_matieres': nb_matieres_avec_moyenne
+                    'moyenne_tri': moyenne_tri,
                 })
+            
+            # Trier les élèves par moyenne décroissante (pour les établissements secondaires)
+            if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+                eleves_data.sort(key=lambda x: (x['moyenne_tri'] is None, -x['moyenne_tri'] if x['moyenne_tri'] is not None else 0))
             
             # Toujours ajouter la période
             releves_notes_par_periode[periode.id] = eleves_data

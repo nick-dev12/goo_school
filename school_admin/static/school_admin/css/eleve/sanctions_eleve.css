@@ -1,0 +1,625 @@
+/* Variables CSS */
+:root {
+    --primary-color: #3b82f6;
+    --secondary-color: #7c3aed;
+    --success-color: #10b981;
+    --warning-color: #fbbf24;
+    --danger-color: #ef4444;
+    --text-color: #1e293b;
+    --text-light: #64748b;
+    --border-color: #e5e7eb;
+    --bg-light: #f8fafc;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    
+    /* Couleurs pour les gravités de sanctions */
+    --gravite-legere: #10b981;
+    --gravite-moyenne: #f59e0b;
+    --gravite-grave: #ef4444;
+    --gravite-tres-grave: #dc2626;
+}
+
+/* Conteneur principal */
+.content-container {
+    padding: 15px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.sanctions-container {
+    background: var(--bg-light);
+    min-height: 100vh;
+}
+
+/* En-tête de page */
+.page-header {
+    margin-bottom: 20px;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.page-title i {
+    color: var(--danger-color);
+    font-size: 1.25rem;
+}
+
+.page-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-left: 35px;
+}
+
+/* Grille de statistiques */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.stat-total .stat-icon {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+}
+
+.stat-legere .stat-icon {
+    background: linear-gradient(135deg, var(--gravite-legere), #059669);
+    color: white;
+}
+
+.stat-moyenne .stat-icon {
+    background: linear-gradient(135deg, var(--gravite-moyenne), #d97706);
+    color: white;
+}
+
+.stat-grave .stat-icon {
+    background: linear-gradient(135deg, var(--gravite-grave), #dc2626);
+    color: white;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.stat-detail {
+    font-size: 0.7rem;
+    color: var(--text-light);
+}
+
+/* Onglets de périodes */
+.periodes-tabs-container {
+    margin-bottom: 20px;
+}
+
+.periodes-tabs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+.periode-tab {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    min-width: 200px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    box-shadow: var(--shadow-sm);
+}
+
+.periode-tab:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.periode-tab.active {
+    border-color: var(--danger-color);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.05));
+}
+
+.tab-icon {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tab-icon i {
+    font-size: 14px;
+    color: var(--danger-color);
+}
+
+.tab-info {
+    flex: 1;
+}
+
+.tab-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 3px;
+}
+
+.tab-period {
+    font-size: 0.7rem;
+    color: var(--text-light);
+}
+
+.tab-stats {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.tab-stat {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    background: var(--bg-light);
+    color: var(--text-color);
+}
+
+.tab-stat.graves {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+/* Contenu des périodes */
+.periodes-content {
+    position: relative;
+}
+
+.periode-section {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.periode-section.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Liste des sanctions */
+.sanctions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sanction-card {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.sanction-card:hover {
+    transform: translateX(2px);
+    box-shadow: var(--shadow-md);
+}
+
+.sanction-header {
+    display: flex;
+    gap: 14px;
+}
+
+.sanction-date-box {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+}
+
+.date-jour {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1;
+}
+
+.date-mois {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+}
+
+.date-annee {
+    font-size: 0.55rem;
+    color: var(--text-light);
+    margin-top: 1px;
+}
+
+.sanction-main {
+    flex: 1;
+}
+
+.sanction-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.sanction-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-legere {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--gravite-legere);
+}
+
+.badge-moyenne {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--gravite-moyenne);
+}
+
+.badge-grave {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--gravite-grave);
+}
+
+.badge-tres_grave {
+    background: rgba(220, 38, 38, 0.15);
+    color: var(--gravite-tres-grave);
+}
+
+.gravite-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.gravite-legere {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--gravite-legere);
+}
+
+.gravite-moyenne {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--gravite-moyenne);
+}
+
+.gravite-grave {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--gravite-grave);
+}
+
+.gravite-tres_grave {
+    background: rgba(220, 38, 38, 0.2);
+    color: var(--gravite-tres-grave);
+}
+
+.sanction-raison {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    margin-bottom: 8px;
+}
+
+.sanction-raison i {
+    color: var(--primary-color);
+    font-size: 0.75rem;
+}
+
+.sanction-description {
+    background: var(--bg-light);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.sanction-description i {
+    color: var(--text-light);
+    margin-right: 6px;
+    font-size: 0.7rem;
+}
+
+.sanction-description p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.sanction-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    color: var(--text-light);
+}
+
+.meta-item i {
+    font-size: 0.65rem;
+    color: var(--primary-color);
+}
+
+.meta-item.executed {
+    color: var(--success-color);
+}
+
+.meta-item.executed i {
+    color: var(--success-color);
+}
+
+/* État vide */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.empty-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: var(--bg-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--text-light);
+}
+
+.empty-state h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 6px;
+}
+
+.empty-state p {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .content-container {
+        padding: 10px;
+    }
+
+    .page-title {
+        font-size: 1.25rem;
+    }
+
+    .page-title i {
+        font-size: 1rem;
+    }
+
+    .page-subtitle {
+        margin-left: 0;
+        font-size: 0.75rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .stat-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+    }
+
+    .stat-detail {
+        font-size: 0.65rem;
+    }
+
+    .sanctions-list {
+        gap: 10px;
+    }
+
+    .sanction-card {
+        padding: 12px;
+    }
+
+    .sanction-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sanction-date-box {
+        align-self: flex-start;
+        width: 50px;
+        height: 50px;
+    }
+
+    .date-jour {
+        font-size: 1rem;
+    }
+
+    .date-mois {
+        font-size: 0.55rem;
+    }
+
+    .date-annee {
+        font-size: 0.5rem;
+    }
+
+    .sanction-type-badge {
+        font-size: 0.7rem;
+        padding: 4px 10px;
+    }
+
+    .gravite-badge {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+    }
+
+    .sanction-raison {
+        font-size: 0.75rem;
+    }
+
+    .sanction-description p {
+        font-size: 0.7rem;
+    }
+
+    .sanction-meta {
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 8px;
+    }
+
+    .meta-item {
+        font-size: 0.65rem;
+    }
+
+    .periodes-tabs {
+        gap: 8px;
+    }
+
+    .periode-tab {
+        min-width: 160px;
+        padding: 10px;
+    }
+
+    .tab-title {
+        font-size: 0.75rem;
+    }
+
+    .tab-period {
+        font-size: 0.65rem;
+    }
+
+    .tab-stat {
+        font-size: 0.6rem;
+        padding: 2px 6px;
+    }
+
+    .empty-state {
+        padding: 30px 15px;
+    }
+
+    .empty-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 0.9rem;
+    }
+
+    .empty-state p {
+        font-size: 0.75rem;
+    }
+}
+

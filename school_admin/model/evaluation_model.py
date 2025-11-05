@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from .professeur_model import Professeur
 from .classe_model import Classe
 from .periode_model import PeriodeScolaire
+from .matiere_model import Matiere
 
 
 class Evaluation(models.Model):
@@ -59,6 +60,14 @@ class Evaluation(models.Model):
         on_delete=models.CASCADE,
         related_name='evaluations',
         verbose_name="Professeur"
+    )
+    matiere = models.ForeignKey(
+        Matiere,
+        on_delete=models.CASCADE,
+        related_name='evaluations',
+        verbose_name="Matière",
+        null=True,
+        blank=True
     )
     date_evaluation = models.DateField(
         verbose_name="Date de l'évaluation"
@@ -140,6 +149,14 @@ class Note(models.Model):
         related_name='notes',
         verbose_name="Évaluation"
     )
+    matiere = models.ForeignKey(
+        'Matiere',
+        on_delete=models.CASCADE,
+        related_name='notes',
+        verbose_name="Matière",
+        null=True,
+        blank=True
+    )
     note = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -154,6 +171,10 @@ class Note(models.Model):
     absent = models.BooleanField(
         default=False,
         verbose_name="Absent"
+    )
+    retenue = models.BooleanField(
+        default=False,
+        verbose_name="Note retenue pour le calcul"
     )
     date_saisie = models.DateTimeField(
         auto_now=True,

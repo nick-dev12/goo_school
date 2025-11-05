@@ -106,7 +106,7 @@
                                class="periode-tab {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
                                 <i class="fas fa-calendar-alt"></i>
                                 <span>{{ periode.nom_periode }}</span>
-                                {% if periode.est_active %}
+                                {% if periode.est_en_cours %}
                                     <span class="tab-badge active">En cours</span>
                                 {% endif %}
                             </a>
@@ -306,45 +306,26 @@
                             <h3><i class="fas fa-history"></i> Historique du mois sélectionné</h3>
                             {% if presences %}
                             <div class="presences-timeline">
-                                {% for presence in presences %}
-                                    <div class="presence-item {% if not presence.liste_presence.validee %}modifiable{% endif %}" data-presence-id="{{ presence.id }}">
+                                {% for jour_data in presences %}
+                                    <div class="presence-item" data-date="{{ jour_data.date }}">
                                         <div class="presence-date">
-                                            <div class="date-jour">{{ presence.date|date:"d" }}</div>
-                                            <div class="date-mois">{{ presence.date|date:"M" }}</div>
+                                            <div class="date-jour">{{ jour_data.date|date:"d" }}</div>
+                                            <div class="date-mois">{{ jour_data.date|date:"M" }}</div>
                                         </div>
-                                        <div class="presence-details">
-                                            <div class="presence-status">
-                                                <span class="status-badge {{ presence.statut }}">
-                                                    <i class="fas fa-{% if presence.statut == 'present' %}check-circle{% elif presence.statut == 'absent' %}times-circle{% elif presence.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
-                                                    {{ presence.get_statut_display }}
-                                                </span>
+                                        <div class="presence-details" style="flex: 1;">
+                                            <div class="presence-info" style="margin-bottom: 0.5rem;">
+                                                <span class="info-text">{{ jour_data.date|date:"l d F Y" }}</span>
                                             </div>
-                                            <div class="presence-info">
-                                                <span class="info-text">{{ presence.date|date:"l d F Y" }}</span>
-                                                {% if presence.remarque %}
-                                                    <span class="info-remarque">{{ presence.remarque }}</span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="presence-actions">
-                                            {% with liste=presence.classe.listes_presences.all|dictsort:"date" %}
-                                                {% for lp in liste %}
-                                                    {% if lp.date == presence.date %}
-                                                        {% if not lp.validee %}
-                                                            <button class="btn-modifier-presence" 
-                                                                    onclick="ouvrirModalModification({{ presence.id }}, '{{ presence.statut }}', '{{ presence.date|date:'d/m/Y' }}')">
-                                                                <i class="fas fa-edit"></i>
-                                                                Modifier
-                                                            </button>
-                                                        {% else %}
-                                                            <span class="badge-validee">
-                                                                <i class="fas fa-lock"></i>
-                                                                Validée
-                                                            </span>
-                                                        {% endif %}
-                                                    {% endif %}
+                                            <div class="presence-status" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                                {% for appel in jour_data.appels %}
+                                                    <div style="display: flex; align-items: center; gap: 0.3rem; background: {% if appel.statut == 'present' %}#10b98122{% elif appel.statut == 'absent' %}#ef444422{% elif appel.statut == 'retard' %}#f59e0b22{% else %}#8b5cf622{% endif %}; padding: 0.4rem 0.8rem; border-radius: 6px; border-left: 3px solid {% if appel.statut == 'present' %}#10b981{% elif appel.statut == 'absent' %}#ef4444{% elif appel.statut == 'retard' %}#f59e0b{% else %}#8b5cf6{% endif %};">
+                                                        <span class="status-badge-inline {{ appel.statut }}" style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.85rem;">
+                                                            <i class="fas fa-{% if appel.statut == 'present' %}check-circle{% elif appel.statut == 'absent' %}times-circle{% elif appel.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
+                                                            {{ appel.get_statut_display }}
+                                                        </span>
+                                                    </div>
                                                 {% endfor %}
-                                            {% endwith %}
+                                            </div>
                                         </div>
                                     </div>
                                 {% endfor %}

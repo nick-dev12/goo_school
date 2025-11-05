@@ -70,14 +70,27 @@ function initializeProfessorCards() {
  */
 function toggleAffectations(professeurId) {
     const panel = document.getElementById(`affectationsPanel${professeurId}`);
-    if (panel) {
+    const overlay = document.getElementById(`modalOverlay${professeurId}`);
+    
+    if (panel && overlay) {
         if (panel.style.display === 'none' || panel.style.display === '') {
-            panel.style.display = 'block';
-            panel.style.animation = 'slideDown 0.3s ease-in-out';
-        } else {
-            panel.style.animation = 'slideUp 0.3s ease-in-out';
+            // Ouvrir le modal
+            overlay.style.display = 'block';
+            panel.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Empêcher le scroll de la page
+            
+            // Animation d'entrée
             setTimeout(() => {
+                panel.classList.add('modal-active');
+            }, 10);
+        } else {
+            // Fermer le modal
+            panel.classList.remove('modal-active');
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
                 panel.style.display = 'none';
+                document.body.style.overflow = ''; // Restaurer le scroll
             }, 300);
         }
     }

@@ -115,7 +115,12 @@
                                             <i class="fas fa-users"></i>
                                         </div>
                                         <div class="classe-info">
-                                            <h3 class="classe-nom">{{ classe_data.classe.nom }}</h3>
+                                            <h3 class="classe-nom">
+                                                {{ classe_data.classe.nom }}
+                                                {% if classe_data.matiere %}
+                                                    <span class="matiere-badge">{{ classe_data.matiere.nom }}</span>
+                                                {% endif %}
+                                            </h3>
                                             <div class="classe-badges">
                                                 {% if classe_data.est_principal %}
                                                     <span class="badge principal">
@@ -160,7 +165,7 @@
 
                                     <!-- Actions -->
                                     <div class="classe-actions">
-                                        <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}" class="action-btn primary" title="Voir les détails">
+                                        <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="action-btn primary" title="Voir les détails">
                                             <i class="fas fa-eye"></i>
                                             <span>Détails</span>
                                         </a>
@@ -168,7 +173,7 @@
                                             <i class="fas fa-users"></i>
                                             <span>Élèves</span>
                                         </a>
-                                        <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="action-btn success" title="Gérer les notes">
+                                        <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="action-btn success" title="Gérer les notes">
                                             <i class="fas fa-clipboard-check"></i>
                                             <span>Notes</span>
                                         </a>

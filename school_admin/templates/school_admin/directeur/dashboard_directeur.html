@@ -27,10 +27,10 @@
             </div>
             <div class="indicator-content">
               <h3>Élèves inscrits</h3>
-              <p class="indicator-value">1,245</p>
-              <span class="indicator-trend positive"
-                >+3% depuis l'année dernière</span
-              >
+              <p class="indicator-value">{{ stats.nombre_eleves|default:"0" }}</p>
+              <span class="indicator-trend {% if stats.croissance_eleves > 0 %}positive{% elif stats.croissance_eleves < 0 %}negative{% endif %}">
+                {% if stats.croissance_eleves > 0 %}+{% endif %}{{ stats.croissance_eleves|default:"0" }}% depuis l'année dernière
+              </span>
             </div>
             <a href="#" class="indicator-link">
               <i class="fas fa-arrow-right"></i>
@@ -43,7 +43,7 @@
             </div>
             <div class="indicator-content">
               <h3>Enseignants</h3>
-              <p class="indicator-value">87</p>
+              <p class="indicator-value">{{ stats.nombre_enseignants|default:"0" }}</p>
               <span class="indicator-trend">Effectif stable</span>
             </div>
             <a href="#" class="indicator-link">
@@ -57,8 +57,10 @@
             </div>
             <div class="indicator-content">
               <h3>Personnel administratif</h3>
-              <p class="indicator-value">32</p>
-              <span class="indicator-trend positive">+2 cette année</span>
+              <p class="indicator-value">{{ stats.nombre_personnel_admin|default:"0" }}</p>
+              <span class="indicator-trend {% if stats.changement_personnel > 0 %}positive{% elif stats.changement_personnel < 0 %}negative{% endif %}">
+                {% if stats.changement_personnel > 0 %}+{% endif %}{{ stats.changement_personnel|default:"0" }} cette année
+              </span>
             </div>
             <a href="#" class="indicator-link">
               <i class="fas fa-arrow-right"></i>
@@ -74,7 +76,7 @@
             </div>
             <div class="indicator-content">
               <h3>Classes actives</h3>
-              <p class="indicator-value">45</p>
+              <p class="indicator-value">{{ stats.nombre_classes|default:"0" }}</p>
               <span class="indicator-trend">Toutes opérationnelles</span>
             </div>
             <a href="#" class="indicator-link">
@@ -91,7 +93,7 @@
             </div>
             <div class="indicator-content">
               <h3>Évaluations en cours</h3>
-              <p class="indicator-value">28</p>
+              <p class="indicator-value">{{ stats.evaluations_semaine|default:"0" }}</p>
               <span class="indicator-trend">Cette semaine</span>
             </div>
             <a href="#" class="indicator-link">
@@ -105,7 +107,7 @@
             </div>
             <div class="indicator-content">
               <h3>Bulletins publiés</h3>
-              <p class="indicator-value">156</p>
+              <p class="indicator-value">{{ stats.bulletins_publies|default:"0" }}</p>
               <span class="indicator-trend">Trimestre en cours</span>
             </div>
             <a href="#" class="indicator-link">
@@ -113,16 +115,16 @@
             </a>
           </div>
 
-          <div class="indicator-card alert">
+          <div class="indicator-card {% if stats.alertes > 0 %}alert{% endif %}">
             <div class="indicator-icon" style="background-color: var(--red)">
               <i class="fas fa-exclamation-triangle"></i>
             </div>
             <div class="indicator-content">
               <h3>Alertes</h3>
-              <p class="indicator-value">8</p>
-              <span class="indicator-trend negative"
-                >Nécessitent votre attention</span
-              >
+              <p class="indicator-value">{{ stats.alertes|default:"0" }}</p>
+              <span class="indicator-trend {% if stats.alertes > 0 %}negative{% endif %}">
+                {% if stats.alertes > 0 %}Nécessitent votre attention{% else %}Aucune alerte{% endif %}
+              </span>
             </div>
             <a href="#" class="indicator-link">
               <i class="fas fa-arrow-right"></i>
@@ -136,12 +138,12 @@
             </div>
             <div class="indicator-content">
               <h3>Taux de réussite</h3>
-              <p class="indicator-value">92%</p>
-              <span class="indicator-trend positive"
-                >+4% par rapport à l'an dernier</span
-              >
+              <p class="indicator-value">{{ stats.taux_reussite|default:"0" }}%</p>
+              <span class="indicator-trend {% if stats.taux_reussite >= 70 %}positive{% endif %}">
+                Basé sur les moyennes
+              </span>
             </div>
-            <a href="#" class="indicator-link">
+            <a href="{% url 'directeur:notes_et_resultats' %}" class="indicator-link">
               <i class="fas fa-arrow-right"></i>
             </a>
           </div>
@@ -152,8 +154,8 @@
             </div>
             <div class="indicator-content">
               <h3>Ressources pédagogiques</h3>
-              <p class="indicator-value">1,850</p>
-              <span class="indicator-trend positive">+120 ce mois-ci</span>
+              <p class="indicator-value">{{ stats.ressources_pedagogiques|default:"0" }}</p>
+              <span class="indicator-trend">Non disponible</span>
             </div>
             <a href="#" class="indicator-link">
               <i class="fas fa-arrow-right"></i>
@@ -166,10 +168,8 @@
             </div>
             <div class="indicator-content">
               <h3>Distinctions</h3>
-              <p class="indicator-value">24</p>
-              <span class="indicator-trend"
-                >Élèves récompensés ce trimestre</span
-              >
+              <p class="indicator-value">{{ stats.distinctions|default:"0" }}</p>
+              <span class="indicator-trend">Non disponible</span>
             </div>
             <a href="#" class="indicator-link">
               <i class="fas fa-arrow-right"></i>
@@ -191,32 +191,22 @@
               <h3>Derniers élèves inscrits</h3>
             </div>
             <div class="activity-list">
-              <div class="activity-item">
-                <div class="activity-avatar">
-                  <img
-                    src="{% static 'director_management/img/avatars/student1.jpg' %}"
-                    alt="Avatar"
-                  />
+              {% if derniers_eleves %}
+                {% for eleve in derniers_eleves %}
+                <div class="activity-item">
+                  <div class="activity-avatar">
+                    <i class="fas fa-user-circle" style="font-size: 40px; color: var(--blue);"></i>
+                  </div>
+                  <div class="activity-details">
+                    <h4>{{ eleve.prenom }} {{ eleve.nom }}</h4>
+                    <p>Classe de {{ eleve.classe.nom }}</p>
+                    <span class="activity-time">{{ eleve.date_inscription|timesince }}</span>
+                  </div>
                 </div>
-                <div class="activity-details">
-                  <h4>Sophie Martin</h4>
-                  <p>Classe de 3ème A</p>
-                  <span class="activity-time">Il y a 2 heures</span>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-avatar">
-                  <img
-                    src="{% static 'director_management/img/avatars/student2.jpg' %}"
-                    alt="Avatar"
-                  />
-                </div>
-                <div class="activity-details">
-                  <h4>Lucas Dubois</h4>
-                  <p>Classe de 5ème B</p>
-                  <span class="activity-time">Il y a 1 jour</span>
-                </div>
-              </div>
+                {% endfor %}
+              {% else %}
+                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucun élève récent</p>
+              {% endif %}
             </div>
             <a href="#" class="activity-link"
               >Voir tous les élèves <i class="fas fa-chevron-right"></i
@@ -231,32 +221,22 @@
               <h3>Derniers personnels ajoutés</h3>
             </div>
             <div class="activity-list">
-              <div class="activity-item">
-                <div class="activity-avatar">
-                  <img
-                    src="{% static 'director_management/img/avatars/staff1.jpg' %}"
-                    alt="Avatar"
-                  />
+              {% if derniers_personnels %}
+                {% for personnel in derniers_personnels %}
+                <div class="activity-item">
+                  <div class="activity-avatar">
+                    <i class="fas fa-user-circle" style="font-size: 40px; color: var(--purple);"></i>
+                  </div>
+                  <div class="activity-details">
+                    <h4>{{ personnel.prenom }} {{ personnel.nom }}</h4>
+                    <p>{{ personnel.get_type_personnel_display|default:"Personnel" }}</p>
+                    <span class="activity-time">{{ personnel.date_creation|timesince }}</span>
+                  </div>
                 </div>
-                <div class="activity-details">
-                  <h4>Marie Leroy</h4>
-                  <p>Professeur de Mathématiques</p>
-                  <span class="activity-time">Il y a 3 jours</span>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-avatar">
-                  <img
-                    src="{% static 'director_management/img/avatars/staff2.jpg' %}"
-                    alt="Avatar"
-                  />
-                </div>
-                <div class="activity-details">
-                  <h4>Thomas Bernard</h4>
-                  <p>Agent d'entretien</p>
-                  <span class="activity-time">Il y a 5 jours</span>
-                </div>
-              </div>
+                {% endfor %}
+              {% else %}
+                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucun personnel récent</p>
+              {% endif %}
             </div>
             <a href="#" class="activity-link"
               >Voir tout le personnel <i class="fas fa-chevron-right"></i
@@ -274,28 +254,24 @@
               <h3>Dernières notes publiées</h3>
             </div>
             <div class="activity-list">
-              <div class="activity-item">
-                <div class="activity-subject">
-                  <i class="fas fa-book"></i>
+              {% if dernieres_moyennes %}
+                {% for moyenne in dernieres_moyennes %}
+                <div class="activity-item">
+                  <div class="activity-subject">
+                    <i class="fas fa-book"></i>
+                  </div>
+                  <div class="activity-details">
+                    <h4>{{ moyenne.matiere.nom }} - {{ moyenne.classe.nom }}</h4>
+                    <p>{{ moyenne.eleve.nom_complet }}: {{ moyenne.moyenne|floatformat:1 }}/20</p>
+                    <span class="activity-time">{{ moyenne.date_calcul|timesince }}</span>
+                  </div>
                 </div>
-                <div class="activity-details">
-                  <h4>Français - 4ème C</h4>
-                  <p>Moyenne de classe: 14,5/20</p>
-                  <span class="activity-time">Il y a 1 jour</span>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-subject">
-                  <i class="fas fa-calculator"></i>
-                </div>
-                <div class="activity-details">
-                  <h4>Mathématiques - 6ème A</h4>
-                  <p>Moyenne de classe: 12,8/20</p>
-                  <span class="activity-time">Il y a 2 jours</span>
-                </div>
-              </div>
+                {% endfor %}
+              {% else %}
+                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucune note récente</p>
+              {% endif %}
             </div>
-            <a href="#" class="activity-link"
+            <a href="{% url 'directeur:notes_et_resultats' %}" class="activity-link"
               >Voir toutes les notes <i class="fas fa-chevron-right"></i
             ></a>
           </div>
@@ -308,32 +284,28 @@
               >
                 <i class="fas fa-tasks"></i>
               </div>
-              <h3>Derniers devoirs déposés</h3>
+              <h3>Dernières évaluations</h3>
             </div>
             <div class="activity-list">
-              <div class="activity-item">
-                <div class="activity-subject">
-                  <i class="fas fa-flask"></i>
+              {% if dernieres_evaluations %}
+                {% for evaluation in dernieres_evaluations %}
+                <div class="activity-item">
+                  <div class="activity-subject">
+                    <i class="fas fa-clipboard-check"></i>
+                  </div>
+                  <div class="activity-details">
+                    <h4>{{ evaluation.matiere.nom }} - {{ evaluation.classe.nom }}</h4>
+                    <p>{{ evaluation.titre }}</p>
+                    <span class="activity-time">{{ evaluation.date_evaluation|timesince }}</span>
+                  </div>
                 </div>
-                <div class="activity-details">
-                  <h4>Sciences - 5ème B</h4>
-                  <p>Rapport de laboratoire</p>
-                  <span class="activity-time">Il y a 5 heures</span>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-subject">
-                  <i class="fas fa-globe-europe"></i>
-                </div>
-                <div class="activity-details">
-                  <h4>Histoire - 3ème A</h4>
-                  <p>Dissertation sur la Révolution</p>
-                  <span class="activity-time">Il y a 1 jour</span>
-                </div>
-              </div>
+                {% endfor %}
+              {% else %}
+                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucune évaluation récente</p>
+              {% endif %}
             </div>
             <a href="#" class="activity-link"
-              >Voir tous les devoirs <i class="fas fa-chevron-right"></i
+              >Voir toutes les évaluations <i class="fas fa-chevron-right"></i
             ></a>
           </div>
         </div>

@@ -9,6 +9,147 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}">
+    <style>
+        .appel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .appel-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .appel-numero {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .appel-statut {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .appel-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-nouvel-appel {
+            background: white;
+            color: #667eea;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-nouvel-appel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-nouvel-appel.disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .historique-appels {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .historique-titre {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .appels-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .appel-card {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .appel-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .appel-card-numero {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .appel-card-heure {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .appel-card-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .appel-card-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .limite-atteinte-banner {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .limite-atteinte-banner i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .limite-atteinte-banner h3 {
+            margin: 0.5rem 0;
+            font-size: 1.3rem;
+        }
+    </style>
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
@@ -24,23 +165,13 @@
             <span class="current">Liste de présence</span>
         </nav>
 
-        <!-- Status Banner -->
-        {% if liste_presence.validee %}
-            <div class="presence-status-banner validee">
-                <i class="fas fa-check-circle"></i>
-                <div class="status-content">
-                    <strong>Liste de présence déjà validée</strong>
-                    <p>Cette liste a été validée le {{ liste_presence.date_validation|date:"d/m/Y à H:i" }}. Vous ne pouvez plus la modifier.</p>
+        <!-- Messages Django -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" style="background: {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' %}#ef4444{% else %}#f59e0b{% endif %}; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    {{ message }}
                 </div>
-            </div>
-        {% else %}
-            <div class="presence-status-banner en-cours">
-                <i class="fas fa-clipboard-check"></i>
-                <div class="status-content">
-                    <strong>Liste de présence en cours</strong>
-                    <p>Marquez les présences et absences, puis validez la liste pour enregistrer définitivement.</p>
-                </div>
-            </div>
+            {% endfor %}
         {% endif %}
 
         <!-- Page Header -->
@@ -54,161 +185,210 @@
             </div>
         </div>
 
-        <!-- Info Cards -->
-        <div class="info-cards">
-            <div class="info-card">
-                <div class="info-icon" style="background: #667eea;">
-                    <i class="fas fa-chalkboard"></i>
-                </div>
-                <div class="info-content">
-                    <strong>Classe :</strong>
-                    <span>{{ classe.nom }}</span>
-                </div>
+        <!-- Limite atteinte -->
+        {% if limite_atteinte %}
+            <div class="limite-atteinte-banner">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Limite d'appels atteinte</h3>
+                <p>Vous avez effectué les 3 appels maximum pour aujourd'hui. Consultez l'historique ci-dessous.</p>
             </div>
-            <div class="info-card">
-                <div class="info-icon" style="background: #f59e0b;">
-                    <i class="fas fa-calendar-day"></i>
-                </div>
-                <div class="info-content">
-                    <strong>Date :</strong>
-                    <span>{{ today|date:"d/m/Y" }}</span>
-                </div>
-            </div>
-            <div class="info-card">
-                <div class="info-icon" style="background: #10b981;">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="info-content">
-                    <strong>Effectif :</strong>
-                    <span>{{ nombre_eleves }} élèves</span>
-                </div>
-            </div>
-        </div>
+        {% endif %}
 
-        <!-- Formulaire de présence -->
-        <form method="post" action="{% url 'enseignant_primaire:valider_presence' classe.id %}" id="presence-form">
-            {% csrf_token %}
-            
-            <!-- Actions buttons (top) -->
-            {% if not liste_presence.validee %}
-                <div class="actions-container top-actions">
-                    <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider cette liste de présence ? Cette action est définitive pour aujourd\'hui.');">
-                        <i class="fas fa-check-circle"></i>
-                        Valider la liste de présence
-                    </button>
-                    <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        Retour
-                    </a>
+        <!-- Historique des appels validés -->
+        {% if appels_du_jour %}
+            <div class="historique-appels">
+                <div class="historique-titre">
+                    <i class="fas fa-history"></i>
+                    Appels effectués aujourd'hui ({{ nombre_appels_valides }}/3)
                 </div>
-            {% endif %}
+                <div class="appels-list">
+                    {% for appel in appels_du_jour %}
+                        <div class="appel-card">
+                            <div class="appel-card-header">
+                                <div class="appel-card-numero">
+                                    <i class="fas fa-check-circle"></i> Appel {{appel.numero_appel }}
+                                </div>
+                                <div class="appel-card-heure">
+                                    {{ appel.date_validation|date:"H:i" }}
+                                </div>
+                            </div>
+                            <div class="appel-card-stats">
+                                <div class="appel-card-stat">
+                                    <i class="fas fa-user-check"></i>
+                                    {{ appel.nombre_presents }} présent(s)
+                                </div>
+                                <div class="appel-card-stat">
+                                    <i class="fas fa-user-times"></i>
+                                    {{ appel.nombre_absents }} absent(s)
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
 
-            <!-- Table de présence -->
-            <div class="presence-table-container">
-                <table class="presence-table">
-                    <thead>
-                        <tr>
-                            <th class="col-numero">#</th>
-                            <th class="col-eleve">Élève</th>
-                            <th class="col-statut" colspan="4">Statut de présence</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in eleves_avec_presence %}
-                            <tr class="{% cycle 'row-even' 'row-odd' %}">
-                                <td class="col-numero">{{ forloop.counter }}</td>
-                                <td class="col-eleve">
-                                    <div class="eleve-info">
-                                        <div class="eleve-avatar">
-                                            {{ item.eleve.prenom.0 }}{{ item.eleve.nom.0 }}
-                                        </div>
-                                        <div class="eleve-details">
-                                            <div class="eleve-nom">{{ item.eleve.nom|upper }} {{ item.eleve.prenom }}</div>
-                                            <div class="eleve-meta">Matricule: {{ item.eleve.matricule }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td colspan="4" class="col-statut-container">
-                                    <div class="statut-buttons">
-                                        <label class="statut-option present {% if item.statut == 'present' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                            <input type="radio" 
-                                                   name="presence_{{ item.eleve.id }}" 
-                                                   value="present" 
-                                                   {% if item.statut == 'present' %}checked{% endif %}
-                                                   {% if liste_presence.validee %}disabled{% endif %}>
-                                            <span class="statut-icon">
-                                                <i class="fas fa-check-circle"></i>
-                                            </span>
-                                            <span class="statut-label">Présent</span>
-                                        </label>
-                                        
-                                        <label class="statut-option absent {% if item.statut == 'absent' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                            <input type="radio" 
-                                                   name="presence_{{ item.eleve.id }}" 
-                                                   value="absent" 
-                                                   {% if item.statut == 'absent' %}checked{% endif %}
-                                                   {% if liste_presence.validee %}disabled{% endif %}>
-                                            <span class="statut-icon">
-                                                <i class="fas fa-times-circle"></i>
-                                            </span>
-                                            <span class="statut-label">Absent</span>
-                                        </label>
-                                        
-                                        <label class="statut-option retard {% if item.statut == 'retard' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                            <input type="radio" 
-                                                   name="presence_{{ item.eleve.id }}" 
-                                                   value="retard" 
-                                                   {% if item.statut == 'retard' %}checked{% endif %}
-                                                   {% if liste_presence.validee %}disabled{% endif %}>
-                                            <span class="statut-icon">
-                                                <i class="fas fa-clock"></i>
-                                            </span>
-                                            <span class="statut-label">Retard</span>
-                                        </label>
-                                        
-                                        <label class="statut-option absent-justifie {% if item.statut == 'absent_justifie' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                            <input type="radio" 
-                                                   name="presence_{{ item.eleve.id }}" 
-                                                   value="absent_justifie" 
-                                                   {% if item.statut == 'absent_justifie' %}checked{% endif %}
-                                                   {% if liste_presence.validee %}disabled{% endif %}>
-                                            <span class="statut-icon">
-                                                <i class="fas fa-file-medical"></i>
-                                            </span>
-                                            <span class="statut-label">Absent Justifié</span>
-                                        </label>
-                                    </div>
-                                </td>
+        <!-- En-tête de l'appel en cours -->
+        {% if liste_presence and not limite_atteinte %}
+            <div class="appel-header">
+                <div class="appel-info">
+                    <div class="appel-numero">
+                        <i class="fas fa-clipboard-check"></i> Appel n°{{ numero_appel_actuel }}
+                    </div>
+                    <div class="appel-statut">
+                        {% if liste_presence.validee %}
+                            <i class="fas fa-lock"></i> Validé
+                        {% else %}
+                            <i class="fas fa-edit"></i> En cours
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="appel-actions">
+                    {% if liste_presence.validee and nombre_appels_valides < 3 %}
+                        <a href="?appel={{ numero_appel_actuel|add:1 }}" class="btn-nouvel-appel">
+                            <i class="fas fa-plus-circle"></i>
+                            Nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
+                        </a>
+                    {% elif nombre_appels_valides >= 3 %}
+                        <span class="btn-nouvel-appel disabled">
+                            <i class="fas fa-ban"></i>
+                            Limite atteinte (3/3)
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Formulaire de présence -->
+            <form method="post" action="{% url 'enseignant_primaire:valider_presence' classe.id %}" id="presence-form">
+                {% csrf_token %}
+                <input type="hidden" name="numero_appel" value="{{ numero_appel_actuel }}">
+                
+                <!-- Actions buttons (top) -->
+                {% if not liste_presence.validee %}
+                    <div class="actions-container top-actions">
+                        <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider l\'appel n°{{ numero_appel_actuel }} ? Cette action est définitive.');">
+                            <i class="fas fa-check-circle"></i>
+                            Valider l'appel n°{{ numero_appel_actuel }}
+                        </button>
+                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Retour
+                        </a>
+                    </div>
+                {% endif %}
+
+                <!-- Table de présence -->
+                <div class="presence-table-container">
+                    <table class="presence-table">
+                        <thead>
+                            <tr>
+                                <th class="col-numero">#</th>
+                                <th class="col-eleve">Élève</th>
+                                <th class="col-statut" colspan="4">Statut de présence</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {% for item in eleves_avec_presence %}
+                                <tr class="{% cycle 'row-even' 'row-odd' %}">
+                                    <td class="col-numero">{{ forloop.counter }}</td>
+                                    <td class="col-eleve">
+                                        <div class="eleve-info">
+                                            <div class="eleve-avatar">
+                                                {{ item.eleve.prenom.0 }}{{ item.eleve.nom.0 }}
+                                            </div>
+                                            <div class="eleve-details">
+                                                <div class="eleve-nom">{{ item.eleve.nom|upper }} {{ item.eleve.prenom }}</div>
+                                                <div class="eleve-meta">Matricule: {{ item.eleve.matricule }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td colspan="4" class="col-statut-container">
+                                        <div class="statut-buttons">
+                                            <label class="statut-option present {% if item.statut == 'present' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                                <input type="radio" 
+                                                       name="presence_{{ item.eleve.id }}" 
+                                                       value="present" 
+                                                       {% if item.statut == 'present' %}checked{% endif %}
+                                                       {% if liste_presence.validee %}disabled{% endif %}>
+                                                <span class="statut-icon">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </span>
+                                                <span class="statut-label">Présent</span>
+                                            </label>
+                                            
+                                            <label class="statut-option absent {% if item.statut == 'absent' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                                <input type="radio" 
+                                                       name="presence_{{ item.eleve.id }}" 
+                                                       value="absent" 
+                                                       {% if item.statut == 'absent' %}checked{% endif %}
+                                                       {% if liste_presence.validee %}disabled{% endif %}>
+                                                <span class="statut-icon">
+                                                    <i class="fas fa-times-circle"></i>
+                                                </span>
+                                                <span class="statut-label">Absent</span>
+                                            </label>
+                                            
+                                            <label class="statut-option retard {% if item.statut == 'retard' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                                <input type="radio" 
+                                                       name="presence_{{ item.eleve.id }}" 
+                                                       value="retard" 
+                                                       {% if item.statut == 'retard' %}checked{% endif %}
+                                                       {% if liste_presence.validee %}disabled{% endif %}>
+                                                <span class="statut-icon">
+                                                    <i class="fas fa-clock"></i>
+                                                </span>
+                                                <span class="statut-label">Retard</span>
+                                            </label>
+                                            
+                                            <label class="statut-option absent-justifie {% if item.statut == 'absent_justifie' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
+                                                <input type="radio" 
+                                                       name="presence_{{ item.eleve.id }}" 
+                                                       value="absent_justifie" 
+                                                       {% if item.statut == 'absent_justifie' %}checked{% endif %}
+                                                       {% if liste_presence.validee %}disabled{% endif %}>
+                                                <span class="statut-icon">
+                                                    <i class="fas fa-file-medical"></i>
+                                                </span>
+                                                <span class="statut-label">Absent Justifié</span>
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Actions buttons (bottom) -->
-            {% if not liste_presence.validee %}
-                <div class="actions-container bottom-actions">
-                    <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider cette liste de présence ? Cette action est définitive pour aujourd\'hui.');">
-                        <i class="fas fa-check-circle"></i>
-                        Valider la liste de présence
-                    </button>
-                    <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        Retour
-                    </a>
-                </div>
-            {% else %}
-                <div class="actions-container bottom-actions">
-                    <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        Retour
-                    </a>
-                </div>
-            {% endif %}
-        </form>
+                <!-- Actions buttons (bottom) -->
+                {% if not liste_presence.validee %}
+                    <div class="actions-container bottom-actions">
+                        <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider l\'appel n°{{ numero_appel_actuel }} ? Cette action est définitive.');">
+                            <i class="fas fa-check-circle"></i>
+                            Valider l'appel n°{{ numero_appel_actuel }}
+                        </button>
+                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Retour
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="actions-container bottom-actions">
+                        {% if nombre_appels_valides < 3 %}
+                            <a href="?appel={{ numero_appel_actuel|add:1 }}" class="btn-nouvel-appel" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                                <i class="fas fa-plus-circle"></i>
+                                Faire un nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Retour
+                        </a>
+                    </div>
+                {% endif %}
+            </form>
+        {% endif %}
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/primaire/liste_presence_primaire.js' %}"></script>
 </body>
 </html>
-

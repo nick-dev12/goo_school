@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Convocations de {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/voir_convocations_eleve.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Messages -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-chalkboard"></i>
+                    Convocations de {{ classe.nom }}
+                </h1>
+                <p class="page-subtitle">
+                    Vue d'ensemble des convocations pour tous les élèves de la classe
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:convocation_classe' classe.id %}" class="btn-primary">
+                    <i class="fas fa-plus"></i>
+                    <span>Nouvelle convocation de classe</span>
+                </a>
+                <a href="{% url 'directeur:convocation_liste' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour à la liste</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Informations de la classe -->
+        <div class="eleve-info-card">
+            <div class="eleve-info-header">
+                <div class="eleve-avatar">
+                    <i class="fas fa-chalkboard"></i>
+                </div>
+                <div class="eleve-details">
+                    <h3>{{ classe.nom }}</h3>
+                    <p><i class="fas fa-graduation-cap"></i> {{ classe.get_niveau_display }}</p>
+                    <p><i class="fas fa-users"></i> {{ eleves_data|length }} élève{{ eleves_data|length|pluralize }}</p>
+                    <p><i class="fas fa-info-circle"></i> {{ classe.description|default:"Aucune description" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des convocations de classe -->
+        <div class="convocations-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-list"></i>
+                    Convocations de classe ({{ nombre_convocations }})
+                </h2>
+            </div>
+
+            {% if convocations %}
+                <div class="convocations-grid">
+                    {% for data in convocations %}
+                        <div class="convocation-card-large {% if data.convocation.est_passee %}passee{% endif %}">
+                            <div class="convocation-header-large">
+                                <div class="convocation-status">
+                                    <span class="status-badge status-{{ data.convocation.statut }}">
+                                        {% if data.convocation.statut == 'en_attente' %}
+                                            <i class="fas fa-clock"></i> En attente
+                                        {% elif data.convocation.statut == 'vue' %}
+                                            <i class="fas fa-eye"></i> Vue
+                                        {% elif data.convocation.statut == 'honoree' %}
+                                            <i class="fas fa-check-circle"></i> Honorée
+                                        {% elif data.convocation.statut == 'non_honoree' %}
+                                            <i class="fas fa-times-circle"></i> Non honorée
+                                        {% endif %}
+                                    </span>
+                                    <span class="classe-badge">
+                                        <i class="fas fa-users"></i> {{ data.nombre_eleves }} élève{{ data.nombre_eleves|pluralize }}
+                                    </span>
+                                    {% if data.convocation.est_passee %}
+                                        <span class="passee-badge">
+                                            <i class="fas fa-history"></i> Passée
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="convocation-objet">{{ data.convocation.objet }}</h3>
+                            </div>
+
+                            <div class="convocation-body">
+                                <div class="convocation-info">
+                                    <div class="info-row">
+                                        <i class="fas fa-calendar"></i>
+                                        <span><strong>Date :</strong> {{ data.convocation.date_convocation|date:"d/m/Y" }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <i class="fas fa-clock"></i>
+                                        <span><strong>Heure :</strong> {{ data.convocation.heure_convocation }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span><strong>Lieu :</strong> {{ data.convocation.lieu }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="convocation-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-calendar-plus"></i>
+                                        Créée le {{ data.convocation.date_creation|date:"d/m/Y" }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="convocation-footer">
+                                <a href="{% url 'directeur:imprimer_convocations_classe' classe.id %}?convocation_id={{ data.convocation.id }}" 
+                                   class="btn-action btn-print-all"
+                                   target="_blank"
+                                   title="Imprimer toutes les convocations">
+                                    <i class="fas fa-print"></i>
+                                    Imprimer tout ({{ data.nombre_eleves }})
+                                </a>
+                                <button class="btn-action btn-details"
+                                        onclick="toggleEleves('eleves-{{ forloop.counter }}')"
+                                        title="Voir les élèves concernés">
+                                    <i class="fas fa-users"></i>
+                                    Élèves ({{ data.nombre_eleves }})
+                                </button>
+                            </div>
+
+                            <!-- Liste des élèves (masquée par défaut) -->
+                            <div id="eleves-{{ forloop.counter }}" class="eleves-list" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #e5e7eb;">
+                                <p style="font-weight: 700; color: #64748b; margin-bottom: 10px; font-size: 13px;">
+                                    <i class="fas fa-users"></i> Élèves concernés :
+                                </p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    {% for eleve in data.eleves %}
+                                        <span style="background: #f3f4f6; padding: 6px 12px; border-radius: 15px; font-size: 12px; color: #1a1a1a; border: 1px solid #e5e7eb;">
+                                            <i class="fas fa-user"></i> {{ eleve.prenom }} {{ eleve.nom }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3 class="empty-title">Aucune convocation de classe</h3>
+                    <p class="empty-description">
+                        Aucune convocation de classe n'a encore été créée pour {{ classe.nom }}.
+                    </p>
+                    <a href="{% url 'directeur:convocation_classe' classe.id %}" class="btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Créer une convocation de classe
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleEleves(eleveId) {
+            const elevesList = document.getElementById(eleveId);
+            if (elevesList.style.display === 'none') {
+                elevesList.style.display = 'block';
+            } else {
+                elevesList.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
+

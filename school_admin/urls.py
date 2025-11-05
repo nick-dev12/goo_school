@@ -4,6 +4,7 @@ from .controllers.administrateur_compte_controller import AdministrateurCompteCo
 from .personal_views.administrateur_view import *
 from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
+
 app_name = 'school_admin'
 
 urlpatterns =[
@@ -122,3 +123,7 @@ urlpatterns += eleve_urls
 # Inclure les URLs du directeur
 from .personal_url.directeur_url import urlpatterns as directeur_urls
 urlpatterns += directeur_urls
+
+# Inclure les URLs des parents
+from .personal_url.parent_url import urlpatterns as parent_urls
+urlpatterns += parent_urls

@@ -1,0 +1,532 @@
+/* ==========================================
+   STYLES POUR VOIR LES CONVOCATIONS D'UN ÉLÈVE
+   Design professionnel et moderne
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    padding-bottom: 40px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ==========================================
+   EN-TÊTE DE PAGE
+   ========================================== */
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    background: white;
+    padding: 25px 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.page-title-section {
+    flex: 1;
+}
+
+.page-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title i {
+    color: #f59e0b;
+    font-size: 28px;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.page-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-primary,
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    text-decoration: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #f59e0b, #ea580c);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #ea580c, #d97706);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================
+   CARTE INFORMATIONS ÉLÈVE
+   ========================================== */
+
+.eleve-info-card {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border: 2px solid #f59e0b;
+    border-left: 4px solid #ea580c;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.eleve-info-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.eleve-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #ea580c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.eleve-details h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+}
+
+.eleve-details p {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.eleve-details i {
+    color: #f59e0b;
+}
+
+/* ==========================================
+   SECTION DES CONVOCATIONS
+   ========================================== */
+
+.convocations-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title i {
+    color: #f59e0b;
+    font-size: 20px;
+}
+
+/* ==========================================
+   GRILLE DES CONVOCATIONS
+   ========================================== */
+
+.convocations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.convocation-card,
+.convocation-card-large {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.convocation-card::before,
+.convocation-card-large::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(to right, #f59e0b, #ea580c);
+}
+
+.convocation-card:hover,
+.convocation-card-large:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    border-color: #f59e0b;
+}
+
+.convocation-card.passee,
+.convocation-card-large.passee {
+    opacity: 0.7;
+    background: #f9fafb;
+}
+
+/* ==========================================
+   EN-TÊTE DE LA CARTE
+   ========================================== */
+
+.convocation-header,
+.convocation-header-large {
+    margin-bottom: 15px;
+}
+
+.convocation-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-badge.status-en_attente {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-badge.status-vue {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-badge.status-honoree {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.status-non_honoree {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.passee-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #e5e7eb;
+    color: #64748b;
+}
+
+.classe-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.convocation-objet {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+/* ==========================================
+   CORPS DE LA CARTE
+   ========================================== */
+
+.convocation-body {
+    margin-bottom: 15px;
+}
+
+.convocation-info {
+    margin-bottom: 15px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.info-row i {
+    color: #f59e0b;
+    width: 20px;
+    font-size: 15px;
+}
+
+.info-row strong {
+    color: #1a1a1a;
+}
+
+.convocation-motif {
+    background: #f9fafb;
+    border-left: 3px solid #f59e0b;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.motif-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.motif-text {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.convocation-card-large .motif-text {
+    white-space: normal;
+    text-overflow: initial;
+}
+
+.convocation-meta {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.meta-item i {
+    font-size: 11px;
+}
+
+/* ==========================================
+   PIED DE LA CARTE
+   ========================================== */
+
+.convocation-footer {
+    display: flex;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-print-all {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+.btn-print-all:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: scale(1.05);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: scale(1.05);
+}
+
+.btn-details {
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+}
+
+.btn-details:hover {
+    background: #e2e8f0;
+    transform: scale(1.05);
+}
+
+/* ==========================================
+   ÉTAT VIDE
+   ========================================== */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-icon {
+    font-size: 80px;
+    color: #e5e7eb;
+    margin-bottom: 20px;
+}
+
+.empty-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.empty-description {
+    font-size: 16px;
+    color: #64748b;
+    margin-bottom: 25px;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .page-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .eleve-info-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .convocations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .convocation-footer {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+    }
+
+    .page-title {
+        font-size: 22px;
+    }
+
+    .convocations-section {
+        padding: 20px;
+    }
+
+    .eleve-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+    }
+}
+

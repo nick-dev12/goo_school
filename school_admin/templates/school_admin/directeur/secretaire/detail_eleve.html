@@ -501,6 +501,343 @@
 
           <!-- Notes Tab -->
           <div id="notes-tab" class="tab-panel">
+            {% if is_secondaire %}
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-table"></i>
+                Tableau des notes par matière
+              </h3>
+              
+              {% if periodes_actives %}
+              <!-- Onglets des périodes -->
+              <div class="periode-tabs-wrapper" style="margin: 20px 0;">
+                <div class="periode-tabs" style="display: flex; gap: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                  {% for periode in periodes_actives %}
+                    <button class="periode-tab-btn {% if periode.id == periode_active_notes.id %}active{% endif %}" 
+                            onclick="switchPeriode({{ periode.id }})"
+                            style="padding: 10px 20px; border: none; border-radius: 8px 8px 0 0; background: {% if periode.id == periode_active_notes.id %}#4f46e5{% else %}#f3f4f6{% endif %}; color: {% if periode.id == periode_active_notes.id %}white{% else %}#6b7280{% endif %}; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                      {{ periode.nom_periode }}
+                    </button>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+              
+              {% if matieres_classe %}
+              <style>
+                .notes-table-container {margin-top: 15px;}
+                .notes-summary-table {width: 100%; border-collapse: separate; border-spacing: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; font-size: 13px;}
+                .notes-summary-table th {background: #1f2937; color: white; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px;}
+                .notes-summary-table td {background: white; padding: 10px 12px; border-top: 1px solid #e5e7eb;}
+                .moyenne-display {font-weight: 700; text-align: center; font-size: 14px;}
+                .moyenne-valide {color: #10b981;}
+                .moyenne-insuffisante {color: #ef4444;}
+                .moyenne-non-disponible {color: #9ca3af;}
+                .matiere-nom {font-weight: 600; color: #1f2937; font-size: 13px;}
+                .badge {display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;}
+                .success-badge {background: #dcfce7; color: #059669;}
+                .warning-badge {background: #fef3c7; color: #d97706;}
+                .btn-details {background: #4f46e5; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; transition: all 0.2s ease;}
+                .btn-details:hover {background: #4338ca;}
+                
+                /* Modal styles */
+                .notes-detail-modal {display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;}
+                .notes-detail-modal-content {background-color: white; margin: 30px auto; padding: 0; width: 85%; max-width: 800px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: relative; animation: modalFadeIn 0.3s ease;}
+                .notes-detail-modal-header {display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; border-radius: 8px 8px 0 0;}
+                .notes-detail-modal-header h3 {margin: 0; font-size: 16px; color: #1f2937; font-weight: 600;}
+                .notes-detail-modal-close {background: none; border: none; font-size: 20px; color: #6b7280; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: all 0.2s ease;}
+                .notes-detail-modal-close:hover {background: #f3f4f6; color: #1f2937;}
+                .notes-detail-modal-body {padding: 18px;}
+                
+                /* Tableau de détails des notes dans le modal */
+                .notes-detail-table {width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 13px;}
+                .notes-detail-table thead {background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;}
+                .notes-detail-table th {padding: 10px 12px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;}
+                .notes-detail-table td {padding: 10px 12px; background: white; border-top: 1px solid #e5e7eb; text-align: center;}
+                .notes-detail-table tbody tr:hover {background: #f9fafb;}
+                
+                .rank-circle {display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #fb923c; color: white; font-weight: 700; font-size: 12px;}
+                
+                .student-info-modal {display: flex; align-items: center; gap: 10px; justify-content: flex-start;}
+                .student-avatar-modal {width: 34px; height: 34px; border-radius: 50%; background: #8b5cf6; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;}
+                .student-name-modal {font-weight: 600; color: #1f2937; font-size: 13px;}
+                
+                .note-badge {font-weight: 700; font-size: 13px;}
+                .note-excellent {color: #10b981;}
+                .note-tres-bien {color: #3b82f6;}
+                .note-bien {color: #3b82f6;}
+                .note-insuffisant {color: #ef4444;}
+                .note-absent {color: #9ca3af;}
+                
+                @keyframes modalFadeIn {
+                  from {opacity: 0; transform: translateY(-20px);}
+                  to {opacity: 1; transform: translateY(0);}
+                }
+              </style>
+              <!-- Contenus des tableaux par période -->
+              {% for periode in periodes_actives %}
+              <div class="notes-table-container periode-content" id="periode-content-{{ periode.id }}" style="margin-top: 20px; {% if periode.id != periode_active_notes.id %}display: none;{% endif %}">
+                <table class="notes-summary-table">
+                  <thead>
+                    <tr>
+                      <th>Matière</th>
+                      <th>Moyenne</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for mat in matieres_classe %}
+                      {% with moy=moyennes_par_periode|get_item:periode.id|get_item:mat.id %}
+                        <tr>
+                          <td class="matiere-nom">{{ mat.nom }}</td>
+                          <td>
+                            {% if moy and moy.moyenne %}
+                              <span class="moyenne-display {% if moy.moyenne >= 10 %}moyenne-valide{% else %}moyenne-insuffisante{% endif %}">
+                                {{ moy.moyenne|floatformat:2 }}/20
+                              </span>
+                            {% else %}
+                              <span class="moyenne-display moyenne-non-disponible">-</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if moy and moy.soumis %}
+                              <span class="badge success-badge"><i class="fas fa-check-circle"></i> Soumis</span>
+                            {% else %}
+                              <span class="badge warning-badge"><i class="fas fa-clock"></i> En attente</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            <button type="button" class="btn-details" onclick="showNoteDetails('{{ mat.id }}', '{{ mat.nom }}', {{ periode.id }})">
+                              <i class="fas fa-eye"></i> Détails
+                            </button>
+                          </td>
+                        </tr>
+                      {% endwith %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% endfor %}
+              
+              <!-- Modal pour les détails des notes -->
+              <div id="noteDetailsModal" class="notes-detail-modal">
+                <div class="notes-detail-modal-content">
+                  <div class="notes-detail-modal-header">
+                    <h3 id="modalMatiereTitle">Détails des notes - <span id="matiereName"></span></h3>
+                    <button type="button" class="notes-detail-modal-close" onclick="closeNoteDetails()">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  <div class="notes-detail-modal-body" id="noteDetailsContent">
+                    <!-- Le contenu sera chargé dynamiquement -->
+                  </div>
+                </div>
+              </div>
+              
+              <script>
+                const eleveId = {{ eleve.id }};
+                let currentPeriodeId = {{ periode_active_notes.id|default:'null' }};
+                
+                // Fonction pour changer de période
+                function switchPeriode(periodeId) {
+                  currentPeriodeId = periodeId;
+                  
+                  // Masquer tous les contenus de période
+                  document.querySelectorAll('.periode-content').forEach(content => {
+                    content.style.display = 'none';
+                  });
+                  
+                  // Afficher le contenu de la période sélectionnée
+                  const selectedContent = document.getElementById('periode-content-' + periodeId);
+                  if (selectedContent) {
+                    selectedContent.style.display = 'block';
+                  }
+                  
+                  // Mettre à jour les styles des onglets
+                  document.querySelectorAll('.periode-tab-btn').forEach(btn => {
+                    btn.style.background = '#f3f4f6';
+                    btn.style.color = '#6b7280';
+                    btn.classList.remove('active');
+                  });
+                  
+                  // Activer l'onglet sélectionné
+                  event.currentTarget.style.background = '#4f46e5';
+                  event.currentTarget.style.color = 'white';
+                  event.currentTarget.classList.add('active');
+                }
+                
+                function showNoteDetails(matiereId, matiereName, periodeId = null) {
+                  const modal = document.getElementById('noteDetailsModal');
+                  const content = document.getElementById('noteDetailsContent');
+                  const titleElement = document.getElementById('matiereName');
+                  
+                  // Utiliser la période courante si non spécifiée
+                  const selectedPeriodeId = periodeId || currentPeriodeId;
+                  
+                  // Mettre à jour le titre
+                  titleElement.textContent = matiereName;
+                  
+                  // Afficher un loader
+                  content.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #4f46e5;"></i><p>Chargement...</p></div>';
+                  
+                  // Afficher le modal
+                  modal.style.display = 'block';
+                  document.body.style.overflow = 'hidden';
+                  
+                  // Récupérer les données via AJAX avec la période
+                  fetch(`/api/notes-detail/${eleveId}/${matiereId}/?periode_id=${selectedPeriodeId}`)
+                    .then(response => {
+                      if (!response.ok) {
+                        throw new Error('Erreur lors du chargement des données');
+                      }
+                      return response.json();
+                    })
+                    .then(data => {
+                      if (!data.success) {
+                        throw new Error(data.error || 'Erreur inconnue');
+                      }
+                      
+                      // Construire le tableau des notes
+                      let html = '<div style="margin-top: 20px;">';
+                      
+                      // Compter les notes de devoirs
+                      const notesDevoirs = data.notes_devoirs || [];
+                      const noteExamen = data.note_examen;
+                      
+                      // Créer le tableau
+                      html += `
+                        <table class="notes-detail-table">
+                          <thead>
+                            <tr>
+                              <th>RANG</th>
+                              <th>ÉLÈVE</th>
+                      `;
+                      
+                      // Ajouter les colonnes pour chaque note de devoir
+                      notesDevoirs.forEach((note, index) => {
+                        html += `<th>NOTE ${index + 1}</th>`;
+                      });
+                      
+                      // Ajouter la colonne examen
+                      html += `<th>EXAMEN</th>`;
+                      
+                      // Ajouter la colonne moyenne
+                      html += `<th>MOYENNE</th>`;
+                      
+                      html += `
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td><span class="rank-circle">1</span></td>
+                              <td>
+                                <div class="student-info-modal">
+                                  <div class="student-avatar-modal">${data.eleve.prenom.charAt(0).toUpperCase()}${data.eleve.nom.charAt(0).toUpperCase()}</div>
+                                  <span class="student-name-modal">${data.eleve.nom_complet}</span>
+                                </div>
+                              </td>
+                      `;
+                      
+                      // Afficher les notes de devoirs
+                      notesDevoirs.forEach(note => {
+                        let noteClass = '';
+                        let noteText = '';
+                        
+                        if (note.absent) {
+                          noteClass = 'note-absent';
+                          noteText = 'ABS';
+                        } else {
+                          const score = parseFloat(note.note_sur_20);
+                          if (score >= 16) noteClass = 'note-excellent';
+                          else if (score >= 14) noteClass = 'note-tres-bien';
+                          else if (score >= 10) noteClass = 'note-bien';
+                          else noteClass = 'note-insuffisant';
+                          
+                          noteText = `${note.note}/${note.bareme}`;
+                        }
+                        
+                        html += `<td><span class="note-badge ${noteClass}">${noteText}</span></td>`;
+                      });
+                      
+                      // Afficher la note d'examen
+                      if (noteExamen) {
+                        const examScore = parseFloat(noteExamen.note);
+                        let examClass = '';
+                        if (examScore >= 16) examClass = 'note-excellent';
+                        else if (examScore >= 14) examClass = 'note-tres-bien';
+                        else if (examScore >= 10) examClass = 'note-bien';
+                        else examClass = 'note-insuffisant';
+                        
+                        html += `<td><span class="note-badge ${examClass}">${noteExamen.note}/20</span></td>`;
+                      } else {
+                        html += `<td><span class="note-badge note-absent">-</span></td>`;
+                      }
+                      
+                      // Afficher la moyenne
+                      if (data.moyenne) {
+                        const moyenneScore = parseFloat(data.moyenne);
+                        let moyenneClass = '';
+                        if (moyenneScore >= 16) moyenneClass = 'note-excellent';
+                        else if (moyenneScore >= 14) moyenneClass = 'note-tres-bien';
+                        else if (moyenneScore >= 10) moyenneClass = 'note-bien';
+                        else moyenneClass = 'note-insuffisant';
+                        
+                        html += `<td><span class="note-badge ${moyenneClass}">${data.moyenne.toFixed(2)}/20</span></td>`;
+                      } else {
+                        html += `<td><span class="note-badge note-absent">-</span></td>`;
+                      }
+                      
+                      html += `
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>`;
+                      
+                      // Mettre à jour le contenu
+                      content.innerHTML = html;
+                    })
+                    .catch(error => {
+                      console.error('Erreur:', error);
+                      content.innerHTML = `
+                        <div class="empty-state">
+                          <i class="fas fa-exclamation-triangle"></i>
+                          <p>Erreur lors du chargement des données : ${error.message}</p>
+                        </div>
+                      `;
+                    });
+                }
+                
+                function closeNoteDetails() {
+                  const modal = document.getElementById('noteDetailsModal');
+                  modal.style.display = 'none';
+                  document.body.style.overflow = '';
+                }
+                
+                // Fermer le modal si on clique en dehors du contenu
+                window.onclick = function(event) {
+                  const modal = document.getElementById('noteDetailsModal');
+                  if (event.target === modal) {
+                    closeNoteDetails();
+                  }
+                }
+                
+                // Fermer le modal avec la touche Echap
+                document.addEventListener('keydown', function(event) {
+                  if (event.key === 'Escape') {
+                    closeNoteDetails();
+                  }
+                });
+              </script>
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-book"></i>
+                  <p>Aucune matière affectée à cette classe</p>
+                </div>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% if not is_secondaire %}
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-chart-line"></i>
@@ -580,7 +917,9 @@
                                 "absent": {% if note.absent %}true{% else %}false{% endif %}
                               }{% if not forloop.last %},{% endif %}
                               {% endfor %}
-                            ]
+                            ],
+                            "note_examen": {% if notes_data.note_examen %}"{{ notes_data.note_examen|stringformat:'.2f'|cut:',' }}"{% else %}null{% endif %},
+                            "nom_examen": {% if notes_data.nom_examen %}"{{ notes_data.nom_examen|escapejs }}"{% else %}null{% endif %}
                           }{% if not forloop.last %},{% endif %}
                           {% endwith %}
                           {% endfor %}
@@ -601,6 +940,7 @@
                 </div>
               {% endif %}
             </div>
+            {% endif %}
           </div>
 
           <!-- Sanctions Tab -->
@@ -1545,6 +1885,24 @@
           html += '<div class="empty-state-modal">';
           html += '<i class="fas fa-info-circle"></i>';
           html += '<p>Aucune note retenue pour cette matière</p>';
+          html += '</div>';
+        }
+        
+        // Afficher la note d'examen si elle existe
+        if (matiereData.note_examen !== null && matiereData.note_examen !== undefined) {
+          html += '<h4 class="notes-retenues-title"><i class="fas fa-graduation-cap"></i> Note d\'examen</h4>';
+          html += '<div class="notes-retenues-grid">';
+          
+          const noteExamenClass = matiereData.note_examen >= 10 ? 'success' : 'danger';
+          
+          html += '<div class="note-retenue-card">';
+          html += '<div class="note-type-badge examen-badge">Examen</div>';
+          html += '<div class="note-nom">' + (matiereData.nom_examen || 'Examen de la période') + '</div>';
+          html += '<div class="note-valeur-container">';
+          html += '<span class="note-valeur ' + noteExamenClass + '">' + matiereData.note_examen + '/20</span>';
+          html += '</div>';
+          html += '</div>';
+          
           html += '</div>';
         }
         

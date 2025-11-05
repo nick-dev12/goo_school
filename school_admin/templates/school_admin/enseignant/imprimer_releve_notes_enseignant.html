@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relevé de Notes - {{ matiere.nom }} - {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/releve_notes_print.css' %}">
+</head>
+<body>
+    <div class="releve-container">
+        <!-- En-tête de l'établissement -->
+        <header class="releve-header">
+            <div class="header-left">
+                <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+                <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                <div class="etablissement-contact">
+                    <span class="contact-item">{{ etablissement.telephone }}</span>
+                    <span class="contact-item">{{ etablissement.email }}</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="info-item">
+                    <span class="info-label">Enseignant :</span>
+                    <span class="info-value">{{ professeur.prenom }} {{ professeur.nom|upper }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Année scolaire :</span>
+                    <span class="info-value">{% if periode %}{{ periode.annee_scolaire }}{% else %}N/A{% endif %}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Date d'impression :</span>
+                    <span class="info-value">{{ date_generation|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ligne de séparation -->
+        <div class="separator-line"></div>
+
+        <!-- Titre du document -->
+        <div class="document-title">
+            <h2>RELEVÉ DE NOTES{% if periode %} - {{ periode.nom_periode }}{% endif %}</h2>
+            <p class="document-subtitle">{{ matiere.nom }} - {{ classe.nom }}</p>
+        </div>
+
+        <!-- Informations de la classe -->
+        <div class="classe-info-box">
+            <div class="info-row">
+                <div class="info-item">
+                    <span class="info-label">Classe :</span>
+                    <span class="info-value">{{ classe.nom }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Matière :</span>
+                    <span class="info-value">{{ matiere.nom }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Période :</span>
+                    <span class="info-value">{% if periode %}{{ periode.nom_periode }}{% else %}N/A{% endif %}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Enseignant :</span>
+                    <span class="info-value">{{ professeur.prenom }} {{ professeur.nom }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Effectif :</span>
+                    <span class="info-value">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau des notes -->
+        {% if eleves_data %}
+        <div class="table-wrapper">
+            <table class="releve-table">
+                <thead>
+                    <tr>
+                        <th class="col-rang">Rang</th>
+                        <th class="col-eleve">Élève</th>
+                        {% for note_detail in eleves_data.0.notes_details %}
+                            <th class="col-note">{{ note_detail.titre|truncatewords:3 }}</th>
+                        {% endfor %}
+                        <th class="col-examen">Examen</th>
+                        <th class="col-moyenne">Moyenne</th>
+                        <th class="col-appreciation">Appréciation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in eleves_data %}
+                    <tr>
+                        <td class="col-rang">{{ forloop.counter }}</td>
+                        <td class="col-eleve">
+                            <div class="eleve-info">
+                                <span class="eleve-matricule">{{ data.eleve.numero_eleve }}</span>
+                                <span class="eleve-nom">{{ data.eleve.nom|upper }} {{ data.eleve.prenom }}</span>
+                            </div>
+                        </td>
+                        {% for note_detail in data.notes_details %}
+                            <td class="col-note">
+                                {% if note_detail.note %}
+                                    {{ note_detail.note|floatformat:2 }}/{{ note_detail.bareme }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        <td class="col-examen">
+                            {% if data.note_examen %}
+                                {{ data.note_examen|floatformat:2 }}/20
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="col-moyenne">
+                            {% if data.moyenne %}
+                                <span class="moyenne-badge">{{ data.moyenne|floatformat:2 }}/20</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="col-appreciation">{{ data.appreciation|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-message">
+            <p>Aucune donnée de notes pour cette période.</p>
+        </div>
+        {% endif %}
+
+        <!-- Résumé statistique -->
+        <div class="resume-section">
+            <p class="resume-text">
+                <strong>Résumé :</strong> 
+                {{ nombre_eleves }} élève{{ nombre_eleves|pluralize }} - 
+                Matière: {{ matiere.nom }} - 
+                Période: {% if periode %}{{ periode.nom_periode }}{% else %}N/A{% endif %}
+            </p>
+        </div>
+
+        <!-- Pied de page avec signatures -->
+        <footer class="releve-footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <p class="footer-text">
+                        Document généré le {{ date_generation|date:"d/m/Y à H:i" }}
+                    </p>
+                </div>
+                <div class="footer-right">
+                    <div class="signature-box">
+                        <p class="signature-title">L'Enseignant</p>
+                        <div class="signature-line"></div>
+                        <p class="signature-name">{{ professeur.prenom|upper }} {{ professeur.nom|upper }}</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Bouton d'impression (caché à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer le relevé
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+

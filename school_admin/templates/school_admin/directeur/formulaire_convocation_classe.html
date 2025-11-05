@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Convocation de Classe - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/formulaire_convocation.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Messages -->
+        {% include 'school_admin/partials/messages.html' %}
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-users"></i>
+                    Convocation de Classe
+                </h1>
+                <p class="page-subtitle">
+                    Créer une convocation pour tous les élèves de {{ classe.nom }}
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:convocation_liste' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour à la liste</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Informations de la classe -->
+        <div class="eleve-info-card">
+            <div class="eleve-info-header">
+                <i class="fas fa-chalkboard"></i>
+                <h3>Informations de la classe</h3>
+            </div>
+            <div class="eleve-info-body">
+                <div class="info-item">
+                    <span class="info-label">Classe :</span>
+                    <span class="info-value">{{ classe.nom }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Niveau :</span>
+                    <span class="info-value">{{ classe.get_niveau_display }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Nombre d'élèves :</span>
+                    <span class="info-value">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Description :</span>
+                    <span class="info-value">{{ classe.description|default:"Aucune description" }}</span>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Formulaire de convocation -->
+        <div class="form-card">
+            <div class="form-header">
+                <i class="fas fa-edit"></i>
+                <h3>Informations de la convocation groupée</h3>
+            </div>
+            <form method="POST" action="{% url 'directeur:convocation_classe' classe.id %}" class="convocation-form">
+                {% csrf_token %}
+                
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="objet" class="form-label">
+                            <i class="fas fa-tag"></i>
+                            Objet de la convocation *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="objet" 
+                            name="objet" 
+                            class="form-control"
+                            placeholder="Ex: Réunion parents-professeurs"
+                            value="{{ form_data.objet|default:'Convocation pour entretien' }}"
+                            required
+                        />
+                        <small class="form-hint">Titre bref de la convocation</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motif" class="form-label">
+                            <i class="fas fa-file-alt"></i>
+                            Motif de la convocation *
+                        </label>
+                        <textarea 
+                            id="motif" 
+                            name="motif" 
+                            class="form-control textarea-control"
+                            rows="6"
+                            placeholder="Décrivez le motif de la convocation pour toute la classe..."
+                            required
+                        >{{ form_data.motif|default:'' }}</textarea>
+                        <small class="form-hint">Description détaillée du motif (identique pour tous les élèves)</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Informations de rendez-vous
+                    </h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date_convocation" class="form-label">
+                                <i class="fas fa-calendar"></i>
+                                Date de la convocation *
+                            </label>
+                            <input 
+                                type="date" 
+                                id="date_convocation" 
+                                name="date_convocation" 
+                                class="form-control"
+                                value="{{ form_data.date_convocation }}"
+                                required
+                            />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="heure_convocation" class="form-label">
+                                <i class="fas fa-clock"></i>
+                                Heure de la convocation *
+                            </label>
+                            <input 
+                                type="time" 
+                                id="heure_convocation" 
+                                name="heure_convocation" 
+                                class="form-control"
+                                value="{{ form_data.heure_convocation }}"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lieu" class="form-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Lieu de la convocation *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="lieu" 
+                            name="lieu" 
+                            class="form-control"
+                            placeholder="Ex: Salle de réunion, Bureau du Directeur"
+                            value="{{ form_data.lieu|default:'Bureau du Directeur' }}"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div style="background: #fffbeb; border: 2px solid #fbbf24; border-radius: 12px; padding: 16px; margin-bottom: 25px;">
+                    <div style="display: flex; gap: 12px;">
+                        <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 20px; margin-top: 2px;"></i>
+                        <div>
+                            <p style="margin: 0 0 8px 0; font-weight: 700; color: #92400e; font-size: 14px;">
+                                Attention
+                            </p>
+                            <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">
+                                Cette action va créer <strong>{{ nombre_eleves }} convocation{{ nombre_eleves|pluralize }}</strong> 
+                                (une pour chaque élève de la classe). Toutes les convocations auront les mêmes informations 
+                                (objet, motif, date, heure, lieu).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'directeur:convocation_liste' %}" class="btn-cancel">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </a>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-check"></i>
+                        Créer {{ nombre_eleves }} convocation{{ nombre_eleves|pluralize }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+

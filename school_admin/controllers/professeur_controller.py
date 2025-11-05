@@ -291,6 +291,45 @@ class ProfesseurController:
         # Récupérer l'onglet sélectionné
         onglet_actif = request.GET.get('onglet', 'informations')
         
+        # Gérer l'ajout/suppression de matières secondaires (POST)
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            
+            if action == 'ajouter_matiere_secondaire':
+                matiere_id = request.POST.get('matiere_id')
+                if matiere_id:
+                    try:
+                        from ..model.matiere_model import Matiere
+                        matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
+                        
+                        # Vérifier que ce n'est pas déjà une matière secondaire
+                        if matiere not in professeur.matieres_secondaires.all():
+                            # Vérifier que ce n'est pas la matière principale
+                            if professeur.matiere_principale != matiere:
+                                professeur.matieres_secondaires.add(matiere)
+                                messages.success(request, f"Matière '{matiere.nom}' ajoutée avec succès.")
+                            else:
+                                messages.warning(request, "Cette matière est déjà votre matière principale.")
+                        else:
+                            messages.warning(request, "Cette matière est déjà dans vos matières secondaires.")
+                    except Matiere.DoesNotExist:
+                        messages.error(request, "Matière non trouvée.")
+                
+                return redirect('professeur:detail_professeur', professeur_id=professeur.id)
+            
+            elif action == 'retirer_matiere_secondaire':
+                matiere_id = request.POST.get('matiere_id')
+                if matiere_id:
+                    try:
+                        from ..model.matiere_model import Matiere
+                        matiere = Matiere.objects.get(id=matiere_id)
+                        professeur.matieres_secondaires.remove(matiere)
+                        messages.success(request, f"Matière '{matiere.nom}' retirée avec succès.")
+                    except Matiere.DoesNotExist:
+                        messages.error(request, "Matière non trouvée.")
+                
+                return redirect('professeur:detail_professeur', professeur_id=professeur.id)
+        
         # Pour les enseignants primaires, récupérer les affectations et les données de notes
         affectations_primaire = []
         cahier_notes_data = []
@@ -485,6 +524,16 @@ class ProfesseurController:
                         'matieres_info': matieres_info
                     })
         
+        # Récupérer les matières disponibles (pour le modal d'ajout)
+        from ..model.matiere_model import Matiere
+        matieres_disponibles = Matiere.objects.filter(
+            etablissement=etablissement
+        ).exclude(
+            id__in=professeur.matieres_secondaires.values_list('id', flat=True)
+        ).exclude(
+            id=professeur.matiere_principale.id if professeur.matiere_principale else None
+        ).order_by('nom')
+        
         context = {
             'professeur': professeur,
             'etablissement': etablissement,
@@ -492,6 +541,7 @@ class ProfesseurController:
             'affectations_primaire': affectations_primaire,
             'onglet_actif': onglet_actif,
             'cahier_notes_data': cahier_notes_data,
+            'matieres_disponibles': matieres_disponibles,
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/detail_professeur.html', context)

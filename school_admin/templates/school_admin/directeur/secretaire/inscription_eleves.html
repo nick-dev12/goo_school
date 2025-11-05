@@ -101,6 +101,16 @@
           <form method="post" action="{% url 'secretaire:inscription_eleves' %}" class="inscription-form" id="inscriptionForm">
             {% csrf_token %}
             
+            <!-- Affichage des erreurs globales -->
+            {% for key, error in field_errors.items %}
+                {% if key == '__all__' %}
+                <div class="alert alert-danger" style="margin-bottom: 20px; padding: 15px; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 8px;">
+                    <i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 10px;"></i>
+                    <strong>Erreur d'inscription :</strong> {{ error }}
+                </div>
+                {% endif %}
+            {% endfor %}
+            
             <!-- Étape 1: Informations personnelles -->
             <div class="form-section" data-step="1">
               <h3 class="section-title">

@@ -120,12 +120,19 @@
             </div>
             <div class="card-content">
                 {% if classes_associees %}
-                    <div class="classes-list">
-                        {% for classe in classes_associees %}
-                            <div class="class-item">
-                                <i class="fas fa-graduation-cap"></i>
-                                <span>{{ classe.nom }}</span>
-                                <span class="class-level">{{ classe.niveau_display }}</span>
+                    <div class="classes-list-grouped">
+                        {% for groupe_nom, classes_groupe in classes_par_groupe.items %}
+                            <div class="classe-groupe-item">
+                                <div class="groupe-header">
+                                    <i class="fas fa-layer-group"></i>
+                                    <strong>{{ groupe_nom }}</strong>
+                                    <span class="groupe-count">({{ classes_groupe|length }} classe{{ classes_groupe|length|pluralize }})</span>
+                                </div>
+                                <div class="groupe-classes">
+                                    {% for classe in classes_groupe %}
+                                        <span class="class-badge">{{ classe.nom }}</span>
+                                    {% endfor %}
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
@@ -312,19 +319,26 @@
                 <div class="form-group">
                     <label class="form-label">
                         <i class="fas fa-users"></i>
-                        Classes concernées
+                        Classes concernées (Sélection par groupe)
                     </label>
+                    <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                        <i class="fas fa-info-circle"></i>
+                        Cocher un groupe sélectionne toutes les classes de ce groupe
+                    </p>
                     <div class="classes-selection">
-                        {% for classe in toutes_classes %}
-                            <label class="class-checkbox">
+                        {% for groupe in groupes_classes %}
+                            <label class="class-checkbox groupe-checkbox">
                                 <input type="checkbox" 
-                                       name="classes" 
-                                       value="{{ classe.id }}"
-                                       {% if classe.id|stringformat:"s" in form_data.classes %}checked{% endif %}>
+                                       name="groupes_classes" 
+                                       value="{{ groupe.nom }}"
+                                       {% if groupe.nom in form_data.groupes_classes %}checked{% endif %}>
                                 <span class="checkmark">
                                     <i class="fas fa-check"></i>
                                 </span>
-                                <span class="class-name">{{ classe.nom }}</span>
+                                <span class="class-name">
+                                    <strong>{{ groupe.nom }}</strong>
+                                    <small style="display: block; font-size: 11px; color: #888;">({{ groupe.count }} classe{{ groupe.count|pluralize }})</small>
+                                </span>
                             </label>
                         {% empty %}
                             <div class="no-classes">

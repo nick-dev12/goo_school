@@ -6,6 +6,8 @@ from ..personal_views.enseignant_primaire_view import (
     gestion_classes_primaire,
     gestion_eleves_primaire,
     gestion_notes_primaire,
+    gestion_presence_primaire,
+    eleves_en_difficulte_primaire,
     noter_eleves_primaire,
     voir_releve_primaire,
     soumettre_releve_primaire,
@@ -24,7 +26,8 @@ from ..personal_views.enseignant_primaire_view import (
     historique_sanctions_eleve_primaire,
     liste_sanctions_classe_primaire,
     parametres_profil_primaire,
-    emploi_du_temps_primaire
+    emploi_du_temps_primaire,
+    imprimer_tableau_presence
 )
 
 app_name = 'enseignant_primaire'
@@ -43,6 +46,8 @@ urlpatterns = [
     
     # Gestion des notes et évaluations
     path('enseignant/primaire/notes/', gestion_notes_primaire, name='gestion_notes'),
+    path('enseignant/primaire/presence/', gestion_presence_primaire, name='gestion_presence'),
+    path('enseignant/primaire/eleves-difficulte/', eleves_en_difficulte_primaire, name='eleves_en_difficulte'),
     path('enseignant/primaire/noter/<int:classe_id>/', noter_eleves_primaire, name='noter_eleves'),
     path('enseignant/primaire/releve/<int:classe_id>/', voir_releve_primaire, name='voir_releve'),
     path('enseignant/primaire/soumettre-releve/<int:classe_id>/', soumettre_releve_primaire, name='soumettre_releve'),
@@ -57,6 +62,7 @@ urlpatterns = [
     path('enseignant/primaire/modifier-presence/<int:presence_id>/', modifier_presence_eleve_primaire, name='modifier_presence'),
     path('enseignant/primaire/historique-presence/<int:eleve_id>/', historique_presence_eleve_primaire, name='historique_presence'),
     path('enseignant/primaire/justifier-absence/', justifier_absence_eleve_primaire, name='justifier_absence'),
+    path('enseignant/primaire/imprimer-tableau-presence/<int:classe_id>/', imprimer_tableau_presence, name='imprimer_tableau_presence'),
     
     # Gestion des sanctions
     path('enseignant/primaire/soumettre-sanction/', soumettre_sanction_eleve_primaire, name='soumettre_sanction'),

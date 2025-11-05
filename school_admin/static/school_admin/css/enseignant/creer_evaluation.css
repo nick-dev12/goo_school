@@ -7,6 +7,13 @@
     margin-top: 80px;
 }
 
+/* Mise en page principale: formulaire + résumé */
+.page-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+}
+
 /* Fil d'Ariane */
 .breadcrumb {
     display: flex;
@@ -114,6 +121,19 @@
     border-left: 3px solid #10b981;
 }
 
+.badge-matiere {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #ecfeff;
+    color: #0e7490;
+    border: 1px solid #a5f3fc;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
 .info-item {
     display: flex;
     align-items: center;
@@ -139,6 +159,35 @@
     padding: 1.5rem;
     border: 1px solid #e2e8f0;
 }
+
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    position: sticky;
+    top: 84px;
+    height: fit-content;
+}
+
+.summary-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.75rem 0;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    color: #334155;
+}
+
+.summary-item i { color: #10b981; }
 
 .form-container {
     display: flex;
@@ -221,6 +270,17 @@
     color: #1e293b;
     transition: all 0.2s ease;
     font-family: 'Poppins', sans-serif;
+}
+
+.readonly-field {
+    background-color: #f5f7fb !important;
+    color: #64748b !important;
+    border-color: #e2e8f0 !important;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: #94a3b8;
 }
 
 .form-group input:focus,
@@ -338,6 +398,10 @@
     .main-content-container {
         padding: 1rem;
         margin-top: 70px;
+    }
+
+    .page-layout {
+        grid-template-columns: 1fr;
     }
 
     .page-title {

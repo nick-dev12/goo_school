@@ -1,4 +1,21 @@
 {% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
+</head>
+
+<body>
 {% include 'school_admin/eleve/partials/header.html' %}
 
 <!-- Contenu principal -->
@@ -7,6 +24,24 @@
         <i class="fas fa-tachometer-alt"></i>
         Tableau de bord
     </h2>
+
+    <!-- Boutons d'accès rapide -->
+    <div class="quick-access-buttons">
+        <a href="{% url 'eleve:notes_evaluations' %}" class="quick-btn quick-btn-blue">
+            <i class="fas fa-star"></i>
+            <span>Notes & Résultats</span>
+        </a>
+        <a href="{% url 'school_admin:absences_retards' %}" class="quick-btn quick-btn-orange">
+            <i class="fas fa-calendar-times"></i>
+            <span>Absences & Retards</span>
+        </a>
+        {% if est_parent %}
+        <a href="{% url 'school_admin:sanctions_eleve' %}" class="quick-btn quick-btn-red">
+            <i class="fas fa-gavel"></i>
+            <span>Sanctions</span>
+        </a>
+        {% endif %}
+    </div>
 
     <!-- Première rangée - Cartes d'information -->
     <div class="dashboard-grid">
@@ -121,8 +156,13 @@
                                 {{ cours.heure_debut }} - {{ cours.heure_fin }}
                             </td>
                             <td class="schedule-location">
-                                <i class="fas fa-door-open"></i>
-                                {{ cours.salle|default:"N/A" }}
+                                {% if cours.salle %}
+                                    <i class="fas fa-door-open"></i>
+                                    Salle {{ cours.salle }}
+                                {% else %}
+                                    <i class="fas fa-door-open"></i>
+                                    N/A
+                                {% endif %}
                             </td>
                             <td class="schedule-teacher">
                                 {{ cours.enseignant|default:"N/A" }}
@@ -141,7 +181,7 @@
             </div>
             <div class="info-card-footer">
                 <div></div>
-                <a href="#" class="info-card-link">
+                <a href="{% url 'eleve:emploi_du_temps' %}" class="info-card-link">
                     <span>Voir l'emploi du temps complet</span>
                     <i class="fas fa-chevron-right"></i>
                 </a>
@@ -222,7 +262,7 @@
             </ul>
             <div class="info-card-footer">
                 <div></div>
-                <a href="#" class="info-card-link">
+                <a href="{% url 'eleve:notes_evaluations' %}" class="info-card-link">
                     <span>Voir toutes les notes</span>
                     <i class="fas fa-chevron-right"></i>
                 </a>

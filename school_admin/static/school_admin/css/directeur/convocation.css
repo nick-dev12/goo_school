@@ -1,0 +1,514 @@
+/* ==========================================
+   STYLES DE LA CONVOCATION
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.convocation-container {
+    max-width: 800px;
+    margin: 15px auto;
+    padding: 20px;
+    background: white;
+    border: 6px double #f59e0b;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.convocation-container::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 2px solid #e0e0e0;
+    pointer-events: none;
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.convocation-header {
+    text-align: left;
+    margin-bottom: 10px;
+    padding: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.etablissement-nom {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    color: #ea580c;
+    letter-spacing: 1.5px;
+}
+
+.etablissement-adresse {
+    font-size: 10px;
+    margin-bottom: 2px;
+    color: #475569;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 10px;
+    font-size: 9px;
+    color: #64748b;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ==========================================
+   LIGNE DE SÉPARATION
+   ========================================== */
+
+.separator-line {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #f59e0b, transparent);
+    margin: 8px 0;
+    opacity: 0.6;
+}
+
+/* ==========================================
+   TITRE DU DOCUMENT
+   ========================================== */
+
+.document-title {
+    text-align: center;
+    margin: 10px 0 12px 0;
+}
+
+.document-title h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ea580c;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    margin-bottom: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    text-shadow: 2px 2px 4px rgba(234, 88, 12, 0.1);
+}
+
+/* ==========================================
+   CORPS DE LA CONVOCATION
+   ========================================== */
+
+.convocation-body {
+    margin: 12px 0;
+}
+
+.destinataire-section {
+    margin-bottom: 15px;
+}
+
+.destinataire-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.destinataire-box {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 6px;
+    padding: 10px 15px;
+    border-left: 4px solid #ea580c;
+}
+
+.destinataire-box p {
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #1a1a1a;
+}
+
+.destinataire-box p:last-child {
+    margin-bottom: 0;
+}
+
+.eleve-nom-convocation {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ea580c;
+    margin: 6px 0;
+}
+
+.objet-section {
+    margin-bottom: 15px;
+}
+
+.objet-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ea580c;
+    margin-bottom: 4px;
+}
+
+.objet-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-decoration: underline;
+}
+
+.message-section {
+    margin-bottom: 12px;
+}
+
+.message-intro {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.message-text {
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: justify;
+    color: #334155;
+    margin-bottom: 10px;
+}
+
+.rdv-box {
+    background: #f8fafc;
+    border: 2px solid #f59e0b;
+    border-radius: 6px;
+    padding: 10px 15px;
+    margin: 12px 0;
+}
+
+.rdv-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.rdv-item:last-child {
+    margin-bottom: 0;
+}
+
+.rdv-label {
+    font-weight: 700;
+    color: #ea580c;
+    min-width: 80px;
+}
+
+.rdv-value {
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+.message-formule {
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: justify;
+    color: #334155;
+    margin-top: 12px;
+    font-style: italic;
+}
+
+.convocation-date {
+    margin-top: 12px;
+    margin-bottom: 10px;
+    text-align: right;
+    font-size: 11px;
+    font-style: italic;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ==========================================
+   SIGNATURE
+   ========================================== */
+
+.signature-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 15px;
+}
+
+.signature-box {
+    text-align: center;
+}
+
+.signature-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ea580c;
+    margin-bottom: 35px;
+    text-transform: uppercase;
+}
+
+.signature-line {
+    height: 2px;
+    background: #ea580c;
+    margin: 5px auto;
+    width: 140px;
+}
+
+.signature-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.convocation-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 2px solid #e0e0e0;
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 8px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-print,
+.btn-close {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-close {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-close:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .convocation-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 15px;
+        border: 6px double #f59e0b !important;
+        box-shadow: none;
+    }
+    
+    .convocation-container::before {
+        border: 2px solid #e0e0e0 !important;
+        top: 6px;
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+    }
+
+    /* Optimiser les couleurs pour l'impression */
+    .convocation-header {
+        border-bottom: 2px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .separator-line {
+        background: linear-gradient(to right, transparent, #f59e0b, transparent) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .destinataire-box {
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+        border: 3px solid #f59e0b !important;
+        border-left: 6px solid #ea580c !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .rdv-box {
+        background: #f8fafc !important;
+        border: 2px solid #f59e0b !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Éviter les sauts de page */
+    .convocation-header,
+    .document-title,
+    .destinataire-box,
+    .rdv-box,
+    .signature-section {
+        page-break-inside: avoid;
+    }
+
+    /* Format A4 portrait */
+    @page {
+        size: A4 portrait;
+        margin: 1cm;
+    }
+    
+    .convocation-header {
+        padding: 0 !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .document-title {
+        margin: 8px 0 10px 0 !important;
+    }
+    
+    .document-title h2 {
+        font-size: 22px !important;
+        letter-spacing: 4px !important;
+    }
+    
+    .convocation-body {
+        margin: 10px 0 !important;
+    }
+    
+    .destinataire-section {
+        margin-bottom: 12px !important;
+    }
+    
+    .objet-section {
+        margin-bottom: 12px !important;
+    }
+    
+    .message-section {
+        margin-bottom: 10px !important;
+    }
+    
+    .message-text {
+        margin-bottom: 8px !important;
+        line-height: 1.5 !important;
+    }
+    
+    .rdv-box {
+        margin: 10px 0 !important;
+        padding: 8px 12px !important;
+    }
+    
+    .signature-section {
+        margin-top: 12px !important;
+    }
+    
+    .signature-title {
+        margin-bottom: 30px !important;
+    }
+    
+    .convocation-footer {
+        margin-top: 10px !important;
+        padding-top: 6px !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .convocation-container {
+        margin: 20px;
+        padding: 30px 20px;
+    }
+
+    .etablissement-nom {
+        font-size: 18px;
+    }
+
+    .document-title h2 {
+        font-size: 22px;
+    }
+
+    .print-actions {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .btn-print,
+    .btn-close {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+

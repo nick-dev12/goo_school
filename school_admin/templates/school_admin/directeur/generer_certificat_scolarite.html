@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificat de Scolarité - {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/certificat_scolarite.css' %}">
+</head>
+<body>
+    <div class="certificat-container">
+        <!-- En-tête de l'établissement -->
+        <header class="certificat-header">
+            <div class="header-left">
+                <div class="header-logo">
+                    {% if etablissement.logo %}
+                        <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
+                    {% else %}
+                        <div class="logo-placeholder">
+                            <i class="fas fa-school"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="header-info">
+                    <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+                    {% if etablissement.adresse %}
+                        <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                    {% endif %}
+                    <div class="etablissement-contact">
+                        {% if etablissement.telephone %}
+                            <span class="contact-item">
+                                <i class="fas fa-phone"></i> {{ etablissement.telephone }}
+                            </span>
+                        {% endif %}
+                        {% if etablissement.email %}
+                            <span class="contact-item">
+                                <i class="fas fa-envelope"></i> {{ etablissement.email }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ligne de séparation -->
+        <div class="separator-line"></div>
+
+        <!-- Titre du document -->
+        <div class="document-title">
+            <h2>CERTIFICAT DE SCOLARITÉ</h2>
+            <p class="document-subtitle">Année scolaire {{ annee_scolaire }}</p>
+        </div>
+
+        <!-- Corps du certificat -->
+        <div class="certificat-body">
+            <p class="certificat-intro">
+                Le Directeur de <strong>{{ etablissement.nom }}</strong>, certifie que :
+            </p>
+
+            <div class="eleve-info-box">
+                <div class="info-row">
+                    <span class="info-label">Nom et Prénom(s) :</span>
+                    <span class="info-value">{{ eleve.nom|upper }} {{ eleve.prenom }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date et lieu de naissance :</span>
+                    <span class="info-value">
+                        {% if eleve.date_naissance %}
+                            {{ eleve.date_naissance|date:"d/m/Y" }}
+                            {% if eleve.lieu_naissance %}
+                                à {{ eleve.lieu_naissance }}
+                            {% endif %}
+                        {% else %}
+                            Non renseigné
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Numéro d'élève :</span>
+                    <span class="info-value">{{ eleve.numero_eleve }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Classe :</span>
+                    <span class="info-value">{{ eleve.classe.nom }} - {{ eleve.classe.get_niveau_display }}</span>
+                </div>
+            </div>
+
+            <p class="certificat-text">
+                Est régulièrement inscrit(e) dans notre établissement pour l'année scolaire <strong>{{ annee_scolaire }}</strong>.
+            </p>
+
+            <p class="certificat-text">
+                Ce certificat est délivré pour servir et valoir ce que de droit.
+            </p>
+
+            <div class="certificat-date">
+                <p>Fait à {{ etablissement.ville|default:"[Ville]" }}, le {{ date_generation|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <p class="signature-title">Le Directeur</p>
+                <div class="signature-line"></div>
+                <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <footer class="certificat-footer">
+            <p class="footer-text">
+                Document officiel généré le {{ date_generation|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}
+            </p>
+        </footer>
+    </div>
+
+    <!-- Bouton d'impression (caché à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer le certificat
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+

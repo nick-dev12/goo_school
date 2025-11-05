@@ -56,6 +56,9 @@
                     <div class="stat-content">
                         <span class="stat-value">{{ stats.total_evaluations }}</span>
                         <span class="stat-label">Évaluation{{ stats.total_evaluations|pluralize }}</span>
+                        {% if periode_active %}
+                            <span class="stat-subtitle">{{ periode_active.nom_periode }}</span>
+                        {% endif %}
                     </div>
                 </div>
                 
@@ -69,6 +72,28 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Onglets par période -->
+            {% if periodes_scolaires %}
+            <div class="periodes-tabs-container">
+                <div class="periodes-tabs-nav">
+                    <a href="{% url 'enseignant:liste_evaluations' %}?periode=toutes" 
+                       class="periode-tab-btn {% if request.GET.periode == 'toutes' %}active{% endif %}"
+                       title="Toutes les périodes">
+                        <i class="fas fa-list"></i>
+                        <span>Toutes</span>
+                    </a>
+                    {% for periode in periodes_scolaires %}
+                        <a href="{% url 'enseignant:liste_evaluations' %}?periode={{ periode.id }}" 
+                           class="periode-tab-btn {% if periode_active and periode_active.id == periode.id %}active{% endif %}"
+                           title="{{ periode.nom_periode }}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>{{ periode.nom_periode }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Onglets par catégorie -->
             <div class="tabs-container">
@@ -96,6 +121,9 @@
                                     </div>
                                     <div class="classe-tab-content">
                                         <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                        {% if classe_data.matiere %}
+                                            <span class="classe-tab-matiere">{{ classe_data.matiere.nom }}</span>
+                                        {% endif %}
                                     </div>
                                     <span class="classe-tab-count">{{ classe_data.nombre_evaluations }}</span>
                                 </button>
@@ -136,6 +164,18 @@
 
                                                 <!-- Informations -->
                                                 <div class="eval-details">
+                                                    {% if evaluation.matiere %}
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-book"></i>
+                                                            <span>{{ evaluation.matiere.nom }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                    {% if evaluation.periode_scolaire %}
+                                                        <div class="detail-item">
+                                                            <i class="fas fa-calendar-week"></i>
+                                                            <span>{{ evaluation.periode_scolaire.nom_periode }}</span>
+                                                        </div>
+                                                    {% endif %}
                                                     <div class="detail-item">
                                                         <i class="fas fa-calendar"></i>
                                                         <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>

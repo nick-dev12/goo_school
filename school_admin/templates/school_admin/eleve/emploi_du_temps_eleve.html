@@ -1,0 +1,848 @@
+{% load static %}
+{% load notes_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
+</head>
+
+<body>
+{% include 'school_admin/eleve/partials/header.html' %}
+
+<!-- Contenu principal -->
+{% if not emploi_du_temps %}
+    <!-- Message si pas d'emploi du temps -->
+    <div class="empty-state-container" style="max-width: 1200px; margin: 100px auto; padding: 60px 20px; background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); text-align: center;">
+        <div style="font-size: 64px; color: #cbd5e1; margin-bottom: 20px;">
+            <i class="fas fa-calendar-times"></i>
+        </div>
+        <h3 style="font-size: 22px; font-weight: 700; color: #475569; margin-bottom: 12px;">Aucun emploi du temps disponible</h3>
+        <p style="font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 8px;">L'emploi du temps de votre classe n'a pas encore été créé.</p>
+        <p style="font-size: 15px; color: #64748b; line-height: 1.6;">Veuillez contacter l'administration de votre établissement.</p>
+        <a href="{% url 'eleve:dashboard_eleve' %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #4a90e2, #357abd); color: white; border-radius: 10px; font-weight: 600; text-decoration: none; margin-top: 24px;">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+        </a>
+    </div>
+{% else %}
+    <div style="max-width: 1400px; margin: 100px auto 40px; padding: 0 24px;">
+        <!-- Breadcrumb -->
+        <nav style="display: flex; align-items: center; gap: 12px; padding: 16px 0; margin-bottom: 24px; font-size: 14px;">
+            <a href="{% url 'eleve:dashboard_eleve' %}" style="display: flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-weight: 500;">
+                <i class="fas fa-home"></i>
+                Tableau de bord
+            </a>
+            <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 12px;"></i>
+            <span style="color: #1e293b; font-weight: 600;">Emploi du Temps</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding: 24px; background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); gap: 24px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 300px;">
+                <h1 style="font-size: 28px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-calendar-alt" style="color: #4a90e2; font-size: 28px;"></i>
+                    Emploi du Temps
+                </h1>
+                <p style="font-size: 16px; color: #64748b; margin-bottom: 16px; font-weight: 500;">
+                    {{ classe.nom }} - {{ classe.get_niveau_display }} - {{ emploi_du_temps.annee_scolaire }}
+                </p>
+                <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
+                    <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #64748b; font-size: 0.875rem; font-weight: 500;">
+                        <i class="fas fa-users" style="color: #4a90e2;"></i>
+                        {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}
+                    </span>
+                    <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #64748b; font-size: 0.875rem; font-weight: 500;">
+                        <i class="fas fa-clock" style="color: #4a90e2;"></i>
+                        {{ emploi_du_temps.nombre_creneaux }} créneau{{ emploi_du_temps.nombre_creneaux|pluralize }}
+                    </span>
+                    <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; font-size: 0.875rem; font-weight: 500;">
+                        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                        Actif
+                    </span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button onclick="window.print()" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-print" style="font-size: 16px;"></i>
+                    <span>Imprimer</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Emploi du temps -->
+        <div class="emploi-du-temps-section" style="margin-bottom: 32px;">
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); overflow-x: auto; border: 1px solid #e5e7eb;">
+                <table class="edt-table">
+                    <thead>
+                        <tr>
+                            <th class="edt-horaire-header">Horaires</th>
+                            {% for jour in jours_semaine %}
+                                <th class="edt-jour-header">{{ jour|title }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for periode_info in periodes_affichage %}
+                            {% if periode_info.est_pause %}
+                                <!-- Ligne spéciale pour les pauses -->
+                                <tr class="pause-row">
+                                    <td class="edt-horaire-cell pause-horaire">
+                                        <div class="horaire-info">
+                                            <div class="periode-horaire-simple">
+                                                {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td colspan="6" class="pause-cell-full">
+                                        <div class="pause-banner {% if periode_info.type_periode == 'dejeuner' %}pause-dejeuner{% else %}pause-recreation{% endif %}">
+                                            <i class="fas fa-{% if periode_info.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
+                                            <span class="pause-text">{% if periode_info.type_periode == 'dejeuner' %}PAUSE DÉJEUNER{% else %}RÉCRÉATION{% endif %}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <!-- Ligne normale pour les cours -->
+                                <tr>
+                                    <td class="edt-horaire-cell">
+                                        <div class="horaire-info">
+                                            <div class="periode-horaire-simple">
+                                                {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% for jour in jours_semaine %}
+                                        {% with creneau=periode_info.creneaux_par_jour|get_item:jour %}
+                                            <td class="edt-creneau-cell">
+                                                {% if creneau %}
+                                                    <!-- Vérifier si c'est un dict (pause) ou un objet Django (cours) -->
+                                                    {% if creneau.est_virtual %}
+                                                        <!-- C'est une pause (dict) -->
+                                                        <div class="creneau-card creneau-pause" data-matiere="pause">
+                                                            <div class="creneau-content">
+                                                                <div class="pause-label">
+                                                                    <i class="fas fa-{% if creneau.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
+                                                                    {{ creneau.nom_pause|default:"Pause" }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% else %}
+                                                        <!-- C'est un créneau cours (objet Django) -->
+                                                        {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                                            <div class="creneau-card creneau-cours" data-matiere="{{ matiere_nom }}" style="border-top: 4px solid {{ creneau.matiere_couleur }};">
+                                                                <div class="creneau-content">
+                                                                    <div class="creneau-matiere">
+                                                                        <i class="fas fa-{{ creneau.matiere_icone }}" style="color: {{ creneau.matiere_couleur }}; margin-right: 6px;"></i>
+                                                                        <span>{{ matiere_nom }}</span>
+                                                                    </div>
+                                                                    <div class="creneau-professeur">
+                                                                        {% if creneau.professeur %}
+                                                                            <i class="fas fa-user" style="margin-right: 4px; font-size: 11px;"></i>
+                                                                            {{ creneau.professeur.prenom }} {{ creneau.professeur.nom }}
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <div class="creneau-salle">
+                                                                        {% if creneau.salle %}
+                                                                            <i class="fas fa-door-open" style="margin-right: 4px; font-size: 11px;"></i>
+                                                                            Salle {{ creneau.salle.numero }}
+                                                                        {% endif %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {% endwith %}
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Vue mobile - Liste par jour -->
+        <div class="emploi-du-temps-mobile">
+            {% for jour in jours_semaine %}
+                <div class="jour-mobile-card">
+                    <div class="jour-mobile-header">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>{{ jour|title }}</span>
+                    </div>
+                    <div class="creneaux-mobile-list">
+                        {% for periode_info in periodes_affichage %}
+                            {% if not periode_info.est_pause %}
+                                {% with creneau=periode_info.creneaux_par_jour|get_item:jour %}
+                                    {% if creneau and not creneau.est_virtual %}
+                                        {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                            <div class="creneau-mobile-item" style="border-left: 4px solid {{ creneau.matiere_couleur }};">
+                                                <div class="creneau-mobile-horaire">
+                                                    <i class="fas fa-clock"></i>
+                                                    {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
+                                                </div>
+                                                <div class="creneau-mobile-matiere">
+                                                    <i class="fas fa-{{ creneau.matiere_icone }}" style="color: {{ creneau.matiere_couleur }};"></i>
+                                                    {{ matiere_nom }}
+                                                </div>
+                                                {% if creneau.professeur %}
+                                                    <div class="creneau-mobile-info">
+                                                        <i class="fas fa-user"></i>
+                                                        {{ creneau.professeur.prenom }} {{ creneau.professeur.nom }}
+                                                    </div>
+                                                {% endif %}
+                                                {% if creneau.salle %}
+                                                    <div class="creneau-mobile-info">
+                                                        <i class="fas fa-door-open"></i>
+                                                        Salle {{ creneau.salle.numero }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                <div class="pause-mobile-item">
+                                    <i class="fas fa-{% if periode_info.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
+                                    <span>{% if periode_info.type_periode == 'dejeuner' %}Pause Déjeuner{% else %}Récréation{% endif %}</span>
+                                    <span class="pause-mobile-horaire">{{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Légende -->
+        <div style="margin-bottom: 32px;">
+            <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-info-circle" style="color: #4a90e2;"></i>
+                    Légende des types de cours
+                </h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="type-badge type-cours">Cours</span>
+                        <span class="legend-desc">Cours magistral</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="type-badge type-td">TD</span>
+                        <span class="legend-desc">Travaux Dirigés</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="type-badge type-tp">TP</span>
+                        <span class="legend-desc">Travaux Pratiques</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="type-badge type-controle">Contrôle</span>
+                        <span class="legend-desc">Contrôle continu</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="type-badge type-examen">Examen</span>
+                        <span class="legend-desc">Examen</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="type-badge type-sport">Sport</span>
+                        <span class="legend-desc">Éducation physique</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="type-badge type-pause">Pause</span>
+                        <span class="legend-desc">Pause/Récréation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emploi du temps des examens -->
+        {% if sessions_examens %}
+            {% for session in sessions_examens %}
+                <div style="margin-top: 40px; margin-bottom: 32px;">
+                    <div style="background: white; padding: 24px; border-radius: 16px 16px 0 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border-bottom: 3px solid #ef4444;">
+                        <h2 style="font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-clipboard-check" style="color: #ef4444;"></i>
+                            Emploi du Temps des Examens - {{ classe.nom }}
+                        </h2>
+                        <p style="font-size: 15px; color: #64748b; font-weight: 500;">
+                            {{ session.nom }} ({{ session.date_debut|date:"d/m/Y" }} - {{ session.date_fin|date:"d/m/Y" }})
+                        </p>
+                    </div>
+
+                    <div style="background: white; border-radius: 0 0 16px 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); overflow-x: auto;">
+                        <table class="examens-table">
+                            <thead>
+                                <tr>
+                                    {% for date in dates_examens_triees %}
+                                        <th class="examens-jour-header">
+                                            <div class="jour-info">
+                                                <span class="jour-nom">{{ date|date:"l"|title }}</span>
+                                                <span class="jour-date">{{ date|date:"d/m/Y" }}</span>
+                                            </div>
+                                        </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    {% for date in dates_examens_triees %}
+                                        <td class="examens-creneau-cell">
+                                            {% for creneau in creneaux_examens %}
+                                                {% if creneau.date_examen == date %}
+                                                    <div class="creneau-examen-card">
+                                                        <div class="examen-horaire">
+                                                            {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                                                        </div>
+                                                        <div class="examen-matiere">
+                                                            <i class="fas fa-book"></i>
+                                                            {{ creneau.matiere.nom }}
+                                                        </div>
+                                                        {% if creneau.salle %}
+                                                            <div class="examen-salle">
+                                                                <i class="fas fa-door-open"></i>
+                                                                Salle {{ creneau.salle.numero }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Styles inline pour le tableau -->
+    <style>
+        .edt-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+        }
+        .edt-table thead th {
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .edt-table thead th:last-child {
+            border-right: none;
+        }
+        .edt-horaire-header {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            min-width: 150px;
+            width: 150px;
+        }
+        .edt-jour-header {
+            min-width: 180px;
+        }
+        .edt-table tbody tr {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .edt-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .edt-horaire-cell {
+            background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+            padding: 16px;
+            text-align: center;
+            vertical-align: middle;
+            border-right: 2px solid #e5e7eb;
+            min-width: 150px;
+            width: 150px;
+        }
+        .periode-horaire-simple {
+            font-size: 14px;
+            color: #1f2937;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        .edt-creneau-cell {
+            padding: 8px;
+            vertical-align: top;
+            border-right: 1px solid #e5e7eb;
+            position: relative;
+            min-height: 100px;
+        }
+        .edt-creneau-cell:last-child {
+            border-right: none;
+        }
+        .creneau-card {
+            height: 100%;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+        .creneau-cours {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-top: 4px solid #4a90e2;
+        }
+        .creneau-cours:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .creneau-pause {
+            background: linear-gradient(135deg, #fff7ed, #ffe8d1);
+            border: 2px dashed #fb923c;
+        }
+        .creneau-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .creneau-matiere {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3a8a;
+            display: flex;
+            align-items: center;
+        }
+        .creneau-professeur {
+            font-size: 12px;
+            color: #4b5563;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .creneau-salle {
+            font-size: 11px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pause-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #f97316;
+            height: 100%;
+            min-height: 70px;
+        }
+        .pause-label i {
+            font-size: 18px;
+        }
+        .pause-row {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            border-top: 2px solid #fb923c;
+            border-bottom: 2px solid #fb923c;
+        }
+        .pause-horaire {
+            background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
+            border-right: 2px solid #fb923c !important;
+        }
+        .pause-cell-full {
+            padding: 0 !important;
+            background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 50%, #fff7ed 100%);
+        }
+        .pause-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            height: 100%;
+            min-height: 50px;
+        }
+        .pause-recreation { color: #ea580c; }
+        .pause-dejeuner { color: #c2410c; }
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .legend-desc {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        .type-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .type-cours { background: #dbeafe; color: #1e40af; }
+        .type-td { background: #fef3c7; color: #92400e; }
+        .type-tp { background: #d1fae5; color: #065f46; }
+        .type-controle { background: #fee2e2; color: #991b1b; }
+        .type-examen { background: #ede9fe; color: #6b21a8; }
+        .type-sport { background: #cffafe; color: #155e75; }
+        .type-pause { background: #ffedd5; color: #9a3412; }
+        .examens-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .examens-table thead th {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 16px 12px;
+            text-align: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .examens-jour-header {
+            min-width: 150px;
+        }
+        .jour-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .jour-nom {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .jour-date {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        .examens-creneau-cell {
+            padding: 12px;
+            vertical-align: top;
+            border-right: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fef2f2;
+            min-height: 120px;
+        }
+        .creneau-examen-card {
+            background: white;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.1);
+        }
+        .creneau-examen-card:last-child {
+            margin-bottom: 0;
+        }
+        .examen-horaire {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ef4444;
+            margin-bottom: 6px;
+            font-family: 'Courier New', monospace;
+        }
+        .examen-matiere {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .examen-matiere i {
+            color: #ef4444;
+        }
+        .examen-salle {
+            font-size: 11px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .examen-salle i {
+            color: #9ca3af;
+        }
+        /* ===== STYLES POUR VUE MOBILE ===== */
+        .emploi-du-temps-mobile {
+            display: none;
+        }
+        
+        .jour-mobile-card {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+        
+        .jour-mobile-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .jour-mobile-header i {
+            font-size: 15px;
+        }
+        
+        .creneaux-mobile-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .creneau-mobile-item {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 11px;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .creneau-mobile-horaire {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .creneau-mobile-horaire i {
+            color: #3b82f6;
+            font-size: 11px;
+        }
+        
+        .creneau-mobile-matiere {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .creneau-mobile-matiere i {
+            font-size: 15px;
+        }
+        
+        .creneau-mobile-info {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .creneau-mobile-info i {
+            color: #9ca3af;
+            font-size: 11px;
+        }
+        
+        .pause-mobile-item {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 11px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .pause-mobile-item i {
+            font-size: 15px;
+        }
+        
+        .pause-mobile-horaire {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        
+        /* ===== RESPONSIVE MOBILE ET TABLETTE ===== */
+        @media (max-width: 1024px) {
+            div[style*="max-width: 1400px"] {
+                padding: 0 16px;
+            }
+            .page-title {
+                font-size: 24px !important;
+            }
+            .page-subtitle {
+                font-size: 14px !important;
+            }
+            .page-header {
+                flex-direction: column !important;
+                gap: 16px !important;
+            }
+            .page-actions {
+                width: 100%;
+                justify-content: flex-start !important;
+            }
+            .edt-horaire-header,
+            .edt-horaire-cell {
+                min-width: 100px;
+                width: 100px;
+            }
+            .periode-horaire-simple {
+                font-size: 12px;
+            }
+            .edt-jour-header {
+                min-width: 140px;
+                font-size: 12px;
+            }
+            .creneau-matiere {
+                font-size: 13px !important;
+            }
+            .creneau-professeur,
+            .creneau-salle {
+                font-size: 11px !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            div[style*="max-width: 1400px"] {
+                margin-top: 80px !important;
+                padding: 0 12px;
+            }
+            /* Masquer le tableau sur mobile et afficher la vue en liste */
+            .emploi-du-temps-section {
+                display: none;
+            }
+            .emploi-du-temps-mobile {
+                display: block;
+            }
+            /* Adapter la légende pour mobile */
+            .legend-items {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+            .legend-item {
+                font-size: 12px !important;
+            }
+            .type-badge {
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+            }
+            /* Adapter les examens pour mobile */
+            .exam-schedule-wrapper {
+                overflow-x: auto;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            div[style*="max-width: 1400px"] {
+                padding: 0 8px;
+            }
+            h1 {
+                font-size: 18px !important;
+            }
+            .page-subtitle {
+                font-size: 12px !important;
+            }
+            .classe-info-badges {
+                flex-direction: column !important;
+                gap: 6px !important;
+            }
+            .info-badge {
+                width: 100% !important;
+                justify-content: center !important;
+                font-size: 11px !important;
+                padding: 6px 10px !important;
+            }
+            .jour-mobile-card {
+                padding: 10px;
+                margin-bottom: 10px;
+                border-radius: 8px;
+            }
+            .jour-mobile-header {
+                padding: 8px 12px;
+                font-size: 13px;
+                border-radius: 5px;
+            }
+            .jour-mobile-header i {
+                font-size: 13px;
+            }
+            .creneau-mobile-item {
+                padding: 10px;
+                border-radius: 6px;
+            }
+            .creneau-mobile-horaire {
+                font-size: 11px;
+                margin-bottom: 5px;
+            }
+            .creneau-mobile-matiere {
+                font-size: 13px;
+                margin-bottom: 5px;
+            }
+            .creneau-mobile-matiere i {
+                font-size: 14px;
+            }
+            .creneau-mobile-info {
+                font-size: 11px;
+                margin-top: 4px;
+            }
+            .pause-mobile-item {
+                padding: 10px;
+                font-size: 12px;
+                border-radius: 6px;
+            }
+            .pause-mobile-item i {
+                font-size: 14px;
+            }
+            .pause-mobile-horaire {
+                font-size: 10px;
+            }
+            /* Adapter le header pour mobile */
+            nav[style*="display: flex"] {
+                flex-wrap: wrap !important;
+            }
+            /* Adapter les boutons pour mobile */
+            button, .btn {
+                font-size: 12px !important;
+                padding: 8px 14px !important;
+            }
+        }
+        
+        @media print {
+            div[style*="max-width: 1400px"] {
+                margin-top: 0 !important;
+            }
+        }
+    </style>
+{% endif %}
+
+
+</body>
+</html>

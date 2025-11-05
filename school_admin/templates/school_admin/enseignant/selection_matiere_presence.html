@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sélection de la matière - Liste de présence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .main-content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .breadcrumb {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .selection-container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .selection-header {
+            margin-bottom: 2rem;
+        }
+
+        .selection-header h2 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .selection-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .matieres-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .matiere-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            background: white;
+        }
+
+        .matiere-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .matiere-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .matiere-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .matiere-card.selected .matiere-icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .matiere-nom {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .matiere-info {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .matiere-card.selected .matiere-info {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .actions-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            padding-top: 2rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: background 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <div class="main-content-wrapper">
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
+            <span class="separator">›</span>
+            <span class="current">Sélection de la matière</span>
+        </nav>
+
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-book-open"></i>
+                Sélection de la matière
+            </h1>
+            <p>{{ classe.nom }} - {{ nombre_eleves }} élèves - {{ today|date:"d/m/Y" }}</p>
+        </div>
+
+        <div class="selection-container">
+            <div class="selection-header">
+                <h2>Choisissez la matière pour la prise de présence</h2>
+                <p>Vous êtes affecté à cette classe pour plusieurs matières. Veuillez sélectionner la matière pour laquelle vous souhaitez faire l'appel.</p>
+            </div>
+
+            <div class="matieres-grid">
+                {% for matiere_item in matieres_affectations %}
+                    <a href="{% url 'enseignant:liste_presence' classe.id %}?matiere={{ matiere_item.id }}" class="matiere-card">
+                        <div class="matiere-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="matiere-nom">{{ matiere_item.nom }}</div>
+                        <div class="matiere-info">
+                            <i class="fas fa-info-circle"></i>
+                            Cliquez pour faire l'appel
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+
+            <div class="actions-container">
+                <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

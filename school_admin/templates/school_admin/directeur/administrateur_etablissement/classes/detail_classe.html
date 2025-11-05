@@ -249,7 +249,7 @@
                                 </div>
                                 <div class="enseignant-info">
                                   <h4 class="enseignant-nom">{{ affectation.professeur.nom_complet }}</h4>
-                                  <p class="enseignant-matiere">{{ affectation.professeur.matiere_principale.nom }}</p>
+                                  <p class="enseignant-matiere">{% if affectation.matiere %}{{ affectation.matiere.nom }}{% else %}{{ affectation.professeur.matiere_principale.nom }}{% endif %}</p>
                                 </div>
                                 <div class="enseignant-status">
                                   <span class="status-badge principal">Principal</span>
@@ -291,7 +291,7 @@
                                 </div>
                                 <div class="enseignant-info">
                                   <h4 class="enseignant-nom">{{ affectation.professeur.nom_complet }}</h4>
-                                  <p class="enseignant-matiere">{{ affectation.professeur.matiere_principale.nom }}</p>
+                                  <p class="enseignant-matiere">{% if affectation.matiere %}{{ affectation.matiere.nom }}{% else %}{{ affectation.professeur.matiere_principale.nom }}{% endif %}</p>
                                 </div>
                                 <div class="enseignant-status">
                                   <span class="status-badge classique">Classique</span>
@@ -336,6 +336,177 @@
             <!-- Élèves Tab -->
             <div class="tab-panel" id="eleves">
               <div class="panel-content">
+                <style>
+                  /* Styles pour le tableau des élèves */
+                  .eleves-table-container {
+                    background: white;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    margin-top: 20px;
+                  }
+                  
+                  .eleves-table {
+                    width: 100%;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    font-size: 13px;
+                  }
+                  
+                  .eleves-table thead {
+                    background: linear-gradient(135deg, #1e293b, #334155);
+                    color: white;
+                  }
+                  
+                  .eleves-table th {
+                    padding: 12px 14px;
+                    text-align: left;
+                    font-weight: 700;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border-bottom: 3px solid #4f46e5;
+                  }
+                  
+                  .eleves-table tbody tr {
+                    border-bottom: 1px solid #e5e7eb;
+                    transition: background 0.2s;
+                  }
+                  
+                  .eleves-table tbody tr:hover {
+                    background: #f9fafb;
+                  }
+                  
+                  .eleves-table tbody tr:last-child {
+                    border-bottom: none;
+                  }
+                  
+                  .eleves-table td {
+                    padding: 14px;
+                  }
+                  
+                  .eleve-cell {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                  }
+                  
+                  .eleve-avatar-table {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: #60a5fa;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                  }
+                  
+                  .eleve-details-table {
+                    flex: 1;
+                  }
+                  
+                  .eleve-nom-table {
+                    font-weight: 600;
+                    color: #1f2937;
+                    font-size: 14px;
+                    display: block;
+                  }
+                  
+                  .eleve-matricule-table {
+                    font-size: 12px;
+                    color: #6b7280;
+                  }
+                  
+                  .sexe-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: 600;
+                  }
+                  
+                  .sexe-badge.masculin {
+                    background: #dbeafe;
+                    color: #1e40af;
+                  }
+                  
+                  .sexe-badge.feminin {
+                    background: #fce7f3;
+                    color: #be185d;
+                  }
+                  
+                  .statut-badge-table {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 600;
+                  }
+                  
+                  .statut-badge-table.nouvelle {
+                    background: #dcfce7;
+                    color: #059669;
+                  }
+                  
+                  .statut-badge-table.transfert {
+                    background: #fef3c7;
+                    color: #d97706;
+                  }
+                  
+                  .statut-badge-table.reinscription {
+                    background: #dbeafe;
+                    color: #1d4ed8;
+                  }
+                  
+                  .actions-cell {
+                    display: flex;
+                    gap: 6px;
+                    justify-content: center;
+                  }
+                  
+                  .btn-action-eleve {
+                    padding: 6px 10px;
+                    border: none;
+                    border-radius: 6px;
+                    color: white;
+                    font-size: 11px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    transition: all 0.2s;
+                    text-decoration: none;
+                  }
+                  
+                  .btn-action-eleve:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                  }
+                  
+                  .btn-details {
+                    background: #4f46e5;
+                  }
+                  
+                  .btn-notes {
+                    background: #059669;
+                  }
+                  
+                  .btn-sanctions {
+                    background: #dc2626;
+                  }
+                  
+                  .btn-absences {
+                    background: #ea580c;
+                  }
+                </style>
+                
                 {% if eleves %}
                   <div class="eleves-section">
                     <div class="eleves-header">
@@ -348,33 +519,137 @@
                         <span class="stat-badge">{{ stats_eleves.feminin }} filles</span>
                       </div>
                     </div>
-                    <div class="eleves-grid">
-                      {% for eleve in eleves %}
-                        <div class="eleve-card">
-                          <div class="eleve-header">
-                            <div class="eleve-avatar">
-                              <i class="fas fa-user"></i>
-                            </div>
-                            <div class="eleve-info">
-                              <h4 class="eleve-nom">{{ eleve.prenom }} {{ eleve.nom }}</h4>
-                              <p class="eleve-statut">{{ eleve.get_statut_display }}</p>
-                            </div>
-                            <div class="eleve-sex">
-                              <i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
-                            </div>
-                          </div>
-                          <div class="eleve-details">
-                            <div class="detail-item">
-                              <i class="fas fa-calendar"></i>
-                              <span>Né(e) le {{ eleve.date_naissance|date:"d/m/Y" }}</span>
-                            </div>
-                            <div class="detail-item">
-                              <i class="fas fa-envelope"></i>
-                              <span>{{ eleve.email|default:"Aucun email" }}</span>
-                            </div>
-                          </div>
+                    
+                    <!-- Barre de recherche et filtres pour établissements secondaires -->
+                    <div class="search-filter-container" id="search-filter-eleves-{{ classe.id }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <div class="search-box" style="position: relative; margin-bottom: 16px;">
+                            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="search-input-eleves-{{ classe.id }}" 
+                                   placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                                   oninput="filterClasseEleves('{{ classe.id }}')"
+                                   style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
+                            <button class="clear-search" 
+                                    id="clear-search-eleves-{{ classe.id }}" 
+                                    onclick="clearClasseSearch('{{ classe.id }}')" 
+                                    style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
-                      {% endfor %}
+                        
+                        <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                            <div class="filter-group" style="flex: 1; min-width: 180px;">
+                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                    <i class="fas fa-user-tag"></i>
+                                    Statut
+                                </label>
+                                <select class="filter-select" id="filter-statut-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                    <option value="">Tous les statuts</option>
+                                    <option value="nouvelle">Nouvelle inscription</option>
+                                    <option value="transfert">Transfert</option>
+                                    <option value="reinscription">Réinscription</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group" style="flex: 1; min-width: 180px;">
+                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                    <i class="fas fa-venus-mars"></i>
+                                    Sexe
+                                </label>
+                                <select class="filter-select" id="filter-sexe-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                    <option value="">Tous</option>
+                                    <option value="M">Masculin</option>
+                                    <option value="F">Féminin</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn-reset-filters" onclick="resetClasseFilters('{{ classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-redo"></i>
+                                Réinitialiser
+                            </button>
+                        </div>
+                        
+                        <div class="filter-results" id="filter-results-eleves-{{ classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
+                            <span id="results-count-eleves-{{ classe.id }}">0</span> résultat(s) trouvé(s)
+                        </div>
+                    </div>
+                    
+                    <div class="eleves-table-container">
+                      <table class="eleves-table">
+                        <thead>
+                          <tr>
+                            <th>Élève</th>
+                            <th>Matricule</th>
+                            <th>Sexe</th>
+                            <th>Statut</th>
+                            <th>Date de Naissance</th>
+                            <th style="text-align: center;">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for eleve in eleves %}
+                          <tr data-nom="{{ eleve.nom|lower }}"
+                              data-prenom="{{ eleve.prenom|lower }}"
+                              data-email="{{ eleve.email|lower|default:'' }}"
+                              data-matricule="{{ eleve.numero_eleve|lower }}"
+                              data-statut="{{ eleve.statut }}"
+                              data-sexe="{{ eleve.sexe }}">
+                            <td>
+                              <div class="eleve-cell">
+                                <div class="eleve-avatar-table">
+                                  <i class="fas fa-user"></i>
+                                </div>
+                                <div class="eleve-details-table">
+                                  <span class="eleve-nom-table">{{ eleve.nom_complet }}</span>
+                                  <span class="eleve-matricule-table">{{ eleve.numero_eleve }}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>{{ eleve.numero_eleve }}</td>
+                            <td>
+                              <span class="sexe-badge {% if eleve.sexe == 'M' %}masculin{% else %}feminin{% endif %}">
+                                <i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                                {{ eleve.get_sexe_display }}
+                              </span>
+                            </td>
+                            <td>
+                              <span class="statut-badge-table {{ eleve.statut }}">
+                                {% if eleve.statut == 'nouvelle' %}
+                                  <i class="fas fa-user-plus"></i>
+                                {% elif eleve.statut == 'transfert' %}
+                                  <i class="fas fa-exchange-alt"></i>
+                                {% else %}
+                                  <i class="fas fa-redo"></i>
+                                {% endif %}
+                                {{ eleve.get_statut_display }}
+                              </span>
+                            </td>
+                            <td>{{ eleve.date_naissance|date:"d/m/Y" }}</td>
+                            <td>
+                              <div class="actions-cell">
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-eleve btn-details" title="Détails de l'élève">
+                                  <i class="fas fa-eye"></i>
+                                  Détails
+                                </a>
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#notes-tab" class="btn-action-eleve btn-notes" title="Notes de l'élève">
+                                  <i class="fas fa-chart-line"></i>
+                                  Notes
+                                </a>
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#sanctions-tab" class="btn-action-eleve btn-sanctions" title="Sanctions de l'élève">
+                                  <i class="fas fa-gavel"></i>
+                                  Sanctions
+                                </a>
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#presences-tab" class="btn-action-eleve btn-absences" title="Absences de l'élève">
+                                  <i class="fas fa-calendar-times"></i>
+                                  Absences
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 {% else %}
@@ -480,6 +755,277 @@
             <!-- Relevé de Notes Tab -->
             <div class="tab-panel" id="releve-notes">
               <div class="panel-content">
+                <style>
+                  /* Styles améliorés pour le relevé de notes */
+                  .releve-table-wrapper {
+                    margin-top: 20px;
+                    overflow-x: auto;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                  }
+                  
+                  .releve-table {
+                    width: 100%;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    background: white;
+                    font-size: 13px;
+                  }
+                  
+                  .releve-table thead {
+                    background: linear-gradient(135deg, #1e293b, #334155);
+                    color: white;
+                  }
+                  
+                  .releve-table th {
+                    padding: 12px 14px;
+                    text-align: left;
+                    font-weight: 700;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border-bottom: 3px solid #4f46e5;
+                  }
+                  
+                  .releve-table .th-rang {
+                    width: 60px;
+                    text-align: center;
+                  }
+                  
+                  .releve-table .th-eleve {
+                    min-width: 180px;
+                  }
+                  
+                  .releve-table .th-matiere {
+                    min-width: 140px;
+                    text-align: center;
+                  }
+                  
+                  .matiere-header-content {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 6px;
+                  }
+                  
+                  .matiere-nom {
+                    font-weight: 700;
+                    font-size: 11px;
+                  }
+                  
+                  .btn-details-matiere {
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 6px;
+                    padding: 4px 10px;
+                    font-size: 10px;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    transition: all 0.2s;
+                  }
+                  
+                  .btn-details-matiere:hover {
+                    background: rgba(255,255,255,0.3);
+                    transform: scale(1.05);
+                  }
+                  
+                  .releve-table tbody tr {
+                    border-bottom: 1px solid #e5e7eb;
+                    transition: background 0.2s;
+                  }
+                  
+                  .releve-table tbody tr:hover {
+                    background: #f9fafb;
+                  }
+                  
+                  .releve-table tbody tr:last-child {
+                    border-bottom: none;
+                  }
+                  
+                  .releve-table td {
+                    padding: 14px;
+                  }
+                  
+                  .td-rang {
+                    text-align: center;
+                  }
+                  
+                  .rang-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    font-weight: 700;
+                    font-size: 13px;
+                    background: #e5e7eb;
+                    color: #6b7280;
+                  }
+                  
+                  .rang-badge.gold {
+                    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+                    color: white;
+                    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+                  }
+                  
+                  .rang-badge.silver {
+                    background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+                    color: white;
+                    box-shadow: 0 2px 8px rgba(156, 163, 175, 0.4);
+                  }
+                  
+                  .rang-badge.bronze {
+                    background: linear-gradient(135deg, #fb923c, #ea580c);
+                    color: white;
+                    box-shadow: 0 2px 8px rgba(251, 146, 60, 0.4);
+                  }
+                  
+                  .eleve-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                  }
+                  
+                  .eleve-avatar {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: #60a5fa;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                  }
+                  
+                  .eleve-nom {
+                    font-weight: 600;
+                    color: #1f2937;
+                    font-size: 14px;
+                  }
+                  
+                  .td-moyenne {
+                    text-align: center;
+                  }
+                  
+                  .moyenne-text {
+                    font-weight: 700;
+                    font-size: 14px;
+                  }
+                  
+                  .text-excellent {
+                    color: #059669;
+                  }
+                  
+                  .text-bien {
+                    color: #0891b2;
+                  }
+                  
+                  .text-assez-bien {
+                    color: #3b82f6;
+                  }
+                  
+                  .text-passable {
+                    color: #eab308;
+                  }
+                  
+                  .text-insuffisant {
+                    color: #dc2626;
+                  }
+                  
+                  .moyenne-non-disponible {
+                    color: #9ca3af;
+                    font-size: 16px;
+                  }
+                  
+                  /* Styles pour le header du relevé */
+                  .releve-header {
+                    background: #60a5fa !important;
+                    padding: 20px 24px;
+                    border-radius: 12px 12px 0 0;
+                    color: white !important;
+                    margin-bottom: 0;
+                  }
+                  
+                  .releve-header h3 {
+                    margin: 0 0 12px 0;
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: white !important;
+                  }
+                  
+                  .releve-header h3 i {
+                    color: white !important;
+                  }
+                  
+                  .releve-info {
+                    display: flex;
+                    gap: 24px;
+                    font-size: 13px;
+                    color: white !important;
+                  }
+                  
+                  .releve-info span {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: white !important;
+                  }
+                  
+                  .releve-info span i {
+                    color: white !important;
+                  }
+                  
+                  .releve-notes-container {
+                    background: white;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                  }
+                  
+                  .periode-tabs {
+                    display: flex;
+                    gap: 8px;
+                    margin-bottom: 20px;
+                  }
+                  
+                  .periode-tab-btn {
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 8px;
+                    background: #f3f4f6;
+                    color: #6b7280;
+                    font-weight: 600;
+                    font-size: 13px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                  }
+                  
+                  .periode-tab-btn.active {
+                    background: #4f46e5;
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+                  }
+                  
+                  .periode-tab-btn:hover:not(.active) {
+                    background: #e5e7eb;
+                  }
+                  
+                  .periode-tab-content {
+                    display: none;
+                  }
+                  
+                  .periode-tab-content.active {
+                    display: block;
+                  }
+                </style>
                 <!-- Sous-onglets par période -->
                 <div class="periode-tabs">
                   {% for periode in periodes %}
@@ -515,31 +1061,54 @@
                       <table class="releve-table">
                         <thead>
                           <tr>
+                            <th class="th-rang">Rang</th>
                             <th class="th-eleve">Élève</th>
                             {% for matiere in matieres_classe %}
-                            <th class="th-matiere">{{ matiere.nom }}</th>
+                            <th class="th-matiere">
+                              <div class="matiere-header-content">
+                                <span class="matiere-nom">{{ matiere.nom }}</span>
+                                <button class="btn-details-matiere" 
+                                        onclick="ouvrirDetailsMatiere('{{ classe.id }}', '{{ matiere.nom|escapejs }}', event)"
+                                        title="Voir les détails des notes">
+                                  <i class="fas fa-eye"></i> Détails
+                                </button>
+                              </div>
+                            </th>
                             {% endfor %}
                           </tr>
                         </thead>
                         <tbody>
                           {% for eleve_data in releves_notes_par_periode|get_item:periode.id %}
                           <tr class="eleve-row">
+                            <td class="td-rang">
+                              {% if eleve_data.moyenne_tri %}
+                                <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                  {{ forloop.counter }}
+                                </span>
+                              {% else %}
+                                <span class="rang-badge">-</span>
+                              {% endif %}
+                            </td>
                             <td class="td-eleve">
                               <div class="eleve-info">
-                                <span class="eleve-nom">{{ eleve_data.eleve.prenom }} {{ eleve_data.eleve.nom }}</span>
-                                <span class="eleve-code">{{ eleve_data.eleve.matricule }}</span>
+                                <div class="eleve-avatar">
+                                  <i class="fas fa-user"></i>
+                                </div>
+                                <span class="eleve-nom">{{ eleve_data.eleve.nom_complet }}</span>
                               </div>
                             </td>
                             {% for matiere in matieres_classe %}
                             <td class="td-moyenne">
                               {% if eleve_data.moyennes|get_item:matiere.id %}
                                 {% with moyenne=eleve_data.moyennes|get_item:matiere.id %}
-                                <span class="moyenne-value {% if moyenne.moyenne >= 16 %}excellent{% elif moyenne.moyenne >= 14 %}tres-bien{% elif moyenne.moyenne >= 12 %}bien{% elif moyenne.moyenne >= 10 %}assez-bien{% else %}insuffisant{% endif %}">
-                                  {{ moyenne.moyenne|floatformat:2 }}
+                                <span class="moyenne-text {% if moyenne.moyenne >= 16 %}text-excellent{% elif moyenne.moyenne >= 14 %}text-bien{% elif moyenne.moyenne >= 12 %}text-assez-bien{% elif moyenne.moyenne >= 10 %}text-passable{% else %}text-insuffisant{% endif %}">
+                                  {{ moyenne.moyenne|floatformat:2 }}/20
                                 </span>
                                 {% endwith %}
                               {% else %}
-                                <span class="non-soumis">-</span>
+                                <span class="moyenne-non-disponible">
+                                  <i class="fas fa-hourglass-half"></i>
+                                </span>
                               {% endif %}
                             </td>
                             {% endfor %}
@@ -618,6 +1187,98 @@
         
         // Activer le bouton cliqué
         event.currentTarget.classList.add('active');
+      }
+      
+      // Fonction pour ouvrir le modal de détails de matière (établissements secondaires uniquement)
+      const typeEtablissement = '{{ etablissement.type_etablissement }}';
+      const estSecondaire = ['lycée', 'collège', 'collège_lycée'].includes(typeEtablissement);
+      
+      function ouvrirDetailsMatiere(classeId, matiereNom, event) {
+        if (!estSecondaire) return; // Fonctionnalité uniquement pour le secondaire
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Pour l'instant, afficher une alerte (peut être remplacé par un modal complet plus tard)
+        alert(`Détails des notes pour ${matiereNom} - Fonctionnalité disponible dans la page Notes et Résultats`);
+      }
+      
+      // Fonctions de filtrage pour l'onglet élèves
+      function filterClasseEleves(classeId) {
+        const searchInput = document.getElementById(`search-input-eleves-${classeId}`);
+        const filterStatut = document.getElementById(`filter-statut-eleves-${classeId}`);
+        const filterSexe = document.getElementById(`filter-sexe-eleves-${classeId}`);
+        const clearButton = document.getElementById(`clear-search-eleves-${classeId}`);
+        const resultsDiv = document.getElementById(`filter-results-eleves-${classeId}`);
+        const resultsCount = document.getElementById(`results-count-eleves-${classeId}`);
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const statutValue = filterStatut.value;
+        const sexeValue = filterSexe.value;
+        
+        // Afficher/masquer le bouton de suppression de recherche
+        clearButton.style.display = searchTerm ? 'flex' : 'none';
+        
+        // Récupérer toutes les lignes d'élèves
+        const rows = document.querySelectorAll('#eleves .eleves-table tbody tr');
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+          const nom = row.dataset.nom || '';
+          const prenom = row.dataset.prenom || '';
+          const email = row.dataset.email || '';
+          const matricule = row.dataset.matricule || '';
+          const statut = row.dataset.statut || '';
+          const sexe = row.dataset.sexe || '';
+          
+          // Filtrage par recherche (nom, prénom, email, matricule)
+          const matchesSearch = !searchTerm || 
+            nom.includes(searchTerm) || 
+            prenom.includes(searchTerm) || 
+            email.includes(searchTerm) || 
+            matricule.includes(searchTerm);
+          
+          // Filtrage par statut
+          const matchesStatut = !statutValue || statut === statutValue;
+          
+          // Filtrage par sexe
+          const matchesSexe = !sexeValue || sexe === sexeValue;
+          
+          // Afficher/masquer la ligne selon les critères
+          if (matchesSearch && matchesStatut && matchesSexe) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        // Afficher/masquer le compteur de résultats
+        if (searchTerm || statutValue || sexeValue) {
+          resultsCount.textContent = visibleCount;
+          resultsDiv.style.display = 'block';
+        } else {
+          resultsDiv.style.display = 'none';
+        }
+      }
+      
+      function clearClasseSearch(classeId) {
+        const searchInput = document.getElementById(`search-input-eleves-${classeId}`);
+        searchInput.value = '';
+        filterClasseEleves(classeId);
+      }
+      
+      function resetClasseFilters(classeId) {
+        const searchInput = document.getElementById(`search-input-eleves-${classeId}`);
+        const filterStatut = document.getElementById(`filter-statut-eleves-${classeId}`);
+        const filterSexe = document.getElementById(`filter-sexe-eleves-${classeId}`);
+        
+        searchInput.value = '';
+        filterStatut.value = '';
+        filterSexe.value = '';
+        
+        filterClasseEleves(classeId);
       }
     </script>
   </body>

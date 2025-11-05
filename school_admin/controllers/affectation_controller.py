@@ -97,7 +97,12 @@ class AffectationController:
                 affectations_a_afficher = list(affectations_actives_query)
                 affectations_actives = professeur.affectations.filter(actif=True).values_list('classe_id', flat=True).distinct()
             
-            classes_disponibles = classes.exclude(id__in=affectations_actives)
+            # Pour les collèges/lycées, ne pas exclure les classes déjà affectées
+            # car un professeur peut être affecté à la même classe avec plusieurs matières
+            if etablissement.type_etablissement == 'primary':
+                classes_disponibles = classes.exclude(id__in=affectations_actives)
+            else:
+                classes_disponibles = classes  # Toutes les classes sont disponibles
             
             # Récupérer toutes les matières que le professeur peut enseigner
             matieres_enseignables = [professeur.matiere_principale]

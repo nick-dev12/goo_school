@@ -1,0 +1,602 @@
+/* ==========================================
+   STYLES DE LA LISTE NOMINATIVE
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    line-height: 1.5;
+}
+
+.liste-container {
+    max-width: 1000px;
+    margin: 15px auto;
+    padding: 20px;
+    background: white;
+    border: 4px solid #3b82f6;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.liste-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.header-left {
+    flex: 1 !important;
+    max-width: 60%;
+}
+
+.etablissement-nom {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    color: #1d4ed8;
+    letter-spacing: 1.5px;
+}
+
+.etablissement-adresse {
+    font-size: 10px;
+    margin-bottom: 2px;
+    color: #475569;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 10px;
+    font-size: 9px;
+    color: #64748b;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.header-right {
+    flex: 0 0 auto !important;
+    text-align: right !important;
+    min-width: 35%;
+}
+
+.header-right .info-item {
+    margin-bottom: 4px;
+    font-size: 10px;
+    display: block !important;
+}
+
+.header-right .info-label {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.header-right .info-value {
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-left: 4px;
+}
+
+/* ==========================================
+   LIGNE DE SÉPARATION
+   ========================================== */
+
+.separator-line {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #3b82f6, transparent);
+    margin: 8px 0;
+    opacity: 0.6;
+}
+
+/* ==========================================
+   TITRE DU DOCUMENT
+   ========================================== */
+
+.document-title {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.document-title h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1d4ed8;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    margin-bottom: 4px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.document-subtitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0;
+}
+
+/* ==========================================
+   INFORMATIONS DE LA CLASSE
+   ========================================== */
+
+.classe-info-box {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 2px solid #3b82f6;
+    border-radius: 6px;
+    padding: 10px 15px;
+    margin: 12px 0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.classe-info-box .info-item {
+    flex: 1;
+    display: flex;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.classe-info-box .info-label {
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.classe-info-box .info-value {
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+/* ==========================================
+   TABLEAU DES ÉLÈVES
+   ========================================== */
+
+.table-wrapper {
+    margin: 15px 0;
+    overflow-x: auto;
+}
+
+.liste-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.liste-table thead {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.liste-table th {
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    border: 1px solid #1d4ed8;
+}
+
+.liste-table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.liste-table tbody tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+.liste-table tbody tr:hover {
+    background: #eff6ff;
+}
+
+.liste-table td {
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+/* Colonnes spécifiques */
+.col-numero {
+    width: 50px;
+    text-align: center;
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+.col-nom {
+    width: 30%;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.col-prenom {
+    width: 30%;
+    font-weight: 600;
+    color: #334155;
+}
+
+.col-date {
+    width: 25%;
+    text-align: center;
+    font-size: 10px;
+}
+
+.col-sexe {
+    width: 15%;
+    text-align: center;
+}
+
+/* ==========================================
+   RÉSUMÉ
+   ========================================== */
+
+.resume-section {
+    margin: 12px 0;
+    padding: 10px 15px;
+    background: #f0f9ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 4px;
+}
+
+.resume-text {
+    font-size: 11px;
+    color: #334155;
+    font-weight: 600;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.liste-footer {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.footer-content {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+}
+
+.footer-left {
+    flex: 1 !important;
+}
+
+.footer-text {
+    font-size: 9px;
+    color: #64748b;
+    font-style: italic;
+}
+
+.footer-right {
+    flex: 1 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+.signature-box {
+    text-align: center;
+}
+
+.signature-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1d4ed8;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+}
+
+.signature-line {
+    height: 2px;
+    background: #1d4ed8;
+    margin: 5px auto;
+    width: 120px;
+}
+
+.signature-name {
+    font-size: 9px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    margin-top: 3px;
+}
+
+/* ==========================================
+   MESSAGE VIDE
+   ========================================== */
+
+.empty-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+.empty-message p {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-print,
+.btn-close {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.btn-close {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-close:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .liste-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 15px !important;
+        border: 3px solid #3b82f6 !important;
+        box-shadow: none !important;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+    }
+
+    /* Optimiser les couleurs pour l'impression */
+    .liste-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        border-bottom: 2px solid #e5e7eb !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .header-left {
+        flex: 1 !important;
+        max-width: 60% !important;
+    }
+    
+    .header-right {
+        flex: 0 0 auto !important;
+        text-align: right !important;
+        min-width: 35% !important;
+    }
+
+    .separator-line {
+        background: linear-gradient(to right, transparent, #3b82f6, transparent) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .classe-info-box {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+        border: 2px solid #3b82f6 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .liste-table thead {
+        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .liste-table tbody tr:nth-child(even) {
+        background: #f9fafb !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .resume-section {
+        background: #f0f9ff !important;
+        border-left: 4px solid #3b82f6 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Éviter les sauts de page */
+    .liste-header,
+    .document-title,
+    .classe-info-box,
+    .liste-table thead,
+    .resume-section,
+    .signature-box {
+        page-break-inside: avoid !important;
+    }
+
+    /* Éviter les sauts de page entre thead et tbody */
+    .liste-table {
+        page-break-inside: auto;
+    }
+
+    .liste-table tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    .liste-table thead {
+        display: table-header-group;
+    }
+
+    .liste-table tbody {
+        display: table-row-group;
+    }
+
+    /* Format A4 paysage */
+    @page {
+        size: A4 landscape;
+        margin: 1cm;
+    }
+    
+    .liste-header {
+        padding-bottom: 8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .etablissement-nom {
+        font-size: 16px !important;
+    }
+    
+    .separator-line {
+        margin: 6px 0 !important;
+    }
+    
+    .document-title {
+        margin: 8px 0 !important;
+    }
+    
+    .document-title h2 {
+        font-size: 20px !important;
+        letter-spacing: 3px !important;
+    }
+    
+    .classe-info-box {
+        padding: 8px 12px !important;
+        margin: 10px 0 !important;
+    }
+    
+    .liste-table {
+        font-size: 10px !important;
+    }
+    
+    .liste-table th {
+        padding: 8px 6px !important;
+        font-size: 9px !important;
+    }
+    
+    .liste-table td {
+        padding: 6px 5px !important;
+    }
+    
+    .resume-section {
+        margin: 10px 0 !important;
+        padding: 8px 12px !important;
+    }
+    
+    .liste-footer {
+        margin-top: 15px !important;
+        padding-top: 10px !important;
+    }
+    
+    .footer-content {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+    }
+    
+    .footer-left {
+        flex: 1 !important;
+    }
+    
+    .footer-right {
+        flex: 1 !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
+    
+    .signature-title {
+        margin-bottom: 25px !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 1024px) {
+    .liste-container {
+        margin: 20px;
+        padding: 25px 15px;
+    }
+
+    .liste-header {
+        flex-direction: column;
+    }
+
+    .header-right {
+        margin-top: 10px;
+        text-align: left;
+    }
+
+    .liste-table {
+        font-size: 10px;
+    }
+}
+

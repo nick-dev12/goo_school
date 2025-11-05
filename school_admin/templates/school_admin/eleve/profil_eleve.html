@@ -1,0 +1,422 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Profil - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/profil_eleve.css' %}">
+</head>
+
+<body>
+{% include 'school_admin/eleve/partials/header.html' %}
+
+<!-- Contenu principal -->
+<div class="content-container">
+    <div class="profil-container">
+        <!-- Titre de la page -->
+        <div class="page-header">
+            <h2 class="page-title">
+                <i class="fas fa-user-circle"></i>
+                Mon Profil
+            </h2>
+            <p class="page-subtitle">Informations personnelles</p>
+        </div>
+
+        <!-- En-tête du profil avec photo -->
+        <div class="profil-header-card">
+            <div class="profil-photo-section">
+                <div class="profil-photo">
+                    {% if eleve.photo %}
+                        <img src="{{ eleve.photo.url }}" alt="Photo de {{ eleve.prenom }} {{ eleve.nom }}">
+                    {% else %}
+                        <div class="photo-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profil-status">
+                    <span class="status-badge active">
+                        <i class="fas fa-circle"></i>
+                        Élève actif
+                    </span>
+                </div>
+            </div>
+            <div class="profil-identity">
+                <h1 class="profil-nom">{{ eleve.prenom }} {{ eleve.nom|upper }}</h1>
+                <div class="profil-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-id-card"></i>
+                        {{ eleve.matricule }}
+                    </span>
+                    <span class="meta-separator">•</span>
+                    <span class="meta-item">
+                        <i class="fas fa-users"></i>
+                        {{ eleve.classe.nom_classe }}
+                    </span>
+                    <span class="meta-separator">•</span>
+                    <span class="meta-item">
+                        <i class="fas fa-school"></i>
+                        {{ etablissement.nom }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques rapides -->
+        <div class="quick-stats-grid">
+            <div class="quick-stat-card stat-notes">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ moyenne_generale|default:"N/A" }}</div>
+                    <div class="stat-label">Moyenne générale</div>
+                    <div class="stat-detail">{{ nb_matieres }} matière{{ nb_matieres|pluralize }}</div>
+                </div>
+            </div>
+            
+            <div class="quick-stat-card stat-presence">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ taux_presence }}%</div>
+                    <div class="stat-label">Taux de présence</div>
+                    <div class="stat-detail">{{ total_presences }} jours présent{{ total_presences|pluralize }}</div>
+                </div>
+            </div>
+            
+            <div class="quick-stat-card stat-absences">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_absences }}</div>
+                    <div class="stat-label">Absences</div>
+                    <div class="stat-detail">Sur l'année scolaire</div>
+                </div>
+            </div>
+            
+            <div class="quick-stat-card stat-retards">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_retards }}</div>
+                    <div class="stat-label">Retards</div>
+                    <div class="stat-detail">Sur l'année scolaire</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sections d'informations -->
+        <div class="info-sections-grid">
+            <!-- Section 1: Informations personnelles -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i>
+                        Informations personnelles
+                    </h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Prénom</div>
+                        <div class="info-value">{{ eleve.prenom }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nom</div>
+                        <div class="info-value">{{ eleve.nom|upper }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Date de naissance</div>
+                        <div class="info-value">{{ eleve.date_naissance|date:"d/m/Y"|default:"Non renseignée" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Lieu de naissance</div>
+                        <div class="info-value">{{ eleve.lieu_naissance|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Sexe</div>
+                        <div class="info-value">{{ eleve.get_sexe_display|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nationalité</div>
+                        <div class="info-value">{{ eleve.nationalite|default:"Non renseignée" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Informations scolaires -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-graduation-cap"></i>
+                        Informations scolaires
+                    </h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Matricule</div>
+                        <div class="info-value">{{ eleve.matricule }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Classe</div>
+                        <div class="info-value">{{ eleve.classe.nom_classe }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Niveau</div>
+                        <div class="info-value">{{ eleve.classe.niveau.nom_niveau|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Établissement</div>
+                        <div class="info-value">{{ etablissement.nom }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Année scolaire</div>
+                        <div class="info-value">{% if periode_active %}{{ periode_active.annee_scolaire }}{% else %}Non définie{% endif %}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Date d'inscription</div>
+                        <div class="info-value">{{ eleve.date_creation|date:"d/m/Y" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Informations de contact -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-address-book"></i>
+                        Informations de contact
+                    </h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item full-width">
+                        <div class="info-label">Adresse</div>
+                        <div class="info-value">{{ eleve.adresse|default:"Non renseignée" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ville</div>
+                        <div class="info-value">{{ eleve.ville|default:"Non renseignée" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Code postal</div>
+                        <div class="info-value">{{ eleve.code_postal|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Téléphone</div>
+                        <div class="info-value">{{ eleve.telephone|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ eleve.email|default:"Non renseigné" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Parents/Tuteurs -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-users"></i>
+                        Parents / Tuteurs légaux
+                    </h3>
+                </div>
+                
+                {% if parent_inscripteur %}
+                    <div class="parent-inscripteur-badge">
+                        <i class="fas fa-user-check"></i>
+                        <span>Parent inscripteur : <strong>{{ parent_inscripteur.nom_complet }}</strong></span>
+                    </div>
+                {% endif %}
+                
+                <div class="parents-container">
+                    <!-- Père -->
+                    {% if parents_data.pere %}
+                    <div class="parent-card">
+                        <div class="parent-card-header pere">
+                            <i class="fas fa-male"></i>
+                            <h4>Père</h4>
+                        </div>
+                        <div class="parent-card-body">
+                            <div class="parent-info-item">
+                                <i class="fas fa-user"></i>
+                                <div>
+                                    <div class="info-label-mini">Nom complet</div>
+                                    <div class="info-value-mini">{{ parents_data.pere.nom_complet }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-id-card"></i>
+                                <div>
+                                    <div class="info-label-mini">Matricule</div>
+                                    <div class="info-value-mini">{{ parents_data.pere.matricule }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-phone"></i>
+                                <div>
+                                    <div class="info-label-mini">Téléphone</div>
+                                    <div class="info-value-mini">{{ parents_data.pere.telephone }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-envelope"></i>
+                                <div>
+                                    <div class="info-label-mini">Email</div>
+                                    <div class="info-value-mini">{{ parents_data.pere.email }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-briefcase"></i>
+                                <div>
+                                    <div class="info-label-mini">Profession</div>
+                                    <div class="info-value-mini">{{ parents_data.pere.profession }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item full-width">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <div>
+                                    <div class="info-label-mini">Adresse</div>
+                                    <div class="info-value-mini">{{ parents_data.pere.adresse }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Mère -->
+                    {% if parents_data.mere %}
+                    <div class="parent-card">
+                        <div class="parent-card-header mere">
+                            <i class="fas fa-female"></i>
+                            <h4>Mère</h4>
+                        </div>
+                        <div class="parent-card-body">
+                            <div class="parent-info-item">
+                                <i class="fas fa-user"></i>
+                                <div>
+                                    <div class="info-label-mini">Nom complet</div>
+                                    <div class="info-value-mini">{{ parents_data.mere.nom_complet }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-id-card"></i>
+                                <div>
+                                    <div class="info-label-mini">Matricule</div>
+                                    <div class="info-value-mini">{{ parents_data.mere.matricule }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-phone"></i>
+                                <div>
+                                    <div class="info-label-mini">Téléphone</div>
+                                    <div class="info-value-mini">{{ parents_data.mere.telephone }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-envelope"></i>
+                                <div>
+                                    <div class="info-label-mini">Email</div>
+                                    <div class="info-value-mini">{{ parents_data.mere.email }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-briefcase"></i>
+                                <div>
+                                    <div class="info-label-mini">Profession</div>
+                                    <div class="info-value-mini">{{ parents_data.mere.profession }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item full-width">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <div>
+                                    <div class="info-label-mini">Adresse</div>
+                                    <div class="info-value-mini">{{ parents_data.mere.adresse }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Tuteurs -->
+                    {% for tuteur in parents_data.tuteurs %}
+                    <div class="parent-card">
+                        <div class="parent-card-header tuteur">
+                            <i class="fas fa-user-shield"></i>
+                            <h4>Tuteur/Tutrice</h4>
+                        </div>
+                        <div class="parent-card-body">
+                            <div class="parent-info-item">
+                                <i class="fas fa-user"></i>
+                                <div>
+                                    <div class="info-label-mini">Nom complet</div>
+                                    <div class="info-value-mini">{{ tuteur.nom_complet }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-id-card"></i>
+                                <div>
+                                    <div class="info-label-mini">Matricule</div>
+                                    <div class="info-value-mini">{{ tuteur.matricule }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-phone"></i>
+                                <div>
+                                    <div class="info-label-mini">Téléphone</div>
+                                    <div class="info-value-mini">{{ tuteur.telephone }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-envelope"></i>
+                                <div>
+                                    <div class="info-label-mini">Email</div>
+                                    <div class="info-value-mini">{{ tuteur.email }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item">
+                                <i class="fas fa-briefcase"></i>
+                                <div>
+                                    <div class="info-label-mini">Profession</div>
+                                    <div class="info-value-mini">{{ tuteur.profession }}</div>
+                                </div>
+                            </div>
+                            <div class="parent-info-item full-width">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <div>
+                                    <div class="info-label-mini">Adresse</div>
+                                    <div class="info-value-mini">{{ tuteur.adresse }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Message si aucun parent enregistré -->
+                    {% if not parents_data.pere and not parents_data.mere and not parents_data.tuteurs %}
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>Aucun parent ou tuteur enregistré dans le système</p>
+                        <small>Les informations parentales peuvent être mises à jour par l'administration</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script src="{% static 'school_admin/js/eleve/header.js' %}"></script>
+</body>
+</html>
+

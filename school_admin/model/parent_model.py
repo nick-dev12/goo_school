@@ -144,8 +144,8 @@ class Parent(AbstractUser):
     def generer_matricule_parent(etablissement):
         """
         Génère un matricule parental unique
-        Format : [XX]P[ANNEE][NUMERO]
-        Exemple : BPP2025001
+        Format : [XX]P[ANNEE]-[NUMERO]
+        Exemple : BPP2025-001
         """
         from datetime import datetime
         
@@ -156,19 +156,50 @@ class Parent(AbstractUser):
         # Année en cours
         annee = datetime.now().year
         
-        # Compter les parents existants pour cette année
-        prefix = f"{initiales}P{annee}"
-        count = Parent.objects.filter(
+        # Préfixe de base (sans tiret pour la recherche)
+        prefix_search = f"{initiales}P{annee}"
+        
+        # Rechercher le dernier matricule utilisé pour ce préfixe
+        derniers_parents = Parent.objects.filter(
             etablissement=etablissement,
-            matricule_parental__startswith=prefix
-        ).count() + 1
+            matricule_parental__startswith=prefix_search
+        ).exclude(
+            matricule_parental__isnull=True
+        ).order_by('-matricule_parental')[:1]
         
-        matricule = f"{prefix}{count:03d}"
+        if derniers_parents.exists():
+            # Extraire le numéro du dernier matricule
+            dernier_matricule = derniers_parents[0].matricule_parental
+            try:
+                # Extraire les 3 derniers chiffres (après le tiret si présent)
+                if '-' in dernier_matricule:
+                    dernier_numero = int(dernier_matricule.split('-')[-1])
+                else:
+                    dernier_numero = int(dernier_matricule[-3:])
+                count = dernier_numero + 1
+            except (ValueError, IndexError):
+                # Si impossible d'extraire, commencer à 1
+                count = 1
+        else:
+            count = 1
         
-        # Vérifier l'unicité et ajuster si nécessaire
-        while Parent.objects.filter(matricule_parental=matricule).exists():
+        # Générer le matricule avec le tiret : BPP2025-001
+        matricule = f"{prefix_search}-{count:03d}"
+        
+        # Boucle de sécurité pour éviter les doublons
+        max_tentatives = 1000
+        tentatives = 0
+        while Parent.objects.filter(matricule_parental=matricule).exists() or \
+              Parent.objects.filter(username=matricule).exists():
             count += 1
-            matricule = f"{prefix}{count:03d}"
+            matricule = f"{prefix_search}-{count:03d}"
+            tentatives += 1
+            if tentatives >= max_tentatives:
+                # Fallback avec timestamp si trop de tentatives
+                import time
+                timestamp = int(time.time() * 1000) % 10000
+                matricule = f"{prefix_search}-{timestamp:04d}"
+                break
         
         return matricule
     

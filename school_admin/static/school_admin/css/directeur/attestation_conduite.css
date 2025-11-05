@@ -1,0 +1,469 @@
+/* ==========================================
+   STYLES DE L'ATTESTATION DE CONDUITE
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.attestation-container {
+    max-width: 800px;
+    margin: 15px auto;
+    padding: 20px;
+    background: white;
+    border: 6px double #06b6d4;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.attestation-container::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 2px solid #e0e0e0;
+    pointer-events: none;
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.attestation-header {
+    text-align: left;
+    margin-bottom: 10px;
+    padding: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.etablissement-nom {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    color: #0891b2;
+    letter-spacing: 1.5px;
+}
+
+.etablissement-adresse {
+    font-size: 10px;
+    margin-bottom: 2px;
+    color: #475569;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 10px;
+    font-size: 9px;
+    color: #64748b;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ==========================================
+   LIGNE DE SÉPARATION
+   ========================================== */
+
+.separator-line {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #06b6d4, transparent);
+    margin: 8px 0;
+    opacity: 0.6;
+}
+
+/* ==========================================
+   TITRE DU DOCUMENT
+   ========================================== */
+
+.document-title {
+    text-align: center;
+    margin: 10px 0 15px 0;
+}
+
+.document-title h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0891b2;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    margin-bottom: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    text-shadow: 2px 2px 4px rgba(8, 145, 178, 0.1);
+}
+
+/* ==========================================
+   CORPS DE L'ATTESTATION
+   ========================================== */
+
+.attestation-body {
+    margin: 12px 0;
+}
+
+/* Boîte d'informations de l'élève */
+.eleve-info-box {
+    background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+    border: 2px solid #06b6d4;
+    border-radius: 6px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-left: 4px solid #0891b2;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #0e7490;
+    min-width: 140px;
+}
+
+.info-value {
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Texte de l'attestation */
+.attestation-text {
+    margin: 15px 0;
+    text-align: justify;
+}
+
+.text-intro {
+    font-size: 12px;
+    color: #334155;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.text-atteste {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0891b2;
+    margin-bottom: 15px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.text-eleve {
+    font-size: 13px;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.text-content {
+    font-size: 12px;
+    color: #334155;
+    margin-bottom: 12px;
+    line-height: 1.7;
+}
+
+.text-excellent {
+    color: #0891b2;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.text-mention {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 15px;
+    font-style: italic;
+    text-align: center;
+}
+
+.attestation-date {
+    margin-top: 12px;
+    margin-bottom: 10px;
+    text-align: right;
+    font-size: 11px;
+    font-style: italic;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ==========================================
+   SIGNATURE
+   ========================================== */
+
+.signature-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 15px;
+}
+
+.signature-box {
+    text-align: center;
+}
+
+.signature-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0891b2;
+    margin-bottom: 35px;
+    text-transform: uppercase;
+}
+
+.signature-line {
+    height: 2px;
+    background: #0891b2;
+    margin: 5px auto;
+    width: 140px;
+}
+
+.signature-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.attestation-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 2px solid #e0e0e0;
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 8px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-print,
+.btn-close {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(6, 182, 212, 0.3);
+}
+
+.btn-close {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-close:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .attestation-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 15px;
+        border: 6px double #06b6d4 !important;
+        box-shadow: none;
+    }
+    
+    .attestation-container::before {
+        border: 2px solid #e0e0e0 !important;
+        top: 6px;
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+    }
+
+    /* Optimiser les couleurs pour l'impression */
+    .attestation-header {
+        border-bottom: 2px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .separator-line {
+        background: linear-gradient(to right, transparent, #06b6d4, transparent) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .eleve-info-box {
+        background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%) !important;
+        border: 2px solid #06b6d4 !important;
+        border-left: 4px solid #0891b2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Éviter les sauts de page */
+    .attestation-header,
+    .document-title,
+    .eleve-info-box,
+    .attestation-text,
+    .signature-section {
+        page-break-inside: avoid;
+    }
+
+    /* Format A4 portrait */
+    @page {
+        size: A4 portrait;
+        margin: 1cm;
+    }
+    
+    .attestation-header {
+        padding: 0 !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .document-title {
+        margin: 8px 0 12px 0 !important;
+    }
+    
+    .document-title h2 {
+        font-size: 22px !important;
+        letter-spacing: 4px !important;
+    }
+    
+    .attestation-body {
+        margin: 10px 0 !important;
+    }
+    
+    .eleve-info-box {
+        margin-bottom: 12px !important;
+        padding: 10px 12px !important;
+    }
+    
+    .attestation-text {
+        margin: 12px 0 !important;
+    }
+    
+    .text-content {
+        margin-bottom: 10px !important;
+        line-height: 1.6 !important;
+    }
+    
+    .signature-section {
+        margin-top: 12px !important;
+    }
+    
+    .signature-title {
+        margin-bottom: 30px !important;
+    }
+    
+    .attestation-footer {
+        margin-top: 10px !important;
+        padding-top: 6px !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .attestation-container {
+        margin: 20px;
+        padding: 30px 20px;
+    }
+
+    .etablissement-nom {
+        font-size: 18px;
+    }
+
+    .document-title h2 {
+        font-size: 22px;
+    }
+
+    .print-actions {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .btn-print,
+    .btn-close {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+

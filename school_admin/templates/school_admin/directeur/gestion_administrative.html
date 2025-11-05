@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion Administrative - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-file-alt"></i>
+                    Gestion Administrative
+                </h1>
+                <p class="page-subtitle">
+                    Génération de documents administratifs et certificats officiels
+                </p>
+            </div>
+        </div>
+
+        <!-- Navigation Links Container -->
+        <div class="navigation-container">
+            <h2 class="section-title">Documents et certificats</h2>
+            
+            <div class="nav-cards-grid">
+                <!-- Certificat de scolarité -->
+                <a href="{% url 'directeur:certificat_scolarite_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Certificat de scolarité</h3>
+                        <p>Générer des certificats de scolarité</p>
+                    </div>
+                </a>
+
+                <!-- Attestation de réussite -->
+                <a href="{% url 'directeur:attestation_reussite_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-green">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Attestation de réussite</h3>
+                        <p>Attestations de passage en classe supérieure</p>
+                    </div>
+                </a>
+
+                <!-- Fiche d'inscription / réinscription -->
+                <a href="{% url 'directeur:fiche_inscription_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Fiche d'inscription / réinscription</h3>
+                        <p>Documents d'inscription des élèves</p>
+                    </div>
+                </a>
+
+                <!-- Certificat de radiation / transfert -->
+                <a href="{% url 'directeur:certificat_radiation_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-orange">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Certificat de radiation / transfert</h3>
+                        <p>Documents de radiation et transfert</p>
+                    </div>
+                </a>
+
+                <!-- Lettre de demande de transfert / admission -->
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-cyan">
+                        <i class="fas fa-envelope-open-text"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Lettre de demande de transfert / admission</h3>
+                        <p>Lettres officielles de transfert</p>
+                    </div>
+                </a>
+
+                <!-- Relevé de notes -->
+                <a href="{% url 'directeur:notes_et_resultats' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Relevé de notes</h3>
+                        <p>Imprimer les relevés de notes par classe</p>
+                    </div>
+                </a>
+
+                <!-- Bulletin scolaire -->
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Bulletin scolaire</h3>
+                        <p>Générer les bulletins périodiques</p>
+                    </div>
+                </a>
+
+                <!-- Attestation de fréquentation -->
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-green">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Attestation de fréquentation</h3>
+                        <p>Justificatifs de présence scolaire</p>
+                    </div>
+                </a>
+
+                <!-- Convocation -->
+                <a href="{% url 'directeur:convocation_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-orange">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Convocation</h3>
+                        <p>Convocations parents et élèves</p>
+                    </div>
+                </a>
+
+                <!-- Lettre d'avertissement -->
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-red">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Lettre d'avertissement</h3>
+                        <p>Avertissements disciplinaires</p>
+                    </div>
+                </a>
+
+                <!-- Attestation de conduite -->
+                <a href="{% url 'directeur:attestation_conduite_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-cyan">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Attestation de conduite</h3>
+                        <p>Certificats de bonne conduite</p>
+                    </div>
+                </a>
+
+                <!-- Fiche de renseignements -->
+                <a href="#" class="nav-link-card">
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Fiche de renseignements</h3>
+                        <p>Informations élèves et parents</p>
+                    </div>
+                </a>
+
+                <!-- Demandes de liaison parent-enfant -->
+                <a href="{% url 'directeur:demandes_liaison_liste' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-pink">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Demandes de liaison parent-enfant</h3>
+                        <p>Gérer les demandes de liaison des parents</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Section Info -->
+        <div class="info-section">
+            <div class="info-card">
+                <div class="info-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="info-content">
+                    <h3>Information</h3>
+                    <p>Ces documents administratifs sont générés automatiquement avec les informations de votre établissement. 
+                    Assurez-vous que toutes les données des élèves sont à jour avant de générer un document officiel.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

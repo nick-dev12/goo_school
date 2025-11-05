@@ -210,17 +210,51 @@
                                 </div>
                             {% endif %}
                         </div>
+                    </div>
+                {% endwith %}
+            {% empty %}
+                    <div class="empty-state">
+                        <i class="fas fa-user-graduate"></i>
+                        <h3>Aucun professeur trouvé</h3>
+                        <p>Il n'y a actuellement aucun professeur dans cet établissement.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
 
-                        <!-- Affectations Panel (Position Absolue) -->
-                        <div class="affectations-panel" id="affectationsPanel{{ professeur.id }}" style="display: none;">
-                            <div class="panel-header">
-                                <h4><i class="fas fa-user-check"></i> Affectations de {{ professeur.nom }}</h4>
-                                <button class="close-panel" onclick="toggleAffectations({{ professeur.id }})">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="current-affectations">
+    <!-- Modals d'Affectation (En dehors de la grille pour plein écran) -->
+    {% for item in professeurs_with_classes %}
+        {% with professeur=item.professeur affectations=item.affectations classes_disponibles=item.classes_disponibles matieres_enseignables=item.matieres_enseignables %}
+            <!-- Modal Overlay -->
+            <div class="modal-overlay" id="modalOverlay{{ professeur.id }}" style="display: none;" onclick="toggleAffectations({{ professeur.id }})"></div>
+            
+            <!-- Affectations Panel (Plein Écran) -->
+            <div class="affectations-panel-fullscreen" id="affectationsPanel{{ professeur.id }}" style="display: none;">
+                            <div class="panel-container">
+                                <div class="panel-header">
+                                    <div class="header-content">
+                                        <div class="professor-info-modal">
+                                            <div class="professor-avatar-modal">
+                                                <i class="fas fa-user-graduate"></i>
+                                            </div>
+                                            <div>
+                                                <h2>{{ professeur.nom_complet }}</h2>
+                                                <p class="professor-matiere-modal">
+                                                    <i class="fas fa-book"></i> {{ professeur.matiere_principale.nom }}
+                                                    {% if professeur.matieres_secondaires.exists %}
+                                                        <span class="secondary-count">+ {{ professeur.matieres_secondaires.count }} secondaire(s)</span>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button class="close-panel-btn" onclick="toggleAffectations({{ professeur.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="panel-body">
+                                    <div class="current-affectations">
                                 <h5><i class="fas fa-list"></i> Classes actuelles :</h5>
                                 <div class="affectations-list" id="affectationsList{{ professeur.id }}">
                                 {% for affectation in affectations %}
@@ -253,64 +287,69 @@
                                 </div>
                             </div>
 
-                        <div class="add-affectation">
-                            <h5><i class="fas fa-plus-circle"></i> Ajouter une affectation :</h5>
-                            <form method="post" action="{% url 'affectation:affecter_professeur' %}" class="add-affectation-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
-                                <input type="hidden" name="action" value="add">
-                                <div class="form-group">
-                                    <label for="classe{{ professeur.id }}" class="classe-label">
-                                        <i class="fas fa-chalkboard"></i> Classe :
-                                    </label>
-                                    <select name="classe_id" id="classe{{ professeur.id }}" class="classe-select" required>
-                                        <option value="">Sélectionner une classe</option>
-                                        {% for classe in classes_disponibles %}
-                                            <option value="{{ classe.id }}">{{ classe.nom }}</option>
-                                        {% endfor %}
-                                    </select>
+                                    <div class="add-affectation">
+                                        <h5><i class="fas fa-plus-circle"></i> Nouvelle affectation</h5>
+                                        <form method="post" action="{% url 'affectation:affecter_professeur' %}" class="add-affectation-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
+                                            <input type="hidden" name="action" value="add">
+                                            
+                                            <div class="form-row">
+                                                <div class="form-group-modal">
+                                                    <label for="classe{{ professeur.id }}" class="form-label-modal">
+                                                        <i class="fas fa-chalkboard"></i> Classe
+                                                    </label>
+                                                    <select name="classe_id" id="classe{{ professeur.id }}" class="form-control-modal" required>
+                                                        <option value="">Sélectionner une classe</option>
+                                                        {% for classe in classes_disponibles %}
+                                                            <option value="{{ classe.id }}">{{ classe.nom }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                
+                                                {% if type_etablissement != 'primary' %}
+                                                <div class="form-group-modal">
+                                                    <label for="matiere{{ professeur.id }}" class="form-label-modal">
+                                                        <i class="fas fa-book"></i> Matière
+                                                    </label>
+                                                    <select name="matiere_id" id="matiere{{ professeur.id }}" class="form-control-modal" required>
+                                                        {% for matiere in matieres_enseignables %}
+                                                            <option value="{{ matiere.id }}" {% if forloop.first %}selected{% endif %}>
+                                                                {{ matiere.nom }}{% if forloop.first %} (Principale){% else %} (Secondaire){% endif %}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                {% endif %}
+                                                
+                                                <div class="form-group-modal">
+                                                    <label for="statut{{ professeur.id }}" class="form-label-modal">
+                                                        <i class="fas fa-user-tag"></i> Statut
+                                                    </label>
+                                                    <select name="statut" id="statut{{ professeur.id }}" class="form-control-modal" required>
+                                                        <option value="classique">Professeur Classique</option>
+                                                        <option value="principal">Professeur Principal</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="form-actions-modal">
+                                                <button type="button" class="btn-cancel-modal" onclick="toggleAffectations({{ professeur.id }})">
+                                                    <i class="fas fa-times"></i>
+                                                    Annuler
+                                                </button>
+                                                <button type="submit" class="btn-submit-modal">
+                                                    <i class="fas fa-check"></i>
+                                                    Affecter le professeur
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
-                                {% if type_etablissement != 'primary' %}
-                                <div class="form-group">
-                                    <label for="matiere{{ professeur.id }}" class="matiere-label">
-                                        <i class="fas fa-book"></i> Matière :
-                                    </label>
-                                    <select name="matiere_id" id="matiere{{ professeur.id }}" class="matiere-select" required>
-                                        {% for matiere in matieres_enseignables %}
-                                            <option value="{{ matiere.id }}" {% if forloop.first %}selected{% endif %}>
-                                                {{ matiere.nom }}{% if forloop.first %} (Principale){% else %} (Secondaire){% endif %}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                {% endif %}
-                                <div class="form-group">
-                                    <label for="statut{{ professeur.id }}" class="statut-label">
-                                        <i class="fas fa-user-tag"></i> Statut :
-                                    </label>
-                                    <select name="statut" id="statut{{ professeur.id }}" class="statut-select" required>
-                                        <option value="classique">Professeur Classique</option>
-                                        <option value="principal">Professeur Principal</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn-add-affectation">
-                                    <i class="fas fa-plus"></i>
-                                    Ajouter l'affectation
-                                </button>
-                            </form>
+                            </div>
                         </div>
-                        </div>
-                    </div>
                 {% endwith %}
-            {% empty %}
-                    <div class="empty-state">
-                        <i class="fas fa-user-graduate"></i>
-                        <h3>Aucun professeur trouvé</h3>
-                        <p>Il n'y a actuellement aucun professeur dans cet établissement.</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
+            {% endfor %}
 
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay" style="display: none;">

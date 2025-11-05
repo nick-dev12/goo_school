@@ -11,6 +11,9 @@ from .professeur_model import Professeur
 from .etablissement_model import Etablissement
 
 
+# Import circulaire évité en utilisant une chaîne pour Matiere
+
+
 class Presence(models.Model):
     """
     Modèle pour enregistrer la présence/absence quotidienne d'un élève
@@ -59,10 +62,24 @@ class Presence(models.Model):
         related_name='presences',
         verbose_name="Établissement"
     )
+    matiere = models.ForeignKey(
+        'Matiere',
+        on_delete=models.CASCADE,
+        related_name='presences',
+        verbose_name="Matière",
+        null=True,
+        blank=True,
+        help_text="Matière concernée (uniquement pour lycée/collège)"
+    )
     date = models.DateField(
         default=timezone.now,
         verbose_name="Date",
         db_index=True
+    )
+    numero_appel = models.IntegerField(
+        default=1,
+        verbose_name="Numéro d'appel",
+        help_text="Numéro de l'appel du jour (1, 2 ou 3)"
     )
     statut = models.CharField(
         max_length=20,
@@ -107,11 +124,12 @@ class Presence(models.Model):
     class Meta:
         verbose_name = "Présence"
         verbose_name_plural = "Présences"
-        unique_together = ('eleve', 'classe', 'date')
-        ordering = ['-date', 'eleve__nom', 'eleve__prenom']
+        unique_together = ('eleve', 'classe', 'date', 'numero_appel', 'matiere')
+        ordering = ['-date', '-numero_appel', 'eleve__nom', 'eleve__prenom']
         indexes = [
-            models.Index(fields=['date', 'classe']),
+            models.Index(fields=['date', 'classe', 'numero_appel']),
             models.Index(fields=['eleve', 'date']),
+            models.Index(fields=['classe', 'matiere', 'date']),
         ]
     
     def __str__(self):
@@ -185,10 +203,23 @@ class ListePresence(models.Model):
         related_name='listes_presences',
         verbose_name="Établissement"
     )
+    matiere = models.ForeignKey(
+        'Matiere',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='listes_presences',
+        verbose_name="Matière"
+    )
     date = models.DateField(
         default=timezone.now,
         verbose_name="Date",
         db_index=True
+    )
+    numero_appel = models.IntegerField(
+        default=1,
+        verbose_name="Numéro d'appel",
+        help_text="Numéro de l'appel du jour (1, 2 ou 3)"
     )
     validee = models.BooleanField(
         default=False,
@@ -219,11 +250,11 @@ class ListePresence(models.Model):
     class Meta:
         verbose_name = "Liste de présence"
         verbose_name_plural = "Listes de présence"
-        unique_together = ('classe', 'date')
-        ordering = ['-date', 'classe__nom']
+        unique_together = ('classe', 'date', 'matiere', 'numero_appel')
+        ordering = ['-date', '-numero_appel', 'classe__nom']
     
     def __str__(self):
-        return f"Présence {self.classe.nom} - {self.date} ({'Validée' if self.validee else 'En cours'})"
+        return f"Présence {self.classe.nom} - {self.date} - Appel {self.numero_appel} ({'Validée' if self.validee else 'En cours'})"
     
     def valider(self):
         """Marque la liste comme validée et enregistre la date"""

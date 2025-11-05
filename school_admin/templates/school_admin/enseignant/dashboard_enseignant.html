@@ -100,20 +100,20 @@
                             <i class="fas fa-graduation-cap"></i>
                         </div>
                         <div class="class-content">
-                            <h4>{{ classe_data.classe.nom }} - {{ professeur.matiere_principale }}</h4>
+                            <h4>{{ classe_data.classe.nom }}{% if classe_data.matiere %} - {{ classe_data.matiere.nom }}{% endif %}</h4>
                             <div class="class-details">
                                 <span><i class="fas fa-users"></i> {{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                                 <span><i class="fas fa-school"></i> {{ classe_data.classe.etablissement.nom }}</span>
                             </div>
                         </div>
                         <div class="class-actions">
-                            <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="class-action-btn" title="Saisir les notes">
+                            <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="class-action-btn" title="Saisir les notes">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <a href="{% url 'enseignant:liste_presence' classe_data.classe.id %}" class="class-action-btn" title="Présence">
+                            <a href="{% url 'enseignant:liste_presence' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="class-action-btn" title="Présence">
                                 <i class="fas fa-clipboard-list"></i>
                             </a>
-                            <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}" class="class-action-btn" title="Détails">
+                            <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="class-action-btn" title="Détails">
                                 <i class="fas fa-arrow-right"></i>
                             </a>
                         </div>
@@ -170,11 +170,11 @@
                             </div>
                         </div>
                         <div class="creneau-actions-today" style="display: flex; gap: 8px;">
-                            <a href="{% url 'enseignant:noter_eleves' creneau.emploi_du_temps.classe.id %}" style="padding: 10px 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s;" title="Noter">
+                            <a href="{% url 'enseignant:noter_eleves' creneau.emploi_du_temps.classe.id %}?matiere={{ creneau.matiere.id }}" style="padding: 10px 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s;" title="Noter">
                                 <i class="fas fa-edit"></i>
                                 Noter
                             </a>
-                            <a href="{% url 'enseignant:liste_presence' creneau.emploi_du_temps.classe.id %}" style="padding: 10px 14px; background: linear-gradient(135deg, #4facfe, #00f2fe); color: white; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s;" title="Appel">
+                            <a href="{% url 'enseignant:liste_presence' creneau.emploi_du_temps.classe.id %}?matiere={{ creneau.matiere.id }}" style="padding: 10px 14px; background: linear-gradient(135deg, #4facfe, #00f2fe); color: white; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s;" title="Appel">
                                 <i class="fas fa-clipboard-list"></i>
                                 Appel
                             </a>

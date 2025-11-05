@@ -1,0 +1,265 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absences & Retards - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/absences_retards_eleve.css' %}">
+</head>
+
+<body>
+{% include 'school_admin/eleve/partials/header.html' %}
+
+<!-- Contenu principal -->
+<div class="content-container">
+    <div class="absences-container">
+        <!-- Titre de la page -->
+        <div class="page-header">
+            <h2 class="page-title">
+                <i class="fas fa-calendar-check"></i>
+                Absences & Retards
+            </h2>
+            <p class="page-subtitle">Suivi de votre assiduité scolaire</p>
+        </div>
+
+        <!-- Statistiques globales -->
+        <div class="stats-grid">
+            <div class="stat-card stat-presence">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ taux_presence }}%</div>
+                    <div class="stat-label">Taux de présence</div>
+                    <div class="stat-detail">{{ total_presences }}/{{ total_jours }} jours</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-absences">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_absences }}</div>
+                    <div class="stat-label">Total absences</div>
+                    <div class="stat-detail">
+                        <span class="detail-justified">{{ absences_justifiees }} justifiées</span>
+                        <span class="detail-separator">•</span>
+                        <span class="detail-unjustified">{{ absences_non_justifiees }} non justifiées</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-retards">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_retards }}</div>
+                    <div class="stat-label">Total retards</div>
+                    <div class="stat-detail">Sur l'année scolaire</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Système d'onglets pour les périodes -->
+        <div class="periodes-tabs-container">
+            <div class="periodes-tabs" role="tablist">
+                {% for periode_data in periodes_data %}
+                    <div class="periode-tab {% if periode_data.est_active %}active{% endif %}"
+                        data-periode="{{ periode_data.periode.nom_periode }}">
+                        <div class="tab-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                            {% if periode_data.est_active %}
+                                <span class="tab-badge current">En cours</span>
+                            {% else %}
+                                <span class="tab-badge">{% if periode_data.periode.date_fin < today %}Passé{% else %}À venir{% endif %}</span>
+                            {% endif %}
+                        </div>
+                        <div class="tab-info">
+                            <div class="tab-title">{{ periode_data.periode.nom_periode }}</div>
+                            <div class="tab-period">{{ periode_data.periode.date_debut|date:"d/m/Y" }} - {{ periode_data.periode.date_fin|date:"d/m/Y" }}</div>
+                        </div>
+                        <div class="tab-stats">
+                            <span class="tab-stat absences">{{ periode_data.nb_absences }} abs.</span>
+                            <span class="tab-stat retards">{{ periode_data.nb_retards }} ret.</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Contenu par période -->
+        <div class="periodes-content">
+            {% for periode_data in periodes_data %}
+                <div class="periode-section {% if periode_data.est_active %}active{% endif %}"
+                    data-periode="{{ periode_data.periode.nom_periode }}">
+                    
+                    <!-- Onglets des mois -->
+                    {% if periode_data.mois_liste %}
+                    <div class="mois-tabs-container">
+                        <div class="mois-tabs">
+                            {% for mois in periode_data.mois_liste %}
+                                <button class="mois-tab {% if forloop.first %}active{% endif %}"
+                                    data-periode="{{ periode_data.periode.nom_periode }}"
+                                    data-mois="{{ mois.mois_key }}"
+                                    onclick="switchMois('{{ periode_data.periode.nom_periode }}', '{{ mois.mois_key }}')">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <span>{{ mois.mois_nom }}</span>
+                                    <div class="mois-badges">
+                                        {% if mois.nb_absences > 0 %}
+                                            <span class="mois-badge absences">{{ mois.nb_absences }}</span>
+                                        {% endif %}
+                                        {% if mois.nb_retards > 0 %}
+                                            <span class="mois-badge retards">{{ mois.nb_retards }}</span>
+                                        {% endif %}
+                                    </div>
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Contenu par mois -->
+                    {% for mois in periode_data.mois_liste %}
+                    <div class="mois-content {% if forloop.first %}active{% endif %}"
+                         data-periode="{{ periode_data.periode.nom_periode }}"
+                         data-mois="{{ mois.mois_key }}">
+                        
+                        <!-- Section Absences -->
+                        <div class="section-container">
+                            <div class="section-header">
+                                <h3 class="section-title">
+                                    <i class="fas fa-user-times"></i>
+                                    Absences - {{ mois.mois_nom }}
+                                    <span class="count-badge absences">{{ mois.nb_absences }}</span>
+                                </h3>
+                            </div>
+                            
+                            {% if mois.absences %}
+                                <div class="absences-list">
+                                    {% for absence in mois.absences %}
+                                    <div class="absence-card {% if absence.statut == 'absent_justifie' %}justified{% else %}unjustified{% endif %}">
+                                        <div class="absence-header">
+                                            <div class="absence-date">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ absence.date|date:"l d F Y" }}</span>
+                                            </div>
+                                            <div class="absence-status">
+                                                {% if absence.statut == 'absent_justifie' %}
+                                                    <span class="badge badge-justified">
+                                                        <i class="fas fa-check"></i>
+                                                        Justifiée
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge badge-unjustified">
+                                                        <i class="fas fa-exclamation"></i>
+                                                        Non justifiée
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        {% if absence.statut == 'absent_justifie' and absence.type_justificatif %}
+                                            <div class="absence-body">
+                                                <div class="justificatif-info">
+                                                    <i class="fas fa-file-medical"></i>
+                                                    <span>{{ absence.get_type_justificatif_display }}</span>
+                                                </div>
+                                                {% if absence.date_justification %}
+                                                    <div class="justificatif-date">
+                                                        Justifié le {{ absence.date_justification|date:"d/m/Y" }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if absence.remarque %}
+                                            <div class="absence-remarque">
+                                                <i class="fas fa-comment"></i>
+                                                <span>{{ absence.remarque }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-smile"></i>
+                                <p>Aucune absence enregistrée pour ce mois</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Section Retards -->
+                    <div class="section-container">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-hourglass-half"></i>
+                                Retards - {{ mois.mois_nom }}
+                                <span class="count-badge retards">{{ mois.nb_retards }}</span>
+                            </h3>
+                        </div>
+                        
+                        {% if mois.retards %}
+                            <div class="retards-list">
+                                {% for retard in mois.retards %}
+                                    <div class="retard-card">
+                                        <div class="retard-header">
+                                            <div class="retard-date">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ retard.date|date:"l d F Y" }}</span>
+                                            </div>
+                                            <div class="retard-badge">
+                                                <i class="fas fa-clock"></i>
+                                                Retard
+                                            </div>
+                                        </div>
+                                        
+                                        {% if retard.remarque %}
+                                            <div class="retard-remarque">
+                                                <i class="fas fa-comment"></i>
+                                                <span>{{ retard.remarque }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-smile"></i>
+                                <p>Aucun retard enregistré pour ce mois</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Message si aucun mois avec données -->
+                    {% if not periode_data.mois_liste %}
+                    <div class="section-container">
+                        <div class="empty-state">
+                            <i class="fas fa-smile"></i>
+                            <p>Aucune absence ou retard enregistré pour cette période</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script src="{% static 'school_admin/js/eleve/header_eleve.js' %}"></script>
+<script src="{% static 'school_admin/js/eleve/absences_retards_eleve.js' %}"></script>
+</body>
+</html>
+

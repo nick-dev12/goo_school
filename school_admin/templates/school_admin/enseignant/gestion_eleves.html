@@ -104,7 +104,12 @@
                                         <i class="fas fa-users"></i>
                                     </div>
                                     <div class="classe-tab-content">
-                                        <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                        <span class="classe-tab-name">
+                                            {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge-small">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </span>
                                         {% if classe_data.est_principal %}
                                             <span class="classe-tab-badge principal">Principal</span>
                                         {% endif %}
@@ -120,11 +125,17 @@
                                 <!-- Header classe avec bouton présence -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
-                                        <h3><i class="fas fa-chalkboard"></i> {{ classe_data.classe.nom }}</h3>
+                                        <h3>
+                                            <i class="fas fa-chalkboard"></i> 
+                                            {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </h3>
                                         <span class="eleves-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                                     </div>
                                     <div class="action-buttons">
-                                        <a href="{% url 'enseignant:liste_presence' classe_data.classe.id %}" class="btn-action primary" title="Liste de présence">
+                                        <a href="{% url 'enseignant:liste_presence' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action primary" title="Liste de présence">
                                             <i class="fas fa-clipboard-list"></i>
                                             <span>Liste de présence</span>
                                         </a>

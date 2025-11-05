@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attestation de Réussite - {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/attestation_reussite.css' %}">
+</head>
+<body>
+    <div class="attestation-container">
+        <!-- En-tête de l'établissement -->
+        <header class="attestation-header">
+            <div class="header-info">
+                <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+                <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                <div class="etablissement-contact">
+                    <span class="contact-item">{{ etablissement.telephone }}</span>
+                    <span class="contact-item">{{ etablissement.email }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ligne de séparation -->
+        <div class="separator-line"></div>
+
+        <!-- Titre du document -->
+        <div class="document-title">
+            <h2>ATTESTATION DE RÉUSSITE</h2>
+            <p class="document-subtitle">Passage en classe supérieure</p>
+        </div>
+
+        <!-- Corps de l'attestation -->
+        <div class="attestation-body">
+            <!-- Informations de l'élève -->
+            <div class="eleve-info-box">
+                <div class="info-row">
+                    <span class="info-label">Nom et prénom :</span>
+                    <span class="info-value">{{ eleve.nom|upper }} {{ eleve.prenom }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Né(e) le :</span>
+                    <span class="info-value">{{ eleve.date_naissance|date:"d/m/Y" }} à {{ eleve.lieu_naissance }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Numéro d'élève :</span>
+                    <span class="info-value">{{ eleve.numero_eleve }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Classe actuelle :</span>
+                    <span class="info-value">{{ eleve.classe.nom }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Année scolaire :</span>
+                    <span class="info-value">{{ annee_scolaire }}</span>
+                </div>
+            </div>
+
+            <!-- Texte de l'attestation -->
+            <div class="attestation-text">
+                <p class="text-intro">Le Directeur de <strong>{{ etablissement.nom }}</strong>,</p>
+                
+                <p class="text-atteste">Atteste que</p>
+                
+                <p class="text-eleve">
+                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>, 
+                    né(e) le <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> à <strong>{{ eleve.lieu_naissance }}</strong>,
+                </p>
+                
+                <p class="text-content">
+                    a suivi avec succès l'enseignement dispensé dans la classe de <strong>{{ eleve.classe.nom }}</strong> 
+                    durant l'année scolaire <strong>{{ annee_scolaire }}</strong>.
+                </p>
+
+                <p class="text-content">
+                    Au vu de ses résultats et de son travail tout au long de l'année, 
+                    l'élève est <strong class="text-success">ADMIS(E)</strong> en classe supérieure.
+                </p>
+
+                <p class="text-mention">
+                    La présente attestation est délivrée pour servir et valoir ce que de droit.
+                </p>
+            </div>
+
+            <div class="attestation-date">
+                <p>Fait à {{ etablissement.ville|default:"[Ville]" }}, le {{ date_generation|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <p class="signature-title">Le Directeur</p>
+                <div class="signature-line"></div>
+                <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <footer class="attestation-footer">
+            <p class="footer-text">
+                Document officiel généré le {{ date_generation|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}
+            </p>
+        </footer>
+    </div>
+
+    <!-- Bouton d'impression (caché à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer l'attestation
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            <i class="fas fa-times"></i>
+            Fermer
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+

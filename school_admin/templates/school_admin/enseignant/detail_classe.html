@@ -40,7 +40,12 @@
                 <i class="fas fa-chalkboard-teacher"></i>
             </div>
             <div class="classe-header-info">
-                <h1 class="classe-nom">{{ classe.nom }}</h1>
+                <h1 class="classe-nom">
+                    {{ classe.nom }}
+                    {% if matiere %}
+                        <span class="matiere-badge">{{ matiere.nom }}</span>
+                    {% endif %}
+                </h1>
                 <div class="classe-meta">
                     <span class="meta-item">
                         <i class="fas fa-building"></i>
@@ -57,11 +62,11 @@
                 </div>
             </div>
             <div class="action-buttons-group">
-                <a href="{% url 'enseignant:noter_eleves' classe.id %}" class="btn-action primary">
+                <a href="{% url 'enseignant:noter_eleves' classe.id %}{% if matiere %}?matiere={{ matiere.id }}{% endif %}" class="btn-action primary">
                     <i class="fas fa-clipboard-check"></i>
                     <span>Notes</span>
                 </a>
-                <a href="{% url 'enseignant:liste_presence' classe.id %}" class="btn-action secondary">
+                <a href="{% url 'enseignant:liste_presence' classe.id %}{% if matiere %}?matiere={{ matiere.id }}{% endif %}" class="btn-action secondary">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Présence</span>
                 </a>
@@ -247,7 +252,7 @@
                 <!-- Sous-onglets par mois -->
                 <div class="sub-tabs-container">
                     {% for mois_data in mois_disponibles %}
-                        <a href="?onglet=presence&mois={{ mois_data.mois }}&annee={{ mois_data.annee }}{% if periode_filtre %}&periode_eval={{ periode_filtre }}{% endif %}" 
+                        <a href="?onglet=presence&mois={{ mois_data.mois }}&annee={{ mois_data.annee }}{% if periode_filtre %}&periode_eval={{ periode_filtre }}{% endif %}{% if matiere %}&matiere={{ matiere.id }}{% endif %}" 
                            class="sub-tab {% if mois_filtre == mois_data.mois and annee_filtre == mois_data.annee %}active{% endif %}">
                             {{ mois_data.nom_court }}
                         </a>
@@ -349,14 +354,28 @@
                 </div>
                 
                 <!-- Sous-onglets par période -->
+                {% if periodes_scolaires_eval %}
                 <div class="sub-tabs-container">
-                    {% for periode_code, periode_nom in PERIODES_EVAL %}
-                        <a href="?onglet=evaluations&periode_eval={{ periode_code }}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
-                           class="sub-tab {% if periode_filtre == periode_code %}active{% endif %}">
-                            {{ periode_nom }}
+                    <a href="?onglet=evaluations&periode_eval=toutes{% if matiere %}&matiere={{ matiere.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                       class="sub-tab {% if request.GET.periode_eval == 'toutes' %}active{% endif %}">
+                        <i class="fas fa-list"></i>
+                        <span>Toutes les périodes</span>
+                    </a>
+                    {% for periode in periodes_scolaires_eval %}
+                        <a href="?onglet=evaluations&periode_eval={{ periode.id }}{% if matiere %}&matiere={{ matiere.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
+                           class="sub-tab {% if periode_eval_active and periode_eval_active.id == periode.id %}active{% endif %}"
+                           title="Période: {{ periode.nom_periode }}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>{{ periode.nom_periode }}</span>
                         </a>
                     {% endfor %}
                 </div>
+                {% else %}
+                    <p style="padding: 1rem; color: #ef4444; background: #fee; border-radius: 6px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Aucune période scolaire active trouvée. Veuillez créer des périodes scolaires.
+                    </p>
+                {% endif %}
                 
                 <!-- Prochaines évaluations -->
                 {% if prochaines_evaluations %}
@@ -373,6 +392,20 @@
                                     <div class="eval-bareme">/{{ eval.bareme }}</div>
                                 </div>
                                 <div class="eval-title">{{ eval.titre }}</div>
+                                <div class="eval-meta">
+                                    {% if eval.matiere %}
+                                        <div class="eval-matiere">
+                                            <i class="fas fa-book"></i>
+                                            {{ eval.matiere.nom }}
+                                        </div>
+                                    {% endif %}
+                                    {% if eval.periode_scolaire %}
+                                        <div class="eval-periode">
+                                            <i class="fas fa-calendar-week"></i>
+                                            {{ eval.periode_scolaire.nom_periode }}
+                                        </div>
+                                    {% endif %}
+                                </div>
                                 <div class="eval-date">
                                     <i class="fas fa-calendar"></i>
                                     {{ eval.date_evaluation|date:"d/m/Y" }}
@@ -400,6 +433,20 @@
                                     <div class="eval-bareme">/{{ eval.bareme }}</div>
                                 </div>
                                 <div class="eval-title">{{ eval.titre }}</div>
+                                <div class="eval-meta">
+                                    {% if eval.matiere %}
+                                        <div class="eval-matiere">
+                                            <i class="fas fa-book"></i>
+                                            {{ eval.matiere.nom }}
+                                        </div>
+                                    {% endif %}
+                                    {% if eval.periode_scolaire %}
+                                        <div class="eval-periode">
+                                            <i class="fas fa-calendar-week"></i>
+                                            {{ eval.periode_scolaire.nom_periode }}
+                                        </div>
+                                    {% endif %}
+                                </div>
                                 <div class="eval-date">
                                     <i class="fas fa-calendar"></i>
                                     {{ eval.date_evaluation|date:"d/m/Y" }}

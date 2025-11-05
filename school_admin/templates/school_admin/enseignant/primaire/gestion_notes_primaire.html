@@ -42,6 +42,12 @@
                     {{ total_classes }} classe{{ total_classes|pluralize }} - {{ total_eleves }} élève{{ total_eleves|pluralize }}
                 </p>
             </div>
+            <div class="header-actions">
+                <a href="{% url 'enseignant_primaire:eleves_en_difficulte' %}?periode={{ periode_selectionnee.id }}" class="btn-action" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Élèves en difficulté</span>
+                </a>
+            </div>
         </div>
 
         <!-- Onglets des Périodes -->
@@ -52,7 +58,7 @@
                        class="periode-tab {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
                         <i class="fas fa-calendar-alt"></i>
                         <span>{{ periode.nom_periode }}</span>
-                        {% if periode.est_active %}
+                        {% if periode.est_en_cours %}
                             <span class="status-badge active">En cours</span>
                         {% endif %}
                     </a>

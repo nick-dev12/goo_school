@@ -158,9 +158,19 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'X-CSRFToken': getCsrfToken(),
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('Réponse inattendue du serveur');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showToast(data.message || 'Notes enregistrées avec succès !', 'success');
@@ -185,7 +195,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             } else {
-                showToast(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                const hasErrors = Array.isArray(data.errors) && data.errors.length > 0;
+                const message = data.message || (hasErrors ? 'Erreur lors de l\'enregistrement' : 'Aucune note n\'a été modifiée.');
+                showToast(message, hasErrors ? 'error' : 'info');
             }
         })
         .catch(error => {
@@ -243,9 +255,19 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'X-CSRFToken': getCsrfToken(),
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('Réponse inattendue du serveur');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showToast(data.message || 'Moyennes calculées avec succès !', 'success');
@@ -327,9 +349,19 @@ document.addEventListener('DOMContentLoaded', function() {
             body: formData,
             headers: {
                 'X-CSRFToken': getCsrfToken()
-            }
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('Réponse inattendue du serveur');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showToast(data.message || 'Moyennes arrondies avec succès !', 'success');

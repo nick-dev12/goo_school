@@ -412,6 +412,10 @@ class EmploiDuTempsController:
             'personnel': personnel,
             'jours_semaine': jours_semaine,
             'config_horaire': config_horaire,
+            'statut_publication': emploi_du_temps.get_statut_publication_display(),
+            'date_publication': emploi_du_temps.date_publication,
+            'peut_publier': not emploi_du_temps.est_publie,
+            'doit_republier': emploi_du_temps.doit_republier,
             # Données pour l'emploi du temps des examens
             'sessions_examens': sessions_examens,
             'creneaux_examens': creneaux_examens,
@@ -422,6 +426,50 @@ class EmploiDuTempsController:
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/detail_emploi_du_temps.html', context)
+    
+    @staticmethod
+    @login_required
+    def publier_emploi_du_temps(request, emploi_id):
+        """
+        Publie un emploi du temps et déclenche les notifications.
+        """
+        if request.method != 'POST':
+            messages.error(request, "Méthode non autorisée.")
+            return redirect('administrateur_etablissement:liste_emplois_du_temps')
+
+        # Vérifier les droits
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+
+        emploi = get_object_or_404(
+            EmploiDuTemps.objects.select_related('classe'),
+            id=emploi_id,
+            classe__etablissement=etablissement,
+        )
+
+        deja_publie_precedemment = emploi.date_publication is not None
+
+        if emploi.est_publie:
+            messages.info(request, "Cet emploi du temps est déjà publié.")
+        else:
+            emploi.publier()
+            if deja_publie_precedemment:
+                messages.success(
+                    request,
+                    f"L'emploi du temps de la classe {emploi.classe.nom} a été republié. Les notifications sont en cours d'envoi pour informer les élèves, les parents et les enseignants.",
+                )
+            else:
+                messages.success(
+                request,
+                f"L'emploi du temps de la classe {emploi.classe.nom} a été publié et les notifications sont en cours d'envoi.",
+            )
+
+        return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi.classe.id)
     
     @staticmethod
     @login_required
@@ -516,8 +564,9 @@ class EmploiDuTempsController:
         from ..model.salle_model import Salle
         
         matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
-        professeurs = Professeur.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
+        
+        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe)
         
         # Récupérer les périodes de l'établissement
         from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
@@ -635,11 +684,14 @@ class EmploiDuTempsController:
                             )
                             creneau.save()
                         
+                        emploi_du_temps.marquer_comme_modifie()
+                        
                         nb_creneaux = len(periodes_selectionnees)
                         if nb_creneaux == 1:
                             messages.success(request, "Le créneau a été ajouté avec succès !")
                         else:
                             messages.success(request, f"{nb_creneaux} créneaux consécutifs ont été ajoutés avec succès !")
+                        EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
                         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
                         
                 except Exception as e:
@@ -652,7 +704,8 @@ class EmploiDuTempsController:
             'etablissement': etablissement,
             'personnel': personnel,
             'matieres': matieres,
-            'professeurs': professeurs,
+            'professeurs_options': professeurs_options,
+            'afficher_matiere_prof': afficher_matiere_prof,
             'salles': salles,
             'periodes_etablissement': periodes_etablissement,
             'config_horaire': config_horaire,
@@ -696,8 +749,9 @@ class EmploiDuTempsController:
         from ..model.salle_model import Salle
         
         matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
-        professeurs = Professeur.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
+        
+        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe)
         
         form_data = {}
         field_errors = {}
@@ -799,8 +853,10 @@ class EmploiDuTempsController:
                             creneau.salle = None
                         
                         creneau.save()
+                        emploi_du_temps.marquer_comme_modifie()
                         
                         messages.success(request, "Le créneau a été modifié avec succès !")
+                        EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
                         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
                         
                 except Exception as e:
@@ -813,7 +869,7 @@ class EmploiDuTempsController:
                 'heure_debut': creneau.heure_debut.strftime('%H:%M') if creneau.heure_debut else '',
                 'heure_fin': creneau.heure_fin.strftime('%H:%M') if creneau.heure_fin else '',
                 'matiere_id': creneau.matiere.id if creneau.matiere else '',
-                'professeur_id': creneau.professeur.id if creneau.professeur else '',
+                'professeur_id': str(creneau.professeur.id) if creneau.professeur else '',
                 'salle_id': creneau.salle.id if creneau.salle else '',
                 'type_cours': creneau.type_cours,
                 'notes': creneau.notes or '',
@@ -826,7 +882,8 @@ class EmploiDuTempsController:
             'etablissement': etablissement,
             'personnel': personnel,
             'matieres': matieres,
-            'professeurs': professeurs,
+            'professeurs_options': professeurs_options,
+            'afficher_matiere_prof': afficher_matiere_prof,
             'salles': salles,
             'form_data': form_data,
             'field_errors': field_errors,
@@ -858,17 +915,160 @@ class EmploiDuTempsController:
             emploi_du_temps__classe__etablissement=etablissement
         )
         
-        classe_id = creneau.emploi_du_temps.classe.id
+        emploi_du_temps = creneau.emploi_du_temps
+        classe_id = emploi_du_temps.classe.id
         
         if request.method == 'POST':
             try:
                 creneau.delete()
+                emploi_du_temps.marquer_comme_modifie()
                 messages.success(request, "Le créneau a été supprimé avec succès.")
+                EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
             except Exception as e:
                 logger.error(f"Erreur lors de la suppression du créneau: {str(e)}")
                 messages.error(request, "Une erreur est survenue lors de la suppression du créneau.")
         
         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe_id)
+    
+    @staticmethod
+    def _alerter_republication(request, emploi_du_temps):
+        """
+        Ajoute un message d'information lorsque l'emploi du temps doit être republié.
+        """
+        if emploi_du_temps.doit_republier:
+            messages.info(
+                request,
+                "Des modifications ont été enregistrées. Republiez l'emploi du temps pour notifier les élèves, les parents d'élèves et les enseignants concernés.",
+            )
+    
+    @staticmethod
+    def _get_professeurs_options(classe):
+        """
+        Retourne la liste des professeurs affectés à une classe avec un libellé adapté.
+        """
+        from collections import OrderedDict
+        from ..model.professeur_model import Professeur
+        from ..model.affectation_model import AffectationProfesseur
+        from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+
+        etablissement = classe.etablissement
+        type_etablissement = getattr(etablissement, "type_etablissement", "").lower()
+        niveau_classe = getattr(classe, "niveau", "").lower()
+        afficher_matiere = (
+            type_etablissement in ('collège', 'lycée', 'college', 'lycee') or
+            niveau_classe in ('college', 'lycee', 'superieur') or
+            'lycee' in niveau_classe or
+            'college' in niveau_classe
+        )
+
+        options = []
+
+        if type_etablissement in ('primary', 'primaire'):
+            affectations_primaire = (
+                AffectationProfesseurPrimaire.objects.filter(
+                    classe=classe,
+                    actif=True,
+                    professeur__actif=True,
+                )
+                .select_related('professeur')
+                .prefetch_related('matieres')
+                .order_by('professeur__nom', 'professeur__prenom')
+            )
+
+            for affectation in affectations_primaire:
+                professeur = affectation.professeur
+                label = professeur.nom_complet
+                options.append({
+                    'id': professeur.id,
+                    'label': label,
+                    'prenom': professeur.prenom,
+                    'nom': professeur.nom,
+                    'matiere': None,
+                })
+
+        else:
+            affectations = (
+                AffectationProfesseur.objects.filter(
+                    classe=classe,
+                    actif=True,
+                    professeur__actif=True,
+                )
+                .select_related('professeur', 'matiere')
+                .order_by('professeur__nom', 'professeur__prenom', 'matiere__nom')
+            )
+
+            prof_map = OrderedDict()
+            for affectation in affectations:
+                professeur = affectation.professeur
+                entry = prof_map.setdefault(
+                    professeur.id,
+                    {
+                        'professeur': professeur,
+                        'matieres_codes': [],
+                    },
+                )
+                if affectation.matiere:
+                    code_matiere = affectation.matiere.code or affectation.matiere.nom[:4].upper()
+                    if code_matiere not in entry['matieres_codes']:
+                        entry['matieres_codes'].append(code_matiere)
+
+            for professeur_id, data in prof_map.items():
+                professeur = data['professeur']
+                matieres_codes = data['matieres_codes']
+                label = professeur.nom_complet
+                matiere_nom = None
+                if afficher_matiere and matieres_codes:
+                    matiere_nom = " / ".join(matieres_codes)
+                    label = f"{label} - {matiere_nom}"
+                elif afficher_matiere and professeur.matiere_principale:
+                    matiere_nom = professeur.matiere_principale.code or professeur.matiere_principale.nom[:4].upper()
+                    label = f"{label} - {matiere_nom}"
+
+                options.append({
+                    'id': professeur.id,
+                    'label': label,
+                    'prenom': professeur.prenom,
+                    'nom': professeur.nom,
+                    'matiere': matiere_nom,
+                })
+
+        if not options:
+            professeurs_associes = classe.professeurs.filter(actif=True).order_by('nom', 'prenom')
+            for professeur in professeurs_associes:
+                label = professeur.nom_complet
+                matiere_nom = None
+                if afficher_matiere and professeur.matiere_principale:
+                    matiere_nom = professeur.matiere_principale.code or professeur.matiere_principale.nom[:4].upper()
+                    label = f"{label} - {matiere_nom}"
+                options.append({
+                    'id': professeur.id,
+                    'label': label,
+                    'prenom': professeur.prenom,
+                    'nom': professeur.nom,
+                    'matiere': matiere_nom,
+                })
+
+        if not options:
+            professeurs_etab = Professeur.objects.filter(
+                etablissement=classe.etablissement,
+                actif=True,
+                classes=classe,
+            ).order_by('nom', 'prenom')
+            for professeur in professeurs_etab:
+                label = professeur.nom_complet
+                matiere_nom = None
+                if afficher_matiere and professeur.matiere_principale:
+                    matiere_nom = professeur.matiere_principale.code or professeur.matiere_principale.nom[:4].upper()
+                    label = f"{label} - {matiere_nom}"
+                options.append({
+                    'id': professeur.id,
+                    'label': label,
+                    'prenom': professeur.prenom,
+                    'nom': professeur.nom,
+                    'matiere': matiere_nom,
+                })
+
+        return options, afficher_matiere
     
     @staticmethod
     def _get_annee_scolaire_actuelle():

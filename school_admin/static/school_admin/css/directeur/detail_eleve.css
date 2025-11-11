@@ -6,6 +6,9 @@
   --primary: #3b82f6;
   --primary-light: #dbeafe;
   --primary-dark: #1e40af;
+  --secondary: #7c3aed;
+  --secondary-dark: #5b21b6;
+  --accent: #ef4444;
   --success: #10b981;
   --success-light: #d1fae5;
   --warning: #f59e0b;
@@ -196,7 +199,7 @@ body {
 .student-avatar-large {
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -205,6 +208,27 @@ body {
   font-size: 3rem;
   box-shadow: var(--shadow-lg);
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  border: 4px solid var(--white);
+}
+
+.student-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.student-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(29, 78, 216, 0.4));
+  color: var(--white);
+  font-size: 3rem;
 }
 
 .student-header-info {
@@ -303,6 +327,17 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+.btn-action.btn-photo {
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  color: var(--white);
+}
+
+.btn-action.btn-photo:hover {
+  background: linear-gradient(135deg, var(--secondary-dark), var(--primary-dark));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
 .btn-action.btn-transfer {
   background: var(--warning);
   color: var(--white);
@@ -312,6 +347,198 @@ body {
   background: #d97706;
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+
+/* Photo Modal */
+.photo-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(17, 24, 39, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-6);
+  z-index: 1200;
+}
+
+.photo-modal-content {
+  background: var(--white);
+  border-radius: var(--border-radius-2xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 560px;
+  overflow: hidden;
+  animation: photoModalFade 0.25s ease;
+}
+
+.photo-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-5) var(--spacing-6);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--white);
+}
+
+.photo-modal-header h3 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.btn-close-modal {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: var(--white);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-close-modal:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.photo-upload-form {
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+
+.photo-form-intro {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  background: var(--gray-50);
+  padding: var(--spacing-4);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--gray-200);
+}
+
+.photo-source-options {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.photo-source-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-3) var(--spacing-4);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--gray-700);
+  transition: var(--transition);
+}
+
+.photo-source-option input {
+  accent-color: var(--primary);
+}
+
+.photo-source-option span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.photo-source-option:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.photo-source-option.active {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.photo-input-panels {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.photo-input-panel {
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-5);
+  background: var(--gray-50);
+  display: none;
+}
+
+.photo-input-panel.active {
+  display: block;
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.panel-title {
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-3);
+  display: block;
+}
+
+.photo-file-input {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--white);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.panel-hint {
+  display: block;
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.photo-form-errors {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4);
+}
+
+.photo-form-errors ul {
+  margin: 0;
+  padding-left: var(--spacing-5);
+}
+
+.photo-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+@keyframes photoModalFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Information Tabs */

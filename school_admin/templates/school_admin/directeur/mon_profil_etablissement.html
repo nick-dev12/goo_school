@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon Profil - {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-yHDTjLzi2hO5WrxF7+I/6Y8DB5d4++PK5EKeosFVJeFt3PcTJS3BM4tiTnGMylrObK3y1Vn1NQf+Y2G0g8v7/A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/mon_profil_etablissement.css' %}">
+</head>
+<body>
+  <div class="page-wrapper">
+    <header class="page-header">
+      <div class="header-actions">
+        <a href="{% url 'directeur:dashboard_directeur' %}" class="btn-secondary">
+          <i class="fas fa-arrow-left"></i>
+          Retour
+        </a>
+      </div>
+      <div class="header-title">
+        <h1>Profil de l'établissement</h1>
+        <p>Visualisez et mettez à jour les informations de votre établissement.</p>
+      </div>
+    </header>
+
+    {% if messages %}
+      <div class="messages-container">
+        {% for message in messages %}
+          <div class="message message-{{ message.tags|default:'info' }}">
+            <i class="fas fa-info-circle"></i>
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <section class="overview-card">
+      <div class="overview-left">
+        <div class="overview-logo">
+          {% if etablissement.logo %}
+            <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
+          {% else %}
+            <div class="overview-logo-placeholder">
+              <i class="fas fa-school"></i>
+            </div>
+          {% endif %}
+        </div>
+        <div class="overview-info">
+          <h2>{{ etablissement.nom }}</h2>
+          <p class="overview-type">{{ etablissement.get_type_etablissement_display }}</p>
+          <div class="overview-meta">
+            <span><i class="fas fa-map-marker-alt"></i> {{ etablissement.ville }}, {{ etablissement.pays }}</span>
+            <span><i class="fas fa-envelope"></i> {{ etablissement.email }}</span>
+            {% if etablissement.telephone %}
+              <span><i class="fas fa-phone"></i> {{ etablissement.telephone }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="overview-right">
+        <div class="overview-director">
+          <h3>Responsable</h3>
+          <p>{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}</p>
+          <span class="director-contact"><i class="fas fa-at"></i> {{ etablissement.directeur_email }}</span>
+          {% if etablissement.directeur_telephone %}
+            <span class="director-contact"><i class="fas fa-mobile-alt"></i> {{ etablissement.directeur_telephone }}</span>
+          {% endif %}
+        </div>
+        <div class="overview-stats">
+          <div class="stat-tag">
+            <span class="stat-label">Code établissement</span>
+            <span class="stat-value">{{ etablissement.code_etablissement }}</span>
+          </div>
+          <div class="stat-tag">
+            <span class="stat-label">Compte</span>
+            <span class="stat-value">{{ etablissement.username }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tabs-section">
+      <div class="tabs-bar" role="tablist">
+        <button class="tab-link active" data-target="#tab-informations" type="button">Informations générales</button>
+        <button class="tab-link" data-target="#tab-logo" type="button">Logo</button>
+        <button class="tab-link" data-target="#tab-modules" type="button">Modules activés</button>
+        <button class="tab-link" data-target="#tab-facturation" type="button">Facturation</button>
+      </div>
+
+      <div class="tabs-content">
+        <div class="tab-panel active" id="tab-informations" role="tabpanel">
+          <form action="{% url 'directeur:profil_etablissement' %}" method="post" class="profile-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="update_information">
+
+            <div class="form-block">
+              <h3>Établissement</h3>
+              <div class="form-row">
+                <label for="nom">Nom*</label>
+                <input type="text" id="nom" name="nom" value="{{ etablissement.nom }}" required>
+              </div>
+              <div class="form-row">
+                <label for="type_etablissement">Type*</label>
+                <select id="type_etablissement" name="type_etablissement" required>
+                  {% for value, label in etablissement.TYPE_CHOICES %}
+                    <option value="{{ value }}" {% if etablissement.type_etablissement == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="adresse">Adresse*</label>
+                <input type="text" id="adresse" name="adresse" value="{{ etablissement.adresse }}" required>
+              </div>
+              <div class="form-row-inline">
+                <div class="form-column">
+                  <label for="ville">Ville*</label>
+                  <input type="text" id="ville" name="ville" value="{{ etablissement.ville }}" required>
+                </div>
+                <div class="form-column">
+                  <label for="pays">Pays*</label>
+                  <input type="text" id="pays" name="pays" value="{{ etablissement.pays }}" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-block">
+              <h3>Contact</h3>
+              <div class="form-row">
+                <label for="email">Email*</label>
+                <input type="email" id="email" name="email" value="{{ etablissement.email }}" required>
+              </div>
+              <div class="form-row">
+                <label for="telephone">Téléphone</label>
+                <input type="text" id="telephone" name="telephone" value="{{ etablissement.telephone|default:'' }}">
+              </div>
+            </div>
+
+            <div class="form-block">
+              <h3>Directeur</h3>
+              <div class="form-row-inline">
+                <div class="form-column">
+                  <label for="directeur_prenom">Prénom*</label>
+                  <input type="text" id="directeur_prenom" name="directeur_prenom" value="{{ etablissement.directeur_prenom }}" required>
+                </div>
+                <div class="form-column">
+                  <label for="directeur_nom">Nom*</label>
+                  <input type="text" id="directeur_nom" name="directeur_nom" value="{{ etablissement.directeur_nom }}" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="directeur_email">Email*</label>
+                <input type="email" id="directeur_email" name="directeur_email" value="{{ etablissement.directeur_email }}" required>
+              </div>
+              <div class="form-row">
+                <label for="directeur_telephone">Téléphone</label>
+                <input type="text" id="directeur_telephone" name="directeur_telephone" value="{{ etablissement.directeur_telephone|default:'' }}">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-save"></i>
+                Enregistrer les modifications
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="tab-panel" id="tab-logo" role="tabpanel">
+          <div class="logo-panel">
+            <div class="logo-preview" id="logo-preview">
+              {% if etablissement.logo %}
+                <img src="{{ etablissement.logo.url }}" alt="Logo actuel" id="logo-preview-image">
+              {% else %}
+                <div class="logo-placeholder" id="logo-placeholder">
+                  <i class="fas fa-image"></i>
+                  <p>Aucun logo défini</p>
+                </div>
+                <img src="" alt="Prévisualisation logo" id="logo-preview-image" style="display:none;">
+              {% endif %}
+            </div>
+            <div class="logo-actions">
+              <form action="{% url 'directeur:profil_etablissement' %}" method="post" enctype="multipart/form-data" class="logo-form" id="logo-upload-form">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="update_logo">
+                <label for="logo" class="file-input-label">
+                  <i class="fas fa-upload"></i>
+                  Sélectionner un logo
+                </label>
+                <input type="file" id="logo" name="logo" accept="image/*" required>
+                <span class="file-name" id="logo-file-name">Aucun fichier sélectionné</span>
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-check"></i>
+                  Mettre à jour
+                </button>
+              </form>
+              <form action="{% url 'directeur:profil_etablissement' %}" method="post" class="logo-form">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="delete_logo">
+                <button type="submit" class="btn-danger">
+                  <i class="fas fa-trash"></i>
+                  Supprimer le logo
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-modules" role="tabpanel">
+          <div class="modules-wrapper">
+            {% for label, actif in modules_config %}
+              <div class="module-card {% if actif %}active{% else %}inactive{% endif %}">
+                <div class="module-status">
+                  {% if actif %}
+                    <i class="fas fa-toggle-on"></i>
+                  {% else %}
+                    <i class="fas fa-toggle-off"></i>
+                  {% endif %}
+                </div>
+                <span>{{ label }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-facturation" role="tabpanel">
+          <div class="facturation-card">
+            <div class="facturation-row">
+              <div class="facturation-item">
+                <span class="fact-label">Type de facturation</span>
+                <span class="fact-value">{{ facturation.type|title }}</span>
+              </div>
+              <div class="facturation-item">
+                <span class="fact-label">Montant par élève</span>
+                <span class="fact-value">{{ facturation.montant_par_eleve }} FCFA</span>
+              </div>
+            </div>
+            <div class="facturation-row">
+              <div class="facturation-item">
+                <span class="fact-label">Montant total</span>
+                <span class="fact-value">{{ facturation.montant_total_facturation }} FCFA</span>
+              </div>
+              <div class="facturation-item">
+                <span class="fact-label">Statut</span>
+                <span class="fact-status">{{ facturation.statut|title }}</span>
+              </div>
+            </div>
+            <div class="facturation-row">
+              <div class="facturation-item">
+                <span class="fact-label">Dernière facturation</span>
+                <span class="fact-value">{% if facturation.date_derniere_facturation %}{{ facturation.date_derniere_facturation|date:'d/m/Y H:i' }}{% else %}Non définie{% endif %}</span>
+              </div>
+              <div class="facturation-item">
+                <span class="fact-label">Élèves facturés</span>
+                <span class="fact-value">{{ facturation.nombre_eleves_factures }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tabLinks = document.querySelectorAll('.tab-link');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        const targetSelector = link.getAttribute('data-target');
+        if (!targetSelector) {
+          return;
+        }
+
+        tabLinks.forEach(btn => btn.classList.remove('active'));
+        tabPanels.forEach(panel => panel.classList.remove('active'));
+
+        link.classList.add('active');
+        const targetPanel = document.querySelector(targetSelector);
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+        }
+      });
+    });
+
+    const logoInput = document.getElementById('logo');
+    const logoPreviewImage = document.getElementById('logo-preview-image');
+    const logoPlaceholder = document.getElementById('logo-placeholder');
+    const logoFileName = document.getElementById('logo-file-name');
+
+    if (logoInput) {
+      logoInput.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+          if (logoFileName) {
+            logoFileName.textContent = 'Aucun fichier sélectionné';
+          }
+          return;
+        }
+
+        if (logoFileName) {
+          logoFileName.textContent = file.name;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (logoPlaceholder) {
+            logoPlaceholder.style.display = 'none';
+          }
+          if (logoPreviewImage) {
+            logoPreviewImage.src = e.target.result;
+            logoPreviewImage.style.display = 'block';
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>

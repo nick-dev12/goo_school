@@ -6,14 +6,27 @@ app_name = 'directeur'  # ← Changement du namespace pour éviter le conflit
 
 urlpatterns = [
     path('dashboard/directeur/', dashboard_directeur, name='dashboard_directeur'),
+    path('notifications/', notifications_directeur, name='notifications_directeur'),
     path('facturation/directeur/', facturation_directeur, name='facturation_directeur'),
     path('gestion-pedagogique/', gestion_pedagogique, name='gestion_pedagogique'),
     path('gestion-eleves/', gestion_eleves, name='gestion_eleves'),
     path('notes-et-resultats/', notes_et_resultats, name='notes_et_resultats'),
+    path('bulletins/', bulletins_notes, name='bulletins_notes'),
+    path('bulletins/voir/<int:classe_id>/<int:eleve_id>/', voir_bulletin_eleve, name='voir_bulletin_eleve'),
+    path('bulletins/calculer-moyenne/<int:classe_id>/<int:eleve_id>/', calculer_moyenne_eleve, name='calculer_moyenne_eleve'),
+    path('bulletins/imprimer/<int:classe_id>/<int:eleve_id>/', imprimer_bulletin_eleve, name='imprimer_bulletin_eleve'),
+    path('bulletins/imprimer-classe/<int:classe_id>/', imprimer_bulletins_classe, name='imprimer_bulletins_classe'),
+    path('bulletins/publier/<int:classe_id>/', publier_bulletins_classe, name='publier_bulletins_classe'),
+    path('bulletins/visibilite/<int:classe_id>/', mettre_a_jour_visibilite_bulletins, name='mettre_a_jour_visibilite_bulletins'),
+    path('bulletins/calculer-moyennes/<int:classe_id>/', calculer_moyennes_periode, name='calculer_moyennes_periode'),
+    path('bulletins/configuration-moyennes/', configuration_moyennes_generales, name='configuration_moyennes_generales'),
+    path('bulletins/configuration-standards/', configuration_standards_reussite, name='configuration_standards_reussite'),
     path('suivi-presence/', suivi_presence, name='suivi_presence'),
+    path('suivi-presence/justifier/', justifier_absence_directeur, name='justifier_absence'),
     path('gestion-etablissement/', gestion_etablissement, name='gestion_etablissement'),
     path('gestion-administrative/', gestion_administrative, name='gestion_administrative'),
     path('periodes-scolaires/', gestion_periodes_scolaires, name='gestion_periodes_scolaires'),
+    path('profil/etablissement/', profil_etablissement, name='profil_etablissement'),
     
     # API pour les détails des notes
     path('api/details-notes-matiere/', api_details_notes_matiere, name='api_details_notes_matiere'),
@@ -70,4 +83,13 @@ urlpatterns = [
     path('configurer-creneaux-examen/<int:session_id>/', configurer_creneaux_examen, name='configurer_creneaux_examen'),
     path('modifier-session-examen/<int:session_id>/', modifier_session_examen, name='modifier_session_examen'),
     path('supprimer-session-examen/<int:session_id>/', supprimer_session_examen, name='supprimer_session_examen'),
+    
+    # Gestion des annonces
+    path('directeur/annonces/', annonces_directeur, name='annonces_directeur'),
+    path('directeur/annonces/creer/', creer_annonce, name='creer_annonce'),
+    path('directeur/annonces/<int:annonce_id>/modifier/', modifier_annonce, name='modifier_annonce'),
+    path('directeur/annonces/<int:annonce_id>/apercu/', apercu_annonce, name='apercu_annonce'),
+    path('directeur/annonces/<int:annonce_id>/publier/', publier_annonce, name='publier_annonce'),
+    path('directeur/annonces/<int:annonce_id>/archiver/', archiver_annonce, name='archiver_annonce'),
+    path('directeur/annonces/<int:annonce_id>/supprimer/', supprimer_annonce, name='supprimer_annonce'),
 ]

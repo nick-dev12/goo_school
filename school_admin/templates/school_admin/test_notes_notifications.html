@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Notifications de Notes</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --danger: #ef4444;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--gray-800);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--gray-600);
+        }
+
+        .test-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .test-section h2 {
+            color: var(--gray-800);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .eleves-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .eleve-card {
+            padding: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .eleve-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .eleve-card.selected {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .eleve-card.no-token {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .eleve-card.no-token:hover {
+            border-color: var(--gray-200);
+            box-shadow: none;
+        }
+
+        .eleve-name {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 0.5rem;
+        }
+
+        .eleve-info {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .token-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .token-badge.has-token {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .token-badge.no-token {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .log-container {
+            background: var(--gray-800);
+            color: #00ff00;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .log-container:empty::before {
+            content: "En attente des logs...";
+            color: var(--gray-600);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-vial"></i> Test - Notifications de Notes</h1>
+            <p>Testez l'envoi de notifications lors de l'enregistrement des notes</p>
+        </div>
+
+        <div class="test-section">
+            <h2><i class="fas fa-users"></i> Élèves avec Tokens FCM</h2>
+            <button class="btn btn-primary" onclick="loadEleves()">
+                <i class="fas fa-sync-alt"></i>
+                Charger les élèves
+            </button>
+            <div id="eleves-container" class="eleves-list"></div>
+        </div>
+
+        <div class="test-section">
+            <h2><i class="fas fa-paper-plane"></i> Test d'envoi de notification</h2>
+            <div id="alert-container"></div>
+            <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                Sélectionnez un élève ci-dessus, puis cliquez sur "Envoyer notification de test"
+            </p>
+            <div class="actions">
+                <button class="btn btn-success" onclick="sendTestNotification()" id="send-btn" disabled>
+                    <i class="fas fa-bell"></i>
+                    Envoyer notification de test
+                </button>
+            </div>
+            <div id="log-container" class="log-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedEleve = null;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function addLog(message) {
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function loadEleves() {
+            const container = document.getElementById('eleves-container');
+            container.innerHTML = '<p style="text-align: center; color: var(--gray-600);"><span class="loading"></span> Chargement des élèves...</p>';
+            
+            try {
+                const response = await fetch('/api/test/get-eleves-with-tokens/');
+                const data = await response.json();
+                
+                if (data.success) {
+                    container.innerHTML = '';
+                    
+                    if (data.eleves.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--gray-600);">Aucun élève trouvé</p>';
+                        return;
+                    }
+                    
+                    data.eleves.forEach(eleve => {
+                        const card = document.createElement('div');
+                        card.className = `eleve-card ${!eleve.has_tokens ? 'no-token' : ''}`;
+                        card.innerHTML = `
+                            <div class="eleve-name">${eleve.nom_complet}</div>
+                            <div class="eleve-info">
+                                <i class="fas fa-school"></i>
+                                ${eleve.classe}
+                            </div>
+                            <div class="token-badge ${eleve.has_tokens ? 'has-token' : 'no-token'}">
+                                <i class="fas fa-${eleve.has_tokens ? 'check' : 'times'}"></i>
+                                ${eleve.tokens_count} token(s)
+                            </div>
+                        `;
+                        
+                        if (eleve.has_tokens) {
+                            card.onclick = () => selectEleve(eleve, card);
+                        }
+                        
+                        container.appendChild(card);
+                    });
+                    
+                    addLog(`✅ ${data.total} élève(s) chargé(s)`);
+                } else {
+                    container.innerHTML = `<p style="text-align: center; color: var(--danger);">Erreur: ${data.message}</p>`;
+                    addLog(`❌ Erreur: ${data.message}`);
+                }
+            } catch (error) {
+                container.innerHTML = `<p style="text-align: center; color: var(--danger);">Erreur de chargement</p>`;
+                addLog(`❌ Erreur de chargement: ${error.message}`);
+            }
+        }
+
+        function selectEleve(eleve, cardElement) {
+            // Désélectionner les autres
+            document.querySelectorAll('.eleve-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Sélectionner celui-ci
+            cardElement.classList.add('selected');
+            selectedEleve = eleve;
+            
+            document.getElementById('send-btn').disabled = false;
+            addLog(`✓ Élève sélectionné : ${eleve.nom_complet} (${eleve.tokens_count} token(s))`);
+        }
+
+        async function sendTestNotification() {
+            if (!selectedEleve) {
+                showAlert('Veuillez sélectionner un élève', 'warning');
+                return;
+            }
+            
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="loading"></span> Envoi en cours...';
+            
+            addLog(`📤 Envoi de la notification de test à ${selectedEleve.nom_complet}...`);
+            
+            try {
+                const response = await fetch('/api/test/send-note-notification/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        eleve_id: selectedEleve.id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Afficher tous les logs
+                if (data.logs) {
+                    data.logs.forEach(log => addLog(log));
+                }
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    addLog(`✅ ${data.message}`);
+                } else {
+                    showAlert(data.message, 'danger');
+                    addLog(`❌ ${data.message}`);
+                }
+            } catch (error) {
+                showAlert(`Erreur: ${error.message}`, 'danger');
+                addLog(`❌ Erreur: ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-bell"></i> Envoyer notification de test';
+            }
+        }
+
+        // Charger automatiquement les élèves au chargement de la page
+        window.onload = loadEleves;
+    </script>
+</body>
+</html>
+

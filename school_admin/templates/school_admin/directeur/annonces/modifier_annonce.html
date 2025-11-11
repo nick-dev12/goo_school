@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/creer_annonce.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Modifier l'Annonce - Directeur</title>
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="container">
+        <!-- Header Section -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1><i class="fas fa-edit"></i> Modifier l'Annonce</h1>
+                <p>Modifiez les détails de votre annonce</p>
+            </div>
+            <a href="{% url 'directeur:annonces_directeur' %}" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Formulaire -->
+        <div class="form-container">
+            <form method="post" action="{% url 'directeur:modifier_annonce' annonce.id %}" enctype="multipart/form-data" id="annonceForm">
+                {% csrf_token %}
+
+                <div class="form-section">
+                    <h2><i class="fas fa-info-circle"></i> Informations de base</h2>
+                    
+                    <div class="form-group">
+                        <label for="titre">Titre de l'annonce <span class="required">*</span></label>
+                        <input type="text" id="titre" name="titre" class="form-control" value="{{ annonce.titre }}" required maxlength="255">
+                        <small class="form-text">Le titre doit être clair et accrocheur</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contenu">Contenu de l'annonce <span class="required">*</span></label>
+                        <textarea id="contenu" name="contenu" class="form-control" rows="10" required>{{ annonce.contenu }}</textarea>
+                        <small class="form-text">Soyez précis et fournissez toutes les informations nécessaires</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2><i class="fas fa-users"></i> Destinataires</h2>
+                    
+                    <div class="form-group">
+                        <label>Qui doit recevoir cette annonce ? <span class="required">*</span></label>
+                        <small class="form-text" style="margin-bottom: 1rem; display: block;">Sélectionnez un ou plusieurs destinataires (Cochez "Tous" pour tout le monde)</small>
+                        
+                        <div class="checkbox-group">
+                            {% for value, label in destinataires_choices %}
+                                <div class="checkbox-item">
+                                    <input 
+                                        type="checkbox" 
+                                        id="dest_{{ value }}" 
+                                        name="destinataires" 
+                                        value="{{ value }}"
+                                        {% if value in annonce.destinataires %}checked{% endif %}
+                                        {% if value == 'tous' %}onchange="handleTousCheckbox(this)"{% else %}onchange="handleOtherCheckbox()"{% endif %}
+                                    >
+                                    <label for="dest_{{ value }}" class="checkbox-label-inline">{{ label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2><i class="fas fa-paperclip"></i> Fichier joint</h2>
+                    
+                    {% if annonce.fichier_joint %}
+                        <div class="current-file">
+                            <div class="file-info">
+                                <i class="fas fa-file"></i>
+                                <span>{{ annonce.fichier_joint.name|slice:"17:" }}</span>
+                            </div>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="supprimer_fichier" value="true">
+                                Supprimer ce fichier
+                            </label>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="fichier_joint">{% if annonce.fichier_joint %}Remplacer le fichier{% else %}Joindre un fichier{% endif %}</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="fichier_joint" name="fichier_joint" class="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <label for="fichier_joint" class="file-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span id="file-name">Choisir un fichier (PDF, Word, Image)</span>
+                            </label>
+                        </div>
+                        <small class="form-text">Formats acceptés : PDF, Word, Images (JPG, PNG)</small>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="btn-preview" target="_blank">
+                        <i class="fas fa-eye"></i> Aperçu
+                    </a>
+                    <button type="submit" name="action" value="enregistrer" class="btn-draft">
+                        <i class="fas fa-save"></i> Enregistrer les modifications
+                    </button>
+                    {% if annonce.statut == 'brouillon' %}
+                        <button type="submit" name="action" value="publier" class="btn-publish">
+                            <i class="fas fa-paper-plane"></i> Enregistrer et publier
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Gestion des checkboxes destinataires
+        function handleTousCheckbox(checkbox) {
+            const allCheckboxes = document.querySelectorAll('input[name="destinataires"]');
+            if (checkbox.checked) {
+                // Si "Tous" est coché, décocher tous les autres
+                allCheckboxes.forEach(cb => {
+                    if (cb.value !== 'tous') {
+                        cb.checked = false;
+                    }
+                });
+            }
+        }
+
+        function handleOtherCheckbox() {
+            const tousCheckbox = document.getElementById('dest_tous');
+            const otherCheckboxes = document.querySelectorAll('input[name="destinataires"]:not(#dest_tous)');
+            
+            // Si un autre checkbox est coché, décocher "Tous"
+            const anyOtherChecked = Array.from(otherCheckboxes).some(cb => cb.checked);
+            if (anyOtherChecked && tousCheckbox) {
+                tousCheckbox.checked = false;
+            }
+        }
+
+        // Afficher le nom du fichier sélectionné
+        document.getElementById('fichier_joint').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'Choisir un fichier (PDF, Word, Image)';
+            document.getElementById('file-name').textContent = fileName;
+        });
+
+        // Confirmation avant publication
+        document.getElementById('annonceForm').addEventListener('submit', function(e) {
+            const actionValue = e.submitter.value;
+            if (actionValue === 'publier') {
+                if (!confirm('Êtes-vous sûr de vouloir publier cette annonce maintenant ?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

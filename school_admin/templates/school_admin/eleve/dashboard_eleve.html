@@ -13,6 +13,8 @@
     <!-- Style CSS personnalisé -->
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
+    <!-- CSS pour les notifications FCM -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/fcm_notifications.css' %}">
 </head>
 
 <body>
@@ -41,6 +43,19 @@
             <span>Sanctions</span>
         </a>
         {% endif %}
+        <button id="fcm-enable-btn" class="quick-btn quick-btn-green" style="display: none;" onclick="activerNotifications()">
+            <i class="fas fa-bell"></i>
+            <span>Activer les notifications</span>
+        </button>
+    </div>
+    
+    <!-- Message de succès pour les notifications -->
+    <div id="fcm-success-message" class="fcm-success-banner" style="display: none;">
+        <i class="fas fa-check-circle"></i>
+        <div>
+            <strong>Notifications activées !</strong>
+            <p>Vous recevrez désormais des alertes pour vos notes et annonces.</p>
+        </div>
     </div>
 
     <!-- Première rangée - Cartes d'information -->
@@ -116,6 +131,30 @@
                 </a>
             </div>
         </div>
+
+        <!-- Annonces -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">Annonces</h3>
+                <div class="info-card-icon neo-purple">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+            </div>
+            <div class="info-card-content">
+                <p class="info-card-value">{{ nombre_annonces|default:"0" }}</p>
+                <p class="info-card-description">Nouvelles informations</p>
+            </div>
+            <div class="info-card-footer">
+                <div class="info-card-trend">
+                    <i class="fas fa-info-circle"></i>
+                    <span>De l'établissement</span>
+                </div>
+                <a href="{% url 'eleve:annonces_eleve' %}" class="info-card-link">
+                    <span>Voir annonces</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- Deuxième rangée - Emploi du temps -->
@@ -132,6 +171,12 @@
                 </div>
             </div>
             <div class="schedule-table-container">
+                {% if emploi_non_publie %}
+                    <div style="padding: 2.5rem; text-align: center; color: var(--gray-500);">
+                        <i class="fas fa-eye-slash" style="font-size: 2.5rem; margin-bottom: 1rem; display: block;"></i>
+                        <p style="font-size: 1rem;">L'emploi du temps n'a pas encore été publié par l'établissement.</p>
+                    </div>
+                {% else %}
                 <table class="schedule-table">
                     <thead>
                         <tr>
@@ -178,6 +223,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% endif %}
             </div>
             <div class="info-card-footer">
                 <div></div>
@@ -319,6 +365,9 @@
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/eleve/header.js' %}"></script>
 <script src="{% static 'school_admin/js/eleve/dashboard.js' %}"></script>
+
+<!-- Script Firebase Cloud Messaging -->
+<script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
 </body>
 
 </html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications - Enseignant</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #3b82f6;
+        --secondary: #7c3aed;
+        --accent: #ef4444;
+        --success: #10b981;
+        --warning: #fbbf24;
+        --info: #8b5cf6;
+        --white: #ffffff;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-400: #9ca3af;
+        --gray-600: #4b5563;
+        --gray-800: #1f2937;
+        --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
+          0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      }
+
+      body {
+        margin: 0;
+        font-family: "Poppins", Arial, sans-serif;
+        background: var(--gray-50);
+        color: var(--gray-800);
+      }
+
+      .page-wrapper {
+        max-width: 1100px;
+        margin: 60px auto;
+        padding: 0 24px 48px;
+      }
+
+      .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+
+      .page-header h1 {
+        font-size: 30px;
+        margin: 0;
+        color: var(--primary);
+      }
+
+      .page-header p {
+        margin: 0;
+        color: var(--gray-600);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: var(--white);
+        box-shadow: var(--shadow-card);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+      }
+
+      .notifications-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .notification-card {
+        background: var(--white);
+        border-radius: 14px;
+        padding: 20px 22px;
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--gray-100);
+      }
+
+      .notification-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--gray-600);
+        margin-bottom: 8px;
+      }
+
+      .notification-meta .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.12);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .notification-card h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        color: var(--gray-800);
+      }
+
+      .notification-card p {
+        margin: 0 0 12px;
+        color: var(--gray-600);
+        line-height: 1.6;
+      }
+
+      .notification-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--gray-400);
+      }
+
+      .empty-state {
+        margin-top: 40px;
+        text-align: center;
+        padding: 60px 20px;
+        border-radius: 16px;
+        background: var(--white);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--gray-100);
+      }
+
+      .empty-state i {
+        font-size: 42px;
+        color: var(--primary);
+        margin-bottom: 16px;
+      }
+
+      .empty-state h2 {
+        margin: 0 0 8px;
+        color: var(--gray-800);
+      }
+
+      .empty-state p {
+        margin: 0;
+        color: var(--gray-600);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <header class="page-header">
+        <h1>Notifications reçues</h1>
+        <p>
+          Retrouvez ici les annonces qui vous concernent. Les notifications
+          affichées sont automatiquement archivées après consultation.
+        </p>
+        <div class="actions">
+          <a href="{% url 'enseignant:dashboard_enseignant' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+          </a>
+        </div>
+      </header>
+
+      {% if notifications %}
+        <div class="notifications-list">
+          {% for notification in notifications %}
+            <article class="notification-card">
+              <div class="notification-meta">
+                <span class="badge">
+                  <i class="fas fa-bullhorn"></i>
+                  {{ notification.get_type_notification_display }}
+                </span>
+                <span>
+                  <i class="far fa-clock"></i>
+                  {{ notification.date_creation|date:"d/m/Y H:i" }}
+                </span>
+              </div>
+              <h3>{{ notification.titre }}</h3>
+              <p>{{ notification.message }}</p>
+              {% if notification.donnees %}
+                <div class="notification-footer">
+                  {% if notification.donnees.annonce_id %}
+                    <span>
+                      <i class="fas fa-hashtag"></i>
+                      Annonce n°{{ notification.donnees.annonce_id }}
+                    </span>
+                  {% endif %}
+                  {% if notification.donnees.titre %}
+                    <span>
+                      <i class="fas fa-heading"></i>
+                      {{ notification.donnees.titre }}
+                    </span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="fas fa-bell-slash"></i>
+          <h2>Aucune notification</h2>
+          <p>Vous n'avez aucune nouvelle notification pour le moment.</p>
+        </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

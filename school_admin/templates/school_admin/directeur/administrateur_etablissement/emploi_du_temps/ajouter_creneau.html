@@ -201,11 +201,15 @@
                   </label>
                   <select id="professeur" name="professeur" class="form-control">
                     <option value="">Sélectionnez un professeur</option>
-                    {% for prof in professeurs %}
+                    {% if professeurs_options %}
+                      {% for prof in professeurs_options %}
                       <option value="{{ prof.id }}" {% if form_data.professeur_id == prof.id|stringformat:"s" %}selected{% endif %}>
-                        {{ prof.prenom }} {{ prof.nom }}
+                          {{ prof.label }}
                       </option>
                     {% endfor %}
+                    {% else %}
+                      <option value="" disabled>Aucun professeur n'est affecté à cette classe.</option>
+                    {% endif %}
                   </select>
                   {% if field_errors.professeur %}
                     <span class="error-message">

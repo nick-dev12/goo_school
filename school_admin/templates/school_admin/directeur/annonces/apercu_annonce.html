@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/apercu_annonce.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Aperçu - {{ annonce.titre }}</title>
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="container">
+        <!-- Header Section -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1><i class="fas fa-eye"></i> Aperçu de l'Annonce</h1>
+                <p>Voici comment votre annonce apparaîtra aux destinataires</p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="btn-secondary">
+                    <i class="fas fa-edit"></i> Modifier
+                </a>
+                <a href="{% url 'directeur:annonces_directeur' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Annonce Preview -->
+        <div class="preview-container">
+            <div class="annonce-preview">
+                <div class="annonce-header-preview">
+                    <div class="annonce-title-section">
+                        <h2>{{ annonce.titre }}</h2>
+                        <span class="badge badge-{{ annonce.statut }}">
+                            {% if annonce.statut == 'publiee' %}
+                                <i class="fas fa-check-circle"></i> Publiée
+                            {% elif annonce.statut == 'brouillon' %}
+                                <i class="fas fa-edit"></i> Brouillon
+                            {% else %}
+                                <i class="fas fa-archive"></i> Archivée
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="annonce-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-user"></i>
+                            <span><strong>Auteur :</strong> {{ annonce.get_nom_auteur }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>
+                                <strong>Date :</strong>
+                                {% if annonce.date_publication %}
+                                    {{ annonce.date_publication|date:"d/m/Y à H:i" }}
+                                {% else %}
+                                    {{ annonce.date_creation|date:"d/m/Y à H:i" }} (Brouillon)
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-users"></i>
+                            <span><strong>Destinataires :</strong> {{ annonce.get_destinataires_display }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="annonce-content-preview">
+                    <div class="content-text">
+                        {{ annonce.contenu|linebreaks }}
+                    </div>
+                </div>
+
+                {% if annonce.fichier_joint %}
+                    <div class="annonce-fichier-preview">
+                        <div class="fichier-header">
+                            <i class="fas fa-paperclip"></i>
+                            <h3>Fichier joint</h3>
+                        </div>
+                        <div class="fichier-content">
+                            <div class="fichier-info">
+                                <i class="fas fa-file"></i>
+                                <div class="fichier-details">
+                                    <span class="fichier-nom">{{ annonce.fichier_joint.name|slice:"17:" }}</span>
+                                    <span class="fichier-taille">{{ annonce.fichier_joint.size|filesizeformat }}</span>
+                                </div>
+                            </div>
+                            <a href="{{ annonce.fichier_joint.url }}" class="btn-download" download>
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="annonce-footer-preview">
+                    <div class="footer-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>
+                            Dernière modification : {{ annonce.date_modification|date:"d/m/Y à H:i" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="quick-actions">
+                <h3><i class="fas fa-bolt"></i> Actions rapides</h3>
+                <div class="actions-list">
+                    {% if annonce.statut == 'brouillon' %}
+                        <form method="post" action="{% url 'directeur:publier_annonce' annonce.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn btn-publish" onclick="return confirm('Voulez-vous publier cette annonce ?')">
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Publier cette annonce</span>
+                            </button>
+                        </form>
+                    {% elif annonce.statut == 'publiee' %}
+                        <form method="post" action="{% url 'directeur:archiver_annonce' annonce.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn btn-archive" onclick="return confirm('Voulez-vous archiver cette annonce ?')">
+                                <i class="fas fa-archive"></i>
+                                <span>Archiver cette annonce</span>
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="action-btn btn-edit">
+                        <i class="fas fa-edit"></i>
+                        <span>Modifier cette annonce</span>
+                    </a>
+
+                    <form method="post" action="{% url 'directeur:supprimer_annonce' annonce.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="action-btn btn-delete" onclick="return confirm('Voulez-vous vraiment supprimer cette annonce ?')">
+                            <i class="fas fa-trash"></i>
+                            <span>Supprimer cette annonce</span>
+                        </button>
+                    </form>
+
+                    <button onclick="window.print()" class="action-btn btn-print">
+                        <i class="fas fa-print"></i>
+                        <span>Imprimer l'aperçu</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @media print {
+            .page-header,
+            .quick-actions,
+            header {
+                display: none !important;
+            }
+
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+
+            .annonce-preview {
+                box-shadow: none;
+                border: 1px solid #e5e7eb;
+            }
+        }
+    </style>
+</body>
+</html>
+

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carte d'identité - {{ eleve.nom_complet }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}">
+</head>
+<body>
+  <div class="card-page">
+    <header class="card-header">
+      <div class="card-actions-left">
+        <a href="{% url 'secretaire:cartes_identite_eleves' %}" class="btn-secondary">
+          <i class="fas fa-arrow-left"></i>
+          Retour aux cartes 
+        </a>
+      </div>
+      <div class="card-title">
+        <h1>Carte d'identité scolaire</h1>
+        <p>{{ eleve.nom_complet }} · {{ eleve.classe.nom|default:"Classe non définie" }}</p>
+      </div>
+      <div class="card-actions-right">
+        <button type="button" class="btn-primary" id="print-card">
+          <i class="fas fa-print"></i>
+          Imprimer
+        </button>
+      </div>
+    </header>
+
+    <main class="card-content">
+      <div class="info-section">
+        <h3 class="section-title">
+          <i class="fas fa-id-card"></i>
+          Carte d'identité scolaire
+        </h3>
+        <div class="student-idcard-wrapper">
+          <div class="student-idcard-front">
+            <div class="idcard-header">
+              <div class="idcard-flag">
+                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo de l'établissement">
+              </div>
+              <div class="idcard-header-text">
+                <p class="idcard-country">RÉPUBLIQUE DU SÉNÉGAL</p>
+                <p class="idcard-motto">UN PEUPLE - UN BUT - UNE FOI</p>
+                <h4 class="idcard-school">{{ etablissement.nom|default:"LYCÉE BLAISE PASCAL" }}</h4>
+                <p class="idcard-title">CARTE D'IDENTITÉ SCOLAIRE</p>
+              </div>
+              <div class="idcard-logo">
+                {% if etablissement.logo %}
+                  <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
+                {% else %}
+                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement">
+                {% endif %}
+              </div>
+            </div>
+            <div class="idcard-body">
+              <div class="idcard-photo">
+                {% if eleve.photo_profil %}
+                  <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.nom_complet }}">
+                {% else %}
+                  <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="Photo par défaut">
+                {% endif %}
+              </div>
+              <div class="idcard-info">
+                <div class="idcard-info-row">
+                  <span class="info-label">Année scolaire :</span>
+                  <span class="info-value">{{ annee_scolaire|default:"2024 - 2025" }}</span>
+                </div>
+                <div class="idcard-info-row">
+                  <span class="info-label">Nom :</span>
+                  <span class="info-value info-accent">{{ eleve.nom|upper }}</span>
+                </div>
+                <div class="idcard-info-row">
+                  <span class="info-label">Prénom :</span>
+                  <span class="info-value info-accent">{{ eleve.prenom|upper }}</span>
+                </div>
+                <div class="idcard-info-row double">
+                  <span class="info-label">Né(e) le :</span>
+                  <span class="info-value info-strong">{{ eleve.date_naissance|date:"d-m-Y" }}</span>
+                  <span class="info-label">À :</span>
+                  <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
+                </div>
+                <div class="idcard-info-row double">
+                  <span class="info-label">Sexe :</span>
+                  <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
+                  <span class="info-label">Classe :</span>
+                  <span class="info-value info-uppercase info-value-wrap">
+                    {% if eleve.classe %}
+                      {{ eleve.classe.nom }}
+                    {% else %}
+                      Non assignée
+                    {% endif %}
+                  </span>
+                </div>
+                <div class="idcard-info-row">
+                  <span class="info-label">Contact :</span>
+                  <span class="info-value info-value-wrap">{{ eleve.telephone|default:"**********" }}</span>
+                </div>
+              </div>
+              <div class="idcard-qr">
+                {% if eleve.qr_code_image %}
+                  <img src="{{ eleve.qr_code_image.url }}" alt="QR code de {{ eleve.nom_complet }}">
+                {% else %}
+                  <div class="idcard-qr-placeholder">
+                    <i class="fas fa-qrcode"></i>
+                    <span>QR code indisponible</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="idcard-footer">
+              <span class="idcard-matricule">MAT. : {{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
+              <span class="idcard-printed">IMPRIMÉ PAR / PRINTED BY {{ etablissement.nom|default:"LYCÉE GANALIS" }}</span>
+            </div>
+          </div>
+
+          <div class="student-idcard-back">
+            <div class="idcard-back-header">
+              <i class="fas fa-book-reader"></i>
+              <span>Règlement d'utilisation</span>
+            </div>
+            <div class="idcard-back-body">
+              <div class="idcard-rules-card">
+                <ol class="idcard-rules">
+                  <li>Cette carte est personnelle et non cessible.</li>
+                  <li>Elle doit être présentée à toute demande du personnel administratif.</li>
+                  <li>En cas de perte, prévenir immédiatement la direction de l'établissement.</li>
+                  <li>Toute falsification expose à des sanctions disciplinaires.</li>
+                </ol>
+              </div>
+              <div class="idcard-back-info">
+                <div class="idcard-establishment">
+                  <span class="establishment-name">{{ etablissement.nom|upper|default:"LYCÉE GANALIS" }}</span>
+                  <span>BP : {{ etablissement.boite_postale|default:"12345 Douala – Cameroun" }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="idcard-back-footer">
+              <div class="idcard-back-logo">
+                {% if etablissement.logo %}
+                  <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" />
+                {% else %}
+                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement" />
+                {% endif %}
+              </div>
+              <span class="idcard-back-motto">{{ etablissement.devise|default:"Discipline - Travail - Réussite" }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const printBtn = document.getElementById('print-card');
+    if (printBtn) {
+      printBtn.addEventListener('click', () => window.print());
+    }
+  </script>
+</body>
+</html>

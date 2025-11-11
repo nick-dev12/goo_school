@@ -11,6 +11,218 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <style>
+        .btn-action-mini.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+        }
+
+        .btn-action-mini.success:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .modal-justification {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(17, 24, 39, 0.55);
+            backdrop-filter: blur(6px);
+            padding: 40px 16px;
+        }
+
+        .modal-justification.is-visible {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .modal-justification-content {
+            background: #ffffff;
+            width: min(640px, 100%);
+            max-height: 92vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            animation: slideDown 0.3s ease;
+        }
+
+        .modal-justification-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-justification-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .modal-justification-close {
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-size: 26px;
+            cursor: pointer;
+            line-height: 1;
+            transition: transform 0.2s ease;
+        }
+
+        .modal-justification-close:hover {
+            transform: scale(1.1);
+        }
+
+        .modal-justification-body {
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .modal-justification-info {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .modal-justification-info strong {
+            font-size: 15px;
+            color: #0f766e;
+        }
+
+        .modal-justification-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-justification-form-group label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .modal-justification-form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            font-size: 15px;
+            background: #ffffff;
+            color: #1f2937;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .modal-justification-form-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            outline: none;
+        }
+
+        .modal-justification-footer {
+            padding: 20px 24px;
+            background: #f9fafb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .modal-justification-footer .btn-cancel {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            color: #4b5563;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-justification-footer .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .modal-justification-footer .btn-submit {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: #ffffff;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .modal-justification-footer .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+        }
+
+        .absences-options-template {
+            display: none;
+        }
+
+        .periodes-tabs-container {
+            margin: 16px 0 24px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .periode-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200, #e5e7eb);
+            background: var(--gray-50, #f9fafb);
+            color: var(--gray-700, #374151);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .periode-tab:hover {
+            border-color: var(--primary, #3b82f6);
+            color: var(--primary, #3b82f6);
+            box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+        }
+
+        .periode-tab.active {
+            background: var(--primary-light, rgba(59,130,246,0.1));
+            border-color: var(--primary, #3b82f6);
+            color: var(--primary, #3b82f6);
+            box-shadow: var(--shadow, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
+        }
+
+        .periode-tab .periode-annee {
+            font-weight: 500;
+            color: var(--gray-500, #6b7280);
+        }
+    </style>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -38,6 +250,24 @@
                 </a>
             </div>
         </div>
+
+        {% if periodes %}
+        <div class="periodes-tabs-container">
+            {% for periode in periodes %}
+                {% if periode_selectionnee and periode.id == periode_selectionnee.id %}
+                    <a class="periode-tab active" href="?periode={{ periode.id }}">
+                        <span class="periode-nom">{{ periode.nom_periode }}</span>
+                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
+                    </a>
+                {% else %}
+                    <a class="periode-tab" href="?periode={{ periode.id }}">
+                        <span class="periode-nom">{{ periode.nom_periode }}</span>
+                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Onglets principaux par niveau -->
         <div class="tabs-container">
@@ -125,7 +355,7 @@
                                                 </div>
                                             </div>
                                             <div class="mois-actions">
-                                                <a href="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id mois_presences.mois.numero mois_presences.mois.annee %}" 
+                                                <a href="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id mois_presences.mois.numero mois_presences.mois.annee %}{% if periode_selectionnee %}?periode={{ periode_selectionnee.id }}{% endif %}" 
                                                    class="btn-print-presence" 
                                                    target="_blank"
                                                    title="Imprimer la liste de présence">
@@ -330,10 +560,28 @@
                                                                         <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="Voir le profil">
                                                                             <i class="fas fa-eye"></i>
                                                                         </a>
+                                                                        {% if eleve_data.absences_details %}
+                                                                        <button type="button"
+                                                                                class="btn-action-mini success"
+                                                                                title="Justifier une absence"
+                                                                                onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }}, '{{ mois_key }}')">
+                                                                            <i class="fas fa-check-circle"></i>
+                                                                        </button>
+                                                                        {% endif %}
                                                                         <button class="btn-action-mini warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
                                                                             <i class="fas fa-gavel"></i>
                                                                         </button>
                                                                     </div>
+                                                                    {% if eleve_data.absences_details %}
+                                                                        <select id="absences-options-{{ eleve_data.eleve.id }}-{{ classe_data.classe.id }}-{{ mois_key }}"
+                                                                                class="absences-options-template"
+                                                                                hidden>
+                                                                            <option value="">Sélectionnez une absence</option>
+                                                                            {% for absence in eleve_data.absences_details %}
+                                                                                <option value="{{ absence.id }}">{{ absence.label }}</option>
+                                                                            {% endfor %}
+                                                                        </select>
+                                                                    {% endif %}
                                                                 </td>
                                                             </tr>
                                                         {% endfor %}
@@ -354,6 +602,44 @@
                     {% endfor %}
                 </div>
             {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal Justification Absence -->
+    <div id="modalJustification" class="modal-justification">
+        <div class="modal-justification-content">
+            <div class="modal-justification-header">
+                <h3>
+                    <i class="fas fa-check-circle"></i>
+                    Justifier une absence
+                </h3>
+                <button type="button" class="modal-justification-close" onclick="fermerModalJustification()">&times;</button>
+            </div>
+            <form action="{% url 'directeur:justifier_absence' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-justification-body">
+                    <div class="modal-justification-info">
+                        <strong id="justificationEleveNom">Nom de l'élève</strong>
+                        <span>Sélectionnez l'absence concernée pour la classer comme présence.</span>
+                    </div>
+                    <div class="modal-justification-form-group">
+                        <label for="presenceSelect">Absence à justifier <span class="required">*</span></label>
+                        <select name="presence_id" id="presenceSelect" required>
+                            <option value="">Sélectionnez une absence</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-justification-footer">
+                    <button type="button" class="btn-cancel" onclick="fermerModalJustification()">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-check"></i>
+                        Valider
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -448,6 +734,7 @@
     </div>
 
     <script>
+        const periodeSelectionneeId = "{{ periode_selectionnee.id|default:'' }}";
         // Gestion des onglets principaux (niveaux)
         function switchMainTab(tabId) {
             document.querySelectorAll('.tab-content-panel').forEach(panel => {
@@ -498,6 +785,45 @@
             event.target.closest('.mois-tab-btn').classList.add('active');
         }
 
+        // Gestion du modal de justification d'absence
+        function ouvrirModalJustification(eleveId, eleveNom, classeId, moisKey) {
+            const modal = document.getElementById('modalJustification');
+            const selectElement = document.getElementById('presenceSelect');
+            const templateSelect = document.getElementById(`absences-options-${eleveId}-${classeId}-${moisKey}`);
+
+            if (!modal || !selectElement) {
+                console.error('Modal de justification introuvable.');
+                return;
+            }
+
+            if (!templateSelect) {
+                console.warn("Aucune absence disponible pour l'élève sélectionné.");
+                return;
+            }
+
+            selectElement.innerHTML = templateSelect.innerHTML;
+            document.getElementById('justificationEleveNom').textContent = eleveNom;
+
+            modal.classList.add('is-visible');
+            modal.style.display = 'flex';
+        }
+
+        function fermerModalJustification() {
+            const modal = document.getElementById('modalJustification');
+            const selectElement = document.getElementById('presenceSelect');
+            if (modal) {
+                modal.classList.remove('is-visible');
+                modal.style.display = 'none';
+            }
+            if (selectElement) {
+                selectElement.innerHTML = '<option value="">Sélectionnez une absence</option>';
+            }
+            const form = modal ? modal.querySelector('form') : null;
+            if (form) {
+                form.reset();
+            }
+        }
+
         // Gestion du modal sanction
         function ouvrirModalSanction(eleveId, eleveNom, classeId) {
             document.getElementById('eleveIdInput').value = eleveId;
@@ -524,6 +850,10 @@
             const modal = document.getElementById('modalSanction');
             if (event.target === modal) {
                 fermerModalSanction();
+            }
+            const justificationModal = document.getElementById('modalJustification');
+            if (event.target === justificationModal) {
+                fermerModalJustification();
             }
         }
         

@@ -9,9 +9,73 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant.css' %}">
+    <style>
+        .notifications-activation {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 18px 24px 0;
+        }
+
+        .btn-fcm {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.25);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-fcm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(16, 185, 129, 0.35);
+        }
+
+        .fcm-success-message {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .fcm-success-message.show {
+            display: inline-flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <div class="notifications-activation">
+        <button id="fcm-enable-btn" class="btn-fcm" type="button" style="display: none;" onclick="activerNotifications()">
+            <i class="fas fa-bell"></i>
+            Activer les notifications
+        </button>
+        <div id="fcm-success-message" class="fcm-success-message">
+            <i class="fas fa-check-circle"></i>
+            Notifications activées avec succès.
+        </div>
+    </div>
 
 <!-- Dashboard Overview -->
 <div class="dashboard-overview">
@@ -142,6 +206,15 @@
             </div>
 
             <div class="timetable-grid" style="display: flex; flex-direction: column; gap: 12px;">
+                {% if not emploi_publie %}
+                    <div style="padding: 40px; text-align: center; background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 48px; color: #e5e7eb; margin-bottom: 15px;">
+                            <i class="fas fa-eye-slash"></i>
+                        </div>
+                        <h4 style="color: #4a5568; margin-bottom: 8px;">Emploi du temps non publié</h4>
+                        <p style="color: #6b7280;">L'établissement n'a pas encore publié l'emploi du temps des classes que vous enseignez.</p>
+                    </div>
+                {% else %}
                 {% for creneau in creneaux_aujourdhui %}
                     <div class="creneau-aujourdhui-card" style="display: flex; align-items: center; gap: 15px; padding: 16px; background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 4px solid {{ creneau.matiere_couleur }}; transition: all 0.3s;">
                         <div class="creneau-horaire-today" style="min-width: 100px; text-align: center; padding: 10px; background: linear-gradient(135deg, #f0f4ff, #e6f2ff); border-radius: 8px;">
@@ -189,6 +262,7 @@
                         <p style="color: #6b7280;">Profitez de votre journée libre ! 🎉</p>
                     </div>
                 {% endfor %}
+                {% endif %}
             </div>
         </div>
     </div>
@@ -272,6 +346,7 @@
 </div>
 
 
+<script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
 <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
 
 </body>

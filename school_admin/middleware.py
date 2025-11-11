@@ -18,18 +18,31 @@ class AuthenticationMiddleware:
         public_urls = [
             reverse('school_admin:connexion_compte_user'),
             reverse('school_admin:inscription_compte_user'),
+            reverse('school_admin:firebase_messaging_sw'),
             # Ajouter d'autres URLs publiques si nécessaire
         ]
+
+        technical_urls = {
+            '/service-worker.js',
+            '/firebase-messaging-sw.js',
+            '/manifest.json',
+            '/favicon.ico',
+        }
         
         print(f"\n[MIDDLEWARE] Path: {request.path}, User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
         logger.info(f"[MIDDLEWARE] Path: {request.path}, User: {request.user}, Authenticated: {request.user.is_authenticated}")
         
         # Si l'URL actuelle est une URL publique, on laisse passer
-        if request.path in public_urls or request.path.startswith('/admin/') or request.path.startswith('/static/'):
+        if (
+            request.path in public_urls
+            or request.path in technical_urls
+            or request.path.startswith('/admin/')
+            or request.path.startswith('/static/')
+        ):
             return self.get_response(request)
         
         # Si l'utilisateur n'est pas connecté et qu'il n'est pas sur une URL publique
-        if not request.user.is_authenticated and request.path not in public_urls:
+        if not request.user.is_authenticated and request.path not in public_urls and request.path not in technical_urls:
             print(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             logger.warning(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             # Sauvegarder l'URL actuelle pour rediriger l'utilisateur après connexion

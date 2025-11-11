@@ -12,6 +12,47 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <style>
+        .periodes-tabs-container {
+            margin: 16px 0 24px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .periode-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200, #e5e7eb);
+            background: var(--gray-50, #f9fafb);
+            color: var(--gray-700, #374151);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .periode-tab:hover {
+            border-color: var(--primary, #3b82f6);
+            color: var(--primary, #3b82f6);
+            box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+        }
+        .periode-tab.active {
+            background: var(--primary-light, rgba(59,130,246,0.1));
+            border-color: var(--primary, #3b82f6);
+            color: var(--primary, #3b82f6);
+            box-shadow: var(--shadow, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
+        }
+        .periode-tab .periode-annee {
+            font-weight: 500;
+            color: var(--gray-500, #6b7280);
+        }
+        .note-text.note-absent {
+            color: var(--accent, #ef4444);
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -39,6 +80,24 @@
                 </a>
             </div>
         </div>
+
+        {% if periodes %}
+        <div class="periodes-tabs-container">
+            {% for periode in periodes %}
+                {% if periode_selectionnee and periode.id == periode_selectionnee.id %}
+                    <a class="periode-tab active" href="?periode={{ periode.id }}">
+                        <span class="periode-nom">{{ periode.nom_periode }}</span>
+                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
+                    </a>
+                {% else %}
+                    <a class="periode-tab" href="?periode={{ periode.id }}">
+                        <span class="periode-nom">{{ periode.nom_periode }}</span>
+                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Onglets principaux par niveau -->
         <div class="tabs-container">
@@ -176,6 +235,7 @@
                                                             <div class="matiere-header-content">
                                                                 <span class="matiere-nom">{{ matiere }}</span>
                                                                 <button class="btn-details-matiere" 
+                                                                        data-periode-id="{{ classe_data.periode_id|default_if_none:'' }}"
                                                                         onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere|escapejs }}', event)"
                                                                         title="Voir les détails des notes">
                                                                     <i class="fas fa-eye"></i> Détails
@@ -312,6 +372,7 @@
                                                         <div class="matiere-header-content">
                                                             <span class="matiere-nom">{{ matiere.nom }}</span>
                                                             <button class="btn-details-matiere" 
+                                                                    data-periode-id="{{ classe_data.periode_id|default_if_none:'' }}"
                                                                     onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere.nom|escapejs }}', event)"
                                                                     title="Voir les détails des notes">
                                                                 <i class="fas fa-eye"></i> Détails
@@ -406,6 +467,7 @@
     </div>
 
     <script>
+        const periodeSelectionneeId = "{{ periode_selectionnee.id|default:'' }}";
         // Gestion des onglets principaux (niveaux)
         function switchMainTab(tabId) {
             document.querySelectorAll('.tab-content-panel').forEach(panel => {
@@ -464,6 +526,7 @@
             const modal = document.getElementById('modal-details-matiere');
             const matiereNomElement = document.getElementById('modal-matiere-nom');
             const modalBody = document.getElementById('modal-body-content');
+            const trigger = event.currentTarget || event.target;
             
             // Afficher le nom de la matière
             matiereNomElement.textContent = matiereNom;
@@ -481,11 +544,19 @@
             
             if (estPrimaire) {
                 // API primaire (nécessite periode_id)
-                const periodeId = 5; // À adapter selon la période sélectionnée
+                const periodeId = trigger.dataset.periodeId || periodeSelectionneeId;
+                if (!periodeId) {
+                    modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Période scolaire introuvable pour cette classe.</div>';
+                    return;
+                }
                 apiUrl = `/api/details-notes-matiere/?classe_id=${classeId}&matiere_nom=${encodeURIComponent(matiereNom)}&periode_id=${periodeId}`;
             } else {
                 // API secondaire (utilise la période active automatiquement)
+                const periodeId = trigger.dataset.periodeId || periodeSelectionneeId;
                 apiUrl = `/api/details-notes-matiere-secondaire/?classe_id=${classeId}&matiere_nom=${encodeURIComponent(matiereNom)}`;
+                if (periodeId) {
+                    apiUrl += `&periode_id=${periodeId}`;
+                }
             }
             
             fetch(apiUrl, {
@@ -587,8 +658,13 @@
                 for (let i = 0; i < maxNotesRetenues; i++) {
                     if (i < notesRetenues.length) {
                         const note = notesRetenues[i];
-                        const noteColorClass = getNoteColorClass(note.note);
-                        html += `<td class="td-note"><span class="note-text ${noteColorClass}">${note.note.toFixed(2)}/${note.bareme}</span></td>`;
+                        const noteValue = typeof note.note === 'number' ? note.note : null;
+                        if (noteValue !== null) {
+                            const noteColorClass = getNoteColorClass(noteValue);
+                            html += `<td class="td-note"><span class="note-text ${noteColorClass}">${noteValue.toFixed(2)}/${note.bareme || 20}</span></td>`;
+                        } else {
+                            html += `<td class="td-note"><span class="note-vide">-</span></td>`;
+                        }
                     } else {
                         html += `<td class="td-note"><span class="note-vide">-</span></td>`;
                     }
@@ -597,8 +673,14 @@
                 // Note d'examen
                 html += '<td class="td-examen">';
                 if (eleve.note_examen !== null && eleve.note_examen !== undefined) {
-                    const examenColorClass = getNoteColorClass(eleve.note_examen);
-                    html += `<span class="note-text ${examenColorClass}">${eleve.note_examen}/20</span>`;
+                    const examenValue = typeof eleve.note_examen === 'number' ? eleve.note_examen : parseFloat(eleve.note_examen);
+                    if (!isNaN(examenValue)) {
+                        const examenColorClass = getNoteColorClass(examenValue);
+                        const absentBadge = eleve.note_examen_absent ? ' <span class=\"note-absent\">(absent)</span>' : '';
+                        html += `<span class="note-text ${examenColorClass}">${examenValue.toFixed(2)}/20</span>${absentBadge}`;
+                    } else {
+                        html += '<span class="note-vide">-</span>';
+                    }
                 } else {
                     html += '<span class="note-vide">-</span>';
                 }
@@ -606,8 +688,13 @@
                 
                 // Moyenne
                 html += '<td class="td-moyenne">';
-                const moyenneColorClass = getMoyenneColorClass(eleve.moyenne);
-                html += `<span class="moyenne-text ${moyenneColorClass}">${eleve.moyenne.toFixed(2)}/20</span>`;
+                const moyenneValue = typeof eleve.moyenne === 'number' ? eleve.moyenne : (eleve.moyenne ? parseFloat(eleve.moyenne) : null);
+                if (moyenneValue !== null && !isNaN(moyenneValue)) {
+                    const moyenneColorClass = getMoyenneColorClass(moyenneValue);
+                    html += `<span class="moyenne-text ${moyenneColorClass}">${moyenneValue.toFixed(2)}/20</span>`;
+                } else {
+                    html += '<span class="moyenne-text">-</span>';
+                }
                 html += '</td>';
                 
                 html += '</tr>';

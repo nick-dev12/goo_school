@@ -27,7 +27,8 @@ from ..personal_views.enseignant_primaire_view import (
     liste_sanctions_classe_primaire,
     parametres_profil_primaire,
     emploi_du_temps_primaire,
-    imprimer_tableau_presence
+    imprimer_tableau_presence,
+    annonces_enseignant_primaire
 )
 
 app_name = 'enseignant_primaire'
@@ -72,5 +73,8 @@ urlpatterns = [
     # Paramètres et emploi du temps
     path('enseignant/primaire/parametres-profil/', parametres_profil_primaire, name='parametres_profil'),
     path('enseignant/primaire/emploi-du-temps/', emploi_du_temps_primaire, name='emploi_du_temps'),
+    
+    # Annonces
+    path('enseignant/primaire/annonces/', annonces_enseignant_primaire, name='annonces_enseignant'),
 ]
 

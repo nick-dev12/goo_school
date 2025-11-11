@@ -10,7 +10,7 @@
       <div class="header-left">
         <div class="header-logo">
           <i class="fas fa-graduation-cap"></i>
-          <span>Goo-School</span>
+          <span>Aria</span>
         </div>
       </div>
 
@@ -20,10 +20,10 @@
           <input type="text" placeholder="Rechercher..." />
         </div>
 
-        <button class="header-button" aria-label="Notifications">
+        <a href="{% url 'directeur:notifications_directeur' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
-          <span class="notification-badge">3</span>
-        </button>
+          <span class="notification-badge">{{ notifications_directeur_non_lues|default:0 }}</span>
+        </a>
 
         <button class="header-button" aria-label="Messages">
           <i class="fas fa-envelope"></i>
@@ -152,7 +152,7 @@
         <h2>Communication</h2>
       </div>
       <div class="nav-cards-row">
-        <a href="#" class="nav-link-card">
+        <a href="{% url 'directeur:annonces_directeur' %}" class="nav-link-card">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-bullhorn"></i>
           </div>
@@ -169,13 +169,13 @@
         <h2>Mon compte</h2>
       </div>
       <div class="nav-cards-row">
-        <a href="#" class="nav-link-card">
+        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card">
           <div class="nav-card-icon neo-cyan">
             <i class="fas fa-user-cog"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Paramètres du profil</h3>
-            <p>Informations personnelles</p>
+            <h3>Mon profil</h3>
+            <p>Informations de l'établissement</p>
           </div>
         </a>
 

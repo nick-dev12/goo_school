@@ -1,8 +1,21 @@
+import json
+import uuid
+from importlib import import_module
+from io import BytesIO
+
 from django.contrib.auth.models import AbstractUser
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db import models
-from django.core.validators import MinLengthValidator
+from django.utils import timezone
+
 from .etablissement_model import Etablissement
 from .classe_model import Classe
+
+try:
+    import qrcode
+except ImportError:  # pragma: no cover - gestion au moment de la génération
+    qrcode = None
 
 
 class Eleve(AbstractUser):
@@ -67,11 +80,51 @@ class Eleve(AbstractUser):
         help_text="Numéro de téléphone de l'élève"
     )
     
+    photo_profil = models.ImageField(
+        upload_to='eleves/photos/',
+        blank=True,
+        null=True,
+        verbose_name="Photo de profil",
+        help_text="Photographie récente de l'élève pour son dossier"
+    )
+
     email = models.EmailField(
         blank=True,
         null=True,
         verbose_name="Email",
         help_text="Adresse email de l'élève"
+    )
+
+    qr_code_identifier = models.CharField(
+        max_length=64,
+        unique=True,
+        blank=True,
+        null=True,
+        editable=False,
+        verbose_name="Identifiant QR code",
+        help_text="Identifiant unique du QR code de l'élève"
+    )
+
+    qr_code_data = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Données QR code",
+        help_text="Charge utile encodée dans le QR code de l'élève"
+    )
+
+    qr_code_image = models.ImageField(
+        upload_to='eleves/qrcodes/',
+        blank=True,
+        null=True,
+        verbose_name="Image du QR code",
+        help_text="Image PNG générée pour le QR code de l'élève"
+    )
+
+    qr_code_generated_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Date de génération du QR code",
+        help_text="Dernière date de génération du QR code"
     )
     
     # Informations scolaires
@@ -589,3 +642,100 @@ class Eleve(AbstractUser):
         """Retourne l'URL de détail de l'élève"""
         from django.urls import reverse
         return reverse('secretaire:detail_eleve', kwargs={'pk': self.pk})
+
+    # Gestion du QR code ---------------------------------------------------
+
+    QR_CODE_FIELDS_TRIGGER = (
+        'nom', 'prenom', 'numero_eleve', 'matricule_eleve', 'classe_id', 'etablissement_id'
+    )
+
+    def _build_qr_payload(self):
+        """Construit la charge utile sécurisée encodée dans le QR code."""
+        payload = {
+            'identifier': self.qr_code_identifier,
+            'eleve_id': self.pk,
+            'numero_eleve': self.numero_eleve,
+            'matricule_eleve': self.matricule_eleve,
+            'nom': self.nom,
+            'prenom': self.prenom,
+            'classe': self.classe.nom if self.classe else None,
+            'etablissement': self.etablissement.nom if self.etablissement else None,
+            'generated_at': timezone.now().isoformat(),
+        }
+        return json.dumps(payload, ensure_ascii=False)
+
+    def _generate_qr_code(self, previous_image_path=None):
+        """Génère l'image du QR code et met à jour les champs associés."""
+        global qrcode
+
+        if qrcode is None:
+            try:
+                qrcode = import_module('qrcode')
+            except ImportError as import_error:  # pragma: no cover
+                raise RuntimeError(
+                    "La bibliothèque 'qrcode' est requise pour générer les QR codes. "
+                    "Installez-la avec 'pip install qrcode[pil]'."
+                ) from import_error
+
+        payload = self._build_qr_payload()
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(payload)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        image_io = BytesIO()
+        img.save(image_io, format='PNG')
+        image_io.seek(0)
+
+        file_name = f"eleve_{self.pk}_{self.qr_code_identifier}.png"
+
+        # Supprimer l'ancienne image le cas échéant
+        if previous_image_path and default_storage.exists(previous_image_path):
+            default_storage.delete(previous_image_path)
+
+        self.qr_code_data = payload
+        self.qr_code_generated_at = timezone.now()
+        self.qr_code_image.save(file_name, ContentFile(image_io.read()), save=False)
+
+    def _should_regenerate_qr(self, old_instance=None):
+        """Détermine si le QR code doit être régénéré."""
+        if not self.pk or not self.qr_code_identifier or not self.qr_code_image:
+            return True
+
+        if old_instance is None:
+            return False
+
+        for field in self.QR_CODE_FIELDS_TRIGGER:
+            if getattr(old_instance, field) != getattr(self, field):
+                return True
+
+        return False
+
+    def save(self, *args, **kwargs):
+        """Surcharge du save pour garantir un QR code cohérent."""
+        old_instance = None
+        previous_image_path = None
+
+        if self.pk:
+            try:
+                old_instance = Eleve.objects.get(pk=self.pk)
+                if old_instance.qr_code_image:
+                    previous_image_path = old_instance.qr_code_image.name
+            except Eleve.DoesNotExist:
+                old_instance = None
+
+        if not self.qr_code_identifier:
+            self.qr_code_identifier = uuid.uuid4().hex
+
+        regenerate_qr = self._should_regenerate_qr(old_instance)
+
+        super().save(*args, **kwargs)
+
+        if regenerate_qr:
+            self._generate_qr_code(previous_image_path)
+            super().save(update_fields=['qr_code_data', 'qr_code_image', 'qr_code_generated_at'])

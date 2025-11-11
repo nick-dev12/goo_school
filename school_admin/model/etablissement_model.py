@@ -59,6 +59,14 @@ class Etablissement(AbstractUser):
     module_activites = models.BooleanField(default=False, verbose_name="Activités extra-scolaires")
     module_formation = models.BooleanField(default=False, verbose_name="Formation continue")
     
+    logo = models.ImageField(
+        upload_to='etablissements/logos/',
+        blank=True,
+        null=True,
+        verbose_name="Logo de l'établissement",
+        help_text="Image utilisée comme logo officiel de l'établissement"
+    )
+    
     # Facturation
     type_facturation = models.CharField(
         max_length=20,

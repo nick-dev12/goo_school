@@ -12,6 +12,7 @@ from school_admin.model.emploi_du_temps_model import CreneauEmploiDuTemps
 from school_admin.model.parent_model import Parent
 from school_admin.model.lien_familial_model import LienFamilial
 from school_admin.model.sanction_model import Sanction
+from school_admin.model.notification_eleve_model import NotificationEleve
 import logging
 
 logger = logging.getLogger(__name__)
@@ -161,6 +162,7 @@ def dashboard_eleve(request):
         
         # Récupérer les prochains cours d'aujourd'hui
         prochains_cours = []
+        emploi_non_publie = False
         if eleve.classe:
             # Convertir le numéro du jour en nom de jour
             jours_mapping = {
@@ -176,10 +178,14 @@ def dashboard_eleve(request):
             
             # Récupérer l'emploi du temps actif de la classe
             from ..model.emploi_du_temps_model import EmploiDuTemps
-            emploi_du_temps = EmploiDuTemps.objects.filter(
+            emplois_actifs = EmploiDuTemps.objects.filter(
                 classe=eleve.classe,
-                est_actif=True
-            ).first()
+                est_actif=True,
+            )
+            emploi_du_temps = emplois_actifs.filter(statut_publication='publie').first()
+            
+            if not emploi_du_temps and emplois_actifs.exists():
+                emploi_non_publie = True
             
             if emploi_du_temps:
                 creneaux = CreneauEmploiDuTemps.objects.filter(
@@ -242,6 +248,18 @@ def dashboard_eleve(request):
         devoirs = []
         total_devoirs = 0
         
+        # Compter les annonces destinées aux élèves
+        from ..model.annonce_model import Annonce
+        from django.db.models import Q
+        
+        nombre_annonces = Annonce.objects.filter(
+            Q(etablissement=eleve.etablissement) &
+            Q(statut='publiee') &
+            Q(actif=True) &
+            (Q(destinataires__contains=['tous']) | 
+             Q(destinataires__contains=['eleves']))
+        ).count()
+        
         context = {
             'page_title': 'Tableau de bord',
             'eleve': eleve,
@@ -256,6 +274,8 @@ def dashboard_eleve(request):
             'devoirs': devoirs,
             'total_devoirs': total_devoirs,
             'date_aujourdhui': date_aujourdhui,
+            'nombre_annonces': nombre_annonces,
+            'emploi_non_publie': emploi_non_publie,
         }
         
         return render(request, 'school_admin/eleve/dashboard_eleve.html', context)
@@ -299,7 +319,11 @@ def emploi_du_temps_eleve(request):
     
     # Récupérer l'emploi du temps actif de la classe
     from ..model.emploi_du_temps_model import EmploiDuTemps
-    emploi_du_temps = EmploiDuTemps.objects.filter(classe=classe, est_actif=True).first()
+    emplois_actifs = EmploiDuTemps.objects.filter(
+        classe=classe,
+        est_actif=True,
+    )
+    emploi_du_temps = emplois_actifs.filter(statut_publication='publie').first()
     
     # Si pas d'emploi du temps, afficher un message
     if not emploi_du_temps:
@@ -309,6 +333,7 @@ def emploi_du_temps_eleve(request):
             'emploi_du_temps': None,
             'periodes_affichage': [],
             'jours_semaine': [],
+            'emploi_non_publie': emplois_actifs.exists(),
         }
         return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
     
@@ -468,6 +493,7 @@ def emploi_du_temps_eleve(request):
         'est_parent': est_parent,
         'classe': classe,
         'emploi_du_temps': emploi_du_temps,
+        'emploi_non_publie': False,
         'periodes_affichage': periodes_affichage,
         'tous_creneaux': tous_creneaux,
         'etablissement': etablissement,
@@ -1475,35 +1501,21 @@ def profil_eleve(request):
 
 def sanctions_eleve(request):
     """
-    Page des sanctions disciplinaires de l'élève
-    UNIQUEMENT accessible aux parents d'élèves
+    Page des sanctions disciplinaires.
+    Accessible à l'élève connecté ou à son parent.
     """
     logger.info(f"Sanctions élève - User: {request.user}, Type: {type(request.user).__name__}")
-    
-    # Vérifier que c'est un parent (pas un élève)
-    if not isinstance(request.user, Parent):
-        messages.error(request, "Cette page est uniquement accessible aux parents d'élèves.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'élève depuis la session du parent
-    eleve_id = request.session.get('eleve_consulte_id')
-    if not eleve_id:
-        messages.error(request, "Aucun élève sélectionné.")
-        return redirect('school_admin:dashboard_parent')
-    
-    # Vérifier que le parent a bien accès à cet élève
-    lien = LienFamilial.objects.filter(
-        parent=request.user,
-        eleve_id=eleve_id,
-        actif=True,
-        statut='valide'
-    ).select_related('eleve').first()
-    
-    if not lien:
-        messages.error(request, "Accès non autorisé à cet élève.")
-        return redirect('school_admin:dashboard_parent')
-    
-    eleve = lien.eleve
+
+    eleve, est_parent = get_eleve_from_request(request)
+
+    if not eleve:
+        if isinstance(request.user, Parent):
+            messages.error(request, "Aucun élève sélectionné ou accès non autorisé.")
+            return redirect('school_admin:dashboard_parent')
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+
     etablissement = eleve.etablissement
     
     # Récupérer toutes les sanctions de l'élève
@@ -1556,7 +1568,7 @@ def sanctions_eleve(request):
     
     context = {
         'eleve': eleve,
-        'est_parent': True,  # Toujours True car uniquement accessible aux parents
+        'est_parent': est_parent,
         'etablissement': etablissement,
         'sanctions': sanctions,
         'sanctions_recentes': sanctions_recentes,
@@ -1572,3 +1584,101 @@ def sanctions_eleve(request):
     }
     
     return render(request, 'school_admin/eleve/sanctions_eleve.html', context)
+
+
+def annonces_eleve(request):
+    """
+    Affiche les annonces destinées aux élèves.
+    """
+    # Utiliser la fonction helper pour récupérer l'élève
+    eleve, est_parent = get_eleve_from_request(request)
+    
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    from ..model.annonce_model import Annonce
+    from django.db.models import Q
+    from datetime import timedelta
+    
+    # Récupérer les annonces publiées destinées aux élèves ou à tous
+    annonces = Annonce.objects.filter(
+        Q(etablissement=eleve.etablissement) &
+        Q(statut='publiee') &
+        Q(actif=True) &
+        (Q(destinataires__contains=['tous']) | 
+         Q(destinataires__contains=['eleves']))
+    ).order_by('-date_publication', '-date_creation')
+    
+    # Filtrer par date si demandé
+    filtre_periode = request.GET.get('periode', '')
+    today = timezone.now().date()
+    
+    if filtre_periode:
+        if filtre_periode == 'semaine':
+            date_debut = today - timedelta(days=7)
+            annonces = annonces.filter(date_publication__gte=date_debut)
+        elif filtre_periode == 'mois':
+            date_debut = today - timedelta(days=30)
+            annonces = annonces.filter(date_publication__gte=date_debut)
+        elif filtre_periode == 'trimestre':
+            date_debut = today - timedelta(days=90)
+            annonces = annonces.filter(date_publication__gte=date_debut)
+    
+    # Statistiques
+    total_annonces = annonces.count()
+    date_semaine = today - timedelta(days=7)
+    annonces_cette_semaine = annonces.filter(
+        date_publication__gte=date_semaine
+    ).count() if annonces.exists() else 0
+    
+    context = {
+        'eleve': eleve,
+        'est_parent': est_parent,
+        'annonces': annonces,
+        'total_annonces': total_annonces,
+        'annonces_cette_semaine': annonces_cette_semaine,
+        'filtre_periode': filtre_periode,
+    }
+    
+    return render(request, 'school_admin/eleve/annonces_eleve.html', context)
+
+
+def notifications_eleve(request):
+    """Affiche les notifications reçues par l'élève."""
+    eleve, est_parent = get_eleve_from_request(request)
+
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    notifications = list(
+        NotificationEleve.objects.filter(eleve=eleve)
+        .order_by('-date_creation')
+    )
+    notification_ids = [notif.id for notif in notifications]
+
+    if notification_ids:
+        NotificationEleve.objects.filter(id__in=notification_ids).update(
+            statut='lu',
+            date_lecture=timezone.now(),
+            date_modification=timezone.now(),
+        )
+
+    context = {
+        'eleve': eleve,
+        'est_parent': est_parent,
+        'notifications': notifications,
+        'notifications_eleve_non_lues': 0,
+    }
+
+    response = render(
+        request,
+        'school_admin/eleve/notifications_eleve.html',
+        context,
+    )
+
+    if notification_ids:
+        NotificationEleve.objects.filter(id__in=notification_ids).delete()
+
+    return response

@@ -90,6 +90,17 @@
 
         <!-- Emploi du temps -->
         <div class="emploi-du-temps-section">
+          {% if not emploi_publie %}
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="fas fa-eye-slash"></i>
+              </div>
+              <h3 class="empty-state-title">Emploi du temps non publié</h3>
+              <p class="empty-state-text">
+                L'établissement n'a pas encore publié votre emploi du temps. Revenez plus tard ou contactez l'administration.
+              </p>
+            </div>
+          {% else %}
           <div class="emploi-du-temps-wrapper">
             <table class="edt-table">
               <thead>
@@ -177,9 +188,10 @@
               </tbody>
             </table>
           </div>
+          {% endif %}
         </div>
 
-        {% if not nombre_creneaux %}
+        {% if emploi_publie and not nombre_creneaux %}
           <!-- Message si aucun créneau -->
           <div class="empty-state">
             <div class="empty-state-icon">

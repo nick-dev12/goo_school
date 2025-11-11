@@ -5,10 +5,13 @@ Les parents peuvent consulter toutes les informations de leurs enfants
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.urls import reverse
 from school_admin.model.parent_model import Parent
 from school_admin.model.eleve_model import Eleve
 from school_admin.model.lien_familial_model import LienFamilial
 from school_admin.model.demande_liaison_model import DemandeLiaisonParent
+from school_admin.model.notification_parent_model import NotificationParent
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,19 @@ def dashboard_parent(request):
     
     parent = request.user
     
+    # Préparer les notifications récentes pour le parent
+    notifications_queryset = NotificationParent.objects.filter(
+        parent=parent
+    ).select_related('eleve').order_by('-date_creation')[:30]
+    notifications_list = list(notifications_queryset)
+    notifications_map = {}
+    for notification in notifications_list:
+        notifications_map.setdefault(notification.eleve_id, []).append(notification)
+    notifications_parent_non_lues = NotificationParent.objects.filter(
+        parent=parent,
+        statut='non_lu'
+    ).count()
+    
     # Récupérer tous les enfants liés à ce parent
     liens_familiaux = LienFamilial.objects.filter(
         parent=parent,
@@ -41,23 +57,9 @@ def dashboard_parent(request):
     print(f"[DASHBOARD PARENT] Nombre de liens trouvés: {liens_familiaux.count()}")
     
     # Récupérer les IDs des élèves qui ont une demande approuvée
-    demandes_approuvees = DemandeLiaisonParent.objects.filter(
-        parent_demandeur=parent,
-        statut__in=['reussie', 'approuvee']
-    ).values_list('eleve_valide_id', flat=True)
-    
-    print(f"[DASHBOARD PARENT] Demandes approuvées: {len(demandes_approuvees)}")
-    
     enfants = []
     for lien in liens_familiaux:
         eleve = lien.eleve
-        
-        # FILTRAGE : Afficher uniquement :
-        # 1. L'enfant inscripteur (lié par défaut lors de l'inscription)
-        # 2. Les enfants ajoutés via demande de liaison approuvée
-        if not (lien.est_inscripteur or eleve.id in demandes_approuvees):
-            print(f"[DASHBOARD PARENT] Enfant {eleve.nom_complet} filtré (ni inscripteur ni demande approuvée)")
-            continue
         
         if eleve and eleve.actif:
             try:
@@ -105,6 +107,10 @@ def dashboard_parent(request):
                     'total_absences': 0,
                     'age': age,
                 })
+
+    # Attacher les notifications par enfant
+    for enfant_entry in enfants:
+        enfant_entry['notifications'] = notifications_map.get(enfant_entry['eleve'].id, [])
     
     # Toujours afficher le dashboard parent pour qu'il puisse choisir
     print(f"[DASHBOARD PARENT] Nombre d'enfants à afficher: {len(enfants)}")
@@ -112,13 +118,32 @@ def dashboard_parent(request):
     # Récupérer les données du formulaire de la session (si échec précédent)
     form_data = request.session.pop('form_data', None)
     
+    # Compter les annonces destinées aux parents
+    from ..model.annonce_model import Annonce
+    from django.db.models import Q
+    
+    nombre_annonces = 0
+    if parent.etablissement:
+        nombre_annonces = Annonce.objects.filter(
+            Q(etablissement=parent.etablissement) &
+            Q(statut='publiee') &
+            Q(actif=True) &
+            (Q(destinataires__contains=['tous']) | 
+             Q(destinataires__contains=['parents']))
+        ).count()
+    
     context = {
         'parent': parent,
         'etablissement': parent.etablissement,
         'enfants': enfants,
         'nombre_enfants': len(enfants),
+        'nombre_annonces': nombre_annonces,
         'today': timezone.now().date(),
         'form_data': form_data,  # Données du formulaire à réafficher
+        'notifications_recents': notifications_list,
+        'notifications_non_lues': notifications_parent_non_lues,
+        'notifications_parent_non_lues': notifications_parent_non_lues,
+        'current_url': request.get_full_path(),
     }
     
     return render(request, 'school_admin/parent/dashboard_parent.html', context)
@@ -164,6 +189,26 @@ def dashboard_enfant(request, eleve_id):
     
     # Rediriger vers le dashboard élève
     return redirect('eleve:dashboard_eleve')
+
+
+@require_POST
+def marquer_notification_parent(request, notification_id):
+    """Permet au parent de marquer une notification comme lue."""
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    notification = get_object_or_404(
+        NotificationParent,
+        id=notification_id,
+        parent=request.user
+    )
+
+    notification.marquer_comme_lue()
+
+    next_url = request.POST.get('next') or reverse('school_admin:dashboard_parent')
+    messages.success(request, "Notification marquée comme lue.")
+    return redirect(next_url)
 
 
 def deconnexion_parent(request):
@@ -405,4 +450,253 @@ def demande_liaison_enfant(request):
         logger.error(f"Erreur demande liaison: {str(e)}", exc_info=True)
         messages.error(request, "Une erreur s'est produite lors du traitement de votre demande.")
         return redirect('school_admin:dashboard_parent')
+
+
+def annonces_parent(request):
+    """
+    Affiche les annonces destinées aux parents, regroupées par établissement.
+    """
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    parent = request.user
+
+    from ..model.annonce_model import Annonce
+    from django.db.models import Q
+    from datetime import timedelta
+
+    liens_valides = (
+        LienFamilial.objects.filter(
+            parent=parent,
+            statut='valide',
+            actif=True
+        )
+        .select_related('eleve__etablissement')
+    )
+
+    etablissements_map = {}
+    for lien in liens_valides:
+        eleve = lien.eleve
+        etablissement = getattr(eleve, "etablissement", None)
+
+        if not eleve or not eleve.actif or not etablissement:
+            continue
+
+        entry = etablissements_map.setdefault(
+            etablissement.id,
+            {
+                "etablissement": etablissement,
+                "eleves_ids": set(),
+                "annonces": [],
+            },
+        )
+        entry["eleves_ids"].add(eleve.id)
+
+    if not etablissements_map:
+        messages.warning(
+            request,
+            "Aucun établissement associé à vos enfants n'a été trouvé."
+        )
+        return redirect('school_admin:dashboard_parent')
+
+    etablissements_ids = list(etablissements_map.keys())
+
+    filtre_periode = request.GET.get('periode', '').strip()
+    selected_etablissement_id = request.GET.get('etablissement')
+    today = timezone.now().date()
+
+    annonces_queryset = Annonce.objects.filter(
+        Q(etablissement_id__in=etablissements_ids),
+        Q(statut='publiee'),
+        Q(actif=True),
+        (
+            Q(destinataires__contains=['tous']) |
+            Q(destinataires__contains=['parents'])
+        )
+    ).order_by('-date_publication', '-date_creation')
+
+    if filtre_periode:
+        if filtre_periode == 'semaine':
+            date_debut = today - timedelta(days=7)
+            annonces_queryset = annonces_queryset.filter(date_publication__gte=date_debut)
+        elif filtre_periode == 'mois':
+            date_debut = today - timedelta(days=30)
+            annonces_queryset = annonces_queryset.filter(date_publication__gte=date_debut)
+        elif filtre_periode == 'trimestre':
+            date_debut = today - timedelta(days=90)
+            annonces_queryset = annonces_queryset.filter(date_publication__gte=date_debut)
+
+    for annonce in annonces_queryset:
+        etab_id = annonce.etablissement_id
+        if etab_id in etablissements_map:
+            etablissements_map[etab_id]["annonces"].append(annonce)
+
+    etablissements_list = sorted(
+        [
+            {
+                "id": etab_id,
+                "etablissement": data["etablissement"],
+                "annonces": data["annonces"],
+            }
+            for etab_id, data in etablissements_map.items()
+        ],
+        key=lambda item: item["etablissement"].nom.lower(),
+    )
+
+    etab_ids_sorted = [item["id"] for item in etablissements_list]
+    if selected_etablissement_id and selected_etablissement_id.isdigit():
+        selected_etablissement_id = int(selected_etablissement_id)
+        if selected_etablissement_id not in etab_ids_sorted:
+            selected_etablissement_id = None
+    else:
+        selected_etablissement_id = None
+
+    if selected_etablissement_id is None:
+        selected_etablissement_id = etab_ids_sorted[0]
+
+    annonces_selectionnees = next(
+        (
+            item["annonces"]
+            for item in etablissements_list
+            if item["id"] == selected_etablissement_id
+        ),
+        []
+    )
+
+    total_annonces = len(annonces_selectionnees)
+    date_semaine = today - timedelta(days=7)
+    annonces_cette_semaine = sum(
+        1 for annonce in annonces_selectionnees
+        if annonce.date_publication and annonce.date_publication.date() >= date_semaine
+    )
+
+    context = {
+        'parent': parent,
+        'etablissements': etablissements_list,
+        'annonces_selectionnees': annonces_selectionnees,
+        'total_annonces': total_annonces,
+        'annonces_cette_semaine': annonces_cette_semaine,
+        'filtre_periode': filtre_periode,
+        'selected_etablissement_id': selected_etablissement_id,
+        'today': today,
+    }
+
+    return render(request, 'school_admin/parent/annonces_parent.html', context)
+
+
+def notifications_parent(request):
+    """Affichage dédié des notifications parentales; purge après consultation."""
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    parent = request.user
+
+    liens_valides = (
+        LienFamilial.objects.filter(
+            parent=parent,
+            statut='valide',
+            actif=True
+        )
+        .select_related('eleve__etablissement')
+    )
+
+    etablissements_map: dict[int, dict] = {}
+
+    def ensure_entry(etablissement_obj, eleve_obj=None):
+        if not etablissement_obj:
+            return None
+        entry = etablissements_map.get(etablissement_obj.id)
+        if not entry:
+            entry = {
+                "etablissement": etablissement_obj,
+                "notifications": [],
+                "eleves_ids": set(),
+            }
+            etablissements_map[etablissement_obj.id] = entry
+        if eleve_obj:
+            entry["eleves_ids"].add(eleve_obj.id)
+        return entry
+
+    for lien in liens_valides:
+        eleve = lien.eleve
+        etablissement = getattr(eleve, "etablissement", None)
+
+        if not eleve or not eleve.actif or not etablissement:
+            continue
+
+        ensure_entry(etablissement, eleve)
+
+    notifications = list(
+        NotificationParent.objects.filter(parent=parent)
+        .select_related('eleve', 'eleve__etablissement', 'source_content_type')
+        .order_by('-date_creation')
+    )
+
+    notification_ids = [n.id for n in notifications]
+
+    for notification in notifications:
+        eleve = getattr(notification, "eleve", None)
+        etablissement = getattr(eleve, "etablissement", None) if eleve else None
+        etab_id = getattr(etablissement, "id", None)
+        if etab_id:
+            entry = ensure_entry(etablissement, eleve)
+            if entry is not None:
+                entry["notifications"].append(notification)
+
+    etablissements_list = sorted(
+        [
+            {
+                "id": etab_id,
+                "etablissement": data["etablissement"],
+                "notifications": data["notifications"],
+            }
+            for etab_id, data in etablissements_map.items()
+        ],
+        key=lambda item: item["etablissement"].nom.lower(),
+    )
+
+    if not etablissements_list:
+        etablissements_list = []
+
+    selected_etablissement_id = request.GET.get('etablissement')
+    etab_ids_sorted = [item["id"] for item in etablissements_list]
+    if selected_etablissement_id and selected_etablissement_id.isdigit():
+        selected_etablissement_id = int(selected_etablissement_id)
+        if selected_etablissement_id not in etab_ids_sorted:
+            selected_etablissement_id = None
+    else:
+        selected_etablissement_id = None
+
+    if selected_etablissement_id is None and etab_ids_sorted:
+        selected_etablissement_id = etab_ids_sorted[0]
+
+    notifications_selectionnees = []
+    if selected_etablissement_id:
+        notifications_selectionnees = next(
+            (
+                item["notifications"]
+                for item in etablissements_list
+                if item["id"] == selected_etablissement_id
+            ),
+            []
+        )
+
+    if notification_ids:
+        NotificationParent.objects.filter(id__in=notification_ids).update(statut='lu', date_lecture=timezone.now())
+
+    context = {
+        'parent': parent,
+        'etablissements': etablissements_list,
+        'notifications_selectionnees': notifications_selectionnees,
+        'selected_etablissement_id': selected_etablissement_id,
+    }
+
+    response = render(request, 'school_admin/parent/notifications_parent.html', context)
+
+    if notification_ids:
+        NotificationParent.objects.filter(id__in=notification_ids).delete()
+
+    return response
 

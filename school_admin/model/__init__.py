@@ -23,3 +23,10 @@ from .demande_liaison_model import DemandeLiaisonParent
 from .periode_model import PeriodeScolaire
 from .session_examen_model import SessionExamen
 from .creneau_examen_model import CreneauExamen
+from .ponderation_model import Ponderation
+from .moyenne_periode_model import MoyennePeriode
+from .notification_parent_model import NotificationParent
+from .notification_directeur_model import NotificationDirecteur
+from .notification_enseignant_model import NotificationEnseignant
+from .notification_eleve_model import NotificationEleve
+from .standards_reussite_model import StandardsReussite, AppreciationMatiereStandard, AppreciationConseilStandard

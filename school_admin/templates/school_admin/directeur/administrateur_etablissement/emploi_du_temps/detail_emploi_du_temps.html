@@ -80,9 +80,28 @@
                 <i class="fas fa-check-circle"></i>
                 Actif
               </span>
+              <span class="info-badge {% if emploi_du_temps.est_publie %}info-badge-success{% else %}info-badge-warning{% endif %}">
+                <i class="fas {% if emploi_du_temps.est_publie %}fa-bullhorn{% elif emploi_du_temps.doit_republier %}fa-sync-alt{% else %}fa-hourglass-half{% endif %}"></i>
+                {% if emploi_du_temps.est_publie %}
+                  Publié{% if emploi_du_temps.date_publication %} le {{ emploi_du_temps.date_publication|date:"d/m/Y H:i" }}{% endif %}
+                {% elif emploi_du_temps.doit_republier %}
+                  À republier{% if emploi_du_temps.date_publication %} - dernière publication le {{ emploi_du_temps.date_publication|date:"d/m/Y H:i" }}{% endif %}
+                {% else %}
+                  Non publié
+                {% endif %}
+              </span>
             </div>
           </div>
           <div class="page-actions">
+            {% if not emploi_du_temps.est_publie %}
+              <form method="post" action="{% url 'administrateur_etablissement:publier_emploi_du_temps' emploi_du_temps.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">
+                  <i class="fas {% if emploi_du_temps.doit_republier %}fa-sync-alt{% else %}fa-paper-plane{% endif %}"></i>
+                  <span>{% if emploi_du_temps.doit_republier %}Republier{% else %}Publier{% endif %} l'emploi du temps</span>
+                </button>
+              </form>
+            {% endif %}
             <button class="btn btn-secondary" onclick="window.print()">
               <i class="fas fa-print"></i>
               <span>Imprimer</span>

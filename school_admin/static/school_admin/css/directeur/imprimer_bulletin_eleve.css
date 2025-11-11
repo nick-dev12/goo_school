@@ -1,0 +1,904 @@
+/* ==========================================
+   STYLES D'IMPRESSION DU BULLETIN DE NOTES
+   Design professionnel pour l'impression
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.print-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px;
+    background: white;
+}
+
+.bulletin-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+}
+
+.bulletin-page:last-child {
+    page-break-after: auto;
+}
+
+/* ==========================================
+   EN-TÊTE DE L'ÉTABLISSEMENT
+   ========================================== */
+
+.print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f5f5f5;
+    border-radius: 12px;
+    color: #1a1a1a;
+    gap: 30px;
+    border: 2px solid #e0e0e0;
+}
+
+.header-left {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-logo {
+    flex: 0 0 auto;
+}
+
+.logo-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+}
+
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    background: #e0e0e0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: #666666;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.etablissement-nom {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #1a1a1a;
+}
+
+.bulletin-titre {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #333333;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.etablissement-adresse {
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #333333;
+}
+
+.etablissement-contact {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #333333;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.contact-item i {
+    color: #666666;
+}
+
+.header-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.document-info-header {
+    background: #ffffff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 2px solid #e0e0e0;
+}
+
+.info-item-header {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1a1a1a;
+}
+
+.info-label-header {
+    font-weight: 600;
+    min-width: 130px;
+    color: #333333;
+}
+
+.info-value-header {
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+/* ==========================================
+   INFORMATIONS ÉLÈVE
+   ========================================== */
+
+.student-info-section {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 2px solid #e0e0e0;
+    margin-bottom: 16px;
+}
+
+.student-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 18px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.info-item .label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #666666;
+    font-weight: 600;
+}
+
+.info-item .value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* ==========================================
+   TABLEAU PRINCIPAL DES NOTES
+   ========================================== */
+
+.bulletin-table-section {
+    margin: 16px 0;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.bulletin-main-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.bulletin-main-table thead {
+    background: #f0f0f0;
+    color: #1a1a1a;
+}
+
+.bulletin-main-table thead th {
+    padding: 10px 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #d0d0d0;
+    border-bottom: 2px solid #999999;
+}
+
+.bulletin-main-table thead th:first-child {
+    text-align: left;
+    padding-left: 15px;
+}
+
+.bulletin-main-table thead th:last-child {
+    border-right: none;
+}
+
+.bulletin-main-table tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.bulletin-main-table tbody tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+.bulletin-main-table tbody td {
+    padding: 8px;
+    text-align: center;
+    font-size: 12px;
+    color: #475569;
+    border-right: 1px solid #e2e8f0;
+}
+
+.bulletin-main-table tbody td:first-child {
+    text-align: left;
+    padding-left: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.bulletin-main-table tbody td:last-child {
+    border-right: none;
+}
+
+.moyenne-reussie {
+    color: #15803d !important;
+    font-weight: 700;
+}
+
+.moyenne-echec {
+    color: #dc2626 !important;
+    font-weight: 700;
+}
+
+/* ==========================================
+   TABLEAU COMPLÉMENTAIRE
+   ========================================== */
+
+.complementary-section {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 2px solid #e0e0e0;
+    margin-top: 16px;
+}
+
+.complementary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.complementary-table th,
+.complementary-table td {
+    padding: 8px 12px;
+    border: 1px solid #d0d0d0;
+    font-size: 12px;
+}
+
+.complementary-table th {
+    background: #f0f0f0;
+    text-align: left;
+    width: 25%;
+    color: #333333;
+    font-weight: 600;
+}
+
+.complementary-table td {
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+/* ==========================================
+   SIGNATURES
+   ========================================== */
+
+.footer-signatures {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 2px solid #e2e8f0;
+}
+
+.signature-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.signature-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.signature-line {
+    width: 80%;
+    height: 1px;
+    background: #cbd5e1;
+    margin-top: 40px;
+}
+
+/* ==========================================
+   PIED DE PAGE
+   ========================================== */
+
+.print-footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px solid #e2e8f0;
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 11px;
+    color: #64748b;
+}
+
+/* ==========================================
+   BOUTONS D'ACTION (cachés à l'impression)
+   ========================================== */
+
+.print-actions {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-action {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+}
+
+.btn-back {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.btn-back:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.3);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-print-portrait {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.btn-print-portrait:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.btn-print-landscape {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.btn-print-landscape:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
+}
+
+/* ==========================================
+   RÈGLES D'IMPRESSION
+   ========================================== */
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Cacher les boutons à l'impression */
+    .no-print,
+    .print-actions {
+        display: none !important;
+    }
+
+    /* ==========================================
+       MODE PORTRAIT (par défaut)
+       ========================================== */
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    body.print-portrait .print-container,
+    body:not(.print-landscape) .print-container {
+        width: 210mm;
+        min-height: 297mm;
+        max-width: 210mm;
+        margin: 0 auto;
+        padding: 5mm;
+    }
+
+    body.print-portrait .print-header,
+    body:not(.print-landscape) .print-header {
+        background: #f5f5f5 !important;
+        border: 2px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: stretch !important;
+        flex-direction: row !important;
+        gap: 8mm !important;
+        padding: 4mm !important;
+        margin-bottom: 3mm !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    body.print-portrait .header-left,
+    body:not(.print-landscape) .header-left {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6mm !important;
+    }
+
+    body.print-portrait .header-right,
+    body:not(.print-landscape) .header-right {
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+    }
+
+    body.print-portrait .header-logo img,
+    body:not(.print-landscape) .header-logo img,
+    body.print-portrait .logo-placeholder,
+    body:not(.print-landscape) .logo-placeholder {
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    body.print-portrait .etablissement-nom,
+    body:not(.print-landscape) .etablissement-nom {
+        font-size: 16px !important;
+    }
+
+    body.print-portrait .bulletin-titre,
+    body:not(.print-landscape) .bulletin-titre {
+        font-size: 12px !important;
+    }
+
+    body.print-portrait .document-info-header,
+    body:not(.print-landscape) .document-info-header {
+        background: #ffffff !important;
+        border: 2px solid #e0e0e0 !important;
+        padding: 3mm 4mm !important;
+        border-radius: 6px !important;
+        font-size: 10px !important;
+    }
+
+    body.print-portrait .student-info-section,
+    body:not(.print-landscape) .student-info-section {
+        background: #f9fafb !important;
+        border: 2px solid #e0e0e0 !important;
+        padding: 3mm 4mm !important;
+        margin-bottom: 3mm !important;
+        page-break-inside: avoid !important;
+    }
+
+    body.print-portrait .student-info-grid,
+    body:not(.print-landscape) .student-info-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 2mm 4mm !important;
+        align-items: start !important;
+    }
+
+    body.print-portrait .info-item,
+    body:not(.print-landscape) .info-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        gap: 1px !important;
+    }
+
+    body.print-portrait .info-item .label,
+    body:not(.print-landscape) .info-item .label {
+        font-size: 9px !important;
+        letter-spacing: 0.03em !important;
+    }
+
+    body.print-portrait .info-item .value,
+    body:not(.print-landscape) .info-item .value {
+        font-size: 11px !important;
+    }
+
+    body.print-portrait .bulletin-table-section,
+    body:not(.print-landscape) .bulletin-table-section {
+        margin: 3mm 0 !important;
+    }
+
+    body.print-portrait .bulletin-main-table thead th,
+    body:not(.print-landscape) .bulletin-main-table thead th {
+        border-right: 1px solid #d0d0d0 !important;
+        border-bottom: 2px solid #999999 !important;
+        padding: 3mm 2mm !important;
+        font-size: 8px !important;
+    }
+
+    body.print-portrait .bulletin-main-table tbody td,
+    body:not(.print-landscape) .bulletin-main-table tbody td {
+        border-right: 1px solid #d0d0d0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 2.5mm 2mm !important;
+        font-size: 9px !important;
+    }
+
+    body.print-portrait .complementary-section,
+    body:not(.print-landscape) .complementary-section {
+        background: #f9fafb !important;
+        border: 2px solid #e0e0e0 !important;
+        padding: 3mm 4mm !important;
+        margin-top: 3mm !important;
+        page-break-inside: avoid !important;
+    }
+
+    body.print-portrait .complementary-table th,
+    body:not(.print-landscape) .complementary-table th,
+    body.print-portrait .complementary-table td,
+    body:not(.print-landscape) .complementary-table td {
+        border: 1px solid #d0d0d0 !important;
+        padding: 2.5mm 3mm !important;
+        font-size: 9px !important;
+    }
+
+    body.print-portrait .footer-signatures,
+    body:not(.print-landscape) .footer-signatures {
+        margin-top: 3mm !important;
+        padding-top: 2mm !important;
+    }
+
+    body.print-portrait .signature-label,
+    body:not(.print-landscape) .signature-label {
+        font-size: 10px !important;
+    }
+
+    body.print-portrait .signature-line,
+    body:not(.print-landscape) .signature-line {
+        margin-top: 8mm !important;
+    }
+
+    body.print-portrait .print-footer,
+    body:not(.print-landscape) .print-footer {
+        margin-top: 2mm !important;
+        padding-top: 2mm !important;
+    }
+
+    body.print-portrait .footer-text,
+    body:not(.print-landscape) .footer-text {
+        font-size: 8px !important;
+    }
+
+    /* ==========================================
+       MODE PAYSAGE
+       ========================================== */
+    body.print-landscape .print-container {
+        width: 297mm;
+        min-height: 210mm;
+        max-width: 297mm;
+        margin: 0 auto;
+        padding: 4mm;
+    }
+
+    body.print-landscape .print-header {
+        background: #f5f5f5 !important;
+        border: 0.5px solid #e0e0e0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-direction: row !important;
+        gap: 6mm !important;
+        padding: 2.5mm 3mm !important;
+        margin-bottom: 1.5mm !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    body.print-landscape .header-left {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4mm !important;
+    }
+    
+    body.print-landscape .header-info p {
+        margin-bottom: 1px !important;
+        line-height: 1.3 !important;
+    }
+
+    body.print-landscape .header-right {
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+    }
+
+    body.print-landscape .header-logo img,
+    body.print-landscape .logo-placeholder {
+        width: 45px !important;
+        height: 45px !important;
+    }
+
+    body.print-landscape .etablissement-nom {
+        font-size: 15px !important;
+        margin-bottom: 2px !important;
+    }
+
+    body.print-landscape .bulletin-titre {
+        font-size: 11px !important;
+        margin-bottom: 2px !important;
+    }
+
+    body.print-landscape .etablissement-adresse {
+        font-size: 9px !important;
+        margin-bottom: 2px !important;
+    }
+
+    body.print-landscape .etablissement-contact {
+        font-size: 8px !important;
+    }
+
+    body.print-landscape .document-info-header {
+        background: #ffffff !important;
+        border: 0.5px solid #e0e0e0 !important;
+        padding: 2.5mm 4mm !important;
+        border-radius: 4px !important;
+        font-size: 9px !important;
+    }
+
+    body.print-landscape .info-item-header {
+        gap: 4px !important;
+        line-height: 1.2 !important;
+    }
+
+    body.print-landscape .student-info-section {
+        background: #f9fafb !important;
+        border: 0.5px solid #e0e0e0 !important;
+        padding: 2.5mm 3mm !important;
+        margin-bottom: 2mm !important;
+        page-break-inside: avoid !important;
+    }
+
+    body.print-landscape .student-info-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 1.5mm 4mm !important;
+        align-items: start !important;
+    }
+
+    body.print-landscape .info-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        gap: 1px !important;
+    }
+
+    body.print-landscape .info-item .label {
+        font-size: 8px !important;
+        letter-spacing: 0.03em !important;
+    }
+
+    body.print-landscape .info-item .value {
+        font-size: 10px !important;
+    }
+
+    body.print-landscape .bulletin-table-section {
+        margin: 2mm 0 !important;
+    }
+
+    body.print-landscape .table-wrapper {
+        border: 0.5px solid #d0d0d0 !important;
+    }
+
+    body.print-landscape .bulletin-main-table {
+        border: 0.5px solid #d0d0d0 !important;
+    }
+
+    body.print-landscape .bulletin-main-table thead th {
+        border-right: 0.5px solid #d0d0d0 !important;
+        border-bottom: 0.5px solid #999999 !important;
+        padding: 1.5mm 2mm !important;
+        font-size: 8px !important;
+        line-height: 1.2 !important;
+    }
+
+    body.print-landscape .bulletin-main-table tbody td {
+        border-right: 0.5px solid #d0d0d0 !important;
+        border-bottom: 0.5px solid #e2e8f0 !important;
+        padding: 1.5mm 2mm !important;
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+    }
+
+    body.print-landscape .complementary-section {
+        background: #f9fafb !important;
+        border: 0.5px solid #e0e0e0 !important;
+        padding: 2.5mm 3mm !important;
+        margin-top: 2mm !important;
+        page-break-inside: avoid !important;
+    }
+
+    body.print-landscape .complementary-table th,
+    body.print-landscape .complementary-table td {
+        border: 0.5px solid #d0d0d0 !important;
+        padding: 1.5mm 2.5mm !important;
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+    }
+
+    body.print-landscape .footer-signatures {
+        margin-top: 2mm !important;
+        padding-top: 1.5mm !important;
+        border-top: 0.5px solid #e2e8f0 !important;
+    }
+
+    body.print-landscape .signature-label {
+        font-size: 9px !important;
+    }
+
+    body.print-landscape .signature-line {
+        margin-top: 6mm !important;
+    }
+
+    body.print-landscape .print-footer {
+        margin-top: 1.5mm !important;
+        padding-top: 1.5mm !important;
+        border-top: 0.5px solid #e2e8f0 !important;
+    }
+
+    body.print-landscape .footer-text {
+        font-size: 7px !important;
+    }
+
+    /* Styles communs pour les deux modes */
+    body.print-landscape .bulletin-main-table {
+        border: 0.5px solid #d0d0d0 !important;
+    }
+
+    body.print-landscape .bulletin-main-table thead {
+        background: #f0f0f0 !important;
+        color: #1a1a1a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.print-landscape .table-wrapper {
+        border: 0.5px solid #d0d0d0 !important;
+    }
+
+    /* Éviter les sauts de page au milieu des éléments */
+    .print-header,
+    .student-info-section,
+    .complementary-section,
+    .footer-signatures,
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Sauts de page entre les bulletins */
+    .bulletin-page {
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+    }
+
+    .bulletin-page:last-child {
+        page-break-after: auto !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .print-container {
+        padding: 20px;
+    }
+
+    .print-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .header-logo {
+        flex: 0 0 auto;
+        margin-bottom: 15px;
+    }
+
+    .etablissement-nom {
+        font-size: 22px;
+    }
+
+    .student-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bulletin-main-table {
+        font-size: 10px;
+    }
+
+    .bulletin-main-table thead th,
+    .bulletin-main-table tbody td {
+        padding: 8px 5px;
+    }
+
+    .print-actions {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .btn-action {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+

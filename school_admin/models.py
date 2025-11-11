@@ -17,7 +17,15 @@ from .model.note_examen_model import NoteExamen
 from .model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
 from .model.evaluation_primaire_model import EvaluationPrimaire
 from .model.note_primaire_model import NotePrimaire, MoyenneMatierePrimaire
+from .model.ponderation_model import Ponderation
+from .model.moyenne_periode_model import MoyennePeriode
 from .model.convocation_model import Convocation
+from .model.annonce_model import Annonce
+from .model.fcm_token_model import FCMToken
+from .model.notification_parent_model import NotificationParent
+from .model.notification_directeur_model import NotificationDirecteur
+from .model.notification_enseignant_model import NotificationEnseignant
+from .model.notification_eleve_model import NotificationEleve
 
 # Exposer les modèles au niveau du module
 __all__ = [
@@ -25,5 +33,6 @@ __all__ = [
     'Parent', 'LienFamilial', 'DemandeLiaisonParent',
     'Prospection', 'NoteCommercial', 'RendezVous', 'Facturation', 'Professeur', 
     'Matiere', 'NoteExamen', 'AffectationProfesseurPrimaire', 'EvaluationPrimaire', 
-    'NotePrimaire', 'MoyenneMatierePrimaire', 'Convocation'
+    'NotePrimaire', 'MoyenneMatierePrimaire', 'Ponderation', 'MoyennePeriode', 'Convocation', 'Annonce', 'FCMToken',
+    'NotificationParent', 'NotificationDirecteur', 'NotificationEnseignant', 'NotificationEleve'
 ]

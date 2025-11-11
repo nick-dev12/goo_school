@@ -1,0 +1,250 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications – {{ parent.nom_complet }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #1d4ed8;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 20px 40px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: var(--primary);
+        }
+
+        .header p {
+            margin: 4px 0 0;
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        .btn-retour {
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            color: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 16px rgba(124, 58, 237, 0.2);
+        }
+
+        .notifications-wrapper {
+            display: grid;
+            gap: 18px;
+        }
+
+        .tabs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tab-link {
+            flex: 1 1 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-link:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .tab-link.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);
+        }
+
+        .tab-link span.badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .notification-card {
+            background: white;
+            border-radius: 18px;
+            padding: 20px 24px;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.08);
+            border: 1px solid var(--gray-100);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .notification-header strong {
+            font-size: 16px;
+            color: var(--gray-800);
+        }
+
+        .notification-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--gray-500);
+            font-size: 13px;
+        }
+
+        .notification-body {
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+            color: var(--gray-700);
+        }
+
+        .empty-state {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            color: var(--gray-500);
+            border: 1px solid var(--gray-100);
+            box-shadow: 0 12px 32px rgba(17, 24, 39, 0.05);
+        }
+
+        .empty-state i {
+            font-size: 46px;
+            color: var(--accent);
+            margin-bottom: 18px;
+        }
+
+        .empty-state h2 {
+            margin: 0 0 8px;
+            color: var(--gray-700);
+            font-size: 22px;
+        }
+
+        @media (max-width: 768px) {
+            .tabs-container {
+                flex-direction: column;
+            }
+
+            .tab-link {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Notifications</h1>
+                {% with etablissements|length as nb_etabs %}
+                    <p>
+                        {% if nb_etabs > 1 %}
+                            {{ parent.nom_complet }} &bull; {{ nb_etabs }} établissements suivis
+                        {% elif nb_etabs == 1 %}
+                            {{ parent.nom_complet }} &bull; {{ etablissements.0.etablissement.nom }}
+                        {% else %}
+                            {{ parent.nom_complet }}
+                        {% endif %}
+                    </p>
+                {% endwith %}
+            </div>
+            <a class="btn-retour" href="{% url 'school_admin:dashboard_parent' %}">
+                <i class="fas fa-arrow-left"></i>
+                Retour au tableau de bord
+            </a>
+        </div>
+
+        {% if etablissements %}
+            <div class="tabs-container">
+                {% for entree in etablissements %}
+                    <a href="?etablissement={{ entree.id }}" class="tab-link {% if entree.id == selected_etablissement_id %}active{% endif %}">
+                        <i class="fas fa-school"></i>
+                        <span>{{ entree.etablissement.nom }}</span>
+                        <span class="badge">{{ entree.notifications|length }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if notifications_selectionnees %}
+            <div class="notifications-wrapper">
+                {% for notification in notifications_selectionnees %}
+                    <div class="notification-card">
+                        <div class="notification-header">
+                            <strong>{{ notification.get_type_notification_display }} – {{ notification.eleve.nom_complet }}</strong>
+                            <span class="notification-meta">
+                                <i class="fas fa-clock"></i>
+                                {{ notification.date_creation|date:"d/m/Y H:i" }}
+                            </span>
+                        </div>
+                        <p class="notification-body">{{ notification.message }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <h2>Aucune notification</h2>
+                <p>
+                    {% if etablissements|length == 0 %}
+                        Aucun établissement n'est associé à votre compte.
+                    {% else %}
+                        Vous n’avez pas de nouvelles notifications pour cet établissement.
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

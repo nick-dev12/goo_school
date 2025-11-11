@@ -1,0 +1,232 @@
+"""
+Modèle pour stocker les moyennes calculées par période selon la pondération configurée.
+"""
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+from decimal import Decimal
+
+
+class MoyennePeriode(models.Model):
+    """
+    Modèle pour enregistrer les moyennes calculées selon la pondération configurée.
+    Stocke à la fois les moyennes par matière et la moyenne générale de la période.
+    """
+    
+    eleve = models.ForeignKey(
+        'school_admin.Eleve',
+        on_delete=models.CASCADE,
+        related_name='moyennes_periodes',
+        verbose_name="Élève"
+    )
+    
+    etablissement = models.ForeignKey(
+        'school_admin.Etablissement',
+        on_delete=models.CASCADE,
+        related_name='moyennes_periodes',
+        verbose_name="Établissement"
+    )
+    
+    periode = models.ForeignKey(
+        'school_admin.PeriodeScolaire',
+        on_delete=models.CASCADE,
+        related_name='moyennes_periodes',
+        verbose_name="Période scolaire"
+    )
+    
+    matiere = models.ForeignKey(
+        'school_admin.Matiere',
+        on_delete=models.CASCADE,
+        related_name='moyennes_periodes',
+        verbose_name="Matière",
+        null=True,
+        blank=True,
+        help_text="Null pour la ligne de moyenne générale"
+    )
+    
+    # Données pour le calcul
+    moyenne_classe = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
+        null=True,
+        blank=True,
+        verbose_name="Moyenne de contrôle continu"
+    )
+    
+    note_examen = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
+        null=True,
+        blank=True,
+        verbose_name="Note d'examen"
+    )
+    
+    moyenne_matiere = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
+        null=True,
+        blank=True,
+        verbose_name="Moyenne de la matière (calculée selon pondération)"
+    )
+    
+    coefficient = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal('1.00'),
+        validators=[MinValueValidator(0)],
+        verbose_name="Coefficient de la matière"
+    )
+    
+    total_matiere = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Total matière (moyenne_matiere × coefficient)"
+    )
+    
+    # Moyenne générale (valable pour toutes les matières de la période)
+    moyenne_generale = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
+        null=True,
+        blank=True,
+        verbose_name="Moyenne générale de la période"
+    )
+    
+    rang = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Rang de l'élève dans la classe"
+    )
+    
+    appreciation_matiere = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Appréciation de la matière"
+    )
+    
+    appreciation_generale = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Appréciation générale"
+    )
+    
+    decision_conseil = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Décision du conseil"
+    )
+
+    est_publie = models.BooleanField(
+        default=False,
+        verbose_name="Bulletin publié"
+    )
+
+    afficher_bulletin = models.BooleanField(
+        default=True,
+        verbose_name="Bulletin visible par l'élève",
+        help_text="Détermine si la moyenne générale et le bulletin sont visibles dans l'espace élève."
+    )
+
+    date_publication = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de publication"
+    )
+    
+    # Métadonnées
+    poids_classe = models.PositiveSmallIntegerField(
+        default=50,
+        verbose_name="Poids contrôle continu (%)",
+        help_text="Pourcentage utilisé pour le calcul"
+    )
+    
+    poids_examen = models.PositiveSmallIntegerField(
+        default=50,
+        verbose_name="Poids examen (%)",
+        help_text="Pourcentage utilisé pour le calcul"
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date du calcul"
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Dernière modification"
+    )
+    
+    est_moyenne_generale = models.BooleanField(
+        default=False,
+        verbose_name="Est moyenne générale",
+        help_text="True si cette ligne représente la moyenne générale (sans matière)"
+    )
+    
+    class Meta:
+        verbose_name = "Moyenne de période"
+        verbose_name_plural = "Moyennes de période"
+        unique_together = [
+            ['eleve', 'etablissement', 'periode', 'matiere', 'est_moyenne_generale'],
+        ]
+        ordering = ['periode', 'eleve', '-est_moyenne_generale', 'matiere']
+        indexes = [
+            models.Index(fields=['eleve', 'periode']),
+            models.Index(fields=['etablissement', 'periode']),
+        ]
+    
+    def __str__(self):
+        if self.est_moyenne_generale or not self.matiere:
+            return f"{self.eleve.nom_complet} - Moyenne générale - {self.periode.nom_periode}: {self.moyenne_generale}/20"
+        else:
+            return f"{self.eleve.nom_complet} - {self.matiere.nom} - {self.periode.nom_periode}: {self.moyenne_matiere}/20"
+    
+    def calculer_moyenne_matiere(self):
+        """
+        Calcule la moyenne de la matière selon la pondération configurée.
+        Formule : (moyenne_classe × poids_classe/100) + (note_examen × poids_examen/100)
+        """
+        if self.moyenne_classe is None and self.note_examen is None:
+            return None
+        
+        poids_classe_decimal = Decimal(str(self.poids_classe)) / Decimal('100')
+        poids_examen_decimal = Decimal(str(self.poids_examen)) / Decimal('100')
+        
+        total = Decimal('0')
+        poids_total = Decimal('0')
+        
+        if self.moyenne_classe is not None:
+            total += Decimal(str(self.moyenne_classe)) * poids_classe_decimal
+            poids_total += poids_classe_decimal
+        
+        if self.note_examen is not None:
+            total += Decimal(str(self.note_examen)) * poids_examen_decimal
+            poids_total += poids_examen_decimal
+        
+        if poids_total > 0:
+            moyenne = total / poids_total
+            return moyenne.quantize(Decimal('0.01'))
+        return None
+    
+    def calculer_total_matiere(self):
+        """Calcule le total matière (moyenne_matiere × coefficient)."""
+        if self.moyenne_matiere is not None and self.coefficient:
+            return (Decimal(str(self.moyenne_matiere)) * Decimal(str(self.coefficient))).quantize(Decimal('0.01'))
+        return None
+    
+    def save(self, *args, **kwargs):
+        """Surcharge pour calculer automatiquement moyenne_matiere et total_matiere."""
+        if self.matiere and not self.est_moyenne_generale:  # Seulement pour les matières
+            if self.moyenne_matiere is None:
+                self.moyenne_matiere = self.calculer_moyenne_matiere()
+            if self.total_matiere is None and self.moyenne_matiere is not None:
+                self.total_matiere = self.calculer_total_matiere()
+        super().save(*args, **kwargs)
+

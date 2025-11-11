@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications reçues</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #3b82f6;
+        --secondary: #7c3aed;
+        --accent: #ef4444;
+        --success: #10b981;
+        --warning: #fbbf24;
+        --info: #8b5cf6;
+        --white: #ffffff;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-400: #9ca3af;
+        --gray-600: #4b5563;
+        --gray-800: #1f2937;
+        --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
+          0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      }
+
+      body {
+        margin: 0;
+        font-family: "Poppins", Arial, sans-serif;
+        background: var(--gray-50);
+        color: var(--gray-800);
+      }
+
+      .page-wrapper {
+        max-width: 900px;
+        margin: 50px auto;
+        padding: 0 24px 48px;
+      }
+
+      .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 28px;
+      }
+
+      .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        color: var(--primary);
+      }
+
+      .page-header p {
+        margin: 0;
+        color: var(--gray-600);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: var(--white);
+        box-shadow: var(--shadow-card);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+      }
+
+      .notifications-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .notification-card {
+        background: var(--white);
+        border-radius: 14px;
+        padding: 18px 22px;
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--gray-100);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .card-meta {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--gray-500);
+        margin-bottom: 10px;
+      }
+
+      .card-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .card-body {
+        color: var(--gray-600);
+        line-height: 1.6;
+      }
+
+      .empty-state {
+        margin-top: 40px;
+        text-align: center;
+        padding: 60px 20px;
+        border-radius: 16px;
+        background: var(--white);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--gray-100);
+      }
+
+      .empty-state i {
+        font-size: 40px;
+        color: var(--primary);
+        margin-bottom: 14px;
+      }
+
+      .empty-state h2 {
+        margin: 0 0 8px;
+        color: var(--gray-800);
+      }
+
+      .empty-state p {
+        margin: 0 0 16px;
+        color: var(--gray-600);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <header class="page-header">
+        <h1>Notifications reçues</h1>
+        <p>Toutes les alertes importantes envoyées par l'établissement.</p>
+        <div class="actions">
+          <a href="{% url 'eleve:dashboard_eleve' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+          </a>
+        </div>
+      </header>
+
+      {% if notifications %}
+        <div class="notifications-list">
+          {% for notification in notifications %}
+            <article class="notification-card">
+              <div class="card-header">
+                <i class="fas fa-bell"></i>
+                {{ notification.titre }}
+              </div>
+              <div class="card-meta">
+                <span>
+                  <i class="far fa-clock"></i>
+                  {{ notification.date_creation|date:"d/m/Y H:i" }}
+                </span>
+                <span>
+                  <i class="fas fa-tag"></i>
+                  {{ notification.get_type_notification_display }}
+                </span>
+              </div>
+              <div class="card-body">{{ notification.message }}</div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="fas fa-bell-slash"></i>
+          <h2>Aucune notification</h2>
+          <p>Vous n'avez aucune nouvelle notification pour le moment.</p>
+          <a href="{% url 'eleve:dashboard_eleve' %}" class="btn btn-primary">
+            <i class="fas fa-home"></i>
+            Retour au tableau de bord
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

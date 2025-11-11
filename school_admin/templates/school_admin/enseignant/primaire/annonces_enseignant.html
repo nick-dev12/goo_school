@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annonces - Enseignant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/annonces_enseignant.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+    <div class="container">
+        <!-- Header Section -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1><i class="fas fa-bullhorn"></i> Annonces de l'établissement</h1>
+                <p>Informations importantes et actualités</p>
+            </div>
+            <a href="{% url 'enseignant_primaire:dashboard' %}" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour au dashboard
+            </a>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_annonces }}</h3>
+                    <p>Total des annonces</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ annonces_cette_semaine }}</h3>
+                    <p>Cette semaine</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters-section">
+            <form method="get" action="{% url 'enseignant_primaire:annonces_enseignant' %}" class="filters-form">
+                <div class="filter-group">
+                    <label for="periode"><i class="fas fa-calendar"></i> Période :</label>
+                    <select name="periode" id="periode" onchange="this.form.submit()">
+                        <option value="">Toutes les annonces</option>
+                        <option value="semaine" {% if filtre_periode == 'semaine' %}selected{% endif %}>Cette semaine</option>
+                        <option value="mois" {% if filtre_periode == 'mois' %}selected{% endif %}>Ce mois</option>
+                        <option value="trimestre" {% if filtre_periode == 'trimestre' %}selected{% endif %}>Ce trimestre</option>
+                    </select>
+                </div>
+                <a href="{% url 'enseignant_primaire:annonces_enseignant' %}" class="btn-reset">
+                    <i class="fas fa-redo"></i> Réinitialiser
+                </a>
+            </form>
+        </div>
+
+        <!-- Liste des annonces -->
+        <div class="annonces-section">
+            {% if annonces %}
+                <div class="annonces-list">
+                    {% for annonce in annonces %}
+                        <div class="annonce-card">
+                            <div class="annonce-header">
+                                <div class="annonce-title-section">
+                                    <h2>{{ annonce.titre }}</h2>
+                                    <span class="badge badge-publiee">
+                                        <i class="fas fa-check-circle"></i> Publiée
+                                    </span>
+                                </div>
+                                <div class="annonce-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-user"></i>
+                                        {{ annonce.get_nom_auteur }}
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ annonce.date_publication|date:"d/m/Y à H:i" }}
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-users"></i>
+                                        {{ annonce.get_destinataires_display }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="annonce-content">
+                                {{ annonce.contenu|linebreaks }}
+                            </div>
+
+                            {% if annonce.fichier_joint %}
+                                <div class="annonce-fichier">
+                                    <div class="fichier-info">
+                                        <i class="fas fa-paperclip"></i>
+                                        <span class="fichier-nom">{{ annonce.fichier_joint.name|slice:"17:" }}</span>
+                                    </div>
+                                    <a href="{{ annonce.fichier_joint.url }}" class="btn-download" download>
+                                        <i class="fas fa-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            {% endif %}
+
+                            <div class="annonce-footer">
+                                <span class="footer-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Dernière modification : {{ annonce.date_modification|date:"d/m/Y à H:i" }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Aucune annonce</h3>
+                    <p>
+                        {% if filtre_periode %}
+                            Aucune annonce ne correspond à vos critères de filtrage.
+                        {% else %}
+                            Il n'y a actuellement aucune annonce publiée pour les enseignants.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'enseignant_primaire:dashboard' %}" class="btn-primary">
+                        <i class="fas fa-home"></i> Retour au dashboard
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+

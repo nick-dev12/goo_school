@@ -10,6 +10,11 @@ class EmploiDuTemps(models.Model):
     """
     Modèle représentant un emploi du temps pour une classe
     """
+    STATUT_PUBLICATION_CHOICES = [
+        ('brouillon', 'Brouillon'),
+        ('publie', 'Publié'),
+        ('archive', 'Archivé'),
+    ]
     JOUR_CHOICES = [
         ('lundi', 'Lundi'),
         ('mardi', 'Mardi'),
@@ -40,6 +45,18 @@ class EmploiDuTemps(models.Model):
         default=True,
         verbose_name="Actif",
         help_text="Indique si cet emploi du temps est actuellement utilisé"
+    )
+
+    statut_publication = models.CharField(
+        max_length=20,
+        choices=STATUT_PUBLICATION_CHOICES,
+        default='brouillon',
+        verbose_name="Statut de publication"
+    )
+    date_publication = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de publication"
     )
     
     # Métadonnées
@@ -73,6 +90,41 @@ class EmploiDuTemps(models.Model):
     def nombre_creneaux(self):
         """Retourne le nombre de créneaux dans cet emploi du temps"""
         return self.creneaux.count()
+
+    @property
+    def est_publie(self):
+        return self.statut_publication == 'publie'
+
+    @property
+    def doit_republier(self):
+        """Indique si une republication est nécessaire pour notifier les acteurs concernés."""
+        return self.date_publication is not None and self.statut_publication != 'publie'
+
+    def marquer_comme_modifie(self):
+        """Marque l'emploi du temps comme modifié afin de nécessiter une nouvelle publication."""
+        champs_mis_a_jour = []
+        if self.statut_publication == 'publie':
+            self.statut_publication = 'brouillon'
+            champs_mis_a_jour.append('statut_publication')
+        # Forcer la mise à jour du timestamp pour le suivi des modifications
+        self.date_modification = timezone.now()
+        champs_mis_a_jour.append('date_modification')
+        if champs_mis_a_jour:
+            self.save(update_fields=champs_mis_a_jour)
+
+    def publier(self):
+        """Publie l'emploi du temps et déclenche les notifications."""
+        if self.statut_publication != 'publie':
+            self.statut_publication = 'publie'
+            self.date_publication = timezone.now()
+            self.save(update_fields=['statut_publication', 'date_publication', 'date_modification'])
+            from school_admin.services.notification_tasks import schedule_emploi_publication
+            schedule_emploi_publication(self.id)
+
+    def archiver(self):
+        if self.statut_publication != 'archive':
+            self.statut_publication = 'archive'
+            self.save(update_fields=['statut_publication', 'date_modification'])
 
 
 class CreneauEmploiDuTemps(models.Model):

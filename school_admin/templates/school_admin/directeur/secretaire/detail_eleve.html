@@ -33,7 +33,15 @@
 </head>
 <body>
   <!-- Header -->
-  {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+  {% if user.is_authenticated %}
+        {% if user.directeur_prenom %}
+            {% include 'school_admin/directeur/partials/header_directeur.html' %}
+        {% else %}
+            {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
+    {% endif %}
 
   <!-- Main Content -->
     <div class="content-container">
@@ -62,7 +70,13 @@
         <!-- Student Header Card -->
         <div class="student-header-card">
           <div class="student-avatar-large">
-            <i class="fas fa-user"></i>
+            {% if eleve.photo_profil %}
+              <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.nom_complet }}" class="student-avatar-image" />
+            {% else %}
+              <div class="student-avatar-placeholder">
+                <i class="fas fa-user"></i>
+              </div>
+            {% endif %}
           </div>
           <div class="student-header-info">
             <h1 class="student-full-name">{{ eleve.nom_complet }}</h1>
@@ -81,6 +95,10 @@
               <i class="fas fa-file-invoice"></i>
               Voir le reçu
             </a>
+            <button type="button" class="btn-action btn-photo" onclick="openPhotoModal()">
+              <i class="fas fa-camera"></i>
+              Mettre à jour la photo
+            </button>
             <button type="button" class="btn-action btn-edit" onclick="toggleEditForm()">
               <i class="fas fa-edit"></i>
               Modifier
@@ -114,6 +132,10 @@
             <button class="tab-button" onclick="showTab('sanctions')">
               <i class="fas fa-gavel"></i>
               Sanctions
+            </button>
+            <button class="tab-button" onclick="showTab('qrcode')">
+              <i class="fas fa-id-card"></i>
+              Carte d'identité
             </button>
             <button class="tab-button" onclick="showTab('login')">
               <i class="fas fa-key"></i>
@@ -1036,6 +1058,130 @@
             </div>
           </div>
 
+          <!-- Carte d'identité Tab -->
+          <div id="qrcode-tab" class="tab-panel">
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-id-card"></i>
+                Carte d'identité scolaire
+              </h3>
+              <div class="student-idcard-wrapper">
+                <div class="student-idcard-front">
+                  <div class="idcard-header">
+                    <div class="idcard-flag">
+                        <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo de l'établissement">
+                    </div>
+                    <div class="idcard-header-text">
+                      <p class="idcard-country">RÉPUBLIQUE DU SÉNÉGAL</p>
+                      <p class="idcard-motto">UN PEUPLE - UN BUT - UNE FOI</p>
+                      <h4 class="idcard-school">{{ etablissement.nom|default:"LYCÉE BLAISE PASCAL" }}</h4>
+                      <p class="idcard-title">CARTE D'IDENTITÉ SCOLAIRE</p>
+                    </div>
+                    <div class="idcard-logo">
+                      {% if etablissement.logo %}
+                        <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
+                      {% else %}
+                        <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement">
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="idcard-body">
+                    <div class="idcard-photo">
+                      {% if eleve.photo_profil %}
+                        <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.nom_complet }}">
+                      {% else %}
+                        <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="Photo par défaut">
+                      {% endif %}
+                    </div>
+                    <div class="idcard-info">
+                      <div class="idcard-info-row">
+                        <span class="info-label">Année scolaire :</span>
+                        <span class="info-value">{{ annee_scolaire|default:"2024 - 2025" }}</span>
+                      </div>
+                      <div class="idcard-info-row">
+                        <span class="info-label">Nom :</span>
+                        <span class="info-value info-accent">{{ eleve.nom|upper }}</span>
+                      </div>
+                      <div class="idcard-info-row">
+                        <span class="info-label">Prénom :</span>
+                        <span class="info-value info-accent">{{ eleve.prenom|upper }}</span>
+                      </div>
+                      <div class="idcard-info-row double">
+                        <span class="info-label">Né(e) le :</span>
+                        <span class="info-value info-strong">{{ eleve.date_naissance|date:"d-m-Y" }}</span>
+                        <span class="info-label">À :</span>
+                        <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
+                      </div>
+                      <div class="idcard-info-row double">
+                        <span class="info-label">Sexe :</span>
+                        <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
+                        <span class="info-label">Classe :</span>
+                        <span class="info-value info-uppercase info-value-wrap">
+                          {% if eleve.classe %}
+                            {{ eleve.classe.nom }}
+                          {% else %}
+                            Non assignée
+                          {% endif %}
+                        </span>
+                      </div>
+                      <div class="idcard-info-row">
+                        <span class="info-label">Contact :</span>
+                        <span class="info-value info-value-wrap">{{ eleve.telephone|default:"**********" }}</span>
+                      </div>
+                    </div>
+                    <div class="idcard-qr">
+                      {% if eleve.qr_code_image %}
+                        <img src="{{ eleve.qr_code_image.url }}" alt="QR code de {{ eleve.nom_complet }}">
+                      {% else %}
+                        <div class="idcard-qr-placeholder">
+                          <i class="fas fa-qrcode"></i>
+                          <span>QR code indisponible</span>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="idcard-footer">
+                    <span class="idcard-matricule">MAT. : {{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
+                    <span class="idcard-printed">IMPRIMÉ PAR / PRINTED BY {{ etablissement.nom|default:"LYCÉE GANALIS" }}</span>
+                  </div>
+                </div>
+
+                <div class="student-idcard-back">
+                  <div class="idcard-back-header">
+                    <i class="fas fa-book-reader"></i>
+                    <span>Règlement d'utilisation</span>
+                  </div>
+                  <div class="idcard-back-body">
+                    <div class="idcard-rules-card">
+                      <ol class="idcard-rules">
+                        <li>Cette carte est personnelle et non cessible.</li>
+                        <li>Elle doit être présentée à toute demande du personnel administratif.</li>
+                        <li>En cas de perte, prévenir immédiatement la direction de l'établissement.</li>
+                        <li>Toute falsification expose à des sanctions disciplinaires.</li>
+                      </ol>
+                    </div>
+                    <div class="idcard-back-info">
+                      <div class="idcard-establishment">
+                        <span class="establishment-name">{{ etablissement.nom|upper|default:"LYCÉE GANALIS" }}</span>
+                        <span>BP : {{ etablissement.boite_postale|default:"12345 Douala – Cameroun" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="idcard-back-footer">
+                    <div class="idcard-back-logo">
+                      {% if etablissement.logo %}
+                        <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" />
+                      {% else %}
+                        <img src="{% static 'school_admin/images/logo.png' %}" alt="Logo établissement" />
+                      {% endif %}
+                    </div>
+                    <span class="idcard-back-motto">{{ etablissement.devise|default:"Discipline - Travail - Réussite" }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Login Information Tab -->
           <div id="login-tab" class="tab-panel">
             <div class="info-section">
@@ -1063,6 +1209,74 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Photo Upload Modal -->
+      <div id="photoModal" class="photo-modal-backdrop" {% if photo_modal_open %}style="display: flex;"{% else %}style="display: none;"{% endif %}>
+        <div class="photo-modal-content">
+          <div class="photo-modal-header">
+            <h3>
+              <i class="fas fa-camera"></i>
+              Mettre à jour la photo de l'élève
+            </h3>
+            <button type="button" class="btn-close-modal" onclick="closePhotoModal()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <form action="{% url 'secretaire:detail_eleve' eleve.id %}" method="post" enctype="multipart/form-data" class="photo-upload-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="photo_upload" />
+
+            <p class="photo-form-intro">
+              Téléversez une photo récente de l'élève (format JPG, PNG ou WEBP, taille maximale 5 Mo).
+            </p>
+
+            <div class="photo-source-options">
+              <label class="photo-source-option">
+                <input type="radio" name="photo_source" value="gallery" checked onclick="switchPhotoSource('gallery')" />
+                <span><i class="fas fa-images"></i> Depuis la galerie</span>
+              </label>
+              <label class="photo-source-option">
+                <input type="radio" name="photo_source" value="camera" onclick="switchPhotoSource('camera')" />
+                <span><i class="fas fa-camera"></i> Prendre une photo</span>
+              </label>
+            </div>
+
+            <div class="photo-input-panels">
+              <div class="photo-input-panel active" data-source="gallery">
+                <label class="panel-title">Sélectionner un fichier</label>
+                <input type="file" name="photo_fichier" accept="image/*" class="photo-file-input" />
+                <small class="panel-hint">Choisissez une photo existante sur votre appareil.</small>
+              </div>
+              <div class="photo-input-panel" data-source="camera">
+                <label class="panel-title">Capturer depuis l'appareil photo</label>
+                <input type="file" name="photo_camera" accept="image/*" capture="environment" class="photo-file-input" />
+                <small class="panel-hint">Utilisez la caméra de l'appareil pour prendre une photo immédiate.</small>
+              </div>
+            </div>
+
+            {% if photo_form_errors %}
+              <div class="photo-form-errors">
+                <ul>
+                  {% for error in photo_form_errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <div class="photo-form-actions">
+              <button type="button" class="btn-secondary" onclick="closePhotoModal()">
+                <i class="fas fa-times"></i>
+                Annuler
+              </button>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Enregistrer la photo
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -1730,6 +1944,71 @@
       }
     }
 
+    function openPhotoModal() {
+      const modal = document.getElementById('photoModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const checkedSource = document.querySelector('input[name="photo_source"]:checked');
+        switchPhotoSource(checkedSource ? checkedSource.value : 'gallery');
+      }
+    }
+
+    function closePhotoModal() {
+      const modal = document.getElementById('photoModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        const galleryRadio = document.querySelector('input[name="photo_source"][value="gallery"]');
+        if (galleryRadio && !galleryRadio.checked) {
+          galleryRadio.checked = true;
+          switchPhotoSource('gallery');
+        }
+      }
+    }
+
+    function switchPhotoSource(source) {
+      const panels = document.querySelectorAll('.photo-input-panel');
+      panels.forEach(panel => {
+        if (panel.dataset.source === source) {
+          panel.classList.add('active');
+        } else {
+          panel.classList.remove('active');
+        }
+      });
+
+      const options = document.querySelectorAll('.photo-source-option');
+      options.forEach(option => {
+        const input = option.querySelector('input[name="photo_source"]');
+        if (input && input.value === source) {
+          option.classList.add('active');
+        } else {
+          option.classList.remove('active');
+        }
+      });
+
+      const galleryInput = document.querySelector('input[name="photo_fichier"]');
+      const cameraInput = document.querySelector('input[name="photo_camera"]');
+
+      if (galleryInput) {
+        if (source === 'gallery') {
+          galleryInput.disabled = false;
+        } else {
+          galleryInput.value = '';
+          galleryInput.disabled = true;
+        }
+      }
+
+      if (cameraInput) {
+        if (source === 'camera') {
+          cameraInput.disabled = false;
+        } else {
+          cameraInput.value = '';
+          cameraInput.disabled = true;
+        }
+      }
+    }
+
     function toggleResponsableFields() {
       const typeResponsable = document.querySelector('input[name="type_responsable"]:checked');
       const parentsFields = document.getElementById('parents-fields');
@@ -1754,11 +2033,18 @@
       if (e.target.classList.contains('transfer-form-container')) {
         toggleTransferForm();
       }
+      const photoModal = document.getElementById('photoModal');
+      if (photoModal && photoModal.style.display === 'flex' && e.target === photoModal) {
+        closePhotoModal();
+      }
     });
 
     // Prevent modal content clicks from closing the modal
     document.addEventListener('click', function(e) {
       if (e.target.closest('.edit-form-content') || e.target.closest('.transfer-form-content')) {
+        e.stopPropagation();
+      }
+      if (e.target.closest('.photo-modal-content')) {
         e.stopPropagation();
       }
     });
@@ -1768,12 +2054,16 @@
       if (e.key === 'Escape') {
         const editForm = document.getElementById('editForm');
         const transferForm = document.getElementById('transferForm');
-        
+        const photoModal = document.getElementById('photoModal');
+
         if (editForm.style.display === 'flex') {
           toggleEditForm();
         }
         if (transferForm.style.display === 'flex') {
           toggleTransferForm();
+        }
+        if (photoModal && photoModal.style.display === 'flex') {
+          closePhotoModal();
         }
       }
     });
@@ -1932,6 +2222,12 @@
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
       toggleResponsableFields();
+      const defaultSource = document.querySelector('input[name="photo_source"]:checked');
+      switchPhotoSource(defaultSource ? defaultSource.value : 'gallery');
+      const shouldOpenPhotoModal = {% if photo_modal_open %}true{% else %}false{% endif %};
+      if (shouldOpenPhotoModal) {
+        openPhotoModal();
+      }
     });
   </script>
 </body>

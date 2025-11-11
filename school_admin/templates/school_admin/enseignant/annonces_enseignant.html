@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Annonces de l'établissement</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #3b82f6;
+        --secondary: #7c3aed;
+        --accent: #ef4444;
+        --success: #10b981;
+        --warning: #fbbf24;
+        --info: #8b5cf6;
+        --white: #ffffff;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-400: #9ca3af;
+        --gray-600: #4b5563;
+        --gray-800: #1f2937;
+        --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
+          0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      }
+
+      body {
+        margin: 0;
+        font-family: "Poppins", Arial, sans-serif;
+        background: var(--gray-50);
+        color: var(--gray-800);
+      }
+
+      .page-wrapper {
+        max-width: 1080px;
+        margin: 60px auto;
+        padding: 0 24px 48px;
+      }
+
+      .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+
+      .page-header h1 {
+        font-size: 30px;
+        margin: 0;
+        color: var(--primary);
+      }
+
+      .page-header p {
+        margin: 0;
+        color: var(--gray-600);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: var(--white);
+        box-shadow: var(--shadow-card);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+      }
+
+      .annonces-list {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .annonce-card {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 22px 26px;
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--gray-100);
+      }
+
+      .annonce-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .annonce-title {
+        margin: 0;
+        font-size: 20px;
+        color: var(--gray-800);
+      }
+
+      .annonce-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--gray-500);
+      }
+
+      .annonce-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .annonce-content {
+        color: var(--gray-600);
+        line-height: 1.7;
+        margin: 16px 0;
+        white-space: pre-line;
+      }
+
+      .annonce-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        color: var(--gray-400);
+        font-size: 13px;
+      }
+
+      .empty-state {
+        margin-top: 40px;
+        text-align: center;
+        padding: 60px 20px;
+        border-radius: 16px;
+        background: var(--white);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--gray-100);
+      }
+
+      .empty-state i {
+        font-size: 42px;
+        color: var(--primary);
+        margin-bottom: 16px;
+      }
+
+      .empty-state h2 {
+        margin: 0 0 8px;
+        color: var(--gray-800);
+      }
+
+      .empty-state p {
+        margin: 0;
+        color: var(--gray-600);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <header class="page-header">
+        <h1>Annonces de l'établissement</h1>
+        <p>
+          Retrouvez ici toutes les annonces publiées par votre direction. Les
+          informations restent accessibles en permanence.
+        </p>
+        <div class="actions">
+          <a href="{% url 'enseignant:dashboard_enseignant' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+          </a>
+        </div>
+      </header>
+
+      {% if annonces %}
+        <div class="annonces-list">
+          {% for annonce in annonces %}
+            <article class="annonce-card">
+              <div class="annonce-header">
+                <h2 class="annonce-title">{{ annonce.titre }}</h2>
+              </div>
+              <div class="annonce-meta">
+                <span>
+                  <i class="far fa-calendar"></i>
+                  Publiée le {{ annonce.date_publication|date:"d/m/Y H:i" }}
+                </span>
+                <span>
+                  <i class="fas fa-paper-plane"></i>
+                  {{ annonce.get_destinataires_display }}
+                </span>
+                <span>
+                  <i class="fas fa-user"></i>
+                  {{ annonce.get_nom_auteur }}
+                </span>
+              </div>
+              <div class="annonce-content">{{ annonce.contenu }}</div>
+              <div class="annonce-footer">
+                {% if annonce.fichier_joint %}
+                  <a href="{{ annonce.fichier_joint.url }}" target="_blank">
+                    <i class="fas fa-paperclip"></i>
+                    Pièce jointe
+                  </a>
+                {% endif %}
+                <span>
+                  <i class="fas fa-id-badge"></i>
+                  Référence : {{ annonce.id }}
+                </span>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="fas fa-bullhorn"></i>
+          <h2>Aucune annonce</h2>
+          <p>Vous n'avez pas encore reçu d'annonce publiée par l'établissement.</p>
+        </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

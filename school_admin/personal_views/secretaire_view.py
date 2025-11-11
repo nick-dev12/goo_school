@@ -10,6 +10,107 @@ from ..model.etablissement_model import Etablissement
 from ..model.classe_model import Classe
 from ..model.eleve_model import Eleve
 from ..model.facturation_model import Facturation
+from ..model.ponderation_model import Ponderation
+
+
+def _build_classes_grouped_data(etablissement):
+    """
+    Construit la structure regroupant les classes et les élèves avec statistiques.
+    """
+    from collections import OrderedDict
+    from school_admin.model.presence_model import Presence
+    from school_admin.model.sanction_model import Sanction
+    import re
+
+    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+
+    classes_grouped = OrderedDict()
+    total_eleves = 0
+    total_capacite = 0
+
+    for classe in classes:
+        nom = classe.nom
+        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom.strip())
+
+        if match:
+            raw_categorie = match.group(1)
+        else:
+            raw_categorie = nom
+
+        categorie_label = re.sub(r'[\s\-_/]+$', '', raw_categorie).strip()
+        if not categorie_label:
+            categorie_label = raw_categorie.strip() or nom.strip()
+
+        categorie_key = categorie_label.lower()
+
+        if categorie_key not in classes_grouped:
+            classes_grouped[categorie_key] = {
+                'label': categorie_label,
+                'niveau': classe.niveau,
+                'classes': [],
+                'total_eleves': 0,
+                'total_capacite': 0,
+                'nombre_classes': 0
+            }
+
+        eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+
+        eleves_data = []
+        for eleve in eleves_queryset:
+            nombre_absences = Presence.get_nombre_absences(eleve)
+            nombre_sanctions = Sanction.get_nombre_sanctions(eleve)
+
+            eleves_data.append({
+                'eleve': eleve,
+                'nombre_absences': nombre_absences,
+                'nombre_sanctions': nombre_sanctions,
+            })
+
+        nombre_eleves_classe = eleves_queryset.count()
+        stats_classe = {
+            'total_eleves': nombre_eleves_classe,
+            'nouveaux_eleves': eleves_queryset.filter(statut='nouvelle').count(),
+            'transferts': eleves_queryset.filter(statut='transfert').count(),
+            'reinscriptions': eleves_queryset.filter(statut='reinscription').count(),
+            'taux_occupation': classe.taux_occupation,
+            'places_disponibles': classe.places_disponibles,
+        }
+
+        classe_info = {
+            'classe': classe,
+            'eleves': eleves_data,
+            'stats': stats_classe,
+            'nombre_eleves': nombre_eleves_classe,
+            'capacite_max': classe.capacite_max,
+        }
+
+        classes_grouped[categorie_key]['classes'].append(classe_info)
+        classes_grouped[categorie_key]['total_eleves'] += nombre_eleves_classe
+        classes_grouped[categorie_key]['total_capacite'] += classe.capacite_max
+        classes_grouped[categorie_key]['nombre_classes'] += 1
+
+        total_eleves += nombre_eleves_classe
+        total_capacite += classe.capacite_max
+
+    total_nouveaux = 0
+    total_transferts = 0
+    total_reinscriptions = 0
+    for data in classes_grouped.values():
+        for classe_info in data['classes']:
+            total_nouveaux += classe_info['stats']['nouveaux_eleves']
+            total_transferts += classe_info['stats']['transferts']
+            total_reinscriptions += classe_info['stats']['reinscriptions']
+
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': classes.count(),
+        'taux_occupation_global': round((total_eleves / total_capacite * 100), 1) if total_capacite > 0 else 0,
+        'nouveaux_eleves': total_nouveaux,
+        'transferts': total_transferts,
+        'reinscriptions': total_reinscriptions,
+    }
+
+    return classes_grouped, stats_generales
 
 
 @login_required
@@ -492,104 +593,8 @@ def liste_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer les classes de l'établissement avec leurs élèves
-    from collections import defaultdict
-    from school_admin.model.presence_model import Presence
-    from school_admin.model.sanction_model import Sanction
-    import re
-    
-    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
-    
-    # Grouper les classes par niveau numérique (6ème, 5ème, etc.)
-    classes_grouped = {}
-    total_eleves = 0
-    total_capacite = 0
-    
-    for classe in classes:
-        nom = classe.nom
-        
-        # Pattern pour extraire le niveau et la lettre/section
-        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom)
-        
-        if match:
-            categorie = match.group(1)  # "6eme", "5eme", "Terminale", etc.
-            section = match.group(2)    # "A", "B", "C", etc.
-        else:
-            # Si pas de pattern trouvé, utiliser le nom complet comme catégorie
-            categorie = nom
-            section = ""
-        
-        # Initialiser la catégorie si elle n'existe pas
-        if categorie not in classes_grouped:
-            classes_grouped[categorie] = {
-                'niveau': classe.niveau,
-                'classes': [],
-                'total_eleves': 0,
-                'total_capacite': 0,
-                'nombre_classes': 0
-            }
-        
-        eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
-        
-        # Enrichir chaque élève avec ses statistiques
-        eleves_data = []
-        for eleve in eleves_queryset:
-            # Calculer le nombre d'absences non justifiées
-            nombre_absences = Presence.get_nombre_absences(eleve)
-            nombre_sanctions = Sanction.get_nombre_sanctions(eleve)
-            
-            eleves_data.append({
-                'eleve': eleve,
-                'nombre_absences': nombre_absences,
-                'nombre_sanctions': nombre_sanctions,
-            })
-        
-        # Statistiques de la classe
-        nombre_eleves_classe = eleves_queryset.count()
-        stats_classe = {
-            'total_eleves': nombre_eleves_classe,
-            'nouveaux_eleves': eleves_queryset.filter(statut='nouvelle').count(),
-            'transferts': eleves_queryset.filter(statut='transfert').count(),
-            'reinscriptions': eleves_queryset.filter(statut='reinscription').count(),
-            'taux_occupation': classe.taux_occupation,
-            'places_disponibles': classe.places_disponibles,
-        }
-        
-        classe_info = {
-            'classe': classe,
-            'eleves': eleves_data,
-            'stats': stats_classe,
-            'nombre_eleves': nombre_eleves_classe,
-            'capacite_max': classe.capacite_max,
-        }
-        
-        classes_grouped[categorie]['classes'].append(classe_info)
-        classes_grouped[categorie]['total_eleves'] += nombre_eleves_classe
-        classes_grouped[categorie]['total_capacite'] += classe.capacite_max
-        classes_grouped[categorie]['nombre_classes'] += 1
-        
-        total_eleves += nombre_eleves_classe
-        total_capacite += classe.capacite_max
-    
-    # Statistiques générales
-    total_nouveaux = 0
-    total_transferts = 0
-    total_reinscriptions = 0
-    for data in classes_grouped.values():
-        for classe_info in data['classes']:
-            total_nouveaux += classe_info['stats']['nouveaux_eleves']
-            total_transferts += classe_info['stats']['transferts']
-            total_reinscriptions += classe_info['stats']['reinscriptions']
-    
-    stats_generales = {
-        'total_eleves': total_eleves,
-        'total_classes': classes.count(),
-        'taux_occupation_global': round((total_eleves / total_capacite * 100), 1) if total_capacite > 0 else 0,
-        'nouveaux_eleves': total_nouveaux,
-        'transferts': total_transferts,
-        'reinscriptions': total_reinscriptions,
-    }
-    
+    classes_grouped, stats_generales = _build_classes_grouped_data(etablissement)
+
     context = {
         'user': user,
         'etablissement': etablissement,
@@ -598,6 +603,135 @@ def liste_eleves(request):
     }
     
     return render(request, 'school_admin/directeur/secretaire/liste_eleves.html', context)
+
+
+@login_required
+def cartes_identite_eleves(request):
+    """
+    Page listant les cartes d'identité scolaires par classe.
+    """
+    user = request.user
+
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return redirect('school_admin:connexion_compte_user')
+
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+
+    classes_grouped, stats_generales = _build_classes_grouped_data(etablissement)
+
+    context = {
+        'user': user,
+        'etablissement': etablissement,
+        'classes_grouped': classes_grouped,
+        'stats_generales': stats_generales,
+    }
+
+    return render(request, 'school_admin/directeur/secretaire/cartes_identite_eleves.html', context)
+
+
+@login_required
+def carte_identite_eleve(request, eleve_id):
+    """
+    Page dédiée à l'affichage de la carte d'identité scolaire d'un élève.
+    """
+    user = request.user
+
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return redirect('school_admin:connexion_compte_user')
+
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+
+    try:
+        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
+    except Eleve.DoesNotExist:
+        messages.error(request, "Élève non trouvé.")
+        return redirect('secretaire:cartes_identite_eleves')
+
+    if not eleve.qr_code_image or not eleve.qr_code_identifier or not eleve.qr_code_data:
+        try:
+            eleve.save()
+        except RuntimeError as qr_error:
+            messages.warning(request, f"QR code indisponible : {qr_error}")
+
+    annee_scolaire = Ponderation.default_school_year()
+    
+    context = {
+        'etablissement': etablissement,
+        'eleve': eleve,
+        'annee_scolaire': annee_scolaire,
+    }
+    
+    return render(request, 'school_admin/directeur/secretaire/carte_identite_eleve.html', context)
+
+
+@login_required
+def cartes_identite_classe(request, classe_id):
+    """Page d'impression regroupant les cartes d'identité d'une classe."""
+    user = request.user
+
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return redirect('school_admin:connexion_compte_user')
+
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+
+    try:
+        classe = Classe.objects.get(id=classe_id, etablissement=etablissement, actif=True)
+    except Classe.DoesNotExist:
+        messages.error(request, "Classe introuvable ou non autorisée.")
+        return redirect('secretaire:cartes_identite_eleves')
+
+    eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+    eleves = list(eleves_queryset)
+
+    erreurs_qr = []
+    for eleve in eleves:
+        if not eleve.qr_code_image or not eleve.qr_code_identifier or not eleve.qr_code_data:
+            try:
+                eleve.save()
+            except RuntimeError as qr_error:
+                erreurs_qr.append(f"{eleve.nom_complet} : {qr_error}")
+
+    if erreurs_qr:
+        messages.warning(
+            request,
+            "Certaines cartes n'ont pas pu être générées : " + "; ".join(erreurs_qr)
+        )
+
+    annee_scolaire = Ponderation.default_school_year()
+
+    context = {
+        'etablissement': etablissement,
+        'classe': classe,
+        'eleves': eleves,
+        'annee_scolaire': annee_scolaire,
+    }
+
+    return render(
+        request,
+        'school_admin/directeur/secretaire/cartes_identite_classe.html',
+        context
+    )
 
 
 @login_required
@@ -736,6 +870,13 @@ def detail_eleve(request, eleve_id):
     except Eleve.DoesNotExist:
         messages.error(request, "Élève non trouvé.")
         return redirect('secretaire:liste_eleves')
+    
+    # Générer automatiquement le QR code si nécessaire
+    if not eleve.qr_code_image or not eleve.qr_code_identifier or not eleve.qr_code_data:
+        try:
+            eleve.save()
+        except RuntimeError as qr_error:
+            messages.warning(request, f"QR code indisponible : {qr_error}")
     
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
@@ -1065,131 +1206,167 @@ def detail_eleve(request, eleve_id):
     
     form_data = {}
     field_errors = {}
-    
+    photo_form_errors = []
+    photo_modal_open = False
+
     if request.method == 'POST':
-        # Récupération des données
-        form_data = {
-            'nom': request.POST.get('nom', '').strip(),
-            'prenom': request.POST.get('prenom', '').strip(),
-            'date_naissance': request.POST.get('date_naissance', ''),
-            'lieu_naissance': request.POST.get('lieu_naissance', '').strip(),
-            'sexe': request.POST.get('sexe', ''),
-            'nationalite': request.POST.get('nationalite', '').strip(),
-            'adresse': request.POST.get('adresse', '').strip(),
-            'telephone': request.POST.get('telephone', '').strip(),
-            'email': request.POST.get('email', '').strip(),
-            # Champs parent/tuteur
-            'parent_nom': request.POST.get('parent_nom', '').strip(),
-            'parent_prenom': request.POST.get('parent_prenom', '').strip(),
-            'parent_telephone': request.POST.get('parent_telephone', '').strip(),
-            'parent_email': request.POST.get('parent_email', '').strip(),
-            'parent_adresse': request.POST.get('parent_adresse', '').strip(),
-            'parent_profession': request.POST.get('parent_profession', '').strip(),
-            'parent_lien': request.POST.get('parent_lien', ''),
-            # Documents d'identité
-            'document_acte_naissance': request.POST.get('document_acte_naissance') == 'true',
-            'document_cni': request.POST.get('document_cni') == 'true',
-            'document_passeport': request.POST.get('document_passeport') == 'true',
-            # Documents scolaires
-            'document_bulletin_precedent': request.POST.get('document_bulletin_precedent') == 'true',
-            'document_certificat_scolarite': request.POST.get('document_certificat_scolarite') == 'true',
-            'document_livret_scolaire': request.POST.get('document_livret_scolaire') == 'true',
-            # Documents médicaux
-            'document_certificat_medical': request.POST.get('document_certificat_medical') == 'true',
-            'document_carnet_vaccination': request.POST.get('document_carnet_vaccination') == 'true',
-            'document_assurance_maladie': request.POST.get('document_assurance_maladie') == 'true',
-            # Documents administratifs
-            'document_justificatif_domicile': request.POST.get('document_justificatif_domicile') == 'true',
-            'document_photo_identite': request.POST.get('document_photo_identite') == 'true',
-            'document_autorisation_parentale': request.POST.get('document_autorisation_parentale') == 'true',
-        }
-        
-        # Validation
-        is_valid = True
-        
-        # Champs obligatoires
-        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite']
-        for field in required_fields:
-            if not form_data[field]:
-                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
-                is_valid = False
-        
-        # Validation des champs parent/tuteur
-        parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
-        for field in parent_required:
-            if not form_data[field]:
-                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
-                is_valid = False
-        
-        # Validation des dates
-        if form_data['date_naissance']:
-            try:
-                birth_date = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
-                if birth_date > date.today():
-                    field_errors['date_naissance'] = "La date de naissance ne peut pas être dans le futur."
-                    is_valid = False
-            except ValueError:
-                field_errors['date_naissance'] = "Format de date invalide."
-                is_valid = False
-        
-        # Validation des emails
-        if form_data['email'] and '@' not in form_data['email']:
-            field_errors['email'] = "L'adresse email n'est pas valide."
-            is_valid = False
-        
-        # Validation de l'email parent/tuteur (optionnel)
-        if form_data['parent_email'] and '@' not in form_data['parent_email']:
-            field_errors['parent_email'] = "L'adresse email du parent/tuteur n'est pas valide."
-            is_valid = False
-        
-        
-        # Si tout est valide, sauvegarder les modifications
-        if is_valid:
-            try:
-                with transaction.atomic():
-                    # Mettre à jour les informations de base
-                    eleve.nom = form_data['nom']
-                    eleve.prenom = form_data['prenom']
-                    eleve.date_naissance = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
-                    eleve.lieu_naissance = form_data['lieu_naissance']
-                    eleve.sexe = form_data['sexe']
-                    eleve.nationalite = form_data['nationalite']
-                    eleve.adresse = form_data['adresse']
-                    eleve.telephone = form_data['telephone']
-                    eleve.email = form_data['email']
-                    
-                    # Mettre à jour les informations parent/tuteur
-                    eleve.parent_nom = form_data['parent_nom']
-                    eleve.parent_prenom = form_data['parent_prenom']
-                    eleve.parent_telephone = form_data['parent_telephone']
-                    eleve.parent_email = form_data['parent_email'] if form_data['parent_email'] else None
-                    eleve.parent_adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else None
-                    eleve.parent_profession = form_data['parent_profession'] if form_data['parent_profession'] else None
-                    eleve.parent_lien = form_data['parent_lien']
-                    
-                    # Mettre à jour les documents
-                    eleve.document_acte_naissance = form_data['document_acte_naissance']
-                    eleve.document_cni = form_data['document_cni']
-                    eleve.document_passeport = form_data['document_passeport']
-                    eleve.document_bulletin_precedent = form_data['document_bulletin_precedent']
-                    eleve.document_certificat_scolarite = form_data['document_certificat_scolarite']
-                    eleve.document_livret_scolaire = form_data['document_livret_scolaire']
-                    eleve.document_certificat_medical = form_data['document_certificat_medical']
-                    eleve.document_carnet_vaccination = form_data['document_carnet_vaccination']
-                    eleve.document_assurance_maladie = form_data['document_assurance_maladie']
-                    eleve.document_justificatif_domicile = form_data['document_justificatif_domicile']
-                    eleve.document_photo_identite = form_data['document_photo_identite']
-                    eleve.document_autorisation_parentale = form_data['document_autorisation_parentale']
-                    
-                    # Sauvegarder
-                    eleve.save()
-                    
-                    messages.success(request, f"Les informations de {eleve.prenom} {eleve.nom} ont été mises à jour avec succès !")
+        form_type = request.POST.get('form_type', 'profile_update')
+
+        if form_type == 'photo_upload':
+            photo_modal_open = True
+            uploaded_file = request.FILES.get('photo_fichier') or request.FILES.get('photo_camera')
+            source_choice = request.POST.get('photo_source', '').strip()
+
+            if not source_choice:
+                photo_form_errors.append("Veuillez choisir un mode d'ajout de photo.")
+
+            if not uploaded_file:
+                photo_form_errors.append("Veuillez fournir une image valide.")
+            else:
+                content_type = uploaded_file.content_type or ''
+                if not content_type.startswith('image/'):
+                    photo_form_errors.append("Le fichier doit être une image (JPEG, PNG, WEBP...).")
+
+                max_size = 5 * 1024 * 1024
+                if uploaded_file.size and uploaded_file.size > max_size:
+                    photo_form_errors.append("La taille de l'image ne doit pas dépasser 5 Mo.")
+
+            if not photo_form_errors and uploaded_file:
+                try:
+                    with transaction.atomic():
+                        if eleve.photo_profil:
+                            eleve.photo_profil.delete(save=False)
+                        eleve.photo_profil = uploaded_file
+                        eleve.save(update_fields=['photo_profil', 'date_modification'])
+                    messages.success(request, "La photo de l'élève a été mise à jour avec succès.")
                     return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-                    
-            except Exception as e:
-                field_errors['__all__'] = f"Une erreur est survenue lors de la modification: {str(e)}. Veuillez réessayer."
+                except Exception as exc:
+                    photo_form_errors.append(f"Une erreur est survenue lors de l'enregistrement de la photo : {exc}.")
+
+        else:
+            # Récupération des données
+            form_data = {
+                'nom': request.POST.get('nom', '').strip(),
+                'prenom': request.POST.get('prenom', '').strip(),
+                'date_naissance': request.POST.get('date_naissance', ''),
+                'lieu_naissance': request.POST.get('lieu_naissance', '').strip(),
+                'sexe': request.POST.get('sexe', ''),
+                'nationalite': request.POST.get('nationalite', '').strip(),
+                'adresse': request.POST.get('adresse', '').strip(),
+                'telephone': request.POST.get('telephone', '').strip(),
+                'email': request.POST.get('email', '').strip(),
+                # Champs parent/tuteur
+                'parent_nom': request.POST.get('parent_nom', '').strip(),
+                'parent_prenom': request.POST.get('parent_prenom', '').strip(),
+                'parent_telephone': request.POST.get('parent_telephone', '').strip(),
+                'parent_email': request.POST.get('parent_email', '').strip(),
+                'parent_adresse': request.POST.get('parent_adresse', '').strip(),
+                'parent_profession': request.POST.get('parent_profession', '').strip(),
+                'parent_lien': request.POST.get('parent_lien', ''),
+                # Documents d'identité
+                'document_acte_naissance': request.POST.get('document_acte_naissance') == 'true',
+                'document_cni': request.POST.get('document_cni') == 'true',
+                'document_passeport': request.POST.get('document_passeport') == 'true',
+                # Documents scolaires
+                'document_bulletin_precedent': request.POST.get('document_bulletin_precedent') == 'true',
+                'document_certificat_scolarite': request.POST.get('document_certificat_scolarite') == 'true',
+                'document_livret_scolaire': request.POST.get('document_livret_scolaire') == 'true',
+                # Documents médicaux
+                'document_certificat_medical': request.POST.get('document_certificat_medical') == 'true',
+                'document_carnet_vaccination': request.POST.get('document_carnet_vaccination') == 'true',
+                'document_assurance_maladie': request.POST.get('document_assurance_maladie') == 'true',
+                # Documents administratifs
+                'document_justificatif_domicile': request.POST.get('document_justificatif_domicile') == 'true',
+                'document_photo_identite': request.POST.get('document_photo_identite') == 'true',
+                'document_autorisation_parentale': request.POST.get('document_autorisation_parentale') == 'true',
+            }
+
+            # Validation
+            is_valid = True
+
+            # Champs obligatoires
+            required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite']
+            for field in required_fields:
+                if not form_data[field]:
+                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                    is_valid = False
+
+            # Validation des champs parent/tuteur
+            parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
+            for field in parent_required:
+                if not form_data[field]:
+                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                    is_valid = False
+
+            # Validation des dates
+            if form_data['date_naissance']:
+                try:
+                    birth_date = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
+                    if birth_date > date.today():
+                        field_errors['date_naissance'] = "La date de naissance ne peut pas être dans le futur."
+                        is_valid = False
+                except ValueError:
+                    field_errors['date_naissance'] = "Format de date invalide."
+                    is_valid = False
+
+            # Validation des emails
+            if form_data['email'] and '@' not in form_data['email']:
+                field_errors['email'] = "L'adresse email n'est pas valide."
                 is_valid = False
+
+            # Validation de l'email parent/tuteur (optionnel)
+            if form_data['parent_email'] and '@' not in form_data['parent_email']:
+                field_errors['parent_email'] = "L'adresse email du parent/tuteur n'est pas valide."
+                is_valid = False
+
+
+            # Si tout est valide, sauvegarder les modifications
+            if is_valid:
+                try:
+                    with transaction.atomic():
+                        # Mettre à jour les informations de base
+                        eleve.nom = form_data['nom']
+                        eleve.prenom = form_data['prenom']
+                        eleve.date_naissance = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
+                        eleve.lieu_naissance = form_data['lieu_naissance']
+                        eleve.sexe = form_data['sexe']
+                        eleve.nationalite = form_data['nationalite']
+                        eleve.adresse = form_data['adresse']
+                        eleve.telephone = form_data['telephone']
+                        eleve.email = form_data['email']
+
+                        # Mettre à jour les informations parent/tuteur
+                        eleve.parent_nom = form_data['parent_nom']
+                        eleve.parent_prenom = form_data['parent_prenom']
+                        eleve.parent_telephone = form_data['parent_telephone']
+                        eleve.parent_email = form_data['parent_email'] if form_data['parent_email'] else None
+                        eleve.parent_adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else None
+                        eleve.parent_profession = form_data['parent_profession'] if form_data['parent_profession'] else None
+                        eleve.parent_lien = form_data['parent_lien']
+
+                        # Mettre à jour les documents
+                        eleve.document_acte_naissance = form_data['document_acte_naissance']
+                        eleve.document_cni = form_data['document_cni']
+                        eleve.document_passeport = form_data['document_passeport']
+                        eleve.document_bulletin_precedent = form_data['document_bulletin_precedent']
+                        eleve.document_certificat_scolarite = form_data['document_certificat_scolarite']
+                        eleve.document_livret_scolaire = form_data['document_livret_scolaire']
+                        eleve.document_certificat_medical = form_data['document_certificat_medical']
+                        eleve.document_carnet_vaccination = form_data['document_carnet_vaccination']
+                        eleve.document_assurance_maladie = form_data['document_assurance_maladie']
+                        eleve.document_justificatif_domicile = form_data['document_justificatif_domicile']
+                        eleve.document_photo_identite = form_data['document_photo_identite']
+                        eleve.document_autorisation_parentale = form_data['document_autorisation_parentale']
+
+                        # Sauvegarder
+                        eleve.save()
+
+                        messages.success(request, f"Les informations de {eleve.prenom} {eleve.nom} ont été mises à jour avec succès !")
+                        return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
+
+                except Exception as e:
+                    field_errors['__all__'] = f"Une erreur est survenue lors de la modification: {str(e)}. Veuillez réessayer."
+                    is_valid = False
     else:
         # Remplir le formulaire avec les données actuelles de l'élève
         form_data = {
@@ -1246,6 +1423,8 @@ def detail_eleve(request, eleve_id):
         'periode_active_notes': periode_active_notes,
         'periodes_actives': periodes_actives,
         'moyennes_par_periode': dict(moyennes_par_periode),
+        'photo_form_errors': photo_form_errors,
+        'photo_modal_open': photo_modal_open,
     }
     
     return render(request, 'school_admin/directeur/secretaire/detail_eleve.html', context)

@@ -4,6 +4,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from ..decorators import login_required_with_redirect
 from ..model.professeur_model import Professeur
+from ..services.parent_notification_service import ParentNotificationService
+from ..services.directeur_notification_service import DirecteurNotificationService
+from ..services.eleve_notification_service import EleveNotificationService
+from ..model.notification_enseignant_model import NotificationEnseignant
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,7 +31,7 @@ def dashboard_enseignant(request):
     from django.db.models import Count, Q
     from ..model.affectation_model import AffectationProfesseur
     from ..model.evaluation_model import Evaluation, Note
-    from ..model.emploi_du_temps_model import CreneauEmploiDuTemps
+    from ..model.emploi_du_temps_model import EmploiDuTemps, CreneauEmploiDuTemps
     from ..model.eleve_model import Eleve
     
     # ===== INDICATEURS CLÉS =====
@@ -67,6 +71,8 @@ def dashboard_enseignant(request):
         # Calculer les heures par semaine
         creneaux_classe = CreneauEmploiDuTemps.objects.filter(
             emploi_du_temps__classe=classe,
+            emploi_du_temps__est_actif=True,
+            emploi_du_temps__statut_publication='publie',
             professeur=professeur
         ).select_related('periode_etablissement')
         
@@ -103,10 +109,19 @@ def dashboard_enseignant(request):
     jour_actuel = jours_mapping.get(datetime.now().weekday(), 'lundi')
     date_actuelle = datetime.now()
     
-    creneaux_aujourdhui = CreneauEmploiDuTemps.objects.filter(
-        professeur=professeur,
-        jour=jour_actuel
-    ).select_related('emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('periode_etablissement__ordre', 'heure_debut')
+    classes_professeur = [affectation.classe for affectation in affectations]
+    emplois_actifs = EmploiDuTemps.objects.filter(classe__in=classes_professeur, est_actif=True)
+    emplois_publies = emplois_actifs.filter(statut_publication='publie')
+    emploi_publie_disponible = emplois_publies.exists()
+    
+    if emploi_publie_disponible:
+        creneaux_aujourdhui = CreneauEmploiDuTemps.objects.filter(
+            professeur=professeur,
+            jour=jour_actuel,
+            emploi_du_temps__in=emplois_publies
+        ).select_related('emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('periode_etablissement__ordre', 'heure_debut')
+    else:
+        creneaux_aujourdhui = []
     
     # Ajouter icônes et couleurs aux créneaux d'aujourd'hui
     from ..controllers.emploi_du_temps_controller import get_matiere_config
@@ -167,6 +182,10 @@ def dashboard_enseignant(request):
             'statut_label': statut_label,
         })
     
+    notifications_non_lues = NotificationEnseignant.objects.filter(
+        enseignant=professeur, statut='non_lu'
+    ).count()
+    
     context = {
         'professeur': professeur,
         
@@ -175,6 +194,7 @@ def dashboard_enseignant(request):
         'total_eleves': total_eleves,
         'evaluations_a_venir': evaluations_a_venir,
         'messages_non_lus': messages_non_lus,
+        'notifications_enseignant_non_lues': notifications_non_lues,
         
         # Classes
         'classes_data': classes_data,
@@ -184,6 +204,8 @@ def dashboard_enseignant(request):
         'jour_actuel_display': jour_actuel.capitalize(),
         'date_actuelle': date_actuelle,
         'creneaux_aujourdhui': creneaux_aujourdhui,
+        'emploi_publie': emploi_publie_disponible,
+        'emploi_non_publie': (not emploi_publie_disponible) and emplois_actifs.exists(),
         
         # Devoirs et évaluations
         'devoirs_a_corriger': devoirs_a_corriger,
@@ -1516,6 +1538,7 @@ def noter_eleves_enseignant(request, classe_id):
             # Validation et enregistrement des notes
             errors = []
             notes_enregistrees = 0
+            eleves_avec_notes_modifiees = {}  # Dictionnaire pour suivre les élèves avec notes modifiées
             
             # Vérifier s'il y a une session d'examen pour cette période/classe/matière
             from ..model.session_examen_model import SessionExamen
@@ -1570,6 +1593,9 @@ def noter_eleves_enseignant(request, classe_id):
                                         errors.append(f"{eleve.nom_complet} : Note supérieure au barème ({evaluation.bareme})")
                                         continue
                                     
+                                    # Récupérer la note existante pour vérifier si elle a changé
+                                    note_existante = Note.objects.filter(eleve=eleve, evaluation=evaluation).first()
+                                    
                                     # Enregistrer ou mettre à jour la note
                                     note_obj, created = Note.objects.update_or_create(
                                         eleve=eleve,
@@ -1580,7 +1606,43 @@ def noter_eleves_enseignant(request, classe_id):
                                             'matiere': matiere_note
                                         }
                                     )
-                                    notes_enregistrees += 1
+                                    
+                                    # Vérifier si la note a réellement changé
+                                    note_a_change = (
+                                        created or 
+                                        (note_existante and note_existante.note != note_decimal) or 
+                                        (note_existante and note_existante.absent != False)
+                                    )
+                                    
+                                    if note_a_change:
+                                        notes_enregistrees += 1
+                                        # Ajouter l'élève à la liste des élèves avec notes modifiées
+                                        if eleve not in eleves_avec_notes_modifiees:
+                                            eleves_avec_notes_modifiees[eleve] = []
+                                        eleves_avec_notes_modifiees[eleve].append({
+                                            'type': 'evaluation',
+                                            'nom': evaluation.titre,
+                                            'note': note_decimal,
+                                            'bareme': evaluation.bareme
+                                        })
+
+                                        try:
+                                            ParentNotificationService.notify_note(
+                                                eleve=eleve,
+                                                matiere_nom=(matiere_note.nom if matiere_note else matiere_enseignee.nom),
+                                                note_obtenue=note_decimal,
+                                                bareme=evaluation.bareme,
+                                                evaluation_nom=evaluation.titre,
+                                                professeur_nom=getattr(professeur, 'nom_complet', str(professeur)),
+                                                date_evaluation=getattr(evaluation, 'date_evaluation', None),
+                                                source=note_obj,
+                                            )
+                                        except Exception as notification_error:
+                                            logger.error(
+                                                "Erreur lors de la notification parent pour la note d'évaluation (collège/lycée): %s",
+                                                notification_error,
+                                                exc_info=True,
+                                            )
                                     
                                 except (ValueError, Exception) as e:
                                     logger.error(f"Erreur saisie note pour {eleve.nom_complet}: {str(e)}")
@@ -1598,6 +1660,13 @@ def noter_eleves_enseignant(request, classe_id):
                                     if note_examen_decimal < 0 or note_examen_decimal > 20:
                                         errors.append(f"{eleve.nom_complet} : Note d'examen invalide (doit être entre 0 et 20)")
                                         continue
+                                    
+                                    # Récupérer la note existante pour vérifier si elle a changé
+                                    note_examen_existante = NoteExamen.objects.filter(
+                                        eleve=eleve,
+                                        session_examen=session_examen_post,
+                                        matiere=matiere_enseignee
+                                    ).first()
                                     
                                     # Récupérer ou créer la note d'examen
                                     note_examen_obj, created = NoteExamen.objects.get_or_create(
@@ -1622,7 +1691,46 @@ def noter_eleves_enseignant(request, classe_id):
                                     note_examen_obj.note_sur_20 = note_examen_decimal  # Déjà sur 20
                                     note_examen_obj.save()
                                     
-                                    notes_enregistrees += 1
+                                    # Vérifier si la note a réellement changé
+                                    note_a_change = (
+                                        created or 
+                                        (note_examen_existante and note_examen_existante.note != note_examen_decimal) or 
+                                        (note_examen_existante and note_examen_existante.absent != False)
+                                    )
+                                    
+                                    if note_a_change:
+                                        notes_enregistrees += 1
+                                        # Ajouter l'élève à la liste des élèves avec notes modifiées
+                                        if eleve not in eleves_avec_notes_modifiees:
+                                            eleves_avec_notes_modifiees[eleve] = []
+                                        eleves_avec_notes_modifiees[eleve].append({
+                                            'type': 'examen',
+                                            'nom': session_examen_post.titre,
+                                            'note': note_examen_decimal,
+                                            'bareme': 20
+                                        })
+
+                                        try:
+                                            ParentNotificationService.notify_note(
+                                                eleve=eleve,
+                                                matiere_nom=matiere_enseignee.nom,
+                                                note_obtenue=note_examen_decimal,
+                                                bareme=getattr(note_examen_obj, 'bareme', 20),
+                                                evaluation_nom=getattr(
+                                                    session_examen_post,
+                                                    'titre',
+                                                    getattr(session_examen_post, 'nom_examen', 'Examen'),
+                                                ),
+                                                professeur_nom=getattr(professeur, 'nom_complet', str(professeur)),
+                                                date_evaluation=getattr(session_examen_post, 'date_debut', None),
+                                                source=note_examen_obj,
+                                            )
+                                        except Exception as notification_error:
+                                            logger.error(
+                                                "Erreur lors de la notification parent pour la note d'examen (collège/lycée): %s",
+                                                notification_error,
+                                                exc_info=True,
+                                            )
                                     
                                 except (ValueError, Exception) as e:
                                     logger.error(f"Erreur saisie note d'examen pour {eleve.nom_complet}: {str(e)}")
@@ -1632,6 +1740,57 @@ def noter_eleves_enseignant(request, classe_id):
                         messages.warning(request, f"{notes_enregistrees} notes enregistrées. Erreurs : " + " | ".join(errors[:5]))
                     else:
                         messages.success(request, f"✓ {notes_enregistrees} notes enregistrées avec succès !")
+                    
+                    # Envoyer des notifications push aux élèves dont les notes ont été modifiées
+                    if eleves_avec_notes_modifiees:
+                        try:
+                            from school_admin.services.firebase_service import FirebaseService
+                            
+                            for eleve, notes_modifiees in eleves_avec_notes_modifiees.items():
+                                # Construire le message personnalisé pour cet élève
+                                if len(notes_modifiees) == 1:
+                                    note_info = notes_modifiees[0]
+                                    title = f"📚 Nouvelle note - {matiere_enseignee.nom}"
+                                    body = f"Vous avez {note_info['note']}/{note_info['bareme']} pour {note_info['nom']}"
+                                else:
+                                    title = f"📚 {len(notes_modifiees)} nouvelles notes - {matiere_enseignee.nom}"
+                                    notes_texte = ", ".join([f"{n['note']}/{n['bareme']}" for n in notes_modifiees[:2]])
+                                    body = f"Nouvelles notes: {notes_texte}..."
+                                
+                                data = {
+                                    'type': 'notes',
+                                    'matiere_id': str(matiere_enseignee.id),
+                                    'matiere_nom': matiere_enseignee.nom,
+                                    'classe_id': str(classe.id),
+                                    'url': '/eleve/notes-evaluations/'
+                                }
+                                
+                                # Envoyer la notification à cet élève spécifique
+                                result = FirebaseService.send_notification_to_multiple_users(
+                                    [eleve], title, body, data
+                                )
+                                
+                                if result['success_count'] > 0:
+                                    logger.info(f"Notification envoyée à {eleve.nom_complet} : {body}")
+                                    
+                                try:
+                                    EleveNotificationService.notify_note(
+                                        eleve=eleve,
+                                        matiere_nom=matiere_enseignee.nom,
+                                        details={
+                                            "message": body,
+                                            "notes": notes_modifiees,
+                                        },
+                                        source=None,
+                                    )
+                                except Exception:
+                                    logger.exception(
+                                        "Échec notification élève %s pour note",
+                                        getattr(eleve, "id", "N/A"),
+                                    )
+                        
+                        except Exception as e:
+                            logger.error(f"Erreur lors de l'envoi des notifications: {str(e)}")
                     
             except Exception as e:
                 logger.error(f"Erreur transaction notes: {str(e)}")
@@ -2368,6 +2527,21 @@ def calculer_moyennes_classe(request, classe_id):
                     'created': created
                 })
                 
+                try:
+                    ParentNotificationService.notify_moyenne(
+                        eleve=eleve,
+                        moyenne_obtenue=moyenne_obj.moyenne,
+                        matiere_nom=matiere_enseignee.nom,
+                        periode_nom=getattr(periode_active_obj, 'nom_periode', None),
+                        source=moyenne_obj,
+                    )
+                except Exception as notification_error:
+                    logger.error(
+                        "Erreur lors de la notification parent pour la moyenne (collège/lycée): %s",
+                        notification_error,
+                        exc_info=True,
+                    )
+
                 logger.info(f"Moyenne calculée pour {eleve.nom_complet}: {moyenne_obj.moyenne}/20 ({notes.count()} notes) - Colonnes: {colonnes_selectionnees}")
         
         # Compter les notes retenues par évaluation pour la mise à jour de l'affichage
@@ -2388,6 +2562,61 @@ def calculer_moyennes_classe(request, classe_id):
             # afin que tout script d'UI l'affiche comme retenu par défaut
             examen_key = f'examen_{session_examen.id}'
             notes_retenues_par_eval[examen_key] = eleves.count() or 1
+        
+        # Envoyer des notifications push aux élèves pour les informer de leurs moyennes
+        if len(moyennes_calculees) > 0:
+            try:
+                from school_admin.services.firebase_service import FirebaseService
+                
+                # Envoyer une notification personnalisée à chaque élève avec sa moyenne
+                for moyenne_info in moyennes_calculees:
+                    try:
+                        eleve = Eleve.objects.get(id=moyenne_info['eleve_id'])
+                        moyenne_val = moyenne_info['moyenne']
+                        
+                        # Message personnalisé avec la moyenne de l'élève
+                        title = f"📊 Moyenne disponible - {matiere_enseignee.nom}"
+                        body = f"Vous avez {moyenne_val:.2f}/20 de moyenne en {matiere_enseignee.nom}"
+                        data = {
+                            'type': 'moyenne',
+                            'matiere_id': str(matiere_enseignee.id),
+                            'matiere_nom': matiere_enseignee.nom,
+                            'classe_id': str(classe.id),
+                            'moyenne': str(moyenne_val),
+                            'url': '/eleve/notes-evaluations/'
+                        }
+                        
+                        # Envoyer la notification à cet élève spécifique
+                        result = FirebaseService.send_notification_to_multiple_users(
+                            [eleve], title, body, data
+                        )
+                        
+                        if result['success_count'] > 0:
+                            logger.info(f"Notification de moyenne envoyée à {eleve.nom_complet} : {moyenne_val:.2f}/20")
+                            
+                        try:
+                            EleveNotificationService.notify_note(
+                                eleve=eleve,
+                                matiere_nom=matiere_enseignee.nom,
+                                details={
+                                    "message": body,
+                                    "moyenne": moyenne_val,
+                                },
+                                source=None,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Échec notification élève %s pour moyenne",
+                                getattr(eleve, "id", "N/A"),
+                            )
+                        
+                    except Eleve.DoesNotExist:
+                        logger.error(f"Élève {moyenne_info['eleve_id']} non trouvé pour l'envoi de notification")
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi de notification à l'élève {moyenne_info['eleve_id']}: {str(e)}")
+                        
+            except Exception as e:
+                logger.error(f"Erreur générale lors de l'envoi des notifications de moyennes: {str(e)}")
         
         return JsonResponse({
             'success': True,
@@ -2493,6 +2722,22 @@ def soumettre_releve_notes(request, classe_id):
         
         logger.info(f"Relevé soumis - Classe: {classe.nom}, Période: {periode_active.nom_periode}, Professeur: {professeur.nom_complet}")
         success_msg = f"✓ Relevé de notes soumis avec succès pour {periode_active.nom_periode} ! Les notes sont maintenant verrouillées."
+        
+        try:
+            DirecteurNotificationService.notify_releve_submission(
+                classe=classe,
+                professeur=professeur,
+                periode=periode_active,
+                matieres=[matiere_submit.nom if matiere_submit else None],
+                source=releve_notes,
+            )
+        except Exception as notification_error:
+            logger.error(
+                "Erreur lors de la notification directeur pour le relevé soumis: %s",
+                notification_error,
+                exc_info=True,
+            )
+        
         # Si appel AJAX, renvoyer JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             from django.http import JsonResponse
@@ -3512,6 +3757,137 @@ def valider_presence_enseignant(request, classe_id):
                 request, 
                 f"Liste de présence validée avec succès ! {nombre_presents} présent(s), {nombre_absents} absent(s)."
             )
+            
+            # Envoyer des notifications push aux élèves
+            try:
+                from school_admin.services.firebase_service import FirebaseService
+                
+                # Récupérer toutes les présences de cette liste
+                filters_presence = {
+                    'classe': classe,
+                    'date': today,
+                    'numero_appel': 1
+                }
+                if matiere_selectionnee:
+                    filters_presence['matiere'] = matiere_selectionnee
+                else:
+                    filters_presence['matiere__isnull'] = True
+                
+                presences = Presence.objects.filter(**filters_presence)
+                
+                # Préparer la date en clair avec heure
+                import locale
+                try:
+                    locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
+                except:
+                    try:
+                        locale.setlocale(locale.LC_TIME, 'French_France.1252')
+                    except:
+                        pass
+                
+                now = timezone.now()
+                # Format: lundi 12 juillet 2025 à 12h00
+                jour_semaine = now.strftime('%A')
+                jour = now.strftime('%d')
+                mois = now.strftime('%B')
+                annee = now.strftime('%Y')
+                heure = now.strftime('%H')
+                minute = now.strftime('%M')
+                date_claire = f"{jour_semaine} {jour} {mois} {annee} à {heure}h{minute}"
+                
+                for presence in presences:
+                    try:
+                        presence.refresh_from_db(fields=["statut", "date_modification"])
+                    except Exception:
+                        pass
+
+                    statut = presence.statut
+                    matiere_texte = (
+                        f" en {matiere_selectionnee.nom}" if matiere_selectionnee else ""
+                    )
+
+                    if statut == 'present':
+                        emoji = "✅"
+                        title = "📋 Appel de classe"
+                        body = (
+                            f"Vous avez été présent(e){matiere_texte} lors de l'appel du {date_claire}."
+                        )
+                    elif statut == 'absent':
+                        emoji = "❌"
+                        title = "⚠️ Absence enregistrée"
+                        body = (
+                            f"Vous avez été absent(e){matiere_texte} lors de l'appel du {date_claire}."
+                        )
+                    elif statut == 'absent_justifie':
+                        emoji = "📝"
+                        title = "📋 Absence justifiée"
+                        body = (
+                            f"Votre absence{matiere_texte} du {date_claire} a été enregistrée comme justifiée."
+                        )
+                    elif statut == 'retard':
+                        emoji = "⏰"
+                        title = "⏰ Retard enregistré"
+                        body = (
+                            f"Vous avez été en retard{matiere_texte} lors de l'appel du {date_claire}."
+                        )
+                    else:
+                        continue
+
+                    data = {
+                        'type': 'presence',
+                        'presence_id': str(presence.id),
+                        'statut': statut,
+                        'date': today.isoformat(),
+                        'classe': classe.nom,
+                        'url': '/eleve/dashboard/'
+                    }
+
+                    if matiere_selectionnee:
+                        data['matiere'] = matiere_selectionnee.nom
+
+                    # Notification push directe
+                    result = FirebaseService.send_notification_to_multiple_users(
+                        [presence.eleve], title, body, data
+                    )
+
+                    if result['success_count'] > 0:
+                        logger.info(
+                            "Notification de présence envoyée à %s - Statut: %s",
+                            presence.eleve.nom_complet,
+                            statut,
+                        )
+                    else:
+                        logger.warning(
+                            "Échec de l'envoi de notification de présence à %s",
+                            presence.eleve.nom_complet,
+                        )
+
+                    try:
+                        EleveNotificationService.notify_presence(
+                            presence,
+                            titre=title,
+                            message=body,
+                            payload=data,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Échec notification élève %s pour présence",
+                            getattr(presence.eleve, "id", "N/A"),
+                        )
+
+                    try:
+                        ParentNotificationService.notify_presence(
+                            presence,
+                            date_description=date_claire,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Échec notification parent pour présence %s",
+                            getattr(presence, "id", "N/A"),
+                        )
+
+            except Exception as e:
+                logger.error(f"Erreur lors de l'envoi des notifications de présence: {str(e)}")
             
     except Exception as e:
         logger.error(f"Erreur lors de la validation de la présence: {str(e)}")
@@ -4554,6 +4930,75 @@ def soumettre_sanction_eleve(request):
             request,
             f"Sanction '{sanction.get_type_sanction_display()}' enregistrée avec succès pour {eleve.nom_complet}."
         )
+        
+        # Envoyer les notifications push
+        try:
+            from school_admin.services.firebase_service import FirebaseService
+            
+            # Déterminer le message selon la gravité
+            if gravite == 'tres_grave':
+                emoji = "🚨"
+                gravite_texte = "très grave"
+            elif gravite == 'grave':
+                emoji = "⚠️"
+                gravite_texte = "grave"
+            elif gravite == 'moyenne':
+                emoji = "⚡"
+                gravite_texte = "moyenne"
+            else:
+                emoji = "📋"
+                gravite_texte = "légère"
+
+            # Notification élève
+            eleve_title = f"{emoji} Sanction disciplinaire"
+            eleve_body = f"Vous avez reçu une sanction de gravité {gravite_texte} : {sanction.get_type_sanction_display()}"
+            eleve_data = {
+                'type': 'sanction',
+                'sanction_id': str(sanction.id),
+                'type_sanction': type_sanction,
+                'raison': raison,
+                'gravite': gravite,
+                'date': date_sanction.isoformat(),
+                'url': '/eleve/dashboard/'
+            }
+
+            eleve_result = FirebaseService.send_notification_to_multiple_users(
+                [eleve], eleve_title, eleve_body, eleve_data
+            )
+
+            if eleve_result['success_count'] > 0:
+                logger.info(f"Notification de sanction envoyée à {eleve.nom_complet}")
+            else:
+                logger.warning(f"Échec de l'envoi de notification de sanction à {eleve.nom_complet}")
+
+            try:
+                EleveNotificationService.notify_sanction(eleve, sanction)
+            except Exception:
+                logger.exception(
+                    "Échec notification élève %s pour sanction", getattr(eleve, "id", "N/A")
+                )
+
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi des notifications de sanction: {str(e)}")
+
+        try:
+            DirecteurNotificationService.notify_sanction(sanction)
+        except Exception as notification_error:
+            logger.error(
+                "Erreur lors de la notification directeur pour la sanction: %s",
+                notification_error,
+                exc_info=True,
+            )
+
+        try:
+            ParentNotificationService.notify_sanction(sanction)
+        except Exception as notification_error:
+            logger.error(
+                "Erreur lors de la notification parent pour la sanction (collège/lycée): %s",
+                notification_error,
+                exc_info=True,
+            )
+        
     except Exception as e:
         logger.error(f"Erreur création sanction: {str(e)}")
         messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
@@ -4824,9 +5269,18 @@ def emploi_du_temps_enseignant(request):
     ).select_related('classe')
     
     # Récupérer tous les créneaux du professeur
-    creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
-        professeur=professeur
-    ).select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('jour', 'periode_etablissement__ordre', 'heure_debut')
+    classes_ids = affectations.values_list('classe', flat=True)
+    emplois_actifs = EmploiDuTemps.objects.filter(classe__in=classes_ids, est_actif=True)
+    emplois_publies = emplois_actifs.filter(statut_publication='publie')
+    emploi_publie_disponible = emplois_publies.exists()
+    
+    if emploi_publie_disponible:
+        creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
+            professeur=professeur,
+            emploi_du_temps__in=emplois_publies
+        ).select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('jour', 'periode_etablissement__ordre', 'heure_debut')
+    else:
+        creneaux_professeur = CreneauEmploiDuTemps.objects.none()
     
     # Récupérer la configuration horaire de l'établissement
     from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
@@ -4917,6 +5371,8 @@ def emploi_du_temps_enseignant(request):
         'nombre_creneaux': nombre_creneaux,
         'total_heures': round(total_heures, 1),
         'etablissement': professeur.etablissement,
+        'emploi_publie': emploi_publie_disponible,
+        'emploi_non_publie': (not emploi_publie_disponible) and emplois_actifs.exists(),
     }
     
     return render(request, 'school_admin/enseignant/emploi_du_temps.html', context)
@@ -5069,4 +5525,82 @@ def imprimer_tableau_presence_enseignant(request, classe_id):
     }
     
     return render(request, 'school_admin/enseignant/imprimer_tableau_presence.html', context)
+
+
+def notifications_enseignant(request):
+    """Affiche les notifications reçues par l'enseignant."""
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    from django.utils import timezone
+
+    enseignant = request.user
+
+    notifications = list(
+        NotificationEnseignant.objects.filter(enseignant=enseignant)
+        .order_by('-date_creation')
+    )
+    notification_ids = [notification.id for notification in notifications]
+
+    if notification_ids:
+        NotificationEnseignant.objects.filter(id__in=notification_ids).update(
+            statut='lu',
+            date_lecture=timezone.now(),
+            date_modification=timezone.now(),
+        )
+
+    notifications_non_lues = NotificationEnseignant.objects.filter(
+        enseignant=enseignant, statut='non_lu'
+    ).count()
+
+    context = {
+        'professeur': enseignant,
+        'notifications': notifications,
+        'notifications_enseignant_non_lues': notifications_non_lues,
+    }
+
+    response = render(
+        request,
+        'school_admin/enseignant/notifications_enseignant.html',
+        context,
+    )
+
+    if notification_ids:
+        NotificationEnseignant.objects.filter(id__in=notification_ids).delete()
+
+    return response
+
+
+def annonces_enseignant(request):
+    """Affiche toutes les annonces publiées destinées à l'enseignant."""
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    enseignant = request.user
+
+    from ..model.annonce_model import Annonce
+    from django.db.models import Q
+
+    annonces = (
+        Annonce.objects.filter(
+            etablissement=enseignant.etablissement,
+            statut='publiee',
+            actif=True,
+        )
+        .filter(
+            Q(destinataires__contains=['tous']) |
+            Q(destinataires__contains=['enseignants'])
+        )
+        .select_related('auteur_personnel', 'auteur_directeur')
+        .order_by('-date_publication', '-date_creation')
+    )
+
+    context = {
+        'professeur': enseignant,
+        'annonces': annonces,
+    }
+
+    return render(request, 'school_admin/enseignant/annonces_enseignant.html', context)
 

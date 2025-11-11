@@ -92,10 +92,30 @@ class ParentController:
                     'sanctions_recentes': sanctions_recentes
                 })
             
+            # Compter les annonces destinées aux parents
+            from school_admin.model.annonce_model import Annonce
+            
+            # Récupérer l'établissement du premier enfant s'il existe
+            etablissement = None
+            if enfants_data:
+                etablissement = enfants_data[0]['eleve'].etablissement
+            
+            nombre_annonces = 0
+            if etablissement:
+                nombre_annonces = Annonce.objects.filter(
+                    Q(etablissement=etablissement) &
+                    Q(statut='publiee') &
+                    Q(actif=True) &
+                    (Q(destinataires__contains=['tous']) | 
+                     Q(destinataires__contains=['parents']))
+                ).count()
+            
             context = {
                 'parent': parent,
                 'enfants_data': enfants_data,
-                'total_enfants': len(enfants_data)
+                'total_enfants': len(enfants_data),
+                'nombre_annonces': nombre_annonces,
+                'etablissement': etablissement,
             }
             
             return render(request, 'school_admin/parent/dashboard_parent.html', context)

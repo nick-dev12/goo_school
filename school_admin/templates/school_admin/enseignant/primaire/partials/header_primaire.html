@@ -10,7 +10,7 @@
       <div class="header-left">
         <div class="header-logo">
           <i class="fas fa-chalkboard-teacher"></i>
-          <span>Goo-School</span>
+          <span>Aria</span>
         </div>
       </div>
 
@@ -20,10 +20,14 @@
           <input type="text" placeholder="Rechercher..." />
         </div>
 
-        <button class="header-button" aria-label="Notifications">
+        <a href="{% url 'enseignant:notifications_enseignant' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
-          <span class="notification-badge">3</span>
-        </button>
+          <span class="notification-badge">{{ notifications_enseignant_non_lues|default:0 }}</span>
+        </a>
+
+        <a href="{% url 'enseignant:annonces_enseignant' %}" class="header-button" aria-label="Annonces">
+          <i class="fas fa-bullhorn"></i>
+        </a>
 
         <button class="header-button" aria-label="Messages">
           <i class="fas fa-envelope"></i>

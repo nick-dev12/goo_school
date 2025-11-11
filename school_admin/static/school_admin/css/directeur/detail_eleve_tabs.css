@@ -1140,3 +1140,374 @@
   }
 }
 
+/* ========================================
+   CARTE D'IDENTITÉ
+   ======================================== */
+
+.student-idcard-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+}
+
+.student-idcard-front,
+.student-idcard-back {
+  width: clamp(320px, 52vw, 480px);
+  aspect-ratio: 85.6 / 53.98;
+  max-height: 320px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 4px solid rgba(11, 144, 245, 0.85);
+  box-shadow: var(--shadow-card, 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.idcard-header {
+  display: grid;
+  grid-template-columns: 62px 1fr 86px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(113, 196, 248, 0.08);
+  border-bottom: 3px solid rgba(11, 148, 245, 0.35);
+  flex: 0 0 30%;
+}
+
+.idcard-body {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 5px;
+  padding: 5px 5px;
+  min-height: 0;
+}
+
+.idcard-footer {
+  flex: 0 0 10%;
+  padding: 8px 14px;
+  font-size: clamp(9px, 1.3vw, 10px);
+}
+
+.idcard-flag {
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.idcard-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.idcard-header-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.idcard-country {
+  font-size: 10px;
+  letter-spacing: 0.6px;
+}
+
+.idcard-motto {
+  font-size: 9px;
+  letter-spacing: 0.6px;
+}
+
+.idcard-school {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+.idcard-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.idcard-logo {
+  width: 86px;
+  height: 58px;
+  background: #ffffff;
+  border: 1px dashed rgba(15, 23, 42, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.idcard-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.idcard-logo-placeholder {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gray-500, #6b7280);
+  text-align: center;
+}
+
+.idcard-photo {
+  border-radius: 12px;
+  border: 2px solid rgba(15, 23, 42, 0.08);
+  height: 100%;
+  min-height: auto;
+  max-height: 80%;
+  background: var(--gray-100, #f3f4f6);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.idcard-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1.5px solid rgba(15, 23, 42, 0.12);
+}
+
+.idcard-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 130px !important;
+}
+
+.idcard-info-row {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 6px;
+  row-gap: 2px;
+  font-size: clamp(10px, 1.4vw, 11px);
+  line-height: 1.25;
+  align-items: baseline;
+}
+
+.idcard-info-row.double {
+  grid-template-columns: max-content 1fr max-content 1fr;
+}
+
+.idcard-info-row span {
+  white-space: nowrap;
+}
+
+.info-label {
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  font-weight: 700;
+  color: var(--gray-600, #4b5563);
+}
+
+.info-value {
+  color: var(--text-primary, #1f2937);
+  font-weight: 700;
+  min-width: 0;
+}
+
+.info-accent,
+.info-strong {
+  font-size: 11px;
+}
+
+.info-value-wrap {
+  white-space: normal;
+}
+
+.idcard-qr {
+  height: 100px;
+  width: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px dashed rgba(30, 64, 175, 0.3);
+  border-radius: 14px;
+  background: var(--gray-50, #f9fafb);
+}
+
+.idcard-qr img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.idcard-qr-placeholder {
+  text-align: center;
+  color: var(--gray-400, #9ca3af);
+  font-size: 16px;
+}
+
+.idcard-qr-placeholder i {
+  font-size: 42px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.idcard-footer {
+  padding: 10px 16px;
+  font-size: clamp(9px, 1.35vw, 10px);
+}
+
+.idcard-matricule {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.idcard-printed {
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.student-idcard-back {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #ffffff;
+  gap: 8px;
+}
+
+.idcard-back-header {
+  font-size: clamp(10px, 1.5vw, 11px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 10px;
+}
+
+.idcard-back-body {
+  flex: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 10px;
+  font-size: clamp(8.5px, 1.3vw, 10px);
+}
+
+.idcard-rules-card {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.07), rgba(124, 58, 237, 0.07));
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-subtle, 0 2px 6px rgba(0, 0, 0, 0.05));
+  overflow: hidden;
+}
+
+.idcard-rules {
+  padding-left: 16px;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.idcard-back-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.idcard-establishment {
+  display: grid;
+  gap: 3px;
+  font-size: clamp(8.5px, 1.25vw, 9.5px);
+}
+
+.signature-line {
+  display: grid;
+  gap: 3px;
+  font-size: clamp(8.5px, 1.25vw, 9.5px);
+}
+
+.signature-placeholder {
+  height: 18px;
+}
+
+.idcard-back-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px dashed rgba(15, 23, 42, 0.15);
+}
+
+.idcard-back-logo img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: grayscale(10%);
+}
+
+.idcard-back-motto {
+  font-size: clamp(8.5px, 1.25vw, 9.5px);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--gray-600, #4b5563);
+  flex: 1;
+  text-align: center;
+}
+
+@media (max-width: 1024px) {
+  .student-idcard-front,
+  .student-idcard-back {
+    width: clamp(300px, 65vw, 420px);
+  }
+
+  .idcard-body {
+    grid-template-columns: 28% minmax(0, 48%) 24%;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-idcard-wrapper {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .student-idcard-front,
+  .student-idcard-back {
+    width: min(300px, 100%);
+    max-height: none;
+  }
+
+  .idcard-body {
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+  }
+
+  .idcard-info-row.double {
+    grid-template-columns: max-content 1fr;
+  }
+
+  .idcard-qr {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+}

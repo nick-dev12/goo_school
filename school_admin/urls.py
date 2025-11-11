@@ -4,10 +4,29 @@ from .controllers.administrateur_compte_controller import AdministrateurCompteCo
 from .personal_views.administrateur_view import *
 from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
+from .api_views import fcm_views, fcm_test_views, test_notes_notifications
 
 app_name = 'school_admin'
 
 urlpatterns =[
+    # Service Worker Firebase (doit être à la racine)
+    path('firebase-messaging-sw.js', views.firebase_messaging_sw, name='firebase_messaging_sw'),
+    
+    # API FCM
+    path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),
+    path('api/fcm/delete-token/', fcm_views.delete_fcm_token, name='delete_fcm_token'),
+    path('api/fcm/test-notification/', fcm_test_views.test_notification, name='test_notification'),
+    path('api/fcm/check-status/', fcm_test_views.check_fcm_status, name='check_fcm_status'),
+    
+    # Page de test FCM
+    path('test-fcm/', views.test_fcm_page, name='test_fcm_page'),
+    
+    # API Test Notifications de Notes
+    path('api/test/send-note-notification/', test_notes_notifications.test_send_note_notification, name='test_send_note_notification'),
+    path('api/test/get-eleves-with-tokens/', test_notes_notifications.get_eleves_with_tokens, name='get_eleves_with_tokens'),
+    path('test-notes-notifications/', test_notes_notifications.test_notes_notifications_page, name='test_notes_notifications_page'),
+    
+
     # Autres routes existantes
     path('', dashboard_administrateur, name='dashboard'),
     path('etablissements/',etablissements, name='etablissements'),

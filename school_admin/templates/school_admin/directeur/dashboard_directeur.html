@@ -10,6 +10,10 @@
     />
     <link
       rel="stylesheet"
+      href="{% static 'school_admin/css/fcm_notifications.css' %}"
+    />
+    <link
+      rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <title>Tableau de bord - Directeur</title>
@@ -18,6 +22,21 @@
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="container">
+      <!-- Bouton d'activation des notifications -->
+      <button id="fcm-enable-btn" class="btn-activate-notifications" style="display: none;" onclick="activerNotifications()">
+        <i class="fas fa-bell"></i>
+        Activer les notifications
+      </button>
+      
+      <!-- Message de succès pour les notifications -->
+      <div id="fcm-success-message" class="fcm-success-banner" style="display: none;">
+        <i class="fas fa-check-circle"></i>
+        <div>
+          <strong>Notifications activées !</strong>
+          <p>Vous recevrez désormais des alertes importantes.</p>
+        </div>
+      </div>
+      
       <!-- Dashboard Overview -->
       <div class="dashboard-overview">
         <div class="key-indicators">
@@ -314,6 +333,10 @@
       <!-- Alertes et notifications importantes -->
     </div>
 
+    <!-- Conteneur pour les notifications toast -->
+    <div id="fcm-toast-container"></div>
+
     <script src="{% static 'school_admin/js/directeur/dashboard_directeur.js' %}"></script>
+    <script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
   </body>
 </html>

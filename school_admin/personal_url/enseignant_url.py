@@ -30,7 +30,9 @@ from ..personal_views.enseignant_view import (
     liste_sanctions_classe,
     parametres_profil_enseignant,
     emploi_du_temps_enseignant,
-    imprimer_tableau_presence_enseignant
+    imprimer_tableau_presence_enseignant,
+    notifications_enseignant,
+    annonces_enseignant,
 )
 
 app_name = 'enseignant'
@@ -66,5 +68,7 @@ urlpatterns = [
     path('enseignant/sanctions-classe/<int:classe_id>/', liste_sanctions_classe, name='liste_sanctions_classe'),
     path('enseignant/parametres-profil/', parametres_profil_enseignant, name='parametres_profil'),
     path('enseignant/emploi-du-temps/', emploi_du_temps_enseignant, name='emploi_du_temps'),
+    path('enseignant/notifications/', notifications_enseignant, name='notifications_enseignant'),
+    path('enseignant/annonces/', annonces_enseignant, name='annonces_enseignant'),
 ]
 

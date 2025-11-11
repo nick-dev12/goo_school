@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Bulletins - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletins_notes.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="container">
+      {% include 'school_admin/partials/messages.html' %}
+
+      {% if periodes_nav %}
+        <div class="period-tabs">
+          {% for periode in periodes_nav %}
+            <a href="{% url 'directeur:bulletins_notes' %}?periode={{ periode.id }}" class="period-tab{% if periode.est_active %} active{% endif %}">
+              <span class="period-name">{{ periode.nom }}</span>
+              <span class="period-meta">{{ periode.annee }}</span>
+              <span class="period-status-chip period-status-{{ periode.statut }}">
+                {% if periode.statut == 'en_cours' %}En cours{% elif periode.statut == 'a_venir' %}À venir{% else %}Terminée{% endif %}
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="page-header">
+        <div class="page-title-section">
+          <h1 class="page-title">
+            <i class="fas fa-file-alt"></i>
+            Gestion des bulletins
+          </h1>
+          <p class="page-subtitle">
+            Suivez la progression de génération des bulletins pour toutes les classes de {{ etablissement.nom }}
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="{% url 'directeur:configuration_moyennes_generales' %}" class="btn-primary">
+            <i class="fas fa-sliders-h"></i>
+            <span>Configuration du calcul des moyennes générales</span>
+          </a>
+          <a href="{% url 'directeur:configuration_standards_reussite' %}" class="btn-outline">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Configuration des standards de réussite</span>
+          </a>
+          <a href="{% url 'directeur:gestion_pedagogique' %}" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="bulletins-overview">
+        <div class="overview-card">
+          <div class="overview-icon primary">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="overview-content">
+            <span class="overview-label">Élèves concernés</span>
+            <span class="overview-value">{{ stats_generales.total_eleves }}</span>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="overview-content">
+            <span class="overview-label">Bulletins publiés</span>
+            <span class="overview-value">{{ stats_generales.bulletins_publies }}</span>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon info">
+            <i class="fas fa-percentage"></i>
+          </div>
+          <div class="overview-content">
+            <span class="overview-label">Progression globale</span>
+            <span class="overview-value">{{ stats_generales.progression_globale }}%</span>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon warning">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="overview-content">
+            <span class="overview-label">Classes finalisées</span>
+            <span class="overview-value">{{ stats_generales.classes_terminees }} / {{ stats_generales.total_classes }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <div class="tabs-nav">
+            {% for categorie, data in classes_grouped.items %}
+              <button class="tab-button {% if forloop.first %}active{% endif %}" data-tab="tab-{{ forloop.counter }}" onclick="switchMainTab('tab-{{ forloop.counter }}')">
+                <div class="tab-content">
+                  <div class="tab-icon">
+                    <i class="fas fa-layer-group"></i>
+                  </div>
+                  <div class="tab-info">
+                    <h4 class="tab-title">{{ categorie }}</h4>
+                    <p class="tab-subtitle">{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }}</p>
+                  </div>
+                  <div class="tab-stats">
+                    <span class="students-count">{{ data.total_eleves }}</span>
+                    <span class="students-label">élèves</span>
+                  </div>
+                </div>
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="tabs-content">
+          {% for categorie, data in classes_grouped.items %}
+            <div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+              <div class="category-info">
+                <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                <p>{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }} - {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</p>
+              </div>
+
+              <div class="classes-subtabs">
+                {% for classe_data in data.classes %}
+                  <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}" data-subtab="classe-{{ classe_data.classe.id }}" onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
+                    <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                    <span class="classe-count">{{ classe_data.bulletins.eleves_total }} élève{{ classe_data.bulletins.eleves_total|pluralize }}</span>
+                  </button>
+                {% endfor %}
+              </div>
+
+              {% for classe_data in data.classes %}
+                <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                  <div class="class-header">
+                    <div class="class-info">
+                      <h2 class="class-title">
+                        <i class="fas fa-school"></i>
+                        {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                      </h2>
+                      <p class="class-description">Gestion des bulletins et validations pour cette classe.</p>
+                    </div>
+                    <div class="class-stats">
+                      <div class="stat-item">
+                        <span class="stat-label">Élèves</span>
+                        <span class="stat-value">{{ classe_data.bulletins.eleves_total }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Bulletins prêts</span>
+                        <span class="stat-value">{{ classe_data.bulletins.eleves_avec_bulletin }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Progression</span>
+                        <span class="stat-value">{{ classe_data.bulletins.progression }}%</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Matières</span>
+                        <span class="stat-value">{{ classe_data.bulletins.nb_matieres }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bulletin-progress-wrapper">
+                    <div class="progress-bar">
+                      <div class="progress-fill" style="width: {{ classe_data.bulletins.progression }}%"></div>
+                    </div>
+                    <div class="progress-meta">
+                      <span>{{ classe_data.bulletins.eleves_avec_bulletin }} / {{ classe_data.bulletins.eleves_total }} élèves avec bulletins validés</span>
+                      {% if classe_data.bulletins.derniere_soumission %}
+                        <span class="last-update">Dernière mise à jour : {{ classe_data.bulletins.derniere_soumission|date:"d/m/Y H:i" }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="bulletin-actions">
+                    <a href="{% url 'directeur:calculer_moyennes_periode' classe_data.classe.id %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-primary">
+                      <i class="fas fa-calculator"></i>
+                      Calculer les moyennes de la période
+                    </a>
+                    <button
+                      type="submit"
+                      class="btn-primary btn-publish"
+                      form="visibility-form-{{ classe_data.classe.id }}"
+                      formaction="{% url 'directeur:publier_bulletins_classe' classe_data.classe.id %}"
+                      {% if not classe_data.bulletins.moyennes_calculees %}disabled title="Calculez la moyenne générale avant de publier."{% elif not classe_data.bulletins.eleves_total %}disabled title="Aucun élève dans cette classe."{% endif %}
+                    >
+                        <i class="fas fa-bullhorn"></i>
+                        {% if classe_data.bulletins.publication_complete %}
+                          Re-publier les bulletins
+                        {% else %}
+                          Publier les bulletins
+                        {% endif %}
+                      </button>
+                    <a href="{% url 'directeur:notes_et_resultats' %}" class="btn-outline">
+                      <i class="fas fa-chart-line"></i>
+                      Détails des notes
+                    </a>
+                    <a href="{% url 'directeur:imprimer_releve_notes' classe_data.classe.id %}" class="btn-outline" target="_blank">
+                      <i class="fas fa-print"></i>
+                      Imprimer relevés
+                    </a>
+                    <a href="{% url 'directeur:imprimer_bulletins_classe' classe_data.classe.id %}" class="btn-outline" target="_blank">
+                      <i class="fas fa-file-alt"></i>
+                      Imprimer tous les bulletins
+                    </a>
+                  </div>
+
+                  <div class="students-section">
+                    <div class="section-header">
+                      <h3 class="section-title">
+                        <i class="fas fa-list"></i>
+                        Liste des élèves ({{ classe_data.bulletins.eleves|length }})
+                      </h3>
+                    </div>
+
+                    {% if classe_data.bulletins.eleves %}
+                      <form
+                        id="visibility-form-{{ classe_data.classe.id }}"
+                        method="post"
+                        action="{% url 'directeur:mettre_a_jour_visibilite_bulletins' classe_data.classe.id %}"
+                        class="students-visibility-form"
+                      >
+                        {% csrf_token %}
+                        {% if periode_active %}
+                          <input type="hidden" name="periode" value="{{ periode_active.id }}" />
+                        {% endif %}
+                        <input type="hidden" name="visibility_form_submitted" value="1" />
+
+                        <div class="students-visibility-info">
+                          <i class="fas fa-info-circle"></i>
+                          <div>
+                            <p class="visibility-tip">
+                              Cochez les élèves pour rendre leur bulletin visible dans les espaces élèves et parents.
+                            </p>
+                            <p class="visibility-warning">
+                              <i class="fas fa-exclamation-triangle"></i>
+                              <strong>Attention :</strong> si vous décochez un élève, ni lui ni ses parents ne pourront voir sa moyenne générale ni son bulletin dans leur tableau de bord.
+                            </p>
+                          </div>
+                        </div>
+
+                      <div class="students-list {% if classe_data.bulletins.moyennes_calculees %}with-moyennes{% endif %}">
+                        <div class="list-header">
+                            <div class="list-cell header-cell checkbox-header" title="Visibilité">
+                              <i class="fas fa-eye"></i>
+                            </div>
+                          <div class="list-cell header-cell">Élève</div>
+                          <div class="list-cell header-cell">Matricule</div>
+                          {% if classe_data.bulletins.moyennes_calculees %}
+                            <div class="list-cell header-cell">Moyenne générale</div>
+                            <div class="list-cell header-cell">Rang</div>
+                          {% endif %}
+                          <div class="list-cell header-cell">Statut bulletin</div>
+                          <div class="list-cell header-cell">Statut publication</div>
+                          <div class="list-cell header-cell actions-header">Actions</div>
+                        </div>
+                        
+                        {% for eleve in classe_data.bulletins.eleves %}
+                          <div class="list-row">
+                              <div class="list-cell checkbox-cell" data-label="Visibilité">
+                                <label class="student-visibility-toggle" title="Afficher le bulletin de {{ eleve.nom }}">
+                                  <input
+                                    type="checkbox"
+                                    name="eleves"
+                                    value="{{ eleve.id }}"
+                                    class="bulletin-toggle"
+                                    aria-label="Afficher le bulletin de {{ eleve.nom }}"
+                                    {% if eleve.afficher_bulletin %}checked{% endif %}
+                                    {% if not classe_data.bulletins.moyennes_calculees %}disabled{% endif %}
+                                  />
+                                </label>
+                              </div>
+
+                            <div class="list-cell student-cell">
+                              <div class="student-avatar-small">
+                                <i class="fas fa-user"></i>
+                              </div>
+                              <div class="student-info-compact">
+                                <h4 class="student-name">{{ eleve.nom }}</h4>
+                                <p class="student-email">Élève</p>
+                              </div>
+                            </div>
+                            
+                            <div class="list-cell" data-label="Matricule">
+                              <span class="student-number">{{ eleve.matricule }}</span>
+                            </div>
+                            
+                            {% if classe_data.bulletins.moyennes_calculees %}
+                              <div class="list-cell" data-label="Moyenne générale">
+                                  {% if eleve.moyenne_generale is not None and eleve.afficher_bulletin %}
+                                  <span class="moyenne-value {% if eleve.moyenne_generale >= 10 %}moyenne-reussie{% else %}moyenne-echec{% endif %}">
+                                    {{ eleve.moyenne_generale|floatformat:2 }}/20
+                                  </span>
+                                  {% elif eleve.moyenne_generale is not None %}
+                                    <span class="moyenne-value moyenne-masquee" title="Bulletin masqué">
+                                      Masqué
+                                    </span>
+                                {% else %}
+                                  <span class="moyenne-value moyenne-absence">—</span>
+                                {% endif %}
+                              </div>
+                              
+                              <div class="list-cell" data-label="Rang">
+                                  {% if eleve.rang and eleve.afficher_bulletin %}
+                                  <span class="rang-value">
+                                    <i class="fas fa-trophy"></i>
+                                    {{ eleve.rang }}{% if eleve.rang == 1 %}er{% else %}ème{% endif %}
+                                  </span>
+                                  {% elif eleve.rang %}
+                                    <span class="rang-value rang-masque" title="Bulletin masqué">Masqué</span>
+                                {% else %}
+                                  <span class="rang-value rang-absence">—</span>
+                                {% endif %}
+                              </div>
+                            {% endif %}
+                            
+                            <div class="list-cell" data-label="Statut bulletin">
+                                {% if not eleve.afficher_bulletin %}
+                                  <span class="status-badge status-masque">
+                                    <i class="fas fa-eye-slash"></i>
+                                    Masqué
+                                  </span>
+                                {% elif eleve.bulletin_valide %}
+                                <span class="status-badge status-validé">
+                                  <i class="fas fa-check-circle"></i>
+                                  Bulletin validé
+                                </span>
+                              {% else %}
+                                <span class="status-badge status-en-attente">
+                                  <i class="fas fa-hourglass-half"></i>
+                                  En attente
+                                </span>
+                              {% endif %}
+                            </div>
+
+                            <div class="list-cell" data-label="Statut publication">
+                              {% if eleve.publie %}
+                                <span class="status-badge status-publie" {% if eleve.date_publication %}title="Publié le {{ eleve.date_publication|date:'d/m/Y H:i' }}"{% endif %}>
+                                  <i class="fas fa-bullhorn"></i>
+                                  Publié
+                                </span>
+                              {% else %}
+                                <span class="status-badge status-non-publie">
+                                  <i class="fas fa-bell-slash"></i>
+                                  Non publié
+                                </span>
+                              {% endif %}
+                            </div>
+
+                            <div class="list-cell actions-cell" data-label="Actions">
+                              <div class="student-actions-compact">
+                                <a href="{{ eleve.bulletin_url }}" class="btn-action-small btn-view" title="Voir le bulletin" {% if not eleve.bulletin_valide %}data-status="pending"{% endif %}>
+                                  <i class="fas fa-eye"></i>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                        <div class="students-visibility-actions">
+                          <button
+                            type="submit"
+                            class="btn-outline btn-visibility"
+                            {% if not classe_data.bulletins.moyennes_calculees %}disabled title="Les moyennes générales doivent être calculées avant d'ajuster la visibilité des bulletins."{% endif %}
+                          >
+                            <i class="fas fa-save"></i>
+                            Mettre à jour la visibilité
+                          </button>
+                        </div>
+                      </form>
+                    {% else %}
+                      <div class="empty-state">
+                        <div class="empty-icon">
+                          <i class="fas fa-user-slash"></i>
+                        </div>
+                        <h3 class="empty-title">Aucun élève inscrit</h3>
+                        <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="periods-section">
+                    <h3 class="section-title">
+                      <i class="fas fa-calendar-alt"></i>
+                      Progression par période
+                    </h3>
+                    <div class="periods-grid">
+                      {% if classe_data.bulletins.periodes %}
+                        {% for periode in classe_data.bulletins.periodes %}
+                          <div class="period-card">
+                            <div class="period-header">
+                              <span class="period-name">{{ periode.nom }}</span>
+                              {% if periode.statut %}
+                                <span class="period-status period-status-{{ periode.statut }}">{{ periode.statut|title }}</span>
+                              {% endif %}
+                            </div>
+                            <div class="period-meta">
+                              <span>{{ periode.eleves_avec_bulletin }} / {{ periode.total_eleves }} élèves</span>
+                              <span>{{ periode.progression }}%</span>
+                            </div>
+                            <div class="period-progress">
+                              <div class="progress-bar small">
+                                <div class="progress-fill" style="width: {{ periode.progression }}%"></div>
+                              </div>
+                            </div>
+                            {% if periode.derniere_soumission %}
+                              <div class="period-footer">
+                                <i class="fas fa-history"></i>
+                                Dernière validation : {{ periode.derniere_soumission|date:"d/m/Y H:i" }}
+                              </div>
+                            {% endif %}
+                          </div>
+                        {% endfor %}
+                      {% else %}
+                        <p class="empty-state">
+                          <i class="fas fa-info-circle"></i>
+                          Aucune donnée de moyenne n'a encore été enregistrée pour cette classe.
+                        </p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function switchMainTab(tabId) {
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+        const targetBtn = document.querySelector(`[data-tab="${tabId}"]`);
+        const targetPanel = document.getElementById(tabId);
+        if (targetBtn && targetPanel) {
+          targetBtn.classList.add('active');
+          targetPanel.classList.add('active');
+        }
+      }
+
+      function switchClasseTab(event, subtabId) {
+        const container = event.currentTarget.closest('.tab-panel');
+        container.querySelectorAll('.classe-subtab-btn').forEach(btn => btn.classList.remove('active'));
+        container.querySelectorAll('.classe-subtab-content').forEach(panel => panel.classList.remove('active'));
+
+        event.currentTarget.classList.add('active');
+        const target = container.querySelector(`#${subtabId}`);
+        if (target) {
+          target.classList.add('active');
+        }
+      }
+    </script>
+  </body>
+</html>
+

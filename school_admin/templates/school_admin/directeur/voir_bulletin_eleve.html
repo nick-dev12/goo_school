@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bulletin de {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+  </head>
+  <body class="bulletin-eleve-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="bulletin-eleve-container">
+      {% include 'school_admin/partials/messages.html' %}
+
+      <div class="bulletin-actions">
+        <a href="{{ retour_url }}" class="btn-action btn-back">
+          <i class="fas fa-arrow-left"></i>
+          <span>Retour aux bulletins</span>
+        </a>
+        <a href="{% url 'directeur:calculer_moyenne_eleve' classe.id eleve.id %}" class="btn-action btn-calculate">
+          <i class="fas fa-calculator"></i>
+          <span>Calculer la moyenne générale</span>
+        </a>
+        <a href="{{ impression_url }}" class="btn-action btn-print" target="_blank" rel="noopener">
+          <i class="fas fa-print"></i>
+          <span>Imprimer le bulletin</span>
+        </a>
+      </div>
+
+      <div class="bulletin-sheet">
+        <header class="institution-header">
+          <div class="institution-left">
+            <div class="institution-logo">
+              {% if etablissement.logo %}
+                <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" />
+              {% else %}
+                <span class="logo-placeholder"><i class="fas fa-school"></i></span>
+              {% endif %}
+            </div>
+            <div class="institution-info">
+              <h1>{{ etablissement.nom }}</h1>
+              <p>{% if etablissement.adresse %}{{ etablissement.adresse }}{% endif %}{% if etablissement.ville %}, {{ etablissement.ville }}{% endif %}{% if etablissement.pays %}, {{ etablissement.pays }}{% endif %}</p>
+              <p class="contact-line">
+                {% if etablissement.telephone %}<span><i class="fas fa-phone"></i> {{ etablissement.telephone }}</span>{% endif %}
+                {% if etablissement.email %}<span><i class="fas fa-envelope"></i> {{ etablissement.email }}</span>{% endif %}
+              </p>
+            </div>
+          </div>
+          <div class="institution-right">
+            <p><strong>Année scolaire :</strong> {{ periode.annee_scolaire }}</p>
+            <p><strong>Période :</strong> {{ periode.nom_periode }}</p>
+            <p><strong>Date d'édition :</strong> {{ date_generation|date:"d/m/Y" }}</p>
+            <p><strong>Effectif :</strong> {{ classe_effectif }} élève{{ classe_effectif|pluralize }}</p>
+          </div>
+        </header>
+
+        <section class="student-info-section">
+          <div class="student-info-grid">
+            <div class="info-item">
+              <span class="label">Nom de l'élève</span>
+              <span class="value">{{ eleve.nom_complet }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Matricule</span>
+              <span class="value">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Classe</span>
+              <span class="value">{{ classe.nom }} – {{ classe.get_niveau_display }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Date de naissance</span>
+              <span class="value">{% if eleve.date_naissance %}{{ eleve.date_naissance|date:"d/m/Y" }}{% else %}-{% endif %}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Lieu de naissance</span>
+              <span class="value">{{ eleve.lieu_naissance|default:'-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Sexe</span>
+              <span class="value">{% if eleve.sexe == 'M' %}Masculin{% elif eleve.sexe == 'F' %}Féminin{% else %}-{% endif %}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="bulletin-table-section">
+          <div class="table-wrapper">
+            <table class="bulletin-main-table">
+              <thead>
+                <tr>
+                  <th>Matière</th>
+                  <th>Moyenne de classe</th>
+                  <th>Note d'examen</th>
+                  <th>Coefficient</th>
+                  <th>Moyenne élève</th>
+                  <th>Rang</th>
+                  <th>Appréciations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for matiere in matieres_table %}
+                  <tr>
+                    <td>{{ matiere.nom }}</td>
+                    <td>
+                      {% if matiere.moyenne_classe is not None %}
+                        {{ matiere.moyenne_classe|floatformat:2 }}
+                      {% else %}
+                        –
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if matiere.note_examen is not None %}
+                        {{ matiere.note_examen|floatformat:2 }}
+                      {% else %}
+                        –
+                      {% endif %}
+                    </td>
+                    <td>{{ matiere.coefficient|floatformat:1 }}</td>
+                    <td>
+                      {% if matiere.moyenne_eleve is not None %}
+                        {{ matiere.moyenne_eleve|floatformat:2 }}
+                      {% else %}
+                        –
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if matiere.rang %}
+                        {{ matiere.rang }}
+                      {% else %}
+                        –
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if matiere.appreciation %}
+                        {{ matiere.appreciation }}
+                      {% else %}
+                        –
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="complementary-section">
+          <table class="complementary-table">
+            <tr>
+              <th>Moyenne de la période</th>
+              <td>{% if complement_info.moyenne_periode %}{{ complement_info.moyenne_periode|floatformat:2 }}/20{% else %}–{% endif %}</td>
+              <th>Rang général</th>
+              <td>
+                {% if complement_info.rang_general %}
+                  {{ complement_info.rang_general }}/{{ complement_info.effectif }}
+                {% else %}
+                  –
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Absences justifiées</th>
+              <td>{{ complement_info.absences_justifiees }}</td>
+              <th>Absences non justifiées</th>
+              <td>{{ complement_info.absences_non_justifiees }}</td>
+            </tr>
+            <tr>
+              <th>Appréciation générale</th>
+              <td colspan="3">{{ complement_info.appreciation_generale|default:'—' }}</td>
+            </tr>
+            <tr>
+              <th>Décision du conseil</th>
+              <td colspan="3">{{ complement_info.decision_conseil }}</td>
+            </tr>
+          </table>
+        </section>
+
+        <section class="footer-signatures">
+          <div class="signature-block">
+            <span class="signature-label">Le professeur principal</span>
+            <span class="signature-line"></span>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Le chef d'établissement</span>
+            <span class="signature-line"></span>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      /**
+       * Ajuste automatiquement la fenêtre d'impression sur Android.
+       * (optionnel si on veut conserver le comportement précédent)
+       */
+    </script>
+  </body>
+</html>

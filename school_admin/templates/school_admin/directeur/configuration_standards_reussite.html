@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configuration des standards de réussite - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/standards_reussite.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+  </head>
+  <body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="container">
+      {% include 'school_admin/partials/messages.html' %}
+
+      <div class="page-header">
+        <div class="page-title-section">
+          <h1 class="page-title">
+            <i class="fas fa-graduation-cap"></i>
+            Standards de réussite
+          </h1>
+          <p class="page-subtitle">
+            Configurez les seuils de réussite, les appréciations du conseil et les niveaux par matière pour {{ etablissement.nom }}.
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="{% url 'directeur:bulletins_notes' %}{% if periode_active_id %}?periode={{ periode_active_id }}{% endif %}" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour aux bulletins</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="standards-form-wrapper">
+        <div class="standards-sections">
+          <form method="post" class="standards-form" id="general-form">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="general" />
+            {% if periode_active_id %}
+              <input type="hidden" name="periode" value="{{ periode_active_id }}" />
+            {% endif %}
+
+            <div class="form-card">
+              <h2 class="form-card-title">
+                <i class="fas fa-chart-line"></i>
+                Seuils généraux
+              </h2>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="moyenne_passage" class="form-label required">
+                    <i class="fas fa-level-up-alt"></i>
+                    Moyenne minimale de passage
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="20"
+                    id="moyenne_passage"
+                    name="moyenne_passage"
+                    class="form-control"
+                    value="{{ standards.moyenne_passage|floatformat:'2' }}"
+                    required
+                  />
+                  <p class="form-help">Seuil minimal pour passer à la classe supérieure.</p>
+                </div>
+
+                <div class="form-group">
+                  <label for="moyenne_redoublement" class="form-label required">
+                    <i class="fas fa-sync-alt"></i>
+                    Moyenne de redoublement
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="20"
+                    id="moyenne_redoublement"
+                    name="moyenne_redoublement"
+                    class="form-control"
+                    value="{{ standards.moyenne_redoublement|floatformat:'2' }}"
+                    required
+                  />
+                  <p class="form-help">Seuil en dessous duquel un redoublement est recommandé.</p>
+                </div>
+
+                <div class="form-group form-group-full">
+                  <label for="appreciation_conseil" class="form-label">
+                    <i class="fas fa-comments"></i>
+                    Appréciation du conseil de classe (texte général)
+                  </label>
+                  <textarea
+                    id="appreciation_conseil"
+                    name="appreciation_conseil"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Ex: Passage avec félicitations du conseil..."
+                  >{{ standards.appreciation_conseil|default_if_none:'' }}</textarea>
+                  <p class="form-help">Texte affiché sur le bulletin lorsque l'élève satisfait les standards généraux.</p>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-save"></i>
+                  <span>Enregistrer les seuils</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <form method="post" class="standards-form" id="conseil-form">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="conseil" />
+            {% if periode_active_id %}
+              <input type="hidden" name="periode" value="{{ periode_active_id }}" />
+            {% endif %}
+
+            <div class="form-card">
+              <div class="form-card-header">
+                <h2 class="form-card-title">
+                  <i class="fas fa-chalkboard-teacher"></i>
+                  Appréciations du conseil de classe
+                </h2>
+                <button type="button" class="btn-outline btn-add-range" id="add-conseil">
+                  <i class="fas fa-plus"></i>
+                  Ajouter une appréciation
+                </button>
+              </div>
+
+              <p class="form-help">
+                Définissez les notes minimales qui déclenchent une appréciation spécifique (ex: ≥ 12 « Encouragements »).
+              </p>
+
+              <div class="ranges-container" id="conseil-container" data-next-index="{% if appreciations_conseil %}{{ appreciations_conseil|length }}{% else %}1{% endif %}">
+                {% if appreciations_conseil %}
+                  {% for conseil in appreciations_conseil %}
+                    <div class="range-row">
+                      <div class="range-fields">
+                        <label class="range-label">
+                          À partir de
+                          <input type="number" step="0.01" min="0" max="20" name="conseil-{{ forloop.counter0 }}-min" value="{{ conseil.min|floatformat:'2' }}" required />
+                        </label>
+                        <input type="text" name="conseil-{{ forloop.counter0 }}-label" value="{{ conseil.label }}" placeholder="Appréciation" required />
+                      </div>
+                      <button type="button" class="btn-icon btn-remove-range" title="Supprimer l'appréciation">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="range-row">
+                    <div class="range-fields">
+                      <label class="range-label">
+                        À partir de
+                        <input type="number" step="0.01" min="0" max="20" name="conseil-0-min" value="14" required />
+                      </label>
+                      <input type="text" name="conseil-0-label" value="Félicitations du conseil" placeholder="Appréciation" required />
+                    </div>
+                    <button type="button" class="btn-icon btn-remove-range" title="Supprimer l'appréciation">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-save"></i>
+                  <span>Enregistrer les appréciations du conseil</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <form method="post" class="standards-form" id="matieres-form">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="matieres" />
+            {% if periode_active_id %}
+              <input type="hidden" name="periode" value="{{ periode_active_id }}" />
+            {% endif %}
+
+            <div class="form-card">
+              <div class="form-card-header">
+                <h2 class="form-card-title">
+                  <i class="fas fa-layer-group"></i>
+                  Paliers d'appréciation des moyennes
+                </h2>
+                <button type="button" class="btn-outline btn-add-range" id="add-range">
+                  <i class="fas fa-plus"></i>
+                  Ajouter un palier
+                </button>
+              </div>
+
+              <p class="form-help">
+                Définissez les intervalles de moyennes et les appréciations correspondantes (ex: 10-12 Passable, 12-14 Assez bien).
+              </p>
+
+              <div class="ranges-container" id="ranges-container" data-next-index="{% if moyennes_standards %}{{ moyennes_standards|length }}{% else %}1{% endif %}">
+                {% if moyennes_standards %}
+                  {% for range in moyennes_standards %}
+                    <div class="range-row">
+                      <div class="range-fields">
+                        <label class="range-label">De
+                          <input type="number" step="0.01" min="0" max="20" name="ranges-{{ forloop.counter0 }}-min" value="{{ range.min|floatformat:'2' }}" required />
+                        </label>
+                        <label class="range-label">à
+                          <input type="number" step="0.01" min="0" max="20" name="ranges-{{ forloop.counter0 }}-max" value="{{ range.max|floatformat:'2' }}" required />
+                        </label>
+                        <input type="text" name="ranges-{{ forloop.counter0 }}-label" value="{{ range.label }}" placeholder="Appréciation" required />
+                      </div>
+                      <button type="button" class="btn-icon btn-remove-range" title="Supprimer le palier">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="range-row">
+                    <div class="range-fields">
+                      <label class="range-label">De
+                        <input type="number" step="0.01" min="0" max="20" name="ranges-0-min" value="10" required />
+                      </label>
+                      <label class="range-label">à
+                        <input type="number" step="0.01" min="0" max="20" name="ranges-0-max" value="12" required />
+                      </label>
+                      <input type="text" name="ranges-0-label" value="Passable" placeholder="Appréciation" required />
+                    </div>
+                    <button type="button" class="btn-icon btn-remove-range" title="Supprimer le palier">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-save"></i>
+                  <span>Enregistrer les paliers</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    <script>
+      (function () {
+        const rangesContainer = document.getElementById('ranges-container');
+        const addRangeBtn = document.getElementById('add-range');
+        const conseilContainer = document.getElementById('conseil-container');
+        const addConseilBtn = document.getElementById('add-conseil');
+
+        function createRangeRow(index, min = '', max = '', label = '') {
+          const row = document.createElement('div');
+          row.className = 'range-row';
+          row.innerHTML = `
+            <div class="range-fields">
+              <label class="range-label">De
+                <input type="number" step="0.01" min="0" max="20" name="ranges-temp-${index}-min" value="${min}" required />
+              </label>
+              <label class="range-label">à
+                <input type="number" step="0.01" min="0" max="20" name="ranges-temp-${index}-max" value="${max}" required />
+              </label>
+              <input type="text" name="ranges-temp-${index}-label" value="${label}" placeholder="Appréciation" required />
+            </div>
+            <button type="button" class="btn-icon btn-remove-range" title="Supprimer le palier">
+              <i class="fas fa-trash"></i>
+            </button>
+          `;
+          return row;
+        }
+
+        function createConseilRow(index, min = '', label = '') {
+          const row = document.createElement('div');
+          row.className = 'range-row';
+          row.innerHTML = `
+            <div class="range-fields">
+              <label class="range-label">
+                À partir de
+                <input type="number" step="0.01" min="0" max="20" name="conseil-temp-${index}-min" value="${min}" required />
+              </label>
+              <input type="text" name="conseil-temp-${index}-label" value="${label}" placeholder="Appréciation" required />
+            </div>
+            <button type="button" class="btn-icon btn-remove-range" title="Supprimer l'appréciation">
+              <i class="fas fa-trash"></i>
+            </button>
+          `;
+          return row;
+        }
+
+        function updateIndices() {
+          const rows = rangesContainer.querySelectorAll('.range-row');
+          rows.forEach((row, idx) => {
+            const inputs = row.querySelectorAll('input');
+            inputs.forEach((input) => {
+              if (input.name.endsWith('-min')) {
+                input.name = `ranges-${idx}-min`;
+              } else if (input.name.endsWith('-max')) {
+                input.name = `ranges-${idx}-max`;
+              } else if (input.name.endsWith('-label')) {
+                input.name = `ranges-${idx}-label`;
+              }
+            });
+          });
+          rangesContainer.setAttribute('data-next-index', rows.length);
+
+          const conseilRows = conseilContainer.querySelectorAll('.range-row');
+          conseilRows.forEach((row, idx) => {
+            const inputs = row.querySelectorAll('input');
+            inputs.forEach((input) => {
+              if (input.name.endsWith('-min')) {
+                input.name = `conseil-${idx}-min`;
+              } else if (input.name.endsWith('-label')) {
+                input.name = `conseil-${idx}-label`;
+              }
+            });
+          });
+          conseilContainer.setAttribute('data-next-index', conseilRows.length);
+        }
+
+        addRangeBtn.addEventListener('click', function () {
+          const nextIndex = parseInt(rangesContainer.getAttribute('data-next-index') || '0', 10);
+          const newRow = createRangeRow(nextIndex);
+          rangesContainer.appendChild(newRow);
+          updateIndices();
+        });
+
+        addConseilBtn.addEventListener('click', function () {
+          const nextIndex = parseInt(conseilContainer.getAttribute('data-next-index') || '0', 10);
+          const newRow = createConseilRow(nextIndex);
+          conseilContainer.appendChild(newRow);
+          updateIndices();
+        });
+
+        rangesContainer.addEventListener('click', function (event) {
+          if (event.target.closest('.btn-remove-range')) {
+            const rows = rangesContainer.querySelectorAll('.range-row');
+            if (rows.length > 1) {
+              event.target.closest('.range-row').remove();
+              updateIndices();
+            } else {
+              alert('Vous devez conserver au moins un palier.');
+            }
+          }
+        });
+
+        conseilContainer.addEventListener('click', function (event) {
+          if (event.target.closest('.btn-remove-range')) {
+            const rows = conseilContainer.querySelectorAll('.range-row');
+            if (rows.length > 1) {
+              event.target.closest('.range-row').remove();
+              updateIndices();
+            } else {
+              alert('Vous devez conserver au moins une appréciation.');
+            }
+          }
+        });
+
+        updateIndices();
+      })();
+    </script>
+  </body>
+</html>
+

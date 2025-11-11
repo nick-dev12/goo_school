@@ -7,7 +7,7 @@
                 <div class="header-left">
                     <div class="header-logo">
                         <i class="fas fa-graduation-cap"></i>
-                        <span>Goo-School</span>
+                        <span>Aria</span>
                     </div>
                 </div>
 
@@ -17,10 +17,14 @@
                         <input type="text" placeholder="Rechercher...">
                     </div>
 
-                    <button class="header-button" aria-label="Notifications">
+                    <a href="{% url 'eleve:notifications_eleve' %}" class="header-button" aria-label="Notifications">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">0</span>
-                    </button>
+                        <span class="notification-badge">{{ notifications_eleve_non_lues|default:0 }}</span>
+                    </a>
+
+                    <a href="{% url 'eleve:annonces_eleve' %}" class="header-button" aria-label="Annonces">
+                        <i class="fas fa-bullhorn"></i>
+                    </a>
 
                     <button class="header-button" aria-label="Messages">
                         <i class="fas fa-envelope"></i>
@@ -170,8 +174,6 @@
                             <p>Suivi d'assiduité</p>
                         </div>
                     </a>
-                    <!-- Sanctions visible uniquement pour les parents -->
-                    {% if est_parent %}
                     <a href="{% url 'school_admin:sanctions_eleve' %}" class="nav-link-card">
                         <div class="nav-card-icon neo-orange">
                             <i class="fas fa-gavel"></i>
@@ -181,7 +183,6 @@
                             <p>Sanctions disciplinaires</p>
                         </div>
                     </a>
-                    {% endif %}
                     <a href="#" class="nav-link-card">
                         <div class="nav-card-icon neo-cyan">
                             <i class="fas fa-calendar-day"></i>

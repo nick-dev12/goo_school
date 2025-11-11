@@ -20,7 +20,21 @@
 {% include 'school_admin/eleve/partials/header.html' %}
 
 <!-- Contenu principal -->
-{% if not emploi_du_temps %}
+{% if emploi_non_publie %}
+    <!-- Message si l'emploi du temps n'est pas publié -->
+    <div class="empty-state-container" style="max-width: 1200px; margin: 100px auto; padding: 60px 20px; background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); text-align: center;">
+        <div style="font-size: 64px; color: #cbd5e1; margin-bottom: 20px;">
+            <i class="fas fa-eye-slash"></i>
+        </div>
+        <h3 style="font-size: 22px; font-weight: 700; color: #475569; margin-bottom: 12px;">Emploi du temps non publié</h3>
+        <p style="font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 8px;">L'établissement n'a pas encore publié l'emploi du temps de votre classe.</p>
+        <p style="font-size: 15px; color: #64748b; line-height: 1.6;">Veuillez revenir plus tard ou contacter l'administration.</p>
+        <a href="{% url 'eleve:dashboard_eleve' %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #4a90e2, #357abd); color: white; border-radius: 10px; font-weight: 600; text-decoration: none; margin-top: 24px;">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+        </a>
+    </div>
+{% elif not emploi_du_temps %}
     <!-- Message si pas d'emploi du temps -->
     <div class="empty-state-container" style="max-width: 1200px; margin: 100px auto; padding: 60px 20px; background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); text-align: center;">
         <div style="font-size: 64px; color: #cbd5e1; margin-bottom: 20px;">

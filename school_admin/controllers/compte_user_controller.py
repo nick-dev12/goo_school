@@ -2,6 +2,8 @@
 from datetime import datetime, date
 import logging
 
+from urllib.parse import urlparse
+
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from ..model.compte_user import CompteUser
@@ -12,6 +14,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.urls import reverse
 from ..model.etablissement_model import Etablissement
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.eleve_model import Eleve
@@ -180,6 +183,27 @@ class CompteUserController:
             
             # Récupérer l'URL next du formulaire (peut être différente de celle dans l'URL)
             next_url = request.POST.get('next', next_url)
+
+            # Nettoyer l'URL de redirection pour éviter les assets ou URLs externes
+            if next_url:
+                parsed_next = urlparse(next_url)
+                next_path = parsed_next.path or ''
+                forbidden_extensions = (
+                    '.js', '.css', '.map', '.json', '.ico', '.png', '.jpg',
+                    '.jpeg', '.gif', '.svg', '.webmanifest', '.woff', '.woff2'
+                )
+
+                if not next_path.startswith('/'):
+                    next_url = ''
+                elif next_path.endswith(forbidden_extensions):
+                    next_url = ''
+                elif next_path == reverse('school_admin:connexion_compte_user'):
+                    next_url = ''
+                else:
+                    sanitized_next = next_path
+                    if parsed_next.query:
+                        sanitized_next = f"{sanitized_next}?{parsed_next.query}"
+                    next_url = sanitized_next
             
             # Vérification des champs
             if not form_data['username']:

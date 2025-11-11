@@ -1,0 +1,531 @@
+.bulletin-eleve-body {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  font-family: 'Poppins', sans-serif;
+  color: var(--gray-800);
+  min-height: 100vh;
+}
+
+.bulletin-eleve-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+.print-actions {
+  margin: 26px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.print-actions .btn-action {
+  min-width: 180px;
+  justify-content: center;
+}
+
+.no-print {
+  display: block;
+}
+
+.bulletin-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-action i {
+  font-size: 15px;
+}
+
+.btn-back {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  box-shadow: var(--shadow-subtle);
+}
+
+.btn-back:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+  color: var(--gray-900);
+}
+
+.btn-calculate {
+  background: var(--gradient-green);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-calculate:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-print {
+  background: var(--gradient-header, var(--gradient-blue));
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-print:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.bulletin-sheet {
+  background: var(--white);
+  border-radius: 22px;
+  box-shadow: var(--shadow-lg);
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.institution-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 3px solid var(--gray-200);
+  padding-bottom: 18px;
+  align-items: flex-start;
+}
+
+.institution-left {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.institution-logo img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.logo-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  background: var(--primary-light, rgba(59, 130, 246, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--directeur-primary, var(--primary));
+  font-size: 30px;
+}
+
+.institution-info h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 6px;
+}
+
+.institution-info p {
+  margin: 0;
+  color: var(--gray-600);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.contact-line {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.contact-line span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.institution-right {
+  text-align: right;
+  font-size: 14px;
+  color: var(--gray-600);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.institution-right strong {
+  color: var(--gray-800);
+}
+
+.student-info-section {
+  background: var(--gray-50);
+  border-radius: 16px;
+  padding: 20px 24px;
+  border: 1px solid var(--gray-200);
+}
+
+.student-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px 24px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item .label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.info-item .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.bulletin-table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--gray-900);
+}
+
+.section-header h2 i {
+  color: var(--directeur-primary, var(--primary));
+}
+
+.section-meta {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+}
+
+.bulletin-main-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+  border: 1px solid var(--gray-200);
+}
+
+.bulletin-main-table thead {
+  background: var(--gray-100);
+  color: var(--gray-600);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.bulletin-main-table th,
+.bulletin-main-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  text-align: left;
+  font-size: 14px;
+  border-right: 1px solid var(--gray-200);
+}
+
+.bulletin-main-table tbody tr:nth-child(even) {
+  background: var(--gray-50);
+}
+
+.bulletin-main-table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.bulletin-main-table td:nth-child(1) {
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.bulletin-main-table td:nth-child(3),
+.bulletin-main-table td:nth-child(4),
+.bulletin-main-table td:nth-child(5),
+.bulletin-main-table td:nth-child(6) {
+  text-align: center;
+}
+
+.bulletin-main-table th:last-child,
+.bulletin-main-table td:last-child {
+  border-right: none;
+}
+
+.complementary-section {
+  background: var(--gray-50);
+  border-radius: 16px;
+  padding: 20px 24px;
+  border: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.complementary-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gray-900);
+}
+
+.complementary-section h2 i {
+  color: var(--directeur-primary, var(--primary));
+}
+
+.complementary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.complementary-table th,
+.complementary-table td {
+  padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  font-size: 14px;
+}
+
+.complementary-table th {
+  background: var(--gray-100);
+  text-align: left;
+  width: 25%;
+  color: var(--gray-700);
+}
+
+.complementary-table td {
+  color: var(--gray-800);
+}
+
+.footer-signatures {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.signature-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.signature-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.signature-line {
+  width: 80%;
+  height: 1px;
+  background: var(--gray-300);
+}
+
+@media (max-width: 992px) {
+  .institution-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .institution-right {
+    text-align: left;
+  }
+
+  .bulletin-main-table {
+    min-width: 720px;
+  }
+
+  .footer-signatures {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .signature-block {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .bulletin-eleve-container {
+    padding: 24px 14px 40px;
+  }
+
+  .bulletin-sheet {
+    padding: 24px 20px;
+    gap: 20px;
+  }
+
+  .table-wrapper {
+    border-radius: 10px;
+  }
+
+  .institution-info h1 {
+    font-size: 20px;
+  }
+
+  .complementary-table th,
+  .complementary-table td {
+    font-size: 13px;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 11px;
+  }
+
+  .header-directeur,
+  .bulletin-actions,
+  .messages-container,
+  .main-navigation,
+  .page-header,
+  .bulletin-eleve-body > header,
+  .no-print {
+    display: none !important;
+  }
+
+  .bulletin-eleve-container {
+    padding: 0;
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .bulletin-sheet {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 10px 14px;
+    gap: 14px;
+  }
+
+  .bulletin-main-table tbody tr:hover {
+    background: transparent;
+  }
+
+  .institution-header {
+    width: 100%;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+  }
+
+  .institution-left {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .institution-info h1 {
+    font-size: 18px;
+  }
+
+  .institution-right {
+    font-size: 11px;
+    align-items: flex-end;
+  }
+
+  .student-info-grid {
+    gap: 10px 14px;
+  }
+
+  .info-item .value {
+    font-size: 13px;
+  }
+
+  .bulletin-main-table {
+    min-width: auto;
+    font-size: 11px;
+  }
+
+  .bulletin-main-table th,
+  .bulletin-main-table td {
+    padding: 6px 8px;
+    font-size: 11px;
+    border: 1px solid #3f3f46;
+  }
+
+  .table-wrapper {
+    overflow: visible;
+    border: none;
+    border-top: 1px solid #3f3f46;
+    border-left: 1px solid #3f3f46;
+    border-right: 1px solid #3f3f46;
+    border-bottom: 1px solid #3f3f46;
+  }
+
+  .complementary-section {
+    padding: 12px 14px;
+    border: 1px solid #3f3f46;
+  }
+
+  .complementary-table th,
+  .complementary-table td {
+    font-size: 11px;
+    padding: 6px 8px;
+    border: 1px solid #3f3f46;
+  }
+
+  .signature-label {
+    font-size: 11px;
+  }
+
+  .institution-logo img,
+  .logo-placeholder {
+    width: 60px;
+    height: 60px;
+  }
+
+  .footer-signatures {
+    gap: 18px;
+  }
+}

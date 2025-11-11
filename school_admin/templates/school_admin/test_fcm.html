@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test des notifications FCM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --danger: #ef4444;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: var(--gray-800);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .status-box {
+            background: var(--gray-100);
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .status-box.success {
+            border-left-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .status-box.warning {
+            border-left-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .status-box.error {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .status-value {
+            color: var(--gray-800);
+        }
+
+        .token-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .token-item {
+            background: var(--gray-100);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .token-item code {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin: 4px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .log-container {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .log-entry.success {
+            color: #86efac;
+        }
+
+        .log-entry.error {
+            color: #fca5a5;
+        }
+
+        .log-entry.info {
+            color: #93c5fd;
+        }
+
+        .log-time {
+            color: #94a3b8;
+            margin-right: 10px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/eleve/dashboard/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Retour au dashboard
+        </a>
+
+        <div class="header">
+            <h1><i class="fas fa-bell"></i> Test des Notifications FCM</h1>
+            <p>Testez et diagnostiquez le système de notifications push</p>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-info-circle"></i> Statut du système</h2>
+            <div id="statusContainer">
+                <p style="text-align: center; color: var(--gray-700);">
+                    <i class="fas fa-spinner fa-spin"></i> Chargement du statut...
+                </p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="checkStatus()">
+                    <i class="fas fa-sync-alt"></i> Actualiser le statut
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-paper-plane"></i> Envoyer une notification de test</h2>
+            <p style="margin-bottom: 20px; color: var(--gray-700);">
+                Cliquez sur le bouton ci-dessous pour envoyer une notification de test à votre appareil.
+            </p>
+            <div class="btn-group">
+                <button class="btn btn-success" id="testBtn" onclick="sendTestNotification()">
+                    <i class="fas fa-bell"></i> Envoyer la notification de test
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-terminal"></i> Journal des événements</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry info">
+                    <span class="log-time">[00:00:00]</span>
+                    <span>Système prêt. En attente d'actions...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString('fr-FR');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `<span class="log-time">[${time}]</span><span>${message}</span>`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function checkStatus() {
+            addLog('Vérification du statut FCM...', 'info');
+            
+            try {
+                const response = await fetch('/api/fcm/check-status/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(`✓ Statut récupéré avec succès`, 'success');
+                    displayStatus(data);
+                } else {
+                    addLog(`✗ Erreur: ${data.error}`, 'error');
+                    document.getElementById('statusContainer').innerHTML = `
+                        <div class="status-box error">
+                            <strong>Erreur:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                addLog(`✗ Erreur de connexion: ${error.message}`, 'error');
+                document.getElementById('statusContainer').innerHTML = `
+                    <div class="status-box error">
+                        <strong>Erreur de connexion:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayStatus(data) {
+            const statusHtml = `
+                <div class="status-box ${data.tokens_count > 0 ? 'success' : 'warning'}">
+                    <div class="status-item">
+                        <span class="status-label">Utilisateur:</span>
+                        <span class="status-value">${data.user.nom} (${data.user.type})</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Firebase initialisé:</span>
+                        <span class="status-value">${data.firebase_initialized ? '✓ Oui' : '✗ Non'}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Tokens FCM enregistrés:</span>
+                        <span class="status-value">${data.tokens_count}</span>
+                    </div>
+                </div>
+
+                ${data.tokens.length > 0 ? `
+                    <div class="token-list">
+                        <strong style="display: block; margin-bottom: 10px;">Liste des tokens:</strong>
+                        ${data.tokens.map(token => `
+                            <div class="token-item">
+                                <div><strong>ID:</strong> ${token.id}</div>
+                                <div><strong>Token:</strong> <code>${token.token_preview}</code></div>
+                                <div><strong>Type:</strong> ${token.device_type || 'N/A'}</div>
+                                <div><strong>Actif:</strong> ${token.is_active ? '✓ Oui' : '✗ Non'}</div>
+                                <div><strong>Créé:</strong> ${token.created_at}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('statusContainer').innerHTML = statusHtml;
+        }
+
+        async function sendTestNotification() {
+            const btn = document.getElementById('testBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Envoi en cours...';
+            
+            addLog('Envoi de la notification de test...', 'info');
+
+            try {
+                const response = await fetch('/api/fcm/test-notification/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(`✓ ${data.message}`, 'success');
+                    
+                    if (data.results) {
+                        data.results.forEach(result => {
+                            if (result.success) {
+                                addLog(`  ✓ Token ${result.token_id}: ${result.message_id}`, 'success');
+                            } else {
+                                addLog(`  ✗ Token ${result.token_id}: ${result.error}`, 'error');
+                            }
+                        });
+                    }
+                    
+                    alert('✓ Notification envoyée avec succès ! Vérifiez votre navigateur.');
+                } else {
+                    addLog(`✗ Erreur: ${data.error}`, 'error');
+                    alert(`Erreur: ${data.error}`);
+                }
+            } catch (error) {
+                addLog(`✗ Erreur de connexion: ${error.message}`, 'error');
+                alert(`Erreur: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-bell"></i> Envoyer la notification de test';
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Charger le statut au démarrage
+        window.addEventListener('DOMContentLoaded', () => {
+            checkStatus();
+        });
+    </script>
+</body>
+</html>
+

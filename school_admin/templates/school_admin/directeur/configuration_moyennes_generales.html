@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configuration des moyennes générales - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/configuration_moyennes.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+  </head>
+  <body class="configuration-page">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="config-container">
+      {% include 'school_admin/partials/messages.html' %}
+
+      <div class="page-header">
+        <div class="page-title-section">
+          <h1 class="page-title">
+            <i class="fas fa-sliders-h"></i>
+            Configuration du calcul des moyennes générales
+          </h1>
+          <p class="page-subtitle">
+            Ajustez les paramètres utilisés pour calculer les moyennes générales des élèves (pondérations, périodes, règles de validation).
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="{% url 'directeur:bulletins_notes' %}" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour aux bulletins</span>
+          </a>
+        </div>
+      </div>
+
+      <section class="config-section">
+        <h2 class="section-title"><i class="fas fa-balance-scale"></i> Pondération des composantes</h2>
+        <form method="post" class="config-card">
+          {% csrf_token %}
+          <p>
+            Configurez la pondération entre contrôle continu et examens pour l'année scolaire <strong>{{ annee_scolaire }}</strong>.
+          </p>
+
+          <div class="current-config">
+            <div class="current-config-header">
+              <span class="current-badge">Méthode actuelle</span>
+              <strong>
+                {% if methode_active %}
+                  {{ methode_active.label }}
+                {% else %}
+                  Classique (50/50)
+                {% endif %}
+              </strong>
+            </div>
+            <div class="current-config-values">
+              <div>
+                <span class="config-label">Contrôle continu</span>
+                <span class="config-value">{{ ponderation.poids_classe }}%</span>
+              </div>
+              <div>
+                <span class="config-label">Examens</span>
+                <span class="config-value">{{ ponderation.poids_examen }}%</span>
+              </div>
+            </div>
+          </div>
+
+          {% if errors %}
+            <div class="form-errors">
+              {% for error in errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if not est_primaire %}
+            <p class="info-banner">
+              <i class="fas fa-info-circle"></i>
+              Les configurations personnalisées seront bientôt disponibles pour votre type d'établissement. Les options sont affichées en lecture seule.
+            </p>
+          {% endif %}
+
+          <div class="method-grid">
+            {% for methode in methodes %}
+              <label class="method-card {% if ponderation.type_calcul == methode.key %}active{% endif %}">
+                <input type="radio"
+                       name="methode"
+                       value="{{ methode.key }}"
+                       {% if ponderation.type_calcul == methode.key %}checked{% endif %}
+                       {% if not est_primaire %}disabled{% endif %}>
+                <div class="method-content">
+                  <div class="method-header">
+                    <h3>{{ methode.label }}</h3>
+                    <span class="badge">{{ methode.classe }}% / {{ methode.examen }}%</span>
+                  </div>
+                  <div class="method-details">
+                    <div>
+                      <strong>Contrôle continu :</strong> {{ methode.classe }}%
+                    </div>
+                    <div>
+                      <strong>Examens :</strong> {{ methode.examen }}%
+                    </div>
+                    <p class="method-formula">Formule : {{ methode.formule }}</p>
+                  </div>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn-primary" {% if not est_primaire %}disabled{% endif %}>
+            <i class="fas fa-save"></i>
+            Enregistrer la pondération
+          </button>
+        </form>
+      </section>
+
+      <section class="config-section">
+        <h2 class="section-title"><i class="fas fa-calendar-alt"></i> Périodes scolaires actives</h2>
+        <div class="config-card">
+          {% if periodes %}
+            <div class="periods-list">
+              {% for periode in periodes %}
+                <div class="period-item">
+                  <div>
+                    <strong>{{ periode.nom_periode }}</strong>
+                    <span class="pill pill-{{ periode.type_periode }}">{{ periode.get_type_periode_display }}</span>
+                  </div>
+                  <div class="period-dates">
+                    <i class="fas fa-calendar"></i>
+                    {{ periode.date_debut|date:"d/m/Y" }} – {{ periode.date_fin|date:"d/m/Y" }}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="empty-state">
+              <i class="fas fa-info-circle"></i>
+              Aucune période scolaire n'est encore configurée pour cet établissement.
+            </p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="config-section">
+        <h2 class="section-title"><i class="fas fa-clipboard-check"></i> Règles de validation</h2>
+        <div class="config-card">
+          <ul class="rules-list">
+            <li>Un bulletin est considéré comme prêt lorsque toutes les moyennes de matière de l'élève sont soumises.</li>
+            <li>Les moyennes non soumises sont exclues du calcul de la moyenne générale.</li>
+            <li>Les absences et sanctions n'impactent pas la moyenne mais sont affichées dans le bulletin.</li>
+          </ul>
+          <p class="muted">Ces règles pourront être personnalisées dans une itération future.</p>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
+

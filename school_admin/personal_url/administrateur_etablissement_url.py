@@ -20,6 +20,7 @@ urlpatterns = [
     path('emplois-du-temps/', EmploiDuTempsController.liste_emplois_du_temps, name='liste_emplois_du_temps'),
     path('emplois-du-temps/classe/<int:classe_id>/', EmploiDuTempsController.detail_emploi_du_temps, name='detail_emploi_du_temps'),
     path('emplois-du-temps/classe/<int:classe_id>/creer/', EmploiDuTempsController.creer_emploi_du_temps, name='creer_emploi_du_temps'),
+    path('emplois-du-temps/<int:emploi_id>/publier/', EmploiDuTempsController.publier_emploi_du_temps, name='publier_emploi_du_temps'),
     
     # URLs pour la gestion des créneaux
     path('emplois-du-temps/<int:emploi_id>/ajouter-creneau/', EmploiDuTempsController.ajouter_creneau, name='ajouter_creneau'),

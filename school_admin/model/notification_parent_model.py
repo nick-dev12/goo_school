@@ -18,6 +18,7 @@ class NotificationParent(models.Model):
         ("moyenne", "Moyenne de période"),
         ("bulletin", "Bulletin disponible"),
         ("sanction", "Sanction appliquée"),
+        ("evaluation", "Évaluation programmée"),
         ("information", "Information générale"),
     ]
 

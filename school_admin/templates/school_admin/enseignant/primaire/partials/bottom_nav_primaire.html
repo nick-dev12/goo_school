@@ -1,0 +1,143 @@
+{% load static notes_tags %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}"
+/>
+<nav
+  class="enseignant-bottom-nav"
+  aria-label="Navigation principale de l’espace enseignant primaire"
+>
+  <ul class="bottom-nav-list">
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:dashboard' %}">
+        <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
+        <span class="label">Accueil</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'gestion_classes' or request.resolver_match.url_name == 'detail_classe' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:gestion_classes' %}">
+        <span class="icon-wrapper icon-classes"
+          ><i class="fas fa-chalkboard"></i
+        ></span>
+        <span class="label">Classes</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'gestion_eleves' or request.resolver_match.url_name == 'detail_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:gestion_eleves' %}">
+        <span class="icon-wrapper icon-eleves"
+          ><i class="fas fa-user-graduate"></i
+        ></span>
+        <span class="label">Élèves</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'gestion_notes' or request.resolver_match.url_name == 'noter_eleves' or request.resolver_match.url_name == 'liste_evaluations' or request.resolver_match.url_name == 'creer_evaluation' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:gestion_notes' %}">
+        <span class="icon-wrapper icon-notes"
+          ><i class="fas fa-clipboard-list"></i
+        ></span>
+        <span class="label">Notes</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'exercices_maison' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:exercices_maison' %}">
+        <span class="icon-wrapper icon-exercices"
+          ><i class="fas fa-book-open"></i
+        ></span>
+        <span class="label">Devoirs</span>
+      </a>
+    </li>
+    {% if professeur|peut_justifier_notes %}
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'justifications_notes' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:justifications_notes' %}">
+        <span class="icon-wrapper icon-justif"
+          ><i class="fas fa-scale-balanced"></i
+        ></span>
+        <span class="label">Justif.</span>
+      </a>
+    </li>
+    {% endif %}
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'gestion_presence' or request.resolver_match.url_name == 'liste_presence' or request.resolver_match.url_name == 'historique_presence' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:gestion_presence' %}">
+        <span class="icon-wrapper icon-presence"
+          ><i class="fas fa-calendar-check"></i
+        ></span>
+        <span class="label">Présence</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'parametres_profil' %}active{% endif %}"
+    >
+      <a href="{% url 'enseignant_primaire:parametres_profil' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-cog"></i
+        ></span>
+        <span class="label">Profil</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item menu-toggle-item">
+      <button
+        type="button"
+        class="menu-toggle-button"
+        id="enseignantNavTogglePrimaire"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="navigationSection"
+      >
+        <span class="icon-wrapper icon-menu"
+          ><i class="fas fa-ellipsis-h"></i
+        ></span>
+        <span class="label">Menu</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggleButton = document.getElementById('enseignantNavTogglePrimaire');
+    const navSection = document.getElementById('navigationSection');
+
+    if (!toggleButton || !navSection) {
+      return;
+    }
+
+    const getNavController = () => window.enseignantNavMenu;
+
+    toggleButton.addEventListener('click', () => {
+      const controller = getNavController();
+      if (!controller) {
+        return;
+      }
+
+      const isOpen = navSection.classList.contains('active');
+      if (isOpen) {
+        controller.close();
+      } else {
+        controller.open();
+      }
+    });
+
+    const setExpanded = (value) => {
+      toggleButton.setAttribute('aria-expanded', value ? 'true' : 'false');
+      toggleButton.classList.toggle('menu-open', value);
+    };
+
+    document.addEventListener('enseignantNavOpen', () => setExpanded(true));
+    document.addEventListener('enseignantNavClose', () => setExpanded(false));
+  });
+</script>
+

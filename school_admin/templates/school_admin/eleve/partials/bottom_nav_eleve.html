@@ -1,0 +1,195 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}"
+/>
+<nav
+  class="enseignant-bottom-nav bottom-nav-eleve"
+  aria-label="Navigation principale de l’espace élève"
+>
+  <ul class="bottom-nav-list">
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-core {% if request.resolver_match.url_name == 'dashboard_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:dashboard_eleve' %}">
+        <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
+        <span class="label">Accueil</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-core {% if request.resolver_match.url_name == 'emploi_du_temps' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:emploi_du_temps' %}">
+        <span class="icon-wrapper icon-emploi"
+          ><i class="fas fa-calendar-week"></i
+        ></span>
+        <span class="label">Emploi du temps</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-core {% if request.resolver_match.url_name == 'notes_evaluations' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:notes_evaluations' %}">
+        <span class="icon-wrapper icon-notes"
+          ><i class="fas fa-star"></i
+        ></span>
+        <span class="label">Notes</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-desktop-only {% if request.resolver_match.url_name == 'bulletin_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:bulletin_eleve' %}">
+        <span class="icon-wrapper icon-bulletin"
+          ><i class="fas fa-file-signature"></i
+        ></span>
+        <span class="label">Bulletin</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-core {% if request.resolver_match.url_name == 'absences_retards' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:absences_retards' %}">
+        <span class="icon-wrapper icon-absences"
+          ><i class="fas fa-calendar-times"></i
+        ></span>
+        <span class="label">Absences</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'profil_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:profil_eleve' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-circle"></i
+        ></span>
+        <span class="label">Profil</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'sanctions_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:sanctions_eleve' %}">
+        <span class="icon-wrapper icon-presence"
+          ><i class="fas fa-gavel"></i
+        ></span>
+        <span class="label">Sanctions</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'devoirs_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:devoirs_eleve' %}">
+        <span class="icon-wrapper icon-exercices"
+          ><i class="fas fa-tasks"></i
+        ></span>
+        <span class="label">Devoirs</span>
+      </a>
+    </li>
+    {% if request.resolver_match.url_name == 'annonces_eleve' %}
+    <li class="bottom-nav-item nav-item-extra active">
+      <a href="{% url 'eleve:annonces_eleve' %}">
+        <span class="icon-wrapper icon-annonces"
+          ><i class="fas fa-bullhorn"></i
+        ></span>
+        <span class="label">Annonces</span>
+      </a>
+    </li>
+    {% endif %}
+    {% if est_parent %}
+    <li class="bottom-nav-item nav-item-extra">
+      <a href="{% url 'school_admin:retour_selection_enfant' %}">
+        <span class="icon-wrapper icon-retour"
+          ><i class="fas fa-arrow-left"></i
+        ></span>
+        <span class="label">Retour</span>
+      </a>
+    </li>
+    {% endif %}
+    <li class="bottom-nav-item menu-toggle-item">
+      <button
+        type="button"
+        class="menu-toggle-button"
+        id="eleveNavToggle"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="navigationSection"
+      >
+        <span class="icon-wrapper icon-menu"
+          ><i class="fas fa-ellipsis-h"></i
+        ></span>
+        <span class="label">Menu</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggleButton = document.getElementById('eleveNavToggle');
+    const navSection = document.getElementById('navigationSection');
+    const navOverlay = document.getElementById('navOverlay');
+    const closeBtn = document.getElementById('closeNavMenu');
+
+    if (!toggleButton || !navSection || !navOverlay || !closeBtn) {
+      return;
+    }
+
+    const ensureController = () => {
+      if (window.eleveNavMenu) {
+        return window.eleveNavMenu;
+      }
+
+      const openFallback = () => {
+        navOverlay.classList.add('active');
+        navSection.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        document.dispatchEvent(new CustomEvent('eleveNavOpen'));
+      };
+
+      const closeFallback = () => {
+        navSection.classList.remove('active');
+        navOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+        document.dispatchEvent(new CustomEvent('eleveNavClose'));
+      };
+
+      closeBtn.addEventListener('click', closeFallback);
+      navOverlay.addEventListener('click', (event) => {
+        if (event.target === navOverlay) {
+          closeFallback();
+        }
+      });
+
+      window.eleveNavMenu = {
+        open: openFallback,
+        close: closeFallback,
+      };
+
+      return window.eleveNavMenu;
+    };
+
+    toggleButton.addEventListener('click', () => {
+      const controller = ensureController();
+      if (!controller) {
+        return;
+      }
+      const isOpen = navSection.classList.contains('active');
+      if (isOpen) {
+        controller.close();
+      } else {
+        controller.open();
+      }
+    });
+
+    const setExpanded = (value) => {
+      toggleButton.setAttribute('aria-expanded', value ? 'true' : 'false');
+      toggleButton.classList.toggle('menu-open', value);
+    };
+
+    ensureController();
+    document.addEventListener('eleveNavOpen', () => setExpanded(true));
+    document.addEventListener('eleveNavClose', () => setExpanded(false));
+  });
+</script>
+

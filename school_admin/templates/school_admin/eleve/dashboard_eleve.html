@@ -27,7 +27,7 @@
         Tableau de bord
     </h2>
 
-    <!-- Boutons d'accès rapide -->
+    {% comment %} <!-- Boutons d'accès rapide -->
     <div class="quick-access-buttons">
         <a href="{% url 'eleve:notes_evaluations' %}" class="quick-btn quick-btn-blue">
             <i class="fas fa-star"></i>
@@ -36,6 +36,10 @@
         <a href="{% url 'school_admin:absences_retards' %}" class="quick-btn quick-btn-orange">
             <i class="fas fa-calendar-times"></i>
             <span>Absences & Retards</span>
+        </a>
+        <a href="{% url 'eleve:devoirs_eleve' %}" class="quick-btn quick-btn-purple">
+            <i class="fas fa-tasks"></i>
+            <span>Devoirs à rendre</span>
         </a>
         {% if est_parent %}
         <a href="{% url 'school_admin:sanctions_eleve' %}" class="quick-btn quick-btn-red">
@@ -48,7 +52,7 @@
             <span>Activer les notifications</span>
         </button>
     </div>
-    
+     {% endcomment %}
     <!-- Message de succès pour les notifications -->
     <div id="fcm-success-message" class="fcm-success-banner" style="display: none;">
         <i class="fas fa-check-circle"></i>
@@ -59,7 +63,7 @@
     </div>
 
     <!-- Première rangée - Cartes d'information -->
-    <div class="dashboard-grid">
+    <div class="dashboard-grid dashboard-stats-grid">
         <!-- Moyenne générale -->
         <div class="info-card">
             <div class="info-card-header">
@@ -72,16 +76,7 @@
                 <p class="info-card-value">{{ moyenne_generale|default:"N/A" }}</p>
                 <p class="info-card-description">Trimestre en cours</p>
             </div>
-            <div class="info-card-footer">
-                <div class="info-card-trend positive">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Progression</span>
-                </div>
-                <a href="#" class="info-card-link">
-                    <span>Voir détails</span>
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </div>
+        
         </div>
 
         <!-- Devoirs à rendre -->
@@ -96,19 +91,9 @@
                 <p class="info-card-value">{{ total_devoirs|default:"0" }}</p>
                 <p class="info-card-description">Cette semaine</p>
             </div>
-            <div class="info-card-footer">
-                <div class="info-card-trend">
-                    <i class="fas fa-clock"></i>
-                    <span>À compléter</span>
-                </div>
-                <a href="#" class="info-card-link">
-                    <span>Voir tous</span>
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </div>
         </div>
 
-        <!-- Assiduité -->
+        {% comment %} <!-- Assiduité -->
         <div class="info-card">
             <div class="info-card-header">
                 <h3 class="info-card-title">Assiduité</h3>
@@ -120,45 +105,12 @@
                 <p class="info-card-value">{{ taux_presence }}%</p>
                 <p class="info-card-description">Taux de présence</p>
             </div>
-            <div class="info-card-footer">
-                <div class="info-card-trend">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>{{ jours_present }} jours présent</span>
-                </div>
-                <a href="#" class="info-card-link">
-                    <span>Voir détails</span>
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </div>
-        </div>
+        </div> {% endcomment %}
 
-        <!-- Annonces -->
-        <div class="info-card">
-            <div class="info-card-header">
-                <h3 class="info-card-title">Annonces</h3>
-                <div class="info-card-icon neo-purple">
-                    <i class="fas fa-bullhorn"></i>
-                </div>
-            </div>
-            <div class="info-card-content">
-                <p class="info-card-value">{{ nombre_annonces|default:"0" }}</p>
-                <p class="info-card-description">Nouvelles informations</p>
-            </div>
-            <div class="info-card-footer">
-                <div class="info-card-trend">
-                    <i class="fas fa-info-circle"></i>
-                    <span>De l'établissement</span>
-                </div>
-                <a href="{% url 'eleve:annonces_eleve' %}" class="info-card-link">
-                    <span>Voir annonces</span>
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </div>
-        </div>
     </div>
 
     <!-- Deuxième rangée - Emploi du temps -->
-    <div class="dashboard-grid">
+    <div class="dashboard-grid schedule-card">
         <!-- Prochains cours -->
         <div class="schedule-card">
             <div class="schedule-card-header">
@@ -251,7 +203,10 @@
                     <input type="checkbox" class="homework-checkbox">
                     <div class="homework-content">
                         <h4 class="homework-subject">{{ devoir.matiere }}</h4>
+                        <p class="homework-title">{{ devoir.titre }}</p>
+                        {% if devoir.description %}
                         <p class="homework-description">{{ devoir.description }}</p>
+                        {% endif %}
                         <div class="homework-meta">
                             <div class="homework-due-date">
                                 <i class="fas fa-calendar-alt"></i>
@@ -273,7 +228,7 @@
             </ul>
             <div class="info-card-footer">
                 <div></div>
-                <a href="#" class="info-card-link">
+                <a href="{% url 'eleve:devoirs_eleve' %}" class="info-card-link">
                     <span>Voir tous les devoirs</span>
                     <i class="fas fa-chevron-right"></i>
                 </a>
@@ -368,6 +323,8 @@
 
 <!-- Script Firebase Cloud Messaging -->
 <script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
+
+    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
 </body>
 
 </html>

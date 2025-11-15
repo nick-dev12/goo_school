@@ -4,7 +4,15 @@ Vues pour l'espace élève
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
+from django.db.models import Count
+from django.urls import reverse
+from django.core.files.base import ContentFile
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta
+from io import BytesIO
+import logging
+import uuid
+
 from school_admin.model.eleve_model import Eleve
 from school_admin.model.evaluation_model import Note, Evaluation
 from school_admin.model.presence_model import Presence
@@ -13,9 +21,78 @@ from school_admin.model.parent_model import Parent
 from school_admin.model.lien_familial_model import LienFamilial
 from school_admin.model.sanction_model import Sanction
 from school_admin.model.notification_eleve_model import NotificationEleve
-import logging
+from ..model.exercice_maison_model import ExerciceMaison
+from school_admin.personal_views.directeur_view import (
+    _apply_standards_to_bulletin,
+    _get_standards_bundle,
+)
+try:
+    from PIL import Image, ImageOps
+except ImportError:  # pragma: no cover - Pillow doit être installé
+    Image = None
+    ImageOps = None
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_PHOTO_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/pjpeg",
+}
+MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024  # 5 Mo
+
+
+def _build_portrait_photo(uploaded_file):
+    """
+    Génère une version recadrée (format identité) de la photo envoyée.
+    """
+    if Image is None:
+        raise ValueError(
+            "Le traitement d'image est indisponible. Contactez l'administration."
+        )
+
+    try:
+        image = Image.open(uploaded_file)
+    except Exception as exc:  # pragma: no cover - dépend des entrées utilisateur
+        raise ValueError("Impossible de lire cette image.") from exc
+
+    image = ImageOps.exif_transpose(image)
+    image = image.convert("RGB")
+
+    target_ratio = 3 / 4  # format identité (portrait)
+    width, height = image.size
+    current_ratio = width / height
+
+    if current_ratio > target_ratio:
+        new_width = int(target_ratio * height)
+        left = max(0, (width - new_width) // 2)
+        right = left + new_width
+        top = 0
+        bottom = height
+    else:
+        new_height = int(width / target_ratio)
+        top = max(0, ((height - new_height) // 2) - int(new_height * 0.15))
+        bottom = top + new_height
+        if bottom > height:
+            bottom = height
+            top = max(0, bottom - new_height)
+        left = 0
+        right = width
+
+    image = image.crop((left, top, right, bottom))
+
+    final_size = (600, 800)
+    resample_attr = getattr(Image, "Resampling", None)
+    resample_filter = resample_attr.LANCZOS if resample_attr else Image.LANCZOS
+    image = image.resize(final_size, resample=resample_filter)
+
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=90)
+    buffer.seek(0)
+
+    filename = f"eleve_photo_{uuid.uuid4().hex[:10]}.jpg"
+    return filename, buffer.getvalue()
 
 
 def get_eleve_from_request(request):
@@ -74,6 +151,36 @@ def dashboard_eleve(request):
         
         # Calculer la moyenne générale (désactivé temporairement pour debug)
         moyenne_generale = None
+        periode_active = None
+        if eleve.etablissement:
+            from ..model.periode_model import PeriodeScolaire
+            from ..model.moyenne_periode_model import MoyennePeriode
+
+            periodes_qs = PeriodeScolaire.objects.filter(etablissement=eleve.etablissement).order_by('date_debut')
+            periode_active = periodes_qs.filter(est_active=True).first()
+            if not periode_active:
+                periode_active = periodes_qs.last()
+
+            moyenne_obj = None
+            if periode_active:
+                moyenne_obj = MoyennePeriode.objects.filter(
+                    eleve=eleve,
+                    etablissement=eleve.etablissement,
+                    periode=periode_active,
+                    est_moyenne_generale=True,
+                    afficher_bulletin=True
+                ).order_by('-updated_at').first()
+
+            if not moyenne_obj:
+                moyenne_obj = MoyennePeriode.objects.filter(
+                    eleve=eleve,
+                    etablissement=eleve.etablissement,
+                    est_moyenne_generale=True,
+                    afficher_bulletin=True
+                ).order_by('-updated_at').first()
+
+            if moyenne_obj and moyenne_obj.moyenne_generale is not None:
+                moyenne_generale = format(moyenne_obj.moyenne_generale, '.2f')
         
         # Récupérer les 3 dernières notes de l'élève
         dernieres_notes = []
@@ -82,16 +189,19 @@ def dashboard_eleve(request):
         if eleve.etablissement:
             type_etablissement = eleve.etablissement.type_etablissement
             
-            if type_etablissement == 'primaire':
+            if type_etablissement in ('primaire', 'primary', 'ecole_primaire'):
                 # Pour le primaire, utiliser NotePrimaire
-                from ..model.evaluation_primaire_model import NotePrimaire
-                notes_queryset = NotePrimaire.objects.filter(
-                    eleve=eleve
-                ).select_related('evaluation_primaire', 'evaluation_primaire__matiere').order_by('-evaluation_primaire__date_evaluation')[:3]
+                from ..model.note_primaire_model import NotePrimaire
+                notes_queryset = (
+                    NotePrimaire.objects.filter(eleve=eleve, absent=False)
+                    .select_related('evaluation_primaire', 'evaluation_primaire__matiere')
+                    .order_by('-evaluation_primaire__date_evaluation')[:3]
+                )
                 
                 for note_obj in notes_queryset:
-                    # Calculer la classe CSS selon la note
-                    note_sur_20 = note_obj.note if note_obj.evaluation_primaire.bareme == 20 else (note_obj.note * 20 / note_obj.evaluation_primaire.bareme)
+                    note_sur_20 = note_obj.note_sur_20
+                    if note_sur_20 is None:
+                        continue
                     
                     if note_sur_20 >= 16:
                         classe_css = 'excellent'
@@ -107,7 +217,7 @@ def dashboard_eleve(request):
                     dernieres_notes.append({
                         'matiere': note_obj.evaluation_primaire.matiere.nom,
                         'titre': note_obj.evaluation_primaire.titre,
-                        'note': round(note_sur_20, 2),
+                        'note': note_sur_20,
                         'classe_css': classe_css,
                         'date': note_obj.evaluation_primaire.date_evaluation
                     })
@@ -244,9 +354,50 @@ def dashboard_eleve(request):
                     'enseignant': creneau.professeur.nom_complet if creneau.professeur else None
                 })
         
-        # Devoirs à faire (simulés pour l'instant)
+        # Devoirs à faire (exercices programmés)
         devoirs = []
         total_devoirs = 0
+
+        if eleve.classe:
+            exercices_qs = ExerciceMaison.objects.filter(
+                classe=eleve.classe,
+                actif=True
+            ).select_related('matiere')
+
+            if eleve.etablissement:
+                exercices_qs = exercices_qs.filter(etablissement=eleve.etablissement)
+
+            debut_semaine = date_aujourdhui - timedelta(days=date_aujourdhui.weekday())
+            fin_semaine = debut_semaine + timedelta(days=6)
+            total_devoirs = exercices_qs.filter(
+                date_rendu__range=(debut_semaine, fin_semaine)
+            ).count()
+
+            prochains_exercices = exercices_qs.filter(
+                date_rendu__gte=date_aujourdhui
+            ).order_by('date_rendu')[:5]
+
+            for exercice in prochains_exercices:
+                delta = (exercice.date_rendu - date_aujourdhui).days
+                if delta <= 1:
+                    priorite = 'high'
+                    priorite_label = 'Haute'
+                elif delta <= 3:
+                    priorite = 'medium'
+                    priorite_label = 'Moyenne'
+                else:
+                    priorite = 'low'
+                    priorite_label = 'Basse'
+
+                devoirs.append({
+                    'id': exercice.id,
+                    'titre': exercice.titre,
+                    'matiere': exercice.matiere.nom if exercice.matiere else "Matière non définie",
+                    'description': exercice.description.strip() if exercice.description else "Consignes disponibles auprès de votre enseignant.",
+                    'date_limite': exercice.date_rendu,
+                    'priorite': priorite,
+                    'priorite_label': priorite_label,
+                })
         
         # Compter les annonces destinées aux élèves
         from ..model.annonce_model import Annonce
@@ -283,6 +434,151 @@ def dashboard_eleve(request):
     except Exception as e:
         messages.error(request, f"Erreur lors du chargement du tableau de bord : {str(e)}")
         return redirect('school_admin:connexion_compte_user')
+
+
+def devoirs_eleve(request):
+    """
+    Liste exhaustive des exercices programmés pour l'élève.
+    Filtrage par matière et par période.
+    """
+    eleve, est_parent = get_eleve_from_request(request)
+
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    if not eleve.classe:
+        messages.info(request, "Aucune classe n'est associée à votre profil.")
+        return redirect('eleve:dashboard_eleve')
+
+    date_aujourdhui = timezone.now().date()
+    debut_semaine = date_aujourdhui - timedelta(days=date_aujourdhui.weekday())
+    fin_semaine = debut_semaine + timedelta(days=6)
+
+    exercices_base = ExerciceMaison.objects.filter(
+        classe=eleve.classe,
+        actif=True
+    ).select_related('matiere', 'professeur', 'periode_scolaire').order_by('date_rendu')
+
+    if eleve.etablissement:
+        exercices_base = exercices_base.filter(etablissement=eleve.etablissement)
+
+    total_exercices = exercices_base.count()
+    total_semaine = exercices_base.filter(date_rendu__range=(debut_semaine, fin_semaine)).count()
+    total_a_venir = exercices_base.filter(date_rendu__gte=date_aujourdhui).count()
+
+    matieres_stats = exercices_base.values('matiere_id', 'matiere__nom').annotate(total=Count('id')).order_by('matiere__nom')
+    matieres_tabs = [{
+        'id': 'all',
+        'nom': 'Toutes les matières',
+        'total': total_exercices,
+    }]
+    for stat in matieres_stats:
+        matieres_tabs.append({
+            'id': str(stat['matiere_id']),
+            'nom': stat['matiere__nom'],
+            'total': stat['total'],
+        })
+
+    periodes_tabs = [{
+        'id': 'all',
+        'nom': 'Toutes les périodes',
+        'total': total_exercices,
+    }]
+    total_sans_periode = exercices_base.filter(periode_scolaire__isnull=True).count()
+    if total_sans_periode:
+        periodes_tabs.append({
+            'id': 'none',
+            'nom': 'Sans période',
+            'total': total_sans_periode,
+        })
+
+    periodes_stats = exercices_base.filter(periode_scolaire__isnull=False).values(
+        'periode_scolaire_id',
+        'periode_scolaire__nom_periode'
+    ).annotate(total=Count('id')).order_by('periode_scolaire__date_debut', 'periode_scolaire__nom_periode')
+
+    for stat in periodes_stats:
+        periodes_tabs.append({
+            'id': str(stat['periode_scolaire_id']),
+            'nom': stat['periode_scolaire__nom_periode'],
+            'total': stat['total'],
+        })
+
+    matiere_selectionnee = request.GET.get('matiere', 'all')
+    periode_selectionnee = request.GET.get('periode', 'all')
+
+    exercices_filtres = exercices_base
+
+    if matiere_selectionnee != 'all':
+        try:
+            matiere_id = int(matiere_selectionnee)
+            exercices_filtres = exercices_filtres.filter(matiere_id=matiere_id)
+            matiere_selectionnee = str(matiere_id)
+        except (TypeError, ValueError):
+            matiere_selectionnee = 'all'
+
+    if periode_selectionnee != 'all':
+        if periode_selectionnee == 'none':
+            exercices_filtres = exercices_filtres.filter(periode_scolaire__isnull=True)
+        else:
+            try:
+                periode_id = int(periode_selectionnee)
+                exercices_filtres = exercices_filtres.filter(periode_scolaire_id=periode_id)
+                periode_selectionnee = str(periode_id)
+            except (TypeError, ValueError):
+                periode_selectionnee = 'all'
+
+    exercices_list = []
+    for exercice in exercices_filtres:
+        delta = (exercice.date_rendu - date_aujourdhui).days
+        if delta < 0:
+            statut = 'retard'
+            statut_label = "En retard"
+        elif delta == 0:
+            statut = 'jour'
+            statut_label = "Pour aujourd'hui"
+        elif delta == 1:
+            statut = 'bientot'
+            statut_label = "Pour demain"
+        elif delta <= 3:
+            statut = 'proche'
+            statut_label = f"Dans {delta} jours"
+        else:
+            statut = 'planifie'
+            statut_label = f"Dans {delta} jours"
+
+        exercices_list.append({
+            'id': exercice.id,
+            'titre': exercice.titre,
+            'matiere': exercice.matiere.nom if exercice.matiere else "Matière non définie",
+            'description': exercice.description.strip() if exercice.description else "",
+            'date_rendu': exercice.date_rendu,
+            'professeur': getattr(exercice.professeur, 'nom_complet', str(exercice.professeur)),
+            'periode': exercice.periode_scolaire.nom_periode if exercice.periode_scolaire else "Sans période",
+            'statut': statut,
+            'statut_label': statut_label,
+            'jours_restant': delta,
+            'jours_restant_abs': abs(delta),
+        })
+
+    context = {
+        'page_title': 'Devoirs à rendre',
+        'eleve': eleve,
+        'est_parent': est_parent,
+        'matieres_tabs': matieres_tabs,
+        'periodes_tabs': periodes_tabs,
+        'matiere_selectionnee': matiere_selectionnee,
+        'periode_selectionnee': periode_selectionnee,
+        'exercices': exercices_list,
+        'total_exercices': total_exercices,
+        'total_semaine': total_semaine,
+        'total_a_venir': total_a_venir,
+        'date_aujourdhui': date_aujourdhui,
+        'classe': eleve.classe,
+    }
+
+    return render(request, 'school_admin/eleve/devoirs_eleve.html', context)
 
 
 def deconnexion_eleve(request):
@@ -525,6 +821,7 @@ def notes_evaluations_eleve(request):
     
     from ..model.periode_model import PeriodeScolaire
     from ..model.moyenne_model import Moyenne
+    from ..model.moyenne_periode_model import MoyennePeriode
     from ..model.matiere_model import Matiere
     from ..model.note_primaire_model import NotePrimaire, MoyenneMatierePrimaire
     from ..model.evaluation_primaire_model import EvaluationPrimaire
@@ -566,8 +863,9 @@ def notes_evaluations_eleve(request):
                 actif=True
             ).select_related('matiere').exclude(moyenne__isnull=True)
         
-        # Calculer la moyenne générale de la période
-        moyenne_generale = None
+        # Calculer ou récupérer la moyenne générale de la période
+        moyenne_generale_value = None
+        moyenne_generale_display = None
         total_pondere = 0
         total_coefficients = 0
         
@@ -576,9 +874,23 @@ def notes_evaluations_eleve(request):
                 coef = moy.matiere.coefficient if moy.matiere.coefficient else 1
                 total_pondere += moy.moyenne * coef
                 total_coefficients += coef
+
+        moyenne_generale_record = MoyennePeriode.objects.filter(
+            eleve=eleve,
+            etablissement=etablissement,
+            periode=periode,
+            est_moyenne_generale=True,
+            afficher_bulletin=True
+        ).order_by('-updated_at').first()
+
+        if moyenne_generale_record and moyenne_generale_record.moyenne_generale is not None:
+            moyenne_generale_value = float(moyenne_generale_record.moyenne_generale)
         
-        if total_coefficients > 0:
-            moyenne_generale = round(total_pondere / total_coefficients, 2)
+        if moyenne_generale_value is None and total_coefficients > 0:
+            moyenne_generale_value = float(total_pondere / total_coefficients)
+        
+        if moyenne_generale_value is not None:
+            moyenne_generale_display = f"{Decimal(str(moyenne_generale_value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
         
         # Récupérer les matières avec leurs moyennes
         matieres_moyennes = []
@@ -725,62 +1037,83 @@ def notes_evaluations_eleve(request):
             matiere = matiere_data['matiere']
             
             # Récupérer toutes les notes pour cette matière et cette période
+            notes_list = []
             if etablissement.type_etablissement == 'primary':
                 notes_matiere = NotePrimaire.objects.filter(
                     eleve=eleve,
                     evaluation_primaire__matiere=matiere,
-                    evaluation_primaire__periode_scolaire=periode
-                ).select_related('evaluation_primaire').order_by('evaluation_primaire__date_evaluation')
-                
-                notes_list = []
+                    evaluation_primaire__periode_scolaire=periode,
+                    retenue=True,
+                    absent=False
+                ).select_related('evaluation_primaire').exclude(note__isnull=True).order_by('evaluation_primaire__date_evaluation')
+
                 for note in notes_matiere:
-                    if note.note is not None and note.evaluation_primaire:
-                        # Calculer la note sur 20
-                        note_sur_20 = note.note
-                        if note.evaluation_primaire.bareme and note.evaluation_primaire.bareme != 20:
-                            note_sur_20 = (note.note / note.evaluation_primaire.bareme) * 20
-                        
-                        notes_list.append({
-                            'titre': note.evaluation_primaire.titre,
-                            'note': note.note,
-                            'bareme': note.evaluation_primaire.bareme,
-                            'note_sur_20': round(note_sur_20, 2) if note_sur_20 else 0,
-                        })
+                    note_sur_20 = note.note_sur_20
+                    if note_sur_20 is None:
+                        continue
+                    notes_list.append({
+                        'titre': note.evaluation_primaire.titre,
+                        'note': note.note,
+                        'bareme': note.evaluation_primaire.bareme,
+                        'note_sur_20': round(float(note_sur_20), 2),
+                    })
             else:
                 # Pour collège/lycée - Récupérer les notes de la table Note
                 notes_matiere = Note.objects.filter(
                     eleve=eleve,
                     matiere=matiere,
-                    evaluation__periode_scolaire=periode
-                ).select_related('evaluation').order_by('evaluation__date_evaluation')
-                
-                notes_list = []
+                    evaluation__periode_scolaire=periode,
+                    retenue=True,
+                    absent=False
+                ).select_related('evaluation').exclude(note__isnull=True).order_by('evaluation__date_evaluation')
+
                 for note in notes_matiere:
-                    if note.note is not None and note.evaluation:
-                        # Les notes sont déjà sur 20 dans la table Note pour le secondaire
-                        note_sur_20 = note.note
-                        
-                        notes_list.append({
-                            'titre': note.evaluation.titre,
-                            'note': note.note,
-                            'bareme': 20,  # Les notes secondaires sont sur 20
-                            'note_sur_20': round(float(note_sur_20), 2),
-                        })
+                    note_sur_20 = note.note_sur_20
+                    if note_sur_20 is None:
+                        continue
+                    notes_list.append({
+                        'titre': note.evaluation.titre,
+                        'note': note.note,
+                        'bareme': note.evaluation.bareme or 20,
+                        'note_sur_20': round(float(note_sur_20), 2),
+                    })
             
             # Récupérer la note d'examen pour cette matière et cette période
             from ..model.note_examen_model import NoteExamen
-            note_examen = NoteExamen.objects.filter(
-                eleve=eleve,
-                matiere=matiere,
-                session_examen__periode=periode,
-                absent=False
-            ).select_related('session_examen').first()
+            
+            if etablissement.type_etablissement == 'primary':
+                note_examen_qs = NoteExamen.objects.filter(
+                    eleve=eleve,
+                    matiere_id=matiere.id,
+                    session_examen__periode=periode
+                ).select_related('session_examen').order_by('-date_saisie')
+            else:
+                note_examen_qs = NoteExamen.objects.filter(
+                    eleve=eleve,
+                    matiere=matiere,
+                    session_examen__periode=periode,
+                    absent=False,
+                    retenue=True
+                ).select_related('session_examen').exclude(note_sur_20__isnull=True).order_by('-date_saisie')
+                
+                if not note_examen_qs.exists():
+                    note_examen_qs = NoteExamen.objects.filter(
+                        eleve=eleve,
+                        matiere=matiere,
+                        session_examen__periode=periode,
+                        absent=False
+                    ).select_related('session_examen').order_by('-date_saisie')
             
             note_examen_sur_20 = None
-            if note_examen and note_examen.note_sur_20 is not None:
-                note_examen_sur_20 = round(float(note_examen.note_sur_20), 2)
+            note_examen = note_examen_qs.first()
+            if note_examen:
+                if note_examen.note_sur_20 is not None:
+                    note_examen_sur_20 = round(float(note_examen.note_sur_20), 2)
+                elif note_examen.note is not None and note_examen.bareme and note_examen.bareme > 0:
+                    note_examen_sur_20 = round(float((note_examen.note / note_examen.bareme) * 20), 2)
             
-            if notes_list or note_examen_sur_20:  # Si l'élève a des notes ou une note d'examen
+            # Ajouter au tableau si on a des notes de devoirs OU une note d'examen OU une moyenne
+            if notes_list or note_examen_sur_20 is not None or matiere_data['moyenne_eleve'] is not None:
                 tableau_notes.append({
                     'matiere': matiere,
                     'icon': matiere_data['icon'],
@@ -789,12 +1122,16 @@ def notes_evaluations_eleve(request):
                     'note_examen': note_examen_sur_20,
                     'moyenne': matiere_data['moyenne_eleve'],
                 })
-        
+
+        max_notes_count = max((len(item['notes']) for item in tableau_notes), default=0)
+        notes_indices = list(range(max_notes_count))
+
         periodes_data.append({
             'periode': periode,
-            'moyenne_generale': moyenne_generale,
+            'moyenne_generale': moyenne_generale_display,
             'matieres_moyennes': matieres_moyennes,
             'tableau_notes': tableau_notes,
+            'notes_indices': notes_indices,
             'est_active': periode.est_en_cours,
             'points_forts': points_forts,
             'points_ameliorer': points_ameliorer,
@@ -804,8 +1141,10 @@ def notes_evaluations_eleve(request):
     notes_recentes = []
     if etablissement.type_etablissement == 'primary':
         notes_primaires = NotePrimaire.objects.filter(
-            eleve=eleve
-        ).select_related('evaluation_primaire__matiere', 'evaluation_primaire').order_by('-date_saisie')[:20]
+            eleve=eleve,
+            retenue=True,
+            absent=False
+        ).select_related('evaluation_primaire__matiere', 'evaluation_primaire').exclude(note__isnull=True).order_by('-date_saisie')[:20]
         
         for note in notes_primaires:
             if not note.evaluation_primaire:
@@ -869,8 +1208,10 @@ def notes_evaluations_eleve(request):
     else:
         # Pour collège/lycée - Récupérer les notes récentes de la table Note
         notes_secondaires = Note.objects.filter(
-            eleve=eleve
-        ).select_related('evaluation__matiere', 'evaluation', 'matiere').order_by('-date_saisie')[:20]
+            eleve=eleve,
+            retenue=True,
+            absent=False
+        ).select_related('evaluation__matiere', 'evaluation', 'matiere').exclude(note__isnull=True).order_by('-date_saisie')[:20]
         
         for note in notes_secondaires:
             if not note.evaluation:
@@ -1012,8 +1353,10 @@ def notes_evaluations_eleve(request):
                 # Récupérer toutes les notes de cette matière
                 notes_matiere = NotePrimaire.objects.filter(
                     eleve=eleve,
-                    evaluation_primaire__matiere=matiere
-                ).select_related('evaluation_primaire__periode_scolaire').order_by('-date_saisie')
+                    evaluation_primaire__matiere=matiere,
+                    retenue=True,
+                    absent=False
+                ).select_related('evaluation_primaire__periode_scolaire').exclude(note__isnull=True).order_by('-date_saisie')
                 
                 notes_par_periode = {}
                 
@@ -1046,11 +1389,11 @@ def notes_evaluations_eleve(request):
                 from ..model.note_examen_model import NoteExamen
                 notes_examen = NoteExamen.objects.filter(
                     eleve=eleve,
-                    matiere=matiere
+                    matiere_id=matiere.id
                 ).select_related('session_examen__periode').order_by('-date_saisie')
                 
                 for note_ex in notes_examen:
-                    if note_ex.note_sur_20 is None or not note_ex.session_examen or not note_ex.session_examen.periode:
+                    if not note_ex.session_examen or not note_ex.session_examen.periode:
                         continue
                     
                     periode_nom = note_ex.session_examen.periode.nom_periode
@@ -1058,13 +1401,19 @@ def notes_evaluations_eleve(request):
                     if periode_nom not in notes_par_periode:
                         notes_par_periode[periode_nom] = []
                     
+                    note_ex_value = note_ex.note_sur_20
+                    if note_ex_value is None and note_ex.note is not None and note_ex.bareme and note_ex.bareme > 0:
+                        note_ex_value = (note_ex.note / note_ex.bareme) * 20
+                    if note_ex_value is None:
+                        continue
+                    
                     notes_par_periode[periode_nom].append({
                         'date': note_ex.date_saisie,
                         'titre': note_ex.session_examen.nom_examen if note_ex.session_examen else 'Examen',
                         'type': 'Examen',
-                        'note': note_ex.note_sur_20,
+                        'note': round(float(note_ex_value), 2),
                         'bareme': 20,
-                        'note_sur_20': round(float(note_ex.note_sur_20), 2),
+                        'note_sur_20': round(float(note_ex_value), 2),
                         'appreciation': note_ex.commentaire if note_ex.commentaire else '',
                         'est_examen': True,
                     })
@@ -1134,8 +1483,10 @@ def notes_evaluations_eleve(request):
                 # Récupérer toutes les notes de cette matière
                 notes_matiere = Note.objects.filter(
                     eleve=eleve,
-                    matiere=matiere
-                ).select_related('evaluation__periode_scolaire').order_by('-date_saisie')
+                    matiere=matiere,
+                    retenue=True,
+                    absent=False
+                ).select_related('evaluation__periode_scolaire').exclude(note__isnull=True).order_by('-date_saisie')
                 
                 notes_par_periode = {}
                 
@@ -1164,8 +1515,10 @@ def notes_evaluations_eleve(request):
                 from ..model.note_examen_model import NoteExamen
                 notes_examen = NoteExamen.objects.filter(
                     eleve=eleve,
-                    matiere=matiere
-                ).select_related('session_examen__periode').order_by('-date_saisie')
+                    matiere=matiere,
+                    absent=False,
+                    retenue=True
+                ).select_related('session_examen__periode').exclude(note_sur_20__isnull=True).order_by('-date_saisie')
                 
                 for note_ex in notes_examen:
                     if note_ex.note_sur_20 is None or not note_ex.session_examen or not note_ex.session_examen.periode:
@@ -1196,6 +1549,21 @@ def notes_evaluations_eleve(request):
                         'total_notes': sum(len(notes) for notes in notes_par_periode.values()),
                     }
     
+    bulletin_record = MoyennePeriode.objects.filter(
+        eleve=eleve,
+        etablissement=etablissement,
+        est_moyenne_generale=True,
+        afficher_bulletin=True,
+        moyenne_generale__isnull=False
+    ).select_related('periode').order_by('-updated_at').first()
+
+    bulletin_disponible = bool(bulletin_record)
+    bulletin_periode_label = (
+        bulletin_record.periode.nom_periode
+        if bulletin_record and bulletin_record.periode
+        else None
+    )
+
     context = {
         'eleve': eleve,
         'est_parent': est_parent,
@@ -1206,10 +1574,182 @@ def notes_evaluations_eleve(request):
         'notes_recentes': notes_recentes,
         'evaluations_a_venir': evaluations_a_venir,
         'matieres_avec_notes': matieres_avec_notes,
+        'bulletin_disponible': bulletin_disponible,
+        'bulletin_periode_label': bulletin_periode_label,
+        'bulletin_url': reverse('eleve:bulletin_eleve'),
         'today': timezone.now().date(),
     }
     
     return render(request, 'school_admin/eleve/notes_evaluations_eleve.html', context)
+
+
+def bulletin_eleve(request):
+    """
+    Affiche le bulletin de l'élève dans son espace personnel.
+    """
+    eleve, est_parent = get_eleve_from_request(request)
+
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    if not eleve.classe:
+        messages.info(request, "Aucune classe n'est associée à votre profil.")
+        return redirect('eleve:notes_evaluations')
+
+    etablissement = eleve.etablissement
+    if not etablissement:
+        messages.warning(request, "Aucun établissement n'est associé à votre profil.")
+        return redirect('eleve:notes_evaluations')
+
+    from ..model.moyenne_periode_model import MoyennePeriode
+    from ..model.periode_model import PeriodeScolaire
+    from ..model.presence_model import Presence
+
+    periode_param = request.GET.get('periode')
+    bulletins_qs = MoyennePeriode.objects.filter(
+        eleve=eleve,
+        etablissement=etablissement,
+        est_moyenne_generale=True,
+        afficher_bulletin=True,
+        moyenne_generale__isnull=False
+    ).select_related('periode').order_by('-updated_at')
+
+    if periode_param:
+        bulletins_qs = bulletins_qs.filter(periode_id=periode_param)
+
+    moyenne_generale_record = bulletins_qs.first()
+    if not moyenne_generale_record:
+        messages.warning(request, "Votre bulletin n'est pas encore disponible.")
+        return redirect('eleve:notes_evaluations')
+
+    periode = moyenne_generale_record.periode
+    if not periode:
+        periode = PeriodeScolaire.objects.filter(
+            etablissement=etablissement,
+            est_active=True
+        ).order_by('date_debut').first()
+        if not periode:
+            messages.warning(request, "Aucune période scolaire active n'est configurée.")
+            return redirect('eleve:notes_evaluations')
+
+    matieres_qs = MoyennePeriode.objects.filter(
+        eleve=eleve,
+        etablissement=etablissement,
+        periode=periode,
+        est_moyenne_generale=False
+    ).select_related('matiere').order_by('matiere__nom')
+
+    matieres_table = []
+    for moyenne in matieres_qs:
+        if not moyenne.matiere:
+            continue
+        matieres_table.append({
+            'nom': moyenne.matiere.nom,
+            'moyenne_classe': float(moyenne.moyenne_classe) if moyenne.moyenne_classe is not None else None,
+            'note_examen': float(moyenne.note_examen) if moyenne.note_examen is not None else None,
+            'coefficient': float(moyenne.coefficient) if moyenne.coefficient is not None else 1,
+            'moyenne_eleve': float(moyenne.moyenne_matiere) if moyenne.moyenne_matiere is not None else None,
+            'rang': moyenne.rang,
+            'appreciation': moyenne.appreciation_matiere or '',
+        })
+
+    if not matieres_table:
+        messages.warning(request, "Le bulletin de cette période n'est pas encore complet.")
+        return redirect('eleve:notes_evaluations')
+
+    moyenne_generale = (
+        float(moyenne_generale_record.moyenne_generale)
+        if moyenne_generale_record.moyenne_generale is not None
+        else None
+    )
+    appreciation_generale = moyenne_generale_record.appreciation_generale
+    decision_conseil = moyenne_generale_record.decision_conseil
+
+    standards_bundle = _get_standards_bundle(etablissement)
+    appreciation_generale, decision_conseil, standards_extra = _apply_standards_to_bulletin(
+        matieres_table,
+        moyenne_generale,
+        appreciation_generale,
+        decision_conseil,
+        standards_bundle
+    )
+
+    soumissions = sum(1 for item in matieres_table if item['moyenne_eleve'] is not None)
+    total_matieres = len(matieres_table)
+    pourcentage_soumission = round((soumissions / total_matieres) * 100, 1) if total_matieres else 0
+    bulletin_disponible = soumissions > 0
+    classe_effectif = eleve.classe.eleves.filter(actif=True).count()
+
+    absences_justifiees = Presence.objects.filter(
+        eleve=eleve,
+        classe=eleve.classe,
+        date__gte=periode.date_debut,
+        date__lte=periode.date_fin,
+        statut='absent_justifie'
+    ).count()
+
+    absences_non_justifiees = Presence.objects.filter(
+        eleve=eleve,
+        classe=eleve.classe,
+        date__gte=periode.date_debut,
+        date__lte=periode.date_fin,
+        statut='absent'
+    ).count()
+
+    complement_info = {
+        'moyenne_periode': moyenne_generale,
+        'moyenne_annuelle': None,
+        'rang_general': moyenne_generale_record.rang,
+        'effectif': classe_effectif,
+        'absences_justifiees': absences_justifiees,
+        'absences_non_justifiees': absences_non_justifiees,
+        'appreciation_generale': appreciation_generale,
+        'decision_conseil': decision_conseil,
+    }
+
+    if standards_extra:
+        complement_info.update({
+            'appreciation_generale_standard': standards_extra['appreciation_generale_standard'],
+            'appreciation_generale_source': standards_extra['appreciation_generale_source'],
+            'decision_conseil_standard': standards_extra['decision_conseil_standard'],
+            'decision_conseil_source': standards_extra['decision_conseil_source'],
+            'statut_conseil_code': standards_extra['statut_conseil_code'],
+            'statut_conseil_label': standards_extra['statut_conseil_label'],
+        })
+
+    context = {
+        'page_title': "Bulletin de notes",
+        'eleve': eleve,
+        'est_parent': est_parent,
+        'etablissement': etablissement,
+        'classe': eleve.classe,
+        'periode': moyenne_generale_record.periode or periode,
+        'est_primaire': etablissement.type_etablissement == 'primary',
+        'matieres_table': matieres_table,
+        'moyenne_generale': moyenne_generale,
+        'bulletin_valide': bool(moyenne_generale_record.est_publie or bulletin_disponible),
+        'bulletin_disponible': bulletin_disponible,
+        'soumissions': soumissions,
+        'total_matieres': total_matieres,
+        'pourcentage_soumission': pourcentage_soumission,
+        'retour_url': reverse('eleve:notes_evaluations'),
+        'releve_classe_url': None,
+        'date_generation': timezone.now(),
+        'classe_effectif': classe_effectif,
+        'rang_general': moyenne_generale_record.rang,
+        'complement_info': complement_info,
+        'impression_url': request.build_absolute_uri(request.get_full_path()),
+        'standards_summary': standards_extra['standards_summary'] if standards_extra else None,
+        'standards_applied': bool(standards_bundle),
+        'bulletin_qr_image_url': moyenne_generale_record.qr_code_image.url if moyenne_generale_record.qr_code_image else None,
+        'bulletin_qr_data': moyenne_generale_record.qr_code_data,
+        'bulletin_qr_generated_at': moyenne_generale_record.qr_code_generated_at,
+        'bulletin_signature': moyenne_generale_record.signature_numerique,
+        'bulletin_numero_serie': moyenne_generale_record.numero_serie,
+    }
+
+    return render(request, 'school_admin/eleve/bulletin_eleve.html', context)
 
 
 def absences_retards_eleve(request):
@@ -1429,6 +1969,61 @@ def profil_eleve(request):
         if lien.est_inscripteur:
             parent_inscripteur = parent_info
     
+    # Calcul de l'année scolaire pour la carte d'identité
+    if periode_active and getattr(periode_active, "annee_scolaire", None):
+        carte_annee_scolaire = periode_active.annee_scolaire
+    else:
+        today = timezone.now().date()
+        if today.month >= 9:
+            carte_annee_scolaire = f"{today.year}-{today.year + 1}"
+        else:
+            carte_annee_scolaire = f"{today.year - 1}-{today.year}"
+
+    # Gestion du formulaire de photo de profil sans Django forms
+    photo_errors = []
+    photo_modal_open = False
+
+    if request.method == "POST" and request.POST.get("action") == "upload-photo":
+        photo_modal_open = True
+
+        if est_parent:
+            messages.error(
+                request,
+                "Seul l'élève connecté peut modifier sa photo de profil.",
+            )
+            return redirect("eleve:profil_eleve")
+
+        uploaded_file = request.FILES.get("photo_profil")
+
+        if not uploaded_file:
+            photo_errors.append("Veuillez sélectionner une image.")
+        else:
+            if uploaded_file.size > MAX_PHOTO_SIZE_BYTES:
+                photo_errors.append("L'image est trop volumineuse (maximal 5 Mo).")
+
+            content_type = getattr(uploaded_file, "content_type", "")
+            if content_type not in ALLOWED_PHOTO_CONTENT_TYPES:
+                photo_errors.append("Formats autorisés : JPG, PNG ou WebP.")
+
+        if not photo_errors:
+            try:
+                filename, content = _build_portrait_photo(uploaded_file)
+            except ValueError as exc:
+                photo_errors.append(str(exc))
+            else:
+                if eleve.photo_profil:
+                    eleve.photo_profil.delete(save=False)
+                eleve.photo_profil.save(
+                    filename,
+                    ContentFile(content),
+                    save=True,
+                )
+                messages.success(
+                    request,
+                    "Votre photo de profil a été mise à jour avec succès.",
+                )
+                return redirect("eleve:profil_eleve")
+    
     # Statistiques de notes
     if etablissement.type_etablissement == 'primary':
         from ..model.note_primaire_model import MoyenneMatierePrimaire
@@ -1494,6 +2089,9 @@ def profil_eleve(request):
         'parents_data': parents_data,
         'parent_inscripteur': parent_inscripteur,
         'today': timezone.now().date(),
+        'photo_errors': photo_errors,
+        'photo_modal_open': photo_modal_open,
+        'carte_annee_scolaire': carte_annee_scolaire,
     }
     
     return render(request, 'school_admin/eleve/profil_eleve.html', context)

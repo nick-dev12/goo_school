@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Créer une Évaluation - Enseignant Primaire</title>
+    <title>Créer une évaluation - {{ classe.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
@@ -13,110 +13,203 @@
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
-    <div class="page-container">
-        <div class="page-header">
-            <div class="header-content">
-                <h1><i class="fas fa-plus-circle"></i> Créer une Évaluation</h1>
-                <p>Classe: {{ classe.nom }}</p>
-            </div>
+    <div class="main-content-container">
+        <div class="breadcrumb">
+            <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'enseignant_primaire:gestion_notes' %}">Gestion des évaluations</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Créer une évaluation</span>
         </div>
 
         {% if messages %}
-            <div class="messages-container">
                 {% for message in messages %}
                     <div class="alert alert-{{ message.tags }}">
-                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                        {{ message }}
+                    <i class="fas fa-info-circle"></i>
+                    <p>{{ message }}</p>
                     </div>
                 {% endfor %}
-            </div>
         {% endif %}
 
-        <div class="form-container">
-            <form method="post" action="">
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-plus-circle"></i>
+                    Créer une évaluation
+                </h1>
+                <p class="page-subtitle">{{ classe.nom }}</p>
+            </div>
+        </div>
+
+        <div class="classe-info-card">
+            <div class="info-item">
+                <i class="fas fa-chalkboard"></i>
+                <span><strong>Classe :</strong> {{ classe.nom }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-user-tie"></i>
+                <span><strong>Professeur :</strong> {{ professeur.nom_complet }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-users"></i>
+                <span><strong>Effectif :</strong> {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}</span>
+            </div>
+        </div>
+
+        <div class="page-layout">
+            <form method="post" class="evaluation-form">
                 {% csrf_token %}
-                
+                <div class="form-container">
                 <div class="form-section">
-                    <h3><i class="fas fa-info-circle"></i> Informations générales</h3>
+                        <h2 class="section-title">
+                            <i class="fas fa-info-circle"></i>
+                            Informations générales
+                        </h2>
                     
+                        <div class="form-grid">
                     <div class="form-group">
-                        <label for="matiere">Matière <span class="required">*</span></label>
+                                <label for="matiere">
+                                    <i class="fas fa-book"></i>
+                                    Matière <span class="required">*</span>
+                                </label>
                         <select name="matiere" id="matiere" required>
                             <option value="">-- Sélectionnez une matière --</option>
                             {% for matiere in matieres %}
-                                <option value="{{ matiere.id }}">{{ matiere.nom }} ({{ matiere.code }})</option>
+                                        <option value="{{ matiere.id }}" {% if form_data.matiere|stringformat:"s" == matiere.id|stringformat:"s" %}selected{% endif %}>{{ matiere.nom }} ({{ matiere.code }})</option>
                             {% endfor %}
                         </select>
-                        <small>Sélectionnez la matière pour laquelle vous créez cette évaluation</small>
+                                <div class="help-text">Choisissez la matière concernée par cette évaluation.</div>
                     </div>
 
                     <div class="form-group">
-                        <label for="titre">Titre de l'évaluation <span class="required">*</span></label>
-                        <input type="text" name="titre" id="titre" required placeholder="Ex: Contrôle de mathématiques - Chapitre 1">
+                                <label for="titre">
+                                    <i class="fas fa-heading"></i>
+                                    Titre de l'évaluation <span class="required">*</span>
+                                </label>
+                                <input type="text"
+                                       name="titre"
+                                       id="titre"
+                                       value="{{ form_data.titre|default:'' }}"
+                                       placeholder="Ex: Contrôle de mathématiques - Chapitre 1"
+                                       required>
+                                <div class="help-text">Définissez un titre précis afin d'identifier rapidement cette évaluation.</div>
                     </div>
 
-                    <div class="form-row">
                         <div class="form-group">
-                            <label for="type_evaluation">Type d'évaluation <span class="required">*</span></label>
+                                <label for="type_evaluation">
+                                    <i class="fas fa-tag"></i>
+                                    Type d'évaluation <span class="required">*</span>
+                                </label>
                             <select name="type_evaluation" id="type_evaluation" required>
                                 <option value="">-- Sélectionnez un type --</option>
-                                <option value="controle">Contrôle écrit</option>
-                                <option value="interrogation">Interrogation</option>
-                                <option value="devoir_maison">Devoir maison</option>
-                                <option value="projet">Projet</option>
-                                <option value="oral">Évaluation orale</option>
-                                <option value="pratique">Évaluation pratique</option>
-                                <option value="composition">Composition</option>
+                                    <option value="controle" {% if form_data.type_evaluation == 'controle' %}selected{% endif %}>Contrôle écrit</option>
+                                    <option value="interrogation" {% if form_data.type_evaluation == 'interrogation' %}selected{% endif %}>Interrogation</option>
+                                    <option value="devoir_maison" {% if form_data.type_evaluation == 'devoir_maison' %}selected{% endif %}>Devoir maison</option>
+                                    <option value="projet" {% if form_data.type_evaluation == 'projet' %}selected{% endif %}>Projet</option>
+                                    <option value="oral" {% if form_data.type_evaluation == 'oral' %}selected{% endif %}>Évaluation orale</option>
+                                    <option value="pratique" {% if form_data.type_evaluation == 'pratique' %}selected{% endif %}>Évaluation pratique</option>
+                                    <option value="composition" {% if form_data.type_evaluation == 'composition' %}selected{% endif %}>Composition</option>
                             </select>
+                                <div class="help-text">Ce choix vous aidera à catégoriser vos évaluations.</div>
                         </div>
 
                         <div class="form-group">
-                            <label for="periode">Période <span class="required">*</span></label>
+                                <label for="periode">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Période <span class="required">*</span>
+                                </label>
                             <select name="periode" id="periode" required>
                                 <option value="">-- Sélectionnez une période --</option>
                                 {% for periode in periodes %}
-                                    <option value="{{ periode.id }}">{{ periode.nom_periode }}</option>
+                                        <option value="{{ periode.id }}" {% if form_data.periode|stringformat:"s" == periode.id|stringformat:"s" %}selected{% endif %}>{{ periode.nom_periode }}</option>
                                 {% endfor %}
                             </select>
+                                <div class="help-text">Associez l'évaluation à la période scolaire en cours.</div>
                         </div>
                     </div>
 
-                    <div class="form-row">
+                        <div class="form-grid">
                         <div class="form-group">
-                            <label for="date_evaluation">Date de l'évaluation <span class="required">*</span></label>
-                            <input type="date" name="date_evaluation" id="date_evaluation" required>
+                                <label for="date_evaluation">
+                                    <i class="fas fa-calendar"></i>
+                                    Date de l'évaluation <span class="required">*</span>
+                                </label>
+                                <input type="date"
+                                       name="date_evaluation"
+                                       id="date_evaluation"
+                                       value="{{ form_data.date_evaluation|default:aujourdhui }}"
+                                       required>
+                                <div class="help-text">Choisissez la date à laquelle l'évaluation aura lieu.</div>
                         </div>
 
                         <div class="form-group">
-                            <label for="bareme">Barème (points maximum) <span class="required">*</span></label>
-                            <input type="number" name="bareme" id="bareme" value="20" min="1" step="0.5" required>
+                                <label for="bareme">
+                                    <i class="fas fa-calculator"></i>
+                                    Barème (points maximum) <span class="required">*</span>
+                                </label>
+                                <input type="number"
+                                       name="bareme"
+                                       id="bareme"
+                                       value="{{ form_data.bareme|default:'20' }}"
+                                       min="1"
+                                       step="0.5"
+                                       required>
+                                <div class="help-text">Définissez le barème qui sera utilisé pour cette évaluation.</div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="duree">Durée (en minutes)</label>
-                            <input type="number" name="duree" id="duree" min="1" placeholder="Ex: 60">
+                        <div class="form-group full-width">
+                            <label for="description">
+                                <i class="fas fa-align-left"></i>
+                                Description / Consignes
+                            </label>
+                            <textarea name="description"
+                                      id="description"
+                                      rows="4"
+                                      placeholder="Décrivez les objectifs de l'évaluation, les chapitres concernés, etc.">{{ form_data.description }}</textarea>
+                            <div class="help-text">Facultatif : précisez les notions abordées ou les consignes particulières.</div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="description">Description / Consignes</label>
-                        <textarea name="description" id="description" rows="4" placeholder="Décrivez les objectifs de l'évaluation, les chapitres concernés, etc."></textarea>
+                    <div class="form-actions">
+                        <a href="{% url 'enseignant_primaire:gestion_notes' %}" class="btn btn-outline">
+                            <i class="fas fa-times"></i>
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Créer l'évaluation
+                        </button>
                     </div>
-                </div>
-
-                <div class="form-actions">
-                    <a href="{% url 'enseignant_primaire:gestion_notes' %}" class="btn-secondary">
-                        <i class="fas fa-times"></i> Annuler
-                    </a>
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-save"></i> Créer l'évaluation
-                    </button>
                 </div>
             </form>
+
+            <aside class="summary-card">
+                <h3 class="summary-title">Récapitulatif</h3>
+                <div class="summary-item">
+                    <i class="fas fa-chalkboard"></i>
+                    <span>{{ classe.nom }}</span>
+                </div>
+                <div class="summary-item">
+                    <i class="fas fa-user-tie"></i>
+                    <span>{{ professeur.nom_complet }}</span>
+                </div>
+                <div class="summary-item">
+                    <i class="fas fa-users"></i>
+                    <span>{{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}</span>
+                </div>
+                <div class="summary-item" style="border-top: 1px dashed #e2e8f0; margin-top: 0.5rem;"></div>
+                <div class="summary-item" style="color:#64748b;">
+                    <i class="fas fa-info-circle" style="color:#94a3b8;"></i>
+                    <span>Les notes seront automatiquement créées pour l'ensemble des élèves.</span>
+                </div>
+            </aside>
         </div>
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 </body>
 </html>
 

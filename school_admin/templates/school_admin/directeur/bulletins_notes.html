@@ -198,14 +198,6 @@
                           Publier les bulletins
                         {% endif %}
                       </button>
-                    <a href="{% url 'directeur:notes_et_resultats' %}" class="btn-outline">
-                      <i class="fas fa-chart-line"></i>
-                      Détails des notes
-                    </a>
-                    <a href="{% url 'directeur:imprimer_releve_notes' classe_data.classe.id %}" class="btn-outline" target="_blank">
-                      <i class="fas fa-print"></i>
-                      Imprimer relevés
-                    </a>
                     <a href="{% url 'directeur:imprimer_bulletins_classe' classe_data.classe.id %}" class="btn-outline" target="_blank">
                       <i class="fas fa-file-alt"></i>
                       Imprimer tous les bulletins
@@ -459,6 +451,8 @@
         }
       }
     </script>
-  </body>
+  
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
 </html>
 

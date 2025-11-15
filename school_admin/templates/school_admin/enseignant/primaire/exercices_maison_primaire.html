@@ -1,0 +1,772 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercices de maison - Enseignant Primaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}">
+    <style>
+        .page-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .page-actions.info-only {
+            justify-content: flex-start;
+        }
+
+        .page-actions .info-selected {
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.75rem 1.6rem;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #ffffff;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .matiere-filter .btn-action {
+            text-decoration: none;
+        }
+
+        .matiere-filter .btn-action.active {
+            background: linear-gradient(135deg, #7c3aed, #4c1d95);
+            color: #ffffff;
+            box-shadow: var(--shadow);
+        }
+
+        .matiere-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .exercices-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            justify-items: center;
+        }
+
+        .exercice-card {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            background: linear-gradient(180deg, var(--white) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.12);
+            padding: 1.75rem;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            overflow: hidden;
+        }
+
+        .exercice-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-purple);
+        }
+
+        .exercice-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            pointer-events: none;
+        }
+
+        .exercice-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-card-hover);
+            border-color: rgba(124, 58, 237, 0.25);
+        }
+
+        .status-chip {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: var(--radius-full);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-chip i {
+            font-size: 0.85rem;
+        }
+
+        .status-retard {
+            background: rgba(239, 68, 68, 0.15);
+            color: #b91c1c;
+        }
+
+        .status-jour {
+            background: rgba(16, 185, 129, 0.15);
+            color: #047857;
+        }
+
+        .status-bientot,
+        .status-proche {
+            background: rgba(251, 191, 36, 0.2);
+            color: #92400e;
+        }
+
+        .status-planifie {
+            background: rgba(59, 130, 246, 0.18);
+            color: #1d4ed8;
+        }
+
+        .exercice-card-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .exercice-card-matiere {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--secondary);
+            letter-spacing: 0.08em;
+        }
+
+        .exercice-card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .exercice-card-description {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .exercice-card-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.85rem;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+
+        .exercice-card-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .exercice-card-meta i {
+            color: var(--primary);
+        }
+
+        .exercice-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .exercice-card-status-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+
+        .exercice-card-status-text i {
+            color: var(--primary);
+        }
+
+        .btn-edit-exercice {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .empty-card-state {
+            background: var(--white);
+            border: 1px dashed var(--gray-300);
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            color: var(--gray-500);
+            box-shadow: var(--shadow-card);
+        }
+
+        .empty-card-state i {
+            font-size: 2.4rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+    <div class="main-content-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-book-open"></i>
+                    Exercices de maison
+                </h1>
+                <p class="page-subtitle">
+                    {% if stats.total_exercices %}
+                        {{ stats.total_exercices }} exercice{{ stats.total_exercices|pluralize }} programmé{{ stats.total_exercices|pluralize }} dans {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }}
+                    {% else %}
+                        Programmez vos prochains devoirs pour vos classes affectées
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="page-actions info-only">
+            <div class="info-selected">
+                {% if classe_selectionnee %}
+                    Classe sélectionnée : <strong>{{ classe_selectionnee.nom }}</strong>
+                    {% if matiere_selectionnee %}
+                        — Matière : <strong>{{ matiere_selectionnee.nom }}</strong>
+                    {% endif %}
+                {% else %}
+                    Sélectionnez une classe pour commencer
+                {% endif %}
+            </div>
+        </div>
+
+        {% if stats.total_classes > 0 %}
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #6366f1;">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_classes }}</span>
+                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #10b981;">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_exercices }}</span>
+                        <span class="stat-label">Exercice{{ stats.total_exercices|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-container">
+                <div class="tabs-nav">
+                    {% for categorie in categories_data %}
+                        <button class="tab-btn {% if forloop.first %}active{% endif %}"
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <span class="tab-title">{{ categorie.nom }}</span>
+                                <span class="tab-badge">{{ categorie.classes|length }}</span>
+                            </div>
+                            <div class="tab-info">
+                                <span class="tab-students">
+                                    {{ categorie.classes|length }} classe{{ categorie.classes|length|pluralize }}
+                                </span>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                {% for categorie in categories_data %}
+                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                        <div class="category-info">
+                            <div class="category-details">
+                                <h3><i class="fas fa-layer-group"></i> {{ categorie.nom }}</h3>
+                                <p>
+                                    {{ categorie.classes|length }} classe{{ categorie.classes|length|pluralize }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="classes-tabs">
+                            {% for classe_data in categorie.classes %}
+                                {% with classe_id=classe_data.classe.id %}
+                                    <button class="classe-tab-btn {% if classe_selectionnee and classe_selectionnee.id == classe_id %}active{% elif not classe_selectionnee and forloop.first and forloop.parentloop.first %}active{% endif %}"
+                                            data-classe="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                                            onclick="showClasse('classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
+                                        <div class="classe-tab-icon">
+                                            <i class="fas fa-chalkboard-teacher"></i>
+                                        </div>
+                                        <div class="classe-tab-content">
+                                            <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                            {% if classe_data.matieres %}
+                                                <span class="classe-tab-badge info">{{ classe_data.matieres|length }} matière{{ classe_data.matieres|length|pluralize }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="classe-tab-count">{{ classe_data.exercices_count }}</span>
+                                    </button>
+                                {% endwith %}
+                            {% endfor %}
+                        </div>
+
+                        {% for classe_data in categorie.classes %}
+                            {% with classe_id=classe_data.classe.id %}
+                                <div class="classe-content {% if classe_selectionnee and classe_selectionnee.id == classe_id %}active{% elif not classe_selectionnee and forloop.first and forloop.parentloop.first %}active{% endif %}"
+                                     id="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                    <div class="classe-header-actions">
+                                        <div class="classe-header-info">
+                                            <h3>
+                                                <i class="fas fa-chalkboard"></i>
+                                                {{ classe_data.classe.nom }}
+                                            </h3>
+                                            <span class="eleves-count">
+                                                {{ classe_data.exercices_count }} exercice{{ classe_data.exercices_count|pluralize }}
+                                            </span>
+                                        </div>
+                                        <div class="action-buttons">
+                                            <button type="button"
+                                                    class="btn-primary btn-programmer-exercice"
+                                                    data-classe="{{ classe_id }}"
+                                                    data-matiere="{% if classe_selectionnee and matiere_selectionnee and classe_selectionnee.id == classe_id %}{{ matiere_selectionnee.id }}{% elif classe_data.matieres %}{{ classe_data.matieres.0.id }}{% endif %}"
+                                                    data-periode="{% if periode_selectionnee %}{{ periode_selectionnee.id }}{% endif %}">
+                                                <i class="fas fa-plus-circle"></i>
+                                                Programmer un exercice
+                                            </button>
+                                            <div class="matiere-filter">
+                                                {% for matiere in classe_data.matieres %}
+                                                    {% url 'enseignant_primaire:exercices_maison' as base_url %}
+                                                    <a href="{{ base_url }}?classe={{ classe_id }}&matiere={{ matiere.id }}{% if periode_selectionnee %}&periode={{ periode_selectionnee.id }}{% endif %}"
+                                                       class="btn-action info {% if classe_selectionnee and matiere_selectionnee and classe_selectionnee.id == classe_id and matiere_selectionnee.id == matiere.id %}active{% endif %}">
+                                                        <i class="fas fa-book"></i>
+                                                        {{ matiere.nom }}
+                                                    </a>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {% if classe_selectionnee and classe_selectionnee.id == classe_id %}
+                                        {% if matiere_selectionnee %}
+                                            {% if exercices_cards %}
+                                                <div class="exercices-card-grid">
+                                                    {% for exercice in exercices_cards %}
+                                                    <article class="exercice-card">
+                                                        <span class="status-chip status-{{ exercice.status_class }}">
+                                                            <i class="{{ exercice.status_icon }}"></i>
+                                                            {{ exercice.status_label }}
+                                                        </span>
+                                                        <div class="exercice-card-header">
+                                                            <span class="exercice-card-matiere">{{ exercice.matiere_nom }}</span>
+                                                            <h4 class="exercice-card-title">{{ exercice.titre }}</h4>
+                                                        </div>
+                                                        {% if exercice.description %}
+                                                        <p class="exercice-card-description">{{ exercice.description|linebreaksbr }}</p>
+                                                        {% endif %}
+                                                        <div class="exercice-card-meta">
+                                                            <span><i class="fas fa-calendar-check"></i> Rendu le {{ exercice.date_rendu|date:"d/m/Y" }}</span>
+                                                            <span><i class="fas fa-flag"></i> {{ exercice.periode_nom }}</span>
+                                                            <span><i class="fas fa-user"></i> {{ exercice.professeur_nom }}</span>
+                                                        </div>
+                                                        <div class="exercice-card-footer">
+                                                            <span class="exercice-card-status-text">
+                                                                <i class="{{ exercice.status_icon }}"></i>
+                                                                {{ exercice.status_label }}
+                                                            </span>
+                                                            <button type="button"
+                                                                    class="btn-action info btn-edit-exercice"
+                                                                    data-exercice-id="{{ exercice.id }}">
+                                                                <i class="fas fa-pen"></i>
+                                                                <span>Modifier</span>
+                                                            </button>
+                                                        </div>
+                                                    </article>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="empty-card-state">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                    <h3>Aucun exercice programmé</h3>
+                                                    <p>Ajoutez un nouvel exercice pour la matière sélectionnée afin de le partager avec vos élèves.</p>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            <div class="empty-card-state">
+                                                <i class="fas fa-book"></i>
+                                                <p>Sélectionnez une matière pour afficher les exercices programmés.</p>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="empty-card-state">
+                                            <i class="fas fa-info-circle"></i>
+                                            <p>Sélectionnez cette classe pour consulter ses exercices de maison.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h3>Aucune classe affectée</h3>
+                <p>Vous n'avez actuellement aucune classe affectée. Contactez l'administration.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="modal-exercice" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-book-open"></i> Programmer un exercice</h3>
+                <button class="modal-close" type="button" onclick="fermerModalExercice()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="post" class="modal-form">
+                {% csrf_token %}
+                <input type="hidden" name="exercice_id" id="exercice_id_field">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="classe_select">
+                                <i class="fas fa-chalkboard"></i>
+                                Classe <span class="required">*</span>
+                            </label>
+                            <select id="classe_select" name="classe" required>
+                                <option value="">-- Sélectionnez une classe --</option>
+                                {% for item in classes_options %}
+                                    <option value="{{ item.classe.id }}"
+                                        {% if classe_selectionnee and classe_selectionnee.id == item.classe.id %}selected{% endif %}>
+                                        {{ item.classe.nom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="matiere_select">
+                                <i class="fas fa-book"></i>
+                                Matière <span class="required">*</span>
+                            </label>
+                            <select id="matiere_select" name="matiere" required>
+                                {% if matieres_disponibles %}
+                                    {% for matiere in matieres_disponibles %}
+                                        <option value="{{ matiere.id }}"
+                                            {% if matiere_selectionnee and matiere_selectionnee.id == matiere.id %}selected{% endif %}>
+                                            {{ matiere.nom }}
+                                        </option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="">Sélectionnez une classe d'abord</option>
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="periode_select">
+                                <i class="fas fa-calendar-alt"></i>
+                                Période scolaire
+                            </label>
+                            <select id="periode_select" name="periode">
+                                <option value="">-- Sans période --</option>
+                                {% for periode in periodes %}
+                                    <option value="{{ periode.id }}"
+                                        {% if periode_selectionnee and periode_selectionnee.id == periode.id %}selected{% endif %}>
+                                        {{ periode.nom_periode }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="titre_input">
+                            <i class="fas fa-heading"></i>
+                            Titre de l'exercice <span class="required">*</span>
+                        </label>
+                        <input type="text" id="titre_input" name="titre" placeholder="Ex: Lecture - Compréhension de texte" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description_input">
+                            <i class="fas fa-align-left"></i>
+                            Description / Consignes
+                        </label>
+                        <textarea id="description_input" name="description" rows="4" placeholder="Consignes détaillées pour l'exercice (optionnel)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_rendu_input">
+                            <i class="fas fa-calendar-check"></i>
+                            Date de rendu <span class="required">*</span>
+                        </label>
+                        <input type="date" id="date_rendu_input" name="date_rendu" min="{{ aujourdhui|date:'Y-m-d' }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fermerModalExercice()">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-check"></i>
+                        Enregistrer l'exercice
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{ classes_options_json|json_script:"classes-data" }}
+    {{ exercices_json|json_script:"exercices-data" }}
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/gestion_eleves.js' %}"></script>
+    <script>
+        const classesData = JSON.parse(document.getElementById('classes-data').textContent || '[]');
+        const exercicesDataElement = document.getElementById('exercices-data');
+        const exercicesData = exercicesDataElement ? JSON.parse(exercicesDataElement.textContent || '[]') : [];
+        const modal = document.getElementById('modal-exercice');
+        const classeSelect = document.getElementById('classe_select');
+        const matiereSelect = document.getElementById('matiere_select');
+        const periodeSelect = document.getElementById('periode_select');
+        const titreInput = document.getElementById('titre_input');
+        const descriptionInput = document.getElementById('description_input');
+        const dateInput = document.getElementById('date_rendu_input');
+        const exerciceIdField = document.getElementById('exercice_id_field');
+        const modalTitle = modal?.querySelector('.modal-header h3');
+        const submitButton = modal?.querySelector('.btn-save');
+
+        const currentClasseId = {% if classe_selectionnee %}{{ classe_selectionnee.id }}{% else %}null{% endif %};
+        const currentMatiereId = {% if matiere_selectionnee %}{{ matiere_selectionnee.id }}{% else %}null{% endif %};
+        const currentPeriodeId = {% if periode_selectionnee %}{{ periode_selectionnee.id }}{% else %}null{% endif %};
+
+        function mettreAJourMatieres(classeId, matiereId = null) {
+            if (!matiereSelect) {
+                return;
+            }
+            matiereSelect.innerHTML = '';
+            const classeNumericId = classeId ? Number(classeId) : null;
+            const classeData = classeNumericId ? classesData.find(item => item.id === classeNumericId) : null;
+
+            if (!classeData || !classeData.matieres.length) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Sélectionnez une classe';
+                matiereSelect.appendChild(option);
+                return;
+            }
+
+            classeData.matieres.forEach((matiere, index) => {
+                const option = document.createElement('option');
+                option.value = matiere.id;
+                option.textContent = matiere.nom;
+
+                if (matiereId && Number(matiereId) === Number(matiere.id)) {
+                    option.selected = true;
+                } else if (!matiereId && index === 0) {
+                    option.selected = true;
+                }
+
+                matiereSelect.appendChild(option);
+            });
+        }
+
+        function ouvrirModalExercice({
+            classeId = classeSelect?.value || currentClasseId,
+            matiereId = matiereSelect?.value || currentMatiereId,
+            periodeId = periodeSelect?.value || currentPeriodeId,
+            exercice = null,
+        } = {}) {
+            if (!modal) return;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            if (modalTitle) {
+                modalTitle.innerHTML = exercice
+                    ? '<i class="fas fa-edit"></i> Modifier un exercice de maison'
+                    : '<i class="fas fa-book-open"></i> Programmer un exercice de maison';
+            }
+
+            if (submitButton) {
+                submitButton.innerHTML = exercice
+                    ? '<i class="fas fa-save"></i> Mettre à jour l\'exercice'
+                    : '<i class="fas fa-check"></i> Enregistrer l\'exercice';
+            }
+
+            if (exerciceIdField) {
+                exerciceIdField.value = exercice ? exercice.id : '';
+            }
+
+            const cibleClasse = classeId || currentClasseId || (classeSelect?.options[0]?.value ?? null);
+            if (classeSelect && cibleClasse) {
+                classeSelect.value = String(cibleClasse);
+            }
+
+            const cibleMatiere = exercice ? exercice.matiere_id : matiereId;
+            mettreAJourMatieres(classeSelect ? classeSelect.value : cibleClasse, cibleMatiere);
+
+            if (periodeSelect) {
+                if (exercice && exercice.periode_id) {
+                    periodeSelect.value = String(exercice.periode_id);
+                } else if (periodeId) {
+                    periodeSelect.value = String(periodeId);
+                } else {
+                    periodeSelect.value = '';
+                }
+            }
+
+            if (titreInput) {
+                titreInput.value = exercice ? (exercice.titre || '') : '';
+            }
+            if (descriptionInput) {
+                descriptionInput.value = exercice ? (exercice.description || '') : '';
+            }
+            if (dateInput) {
+                dateInput.value = exercice ? exercice.date_rendu : '';
+            }
+        }
+
+        function fermerModalExercice() {
+            if (!modal) return;
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+            if (exerciceIdField) {
+                exerciceIdField.value = '';
+            }
+        }
+
+        modal?.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                fermerModalExercice();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                fermerModalExercice();
+            }
+        });
+
+        classeSelect?.addEventListener('change', (event) => {
+            mettreAJourMatieres(event.target.value);
+        });
+
+        document.querySelectorAll('.btn-programmer-exercice').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ouvrirModalExercice({
+                    classeId: btn.dataset.classe || null,
+                    matiereId: btn.dataset.matiere || null,
+                    periodeId: btn.dataset.periode || null,
+                });
+            });
+        });
+
+        document.querySelectorAll('.btn-edit-exercice').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const exerciceId = Number(btn.dataset.exerciceId);
+                const exerciceData = exercicesData.find(item => item.id === exerciceId);
+                if (exerciceData) {
+                    ouvrirModalExercice({
+                        classeId: exerciceData.classe_id,
+                        matiereId: exerciceData.matiere_id,
+                        periodeId: exerciceData.periode_id,
+                        exercice: exerciceData,
+                    });
+                }
+            });
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
+
+            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            const selectedPanel = document.getElementById(tabId);
+
+            if (selectedBtn && selectedPanel) {
+                selectedBtn.classList.add('active');
+                selectedPanel.classList.add('active');
+
+                const firstClasseTab = selectedPanel.querySelector('.classe-tab-btn');
+                if (firstClasseTab) {
+                    const classeId = firstClasseTab.getAttribute('data-classe');
+                    showClasse(classeId, tabId);
+                }
+            }
+        }
+
+        function showClasse(classeId, tabId) {
+            const tabPanel = document.getElementById(tabId);
+            if (!tabPanel) return;
+
+            tabPanel.querySelectorAll('.classe-tab-btn').forEach(btn => btn.classList.remove('active'));
+            tabPanel.querySelectorAll('.classe-content').forEach(content => content.classList.remove('active'));
+
+            const selectedBtn = tabPanel.querySelector(`[data-classe="${classeId}"]`);
+            const selectedContent = document.getElementById(classeId);
+
+            if (selectedBtn) selectedBtn.classList.add('active');
+            if (selectedContent) selectedContent.classList.add('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialClasse = classeSelect?.value || currentClasseId;
+            mettreAJourMatieres(initialClasse, currentMatiereId);
+        });
+    </script>
+
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+</body>
+</html>
+

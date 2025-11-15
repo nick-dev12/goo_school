@@ -3,19 +3,40 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Optional
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
+from typing import Iterable, Optional, Union
 
-from django.utils import timezone
 from django.urls import reverse
+from django.utils import timezone
 
-from school_admin.model.notification_eleve_model import NotificationEleve
 from school_admin.model.eleve_model import Eleve
+from school_admin.model.notification_eleve_model import NotificationEleve
 
 logger = logging.getLogger(__name__)
 
 
 class EleveNotificationService:
     """Service utilitaire pour notifier les élèves."""
+
+    @staticmethod
+    def _sanitize_for_json(value: Union[dict, list, tuple, set, Decimal, datetime, date, object]):
+        """
+        Convertit récursivement les structures de données pour les rendre compatibles JSON.
+        """
+        if isinstance(value, Decimal):
+            return float(value)
+
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+
+        if isinstance(value, dict):
+            return {key: EleveNotificationService._sanitize_for_json(val) for key, val in value.items()}
+
+        if isinstance(value, (list, tuple, set)):
+            return [EleveNotificationService._sanitize_for_json(item) for item in value]
+
+        return value
 
     @classmethod
     def _dispatch(
@@ -34,12 +55,15 @@ class EleveNotificationService:
             logger.debug("Notification élève ignorée : élève invalide")
             return {"created": 0, "push": None}
 
+        raw_payload = payload.copy() if payload else {}
+        notification_payload = cls._sanitize_for_json(raw_payload)
+
         notification = NotificationEleve.objects.create(
             eleve=eleve,
             titre=titre,
             message=message,
             type_notification=type_notification,
-            donnees=payload or {},
+            donnees=notification_payload,
             source_object=source,
             date_evenement=timezone.now(),
         )
@@ -49,13 +73,15 @@ class EleveNotificationService:
         except Exception:
             default_redirect_url = "/eleve/notifications/"
 
-        payload_with_url = payload.copy() if payload else {}
+        payload_with_url = raw_payload.copy()
         payload_with_url.setdefault("redirect_url", default_redirect_url)
         payload_with_url.setdefault("url", default_redirect_url)
+        payload_with_url = cls._sanitize_for_json(payload_with_url)
 
         pushdata_with_url = push_data.copy() if push_data else {}
         pushdata_with_url.setdefault("redirect_url", default_redirect_url)
         pushdata_with_url.setdefault("url", default_redirect_url)
+        pushdata_with_url = cls._sanitize_for_json(pushdata_with_url)
 
         push_result = None
         if push_title and push_body:
@@ -129,6 +155,17 @@ class EleveNotificationService:
             **details,
         }
 
+        push_data = {
+            "type": "note",
+            "matiere": matiere_nom,
+        }
+        if "evaluation" in details:
+            push_data["evaluation"] = details["evaluation"]
+        if "note" in details:
+            push_data["note"] = details["note"]
+        if "bareme" in details:
+            push_data["bareme"] = details["bareme"]
+
         return cls._dispatch(
             eleve,
             type_notification="note",
@@ -136,6 +173,81 @@ class EleveNotificationService:
             message=message,
             payload=payload,
             source=source,
+            push_title=titre,
+            push_body=message,
+            push_data=push_data,
+        )
+
+    @classmethod
+    def notify_note_justifiee(
+        cls,
+        eleve: Eleve,
+        *,
+        matiere_nom: str,
+        nouvelle_note,
+        bareme=None,
+        evaluation_nom: str | None = None,
+        source=None,
+    ) -> dict:
+        def _format_note(value, bareme_value=None):
+            if value is None:
+                return "-"
+            try:
+                dec = Decimal(str(value))
+            except (InvalidOperation, ValueError, TypeError):
+                return str(value)
+            if dec == dec.quantize(Decimal('1')):
+                note_str = format(dec.quantize(Decimal('1')), 'f')
+            else:
+                note_str = format(dec.quantize(Decimal('0.01')), 'f')
+                if note_str.endswith('0'):
+                    note_str = note_str.rstrip('0').rstrip('.')
+            if bareme_value is not None:
+                try:
+                    bareme_dec = Decimal(str(bareme_value))
+                    if bareme_dec == bareme_dec.quantize(Decimal('1')):
+                        bareme_str = format(bareme_dec.quantize(Decimal('1')), 'f')
+                    else:
+                        bareme_str = format(bareme_dec.quantize(Decimal('0.01')), 'f')
+                        if bareme_str.endswith('0'):
+                            bareme_str = bareme_str.rstrip('0').rstrip('.')
+                except (InvalidOperation, ValueError, TypeError):
+                    bareme_str = str(bareme_value)
+                return f"{note_str}/{bareme_str}"
+            return note_str
+
+        note_formatee = _format_note(nouvelle_note, bareme)
+        evaluation_label = evaluation_nom or "l'évaluation concernée"
+
+        titre = f"Note mise à jour en {matiere_nom}"
+        message = (
+            f"Votre note pour {evaluation_label} a été mise à jour : {note_formatee}. "
+            "Justification validée par la direction."
+        )
+
+        payload = {
+            "matiere": matiere_nom,
+            "note": note_formatee,
+            "evaluation": evaluation_label,
+            "type": "justification_note",
+        }
+
+        push_data = {
+            "type": "note_justifiee",
+            "matiere": matiere_nom,
+            "evaluation": evaluation_label,
+        }
+
+        return cls._dispatch(
+            eleve,
+            type_notification="note_justifiee",
+            titre=titre,
+            message=message,
+            payload=payload,
+            source=source,
+            push_title=titre,
+            push_body=message,
+            push_data=push_data,
         )
 
     @classmethod
@@ -181,10 +293,11 @@ class EleveNotificationService:
         message: str,
         payload: Optional[dict] = None,
         source=None,
+        type_notification: str = "information",
     ) -> dict:
         return cls._dispatch(
             eleve,
-            type_notification="information",
+            type_notification=type_notification,
             titre=titre,
             message=message,
             payload=payload,

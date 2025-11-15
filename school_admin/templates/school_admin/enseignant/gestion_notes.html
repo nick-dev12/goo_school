@@ -176,6 +176,10 @@
                                             <i class="fas fa-edit"></i>
                                             <span>Noter élèves</span>
                                         </a>
+                                        <a href="{% url 'enseignant:justifications_notes' %}" class="btn-action info" title="Justifier une note" style="background: var(--gradient-cyan);">
+                                            <i class="fas fa-scale-balanced"></i>
+                                            <span>Justifier une note</span>
+                                        </a>
                                         {% with session_examen=sessions_examens_par_classe|get_item:classe_data.classe.id %}
                                         {% if session_examen %}
                                         <a href="{% url 'enseignant:noter_examen' classe_data.classe.id %}" class="btn-action warning" title="Noter l'examen" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
@@ -760,5 +764,7 @@
             </div>
         </div>
     </div>
+
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
 </body>
 </html>

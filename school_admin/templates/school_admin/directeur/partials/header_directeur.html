@@ -15,10 +15,7 @@
       </div>
 
       <div class="header-right">
-        <div class="header-search">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Rechercher..." />
-        </div>
+       
 
         <a href="{% url 'directeur:notifications_directeur' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
@@ -27,7 +24,7 @@
 
         <button class="header-button" aria-label="Messages">
           <i class="fas fa-envelope"></i>
-          <span class="notification-badge">5</span>
+          <span class="notification-badge">0</span>
         </button>
 
         <div class="header-profile">
@@ -48,14 +45,14 @@
           {{ request.user.nom }} - Année scolaire 2024-2025
         </p>
       </div>
-      <button
-        class="nav-toggle-btn"
-        id="openNavMenu"
-        aria-label="Ouvrir le menu"
+      <a
+        href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+        class="welcome-action logout-link"
+        aria-label="Se déconnecter"
       >
-        <span class="d-none d-sm-inline">Menu</span>
-        <i class="fas fa-th"></i>
-      </button>
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Déconnexion</span>
+      </a>
     </section>
 
     <!-- Navigation Overlay -->
@@ -71,111 +68,28 @@
       </button>
 
       <div class="nav-menu-header">
-        <h2>Menu de Navigation</h2>
-        <p>Accédez rapidement à toutes les fonctionnalités</p>
+        <h2>Menu complémentaire</h2>
+        <p>Retrouvez les accès supplémentaires non présents dans la barre principale.</p>
       </div>
 
-      <!-- Section 1: Tableau de bord -->
-      <div class="section-title">
-        <h2>Tableau de bord</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'directeur:dashboard_directeur' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-home"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Vue d'ensemble</h3>
-            <p>Tableau de bord principal</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 2: Gestion pédagogique -->
-      <div class="section-title">
-        <h2>Gestion pédagogique</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'directeur:gestion_pedagogique' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-graduation-cap"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Gestion pédagogique</h3>
-            <p>Accès complet aux outils pédagogiques</p>
-          </div>
-        </a>
-
-        <a href="{% url 'directeur:gestion_eleves' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-user-graduate"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Gestion des élèves</h3>
-            <p>Accès complet aux outils de gestion des élèves</p>
-          </div>
-        </a>
-
+      <div class="nav-cards-row nav-cards-compact">
         <a href="{% url 'directeur:gestion_examens' %}" class="nav-link-card">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-clipboard-list"></i>
           </div>
           <div class="nav-link-content">
             <h3>Gestion des examens</h3>
-            <p>Programmer et gérer les sessions d'examens</p>
+            <p>Planifier et suivre les sessions</p>
           </div>
         </a>
 
-        <a href="{% url 'directeur:gestion_etablissement' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-school"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Gestion de l'établissement</h3>
-            <p>Accès complet aux outils de gestion</p>
-          </div>
-        </a>
-
-        <a href="{% url 'directeur:gestion_administrative' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-cyan">
-            <i class="fas fa-file-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Gestion administrative</h3>
-            <p>Documents administratifs et certificats</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 6: Communication -->
-      <div class="section-title">
-        <h2>Communication</h2>
-      </div>
-      <div class="nav-cards-row">
         <a href="{% url 'directeur:annonces_directeur' %}" class="nav-link-card">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-bullhorn"></i>
           </div>
           <div class="nav-link-content">
             <h3>Annonces</h3>
-            <p>Informations importantes</p>
-          </div>
-        </a>
-      </div>
-     
-
-      <!-- Section 8: Compte -->
-      <div class="section-title">
-        <h2>Mon compte</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-cyan">
-            <i class="fas fa-user-cog"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Mon profil</h3>
-            <p>Informations de l'établissement</p>
+            <p>Communiquer les actualités</p>
           </div>
         </a>
 
@@ -185,19 +99,17 @@
           </div>
           <div class="nav-link-content">
             <h3>Facturation</h3>
-            <p>Gérer vos factures de services</p>
+            <p>Suivre la situation financière</p>
           </div>
         </a>
-        <a
-          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
-          class="nav-link-card logout-card"
-        >
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-sign-out-alt"></i>
+
+        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-cyan">
+            <i class="fas fa-user-cog"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Déconnexion</h3>
-            <p>Quitter la session</p>
+            <h3>Profil établissement</h3>
+            <p>Paramètres et informations clés</p>
           </div>
         </a>
       </div>

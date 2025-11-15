@@ -4,6 +4,7 @@ from .controllers.administrateur_compte_controller import AdministrateurCompteCo
 from .personal_views.administrateur_view import *
 from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
+from .personal_views.directeur_view import verifier_bulletin_qr
 from .api_views import fcm_views, fcm_test_views, test_notes_notifications
 
 app_name = 'school_admin'
@@ -36,6 +37,7 @@ urlpatterns =[
     path('etablissements/messages/', message_etablissement, name='message_etablissement'),
     path('etablissements/messages/detail/', detail_message, name='detail_message'),
     path('annonces/', annonces, name='annonces'),
+    path('bulletins/verifier/', verifier_bulletin_qr, name='verifier_bulletin_qr'),
     
     path('parametres/administrateur/', parametres, name='parametres_administrateur'),
     path('management_equipes/', management_equipes, name='management_equipes'),
@@ -48,6 +50,16 @@ urlpatterns =[
     # Authentification
     path('inscription/', views.inscription_compte_user, name='inscription_compte_user'),
     path('connexion/', views.connexion_compte_user, name='connexion_compte_user'),
+    path(
+        'connexion/professeurs/otp/',
+        views.professeur_connexion_otp_request,
+        name='prof_connexion_otp',
+    ),
+    path(
+        'connexion/professeurs/otp/verification/<uuid:token>/',
+        views.professeur_connexion_otp_verification,
+        name='prof_connexion_otp_verify',
+    ),
     
     # Tableaux de bord par fonction
     path('dashboard/support/', views.dashboard_support, name='dashboard_support'),

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon bulletin - {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/imprimer_bulletin_eleve.css' %}" />
+  </head>
+  <body>
+    <div class="bulletin-scale-wrapper">
+      <div class="bulletin-scale-container">
+    <div class="print-container">
+      <!-- En-tête de l'établissement -->
+      <header class="print-header">
+      <div class="header_left_right">
+        <div class="header-left">
+          <div class="header-logo">
+            {% if etablissement.logo %}
+              <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
+            {% else %}
+              <div class="logo-placeholder">
+                <i class="fas fa-school"></i>
+              </div>
+            {% endif %}
+          </div>
+          <div class="header-info">
+            <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
+            <p class="bulletin-titre">BULLETIN DE NOTES</p>
+            <p class="etablissement-adresse">
+              {% if etablissement.adresse %}{{ etablissement.adresse }}{% endif %}
+              {% if etablissement.ville %}{% if etablissement.adresse %}, {% endif %}{{ etablissement.ville }}{% endif %}
+              {% if etablissement.pays %}{% if etablissement.adresse or etablissement.ville %}, {% endif %}{{ etablissement.pays }}{% endif %}
+            </p>
+            <div class="etablissement-contact">
+              {% if etablissement.telephone %}
+                <span class="contact-item">
+                  <i class="fas fa-phone"></i> {{ etablissement.telephone }}
+                </span>
+              {% endif %}
+              {% if etablissement.email %}
+                <span class="contact-item">
+                  <i class="fas fa-envelope"></i> {{ etablissement.email }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <div class="header-right">
+          <div class="document-info-header">
+            <div class="info-item-header">
+              <span class="info-label-header">Année scolaire :</span>
+              <span class="info-value-header">{{ periode.annee_scolaire }}</span>
+            </div>
+            <div class="info-item-header">
+              <span class="info-label-header">Période :</span>
+              <span class="info-value-header">{{ periode.nom_periode }}</span>
+            </div>
+            <div class="info-item-header">
+              <span class="info-label-header">Date d'édition :</span>
+              <span class="info-value-header">{{ date_generation|date:"d/m/Y" }}</span>
+            </div>
+            <div class="info-item-header">
+              <span class="info-label-header">Effectif :</span>
+              <span class="info-value-header">{{ classe_effectif }} élève{{ classe_effectif|pluralize }}</span>
+            </div>
+          </div>
+          <div class="bulletin-security-card">
+            {% if bulletin_qr_image_url %}
+              <img src="{{ bulletin_qr_image_url }}" alt="QR code de vérification du bulletin" class="security-qr-image">
+            {% else %}
+              <div class="security-qr-placeholder">QR code indisponible</div>
+            {% endif %}
+            <div class="security-meta">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="header_titre">
+        <h1 class="titre_bulletin">BULLETIN DE NOTES</h1>
+      </div>
+      </header>
+
+      <!-- Informations de l'élève -->
+      <section class="student-info-section">
+        <div class="student-info-grid">
+          <div class="info-item">
+            <span class="label">Nom de l'élève</span>
+            <span class="value">{{ eleve.nom_complet }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Matricule</span>
+            <span class="value">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Classe</span>
+            <span class="value">{{ classe.nom }} – {{ classe.get_niveau_display }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Date de naissance</span>
+            <span class="value">{% if eleve.date_naissance %}{{ eleve.date_naissance|date:"d/m/Y" }}{% else %}-{% endif %}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Lieu de naissance</span>
+            <span class="value">{{ eleve.lieu_naissance|default:'-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Sexe</span>
+            <span class="value">{% if eleve.sexe == 'M' %}Masculin{% elif eleve.sexe == 'F' %}Féminin{% else %}-{% endif %}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tableau principal des notes -->
+      <section class="bulletin-table-section">
+        <div class="table-wrapper">
+          <table class="bulletin-main-table">
+            <thead>
+              <tr>
+                <th>Matière</th>
+                <th>Moyenne de classe</th>
+                <th>Note d'examen</th>
+                <th>Coefficient</th>
+                <th>Moyenne élève</th>
+                <th>Rang</th>
+                <th>Appréciations</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for matiere in matieres_table %}
+                <tr>
+                  <td>{{ matiere.nom }}</td>
+                  <td>
+                    {% if matiere.moyenne_classe is not None %}
+                      {{ matiere.moyenne_classe|floatformat:2 }}
+                    {% else %}
+                      –
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if matiere.note_examen is not None %}
+                      {{ matiere.note_examen|floatformat:2 }}
+                    {% else %}
+                      –
+                    {% endif %}
+                  </td>
+                  <td>{{ matiere.coefficient|floatformat:1 }}</td>
+                  <td class="{% if matiere.moyenne_eleve is not None and matiere.moyenne_eleve >= 10 %}moyenne-reussie{% elif matiere.moyenne_eleve is not None %}moyenne-echec{% endif %}">
+                    {% if matiere.moyenne_eleve is not None %}
+                      {{ matiere.moyenne_eleve|floatformat:2 }}
+                    {% else %}
+                      –
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if matiere.rang %}
+                      {{ matiere.rang }}
+                    {% else %}
+                      –
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if matiere.appreciation %}
+                      <span class="appreciation-text">{{ matiere.appreciation }}</span>
+                    {% if matiere.appreciation_source == 'initiale' %}
+                        <span class="appreciation-origin">Initiale</span>
+                      {% endif %}
+                    {% else %}
+                      –
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Informations complémentaires -->
+      <section class="complementary-section">
+        <table class="complementary-table">
+          <tr>
+            <th>Moyenne de la période</th>
+            <td>{% if complement_info.moyenne_periode %}{{ complement_info.moyenne_periode|floatformat:2 }}/20{% else %}–{% endif %}</td>
+            <th>Rang général</th>
+            <td>
+              {% if complement_info.rang_general %}
+                {{ complement_info.rang_general }}/{{ complement_info.effectif }}
+              {% else %}
+                –
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>Absences justifiées</th>
+            <td>{{ complement_info.absences_justifiees }}</td>
+            <th>Absences non justifiées</th>
+            <td>{{ complement_info.absences_non_justifiees }}</td>
+          </tr>
+          <tr>
+            <th>Appréciation générale</th>
+          <td colspan="3">
+            {% if complement_info.appreciation_generale %}
+              <span class="appreciation-text">{{ complement_info.appreciation_generale }}</span>
+              {% if complement_info.appreciation_generale_source == 'initiale' %}
+                <span class="appreciation-origin">Initiale</span>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+            {% if complement_info.statut_conseil_label %}
+              <div class="statut-conseil">{{ complement_info.statut_conseil_label }}</div>
+            {% endif %}
+          </td>
+          </tr>
+        {% if complement_info.decision_conseil %}
+          <tr>
+            <th>Décision du conseil</th>
+            <td colspan="3">
+              <span class="appreciation-text">{{ complement_info.decision_conseil }}</span>
+              {% if complement_info.decision_conseil_source == 'initiale' %}
+                <span class="appreciation-origin">Initiale</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
+        </table>
+      </section>
+
+      <!-- Signatures -->
+      <section class="footer-signatures">
+        <div class="signature-block">
+          <span class="signature-label">Le chef d'établissement</span>
+          <span class="signature-line"></span>
+        </div>
+      </section>
+
+      <!-- Pied de page -->
+      <footer class="print-footer">
+        <p class="footer-text">
+          N° de série : {{ bulletin_numero_serie|default:"Non généré" }} — {{ etablissement.nom }}
+        </p>
+      </footer>
+    </div>
+
+    <!-- Boutons d'action (cachés à l'impression) -->
+    <div class="print-actions no-print">
+      <a href="{{ retour_url }}" class="btn-action btn-back">
+        <i class="fas fa-arrow-left"></i>
+        Retour
+      </a>
+      <button type="button" class="btn-action btn-print-portrait" onclick="imprimerEnPortrait()">
+        <i class="fas fa-file-alt"></i>
+        Imprimer en mode portrait
+      </button>
+      <button type="button" class="btn-action btn-print-landscape" onclick="imprimerEnPaysage()">
+        <i class="fas fa-file-alt"></i>
+        Imprimer en mode paysage
+      </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+      let printStyleSheet = null;
+
+      function injectPrintStyle(orientation) {
+        // Supprimer l'ancien style s'il existe
+        if (printStyleSheet) {
+          printStyleSheet.remove();
+        }
+
+        // Créer un nouveau style pour l'orientation
+        printStyleSheet = document.createElement('style');
+        printStyleSheet.setAttribute('media', 'print');
+        printStyleSheet.textContent = '@page { size: A4 ' + orientation + '; margin: 0; }';
+        document.head.appendChild(printStyleSheet);
+      }
+
+      function imprimerEnPortrait() {
+        document.body.classList.remove('print-landscape');
+        document.body.classList.add('print-portrait');
+        injectPrintStyle('portrait');
+        setTimeout(function() {
+          window.print();
+          document.body.classList.remove('print-portrait');
+        }, 100);
+      }
+
+      function imprimerEnPaysage() {
+        document.body.classList.remove('print-portrait');
+        document.body.classList.add('print-landscape');
+        injectPrintStyle('landscape');
+        setTimeout(function() {
+          window.print();
+          document.body.classList.remove('print-landscape');
+        }, 100);
+      }
+    </script>
+  </body>
+</html>
+
+
+

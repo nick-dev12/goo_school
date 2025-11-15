@@ -12,6 +12,7 @@
     <!-- Style CSS personnalisé -->
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/profil_eleve.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}">
 </head>
 
 <body>
@@ -31,40 +32,73 @@
 
         <!-- En-tête du profil avec photo -->
         <div class="profil-header-card">
-            <div class="profil-photo-section">
-                <div class="profil-photo">
-                    {% if eleve.photo %}
-                        <img src="{{ eleve.photo.url }}" alt="Photo de {{ eleve.prenom }} {{ eleve.nom }}">
+            <div class="profil-header-content">
+                <div class="profil-photo-section">
+                    <div class="profil-photo">
+                        {% if eleve.photo_profil %}
+                            <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.prenom }} {{ eleve.nom }}">
+                        {% else %}
+                            <div class="photo-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="profil-status">
+                        <span class="status-badge active">
+                            <i class="fas fa-circle"></i>
+                            Élève actif
+                        </span>
+                    </div>
+                    {% if not est_parent %}
+                    <div class="profil-actions">
+                        <button
+                            type="button"
+                            class="photo-action-button"
+                            id="openPhotoModal"
+                        >
+                            <i class="fas fa-camera"></i>
+                            {% if eleve.photo_profil %}
+                                Mettre à jour la photo
+                            {% else %}
+                                Ajouter une photo de profil
+                            {% endif %}
+                        </button>
+                        <button
+                            type="button"
+                            class="card-action-button"
+                            id="openCarteIdentite"
+                        >
+                            <i class="fas fa-id-card"></i>
+                            Voir ma carte d'identité
+                        </button>
+                    </div>
                     {% else %}
-                        <div class="photo-placeholder">
-                            <i class="fas fa-user"></i>
-                        </div>
+                    <p class="photo-action-note">
+                        La mise à jour de la photo est réservée à l'élève connecté.
+                    </p>
                     {% endif %}
                 </div>
-                <div class="profil-status">
-                    <span class="status-badge active">
-                        <i class="fas fa-circle"></i>
-                        Élève actif
-                    </span>
-                </div>
-            </div>
-            <div class="profil-identity">
-                <h1 class="profil-nom">{{ eleve.prenom }} {{ eleve.nom|upper }}</h1>
-                <div class="profil-meta">
-                    <span class="meta-item">
-                        <i class="fas fa-id-card"></i>
-                        {{ eleve.matricule }}
-                    </span>
-                    <span class="meta-separator">•</span>
-                    <span class="meta-item">
-                        <i class="fas fa-users"></i>
-                        {{ eleve.classe.nom_classe }}
-                    </span>
-                    <span class="meta-separator">•</span>
-                    <span class="meta-item">
-                        <i class="fas fa-school"></i>
-                        {{ etablissement.nom }}
-                    </span>
+                <div class="profil-identity">
+                    <div class="profil-identity-text">
+                        <h1 class="profil-nom">{{ eleve.prenom }} {{ eleve.nom|upper }}</h1>
+                        <p class="profil-role">
+                            Classe de {{ eleve.classe.nom|default:"-" }} · {{ etablissement.nom }}
+                        </p>
+                    </div>
+                    <div class="profil-meta-grid">
+                        <div class="profil-meta-chip">
+                            <span class="chip-label">Matricule</span>
+                            <span class="chip-value">{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"N/A" }}</span>
+                        </div>
+                        <div class="profil-meta-chip">
+                            <span class="chip-label">Classe</span>
+                            <span class="chip-value">{{ eleve.classe.nom|default:"Non assignée" }}</span>
+                        </div>
+                        <div class="profil-meta-chip">
+                            <span class="chip-label">Établissement</span>
+                            <span class="chip-value">{{ etablissement.nom }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -165,15 +199,27 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Matricule</div>
-                        <div class="info-value">{{ eleve.matricule }}</div>
+                        <div class="info-value">{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"Non renseigné" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Classe</div>
-                        <div class="info-value">{{ eleve.classe.nom_classe }}</div>
+                        <div class="info-value">
+                            {% if eleve.classe %}
+                                {{ eleve.classe.nom }}
+                            {% else %}
+                                Non assignée
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Niveau</div>
-                        <div class="info-value">{{ eleve.classe.niveau.nom_niveau|default:"Non renseigné" }}</div>
+                        <div class="info-value">
+                            {% if eleve.classe %}
+                                {{ eleve.classe.get_niveau_display }}
+                            {% else %}
+                                Non renseigné
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Établissement</div>
@@ -415,8 +461,251 @@
     </div>
 </div>
 
+<!-- Formulaire plein écran pour la photo de profil -->
+{% if not est_parent %}
+<div
+    class="photo-modal-overlay {% if photo_modal_open %}active{% endif %}"
+    id="photoModalOverlay"
+    aria-hidden="{% if photo_modal_open %}false{% else %}true{% endif %}"
+>
+    <div
+        class="photo-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="photoModalTitle"
+    >
+        <button
+            type="button"
+            class="photo-modal-close"
+            id="closePhotoModal"
+            aria-label="Fermer le formulaire d'ajout de photo"
+        >
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="photo-modal-body">
+            <header class="photo-modal-header">
+                <h2 id="photoModalTitle">Ajouter une photo de profil</h2>
+                <p>
+                    Importez une photo nette sur laquelle votre visage et le haut
+                    de votre buste sont visibles. L'image sera automatiquement
+                    recadrée au format identité.
+                </p>
+            </header>
+            {% if photo_errors %}
+            <div class="form-errors">
+                {% for error in photo_errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <form
+                id="photoUploadForm"
+                method="post"
+                action="{% url 'eleve:profil_eleve' %}"
+                enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload-photo" />
+                <div class="photo-form-grid">
+                    <div class="photo-preview-panel">
+                        <div class="photo-preview" id="photoPreviewArea">
+                            <img
+                                src="{% if eleve.photo_profil %}{{ eleve.photo_profil.url }}{% endif %}"
+                                alt="Prévisualisation de la photo sélectionnée"
+                                id="photoPreviewImage"
+                                class="photo-preview-image {% if eleve.photo_profil %}visible{% endif %}"
+                            />
+                            <div
+                                class="photo-preview-placeholder {% if eleve.photo_profil %}hidden{% endif %}"
+                                id="photoPreviewPlaceholder"
+                            >
+                                <i class="fas fa-user-circle"></i>
+                                <p>La prévisualisation apparaîtra ici.</p>
+                            </div>
+                        </div>
+                        <ul class="photo-guidelines">
+                            <li>Visage dégagé et bien éclairé</li>
+                            <li>Format portrait (tête et haut de la poitrine)</li>
+                            <li>Fichier JPG, PNG ou WebP – 5&nbsp;Mo maximum</li>
+                        </ul>
+                    </div>
+                    <div class="photo-form-fields">
+                        <div class="form-field">
+                            <label for="id_photo_profil">Choisir une image</label>
+                            <div class="file-input-wrapper">
+                                <button
+                                    type="button"
+                                    class="file-trigger-button"
+                                    id="fileTriggerButton"
+                                >
+                                    <i class="fas fa-upload"></i>
+                                    Sélectionner un fichier
+                                </button>
+                                <input
+                                    type="file"
+                                    id="id_photo_profil"
+                                    name="photo_profil"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    class="profile-photo-input"
+                                    required
+                                />
+                            </div>
+                            {% if photo_errors %}
+                            <div class="field-error">
+                                {% for error in photo_errors %}
+                                <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="submit-photo-button">
+                                <i class="fas fa-save"></i>
+                                Enregistrer la photo
+                            </button>
+                            <button
+                                type="button"
+                                class="cancel-photo-button"
+                                id="cancelPhotoModal"
+                            >
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal pleine page pour la carte d'identité -->
+<div
+    class="carte-identite-overlay"
+    id="carteIdentiteOverlay"
+    aria-hidden="true"
+>
+    <div
+        class="carte-identite-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="carteIdentiteTitle"
+    >
+        <button
+            type="button"
+            class="carte-identite-close"
+            id="closeCarteIdentite"
+            aria-label="Fermer la carte d'identité"
+        >
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="card-page modal-card-page">
+            <header class="card-header">
+                <div class="card-title">
+                    <h1 id="carteIdentiteTitle">Carte d'identité scolaire</h1>
+                    <p>{{ eleve.nom_complet }} · {{ eleve.classe.nom|default:"Classe non définie" }}</p>
+                </div>
+               
+            </header>
+            <main class="card-content">
+                <div class="info-section">
+                    <div class="student-idcard-wrapper">
+                        <div class="wrapper-front">
+
+                            <div class="student-idcard-front">
+                                <div class="idcard-header">
+                                    <div class="idcard-flag">
+                                        <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo de l'établissement">
+                                    </div>
+                                    <div class="idcard-header-text">
+                                        <p class="idcard-country">RÉPUBLIQUE DU SÉNÉGAL</p>
+                                        <p class="idcard-motto">UN PEUPLE - UN BUT - UNE FOI</p>
+                                        <h4 class="idcard-school">{{ etablissement.nom|default:"LYCÉE BLAISE PASCAL" }}</h4>
+                                        <p class="idcard-title">CARTE D'IDENTITÉ SCOLAIRE</p>
+                                    </div>
+                                    <div class="idcard-logo">
+                                        {% if etablissement.logo %}
+                                        <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
+                                        {% else %}
+                                        <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement">
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="idcard-body">
+                                    <div class="idcard-photo">
+                                        {% if eleve.photo_profil %}
+                                        <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.nom_complet }}">
+                                        {% else %}
+                                        <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="Photo par défaut">
+                                        {% endif %}
+                                    </div>
+                                    <div class="idcard-info">
+                                        <div class="idcard-info-row">
+                                            <span class="info-label">Année scolaire :</span>
+                                            <span class="info-value">{{ carte_annee_scolaire|default:"2024 - 2025" }}</span>
+                                        </div>
+                                        <div class="idcard-info-row">
+                                            <span class="info-label">Nom :</span>
+                                            <span class="info-value info-accent">{{ eleve.nom|upper }}</span>
+                                        </div>
+                                        <div class="idcard-info-row">
+                                            <span class="info-label">Prénom :</span>
+                                            <span class="info-value info-accent">{{ eleve.prenom|upper }}</span>
+                                        </div>
+                                        <div class="idcard-info-row double">
+                                            <span class="info-label">Né(e) le :</span>
+                                            <span class="info-value info-strong">{{ eleve.date_naissance|date:"d-m-Y" }}</span>
+                                            <span class="info-label">À :</span>
+                                            <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
+                                        </div>
+                                        <div class="idcard-info-row double">
+                                            <span class="info-label">Sexe :</span>
+                                            <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
+                                            <span class="info-label">Classe :</span>
+                                            <span class="info-value info-uppercase info-value-wrap">
+                                                {% if eleve.classe %}
+                                                {{ eleve.classe.nom }}
+                                                {% else %}
+                                                Non assignée
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="idcard-info-row">
+                                            <span class="info-label">Contact :</span>
+                                            <span class="info-value info-value-wrap">{{ eleve.telephone|default:"**********" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="idcard-qr">
+                                        {% if eleve.qr_code_image %}
+                                        <img src="{{ eleve.qr_code_image.url }}" alt="QR code de {{ eleve.nom_complet }}">
+                                        {% else %}
+                                        <div class="idcard-qr-placeholder">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span>QR code indisponible</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="idcard-footer">
+                                    <span class="idcard-matricule">MAT. : {{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
+                                    <span class="idcard-printed">IMPRIMÉ PAR / PRINTED BY {{ etablissement.nom|default:"LYCÉE GANALIS" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/eleve/header.js' %}"></script>
+{% if not est_parent %}
+<script src="{% static 'school_admin/js/eleve/profil_photo_modal.js' %}"></script>
+{% endif %}
+
+    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
 </body>
 </html>
 

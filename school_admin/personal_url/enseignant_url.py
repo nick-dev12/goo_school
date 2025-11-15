@@ -6,6 +6,7 @@ from ..personal_views.enseignant_view import (
     gestion_classes_enseignant,
     gestion_eleves_enseignant,
     gestion_notes_enseignant,
+    exercices_maison_enseignant,
     gestion_presence_enseignant,
     eleves_en_difficulte_enseignant,
     noter_eleves_enseignant,
@@ -33,6 +34,7 @@ from ..personal_views.enseignant_view import (
     imprimer_tableau_presence_enseignant,
     notifications_enseignant,
     annonces_enseignant,
+    justifications_notes_enseignant,
 )
 
 app_name = 'enseignant'
@@ -42,6 +44,8 @@ urlpatterns = [
     path('enseignant/classes/', gestion_classes_enseignant, name='gestion_classes'),
     path('enseignant/eleves/', gestion_eleves_enseignant, name='gestion_eleves'),
     path('enseignant/notes/', gestion_notes_enseignant, name='gestion_notes'),
+    path('enseignant/justifications-notes/', justifications_notes_enseignant, name='justifications_notes'),
+    path('enseignant/exercices/', exercices_maison_enseignant, name='exercices_maison'),
     path('enseignant/presence/', gestion_presence_enseignant, name='gestion_presence'),
     path('enseignant/eleves-difficulte/', eleves_en_difficulte_enseignant, name='eleves_en_difficulte'),
     path('enseignant/noter/<int:classe_id>/', noter_eleves_enseignant, name='noter_eleves'),

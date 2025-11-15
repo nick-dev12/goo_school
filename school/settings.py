@@ -197,3 +197,16 @@ LOGGING = {
         },
     },
 }
+
+# ============================================
+# Configuration Wasender (WhatsApp OTP)
+# ============================================
+WASENDER_API_BASE_URL = os.getenv(
+    "WASENDER_API_BASE_URL",
+    "https://wasenderapi.com/api",
+)
+WASENDER_API_TOKEN = os.getenv(
+    "WASENDER_API_TOKEN",
+    "ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1",
+)
+WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")

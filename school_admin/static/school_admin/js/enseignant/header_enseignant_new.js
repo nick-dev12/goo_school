@@ -1,40 +1,45 @@
 // Header Enseignant - Navigation
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Header enseignant initialisé');
-    
-    // Éléments du menu
     const openNavBtn = document.getElementById('openNavMenu');
     const closeNavBtn = document.getElementById('closeNavMenu');
     const navSection = document.getElementById('navigationSection');
     const navOverlay = document.getElementById('navOverlay');
-    
-    if (openNavBtn && closeNavBtn && navSection && navOverlay) {
-        // Ouvrir le menu
-        openNavBtn.addEventListener('click', function() {
+
+    if (closeNavBtn && navSection && navOverlay) {
+        function openNav() {
             navSection.classList.add('active');
             navOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
-        });
-        
-        // Fermer le menu
+            document.dispatchEvent(new CustomEvent('enseignantNavOpen'));
+        }
+
         function closeNav() {
             navSection.classList.remove('active');
             navOverlay.classList.remove('active');
             document.body.style.overflow = '';
+            document.dispatchEvent(new CustomEvent('enseignantNavClose'));
         }
-        
+
+        if (openNavBtn) {
+            openNavBtn.addEventListener('click', openNav);
+        }
+
         closeNavBtn.addEventListener('click', closeNav);
         navOverlay.addEventListener('click', closeNav);
-        
-        // Fermer avec Escape
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && navSection.classList.contains('active')) {
                 closeNav();
             }
         });
+
+        window.enseignantNavMenu = {
+            open: openNav,
+            close: closeNav,
+        };
     }
-    
+
     // Animation des cartes au scroll
     const cards = document.querySelectorAll('.classe-card, .eleve-card, .quick-action-card');
     

@@ -19,6 +19,7 @@ class AuthenticationMiddleware:
             reverse('school_admin:connexion_compte_user'),
             reverse('school_admin:inscription_compte_user'),
             reverse('school_admin:firebase_messaging_sw'),
+            reverse('school_admin:prof_connexion_otp'),
             # Ajouter d'autres URLs publiques si nécessaire
         ]
 
@@ -38,6 +39,7 @@ class AuthenticationMiddleware:
             or request.path in technical_urls
             or request.path.startswith('/admin/')
             or request.path.startswith('/static/')
+            or request.path.startswith('/connexion/professeurs/otp/verification/')
         ):
             return self.get_response(request)
         

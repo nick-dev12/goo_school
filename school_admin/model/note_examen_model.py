@@ -85,6 +85,33 @@ class NoteExamen(models.Model):
         blank=True,
         verbose_name="Note ramenée sur 20"
     )
+    STATUT_BROUILLON = "brouillon"
+    STATUT_PUBLIEE = "publiee"
+    STATUT_MODIFIEE = "modifiee"
+
+    STATUTS_PUBLICATION = [
+        (STATUT_BROUILLON, "Brouillon"),
+        (STATUT_PUBLIEE, "Publiée"),
+        (STATUT_MODIFIEE, "Modifiée"),
+    ]
+    note_publiee = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Dernière note publiée"
+    )
+    date_publication = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de publication"
+    )
+    statut_publication = models.CharField(
+        max_length=20,
+        choices=STATUTS_PUBLICATION,
+        default=STATUT_BROUILLON,
+        verbose_name="Statut de publication"
+    )
     
     absent = models.BooleanField(
         default=False,

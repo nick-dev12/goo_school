@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentification d'un bulletin - Goo-School</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-u5O1F3S0uQq3FdVtOfvtTDHkJ/xZBwbNG0Ax7Anxr1j403rwhhtjfiPgkBC5T9jp+1rssZCvGSqt94FP+BMlcA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/verification_bulletin.css' %}" />
+  </head>
+  <body class="verification-body">
+    <main class="verification-wrapper">
+      <section class="hero-card">
+        <div class="hero-content">
+          <p class="hero-kicker">Portail d'authentification</p>
+          <h1>Vérifier un bulletin scolaire</h1>
+          <p class="hero-text">
+            Saisissez le numéro de série présent sur le bulletin (ou scannez le QR code officiel) pour confirmer son authenticité.
+          </p>
+        </div>
+        <form method="get" class="verification-form" autocomplete="off">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="numero_serie">Numéro de série</label>
+              <input
+                type="text"
+                id="numero_serie"
+                name="numero_serie"
+                value="{{ numero_serie_query }}"
+                placeholder="Ex : BUL-94-2102-202511142147-U1AB3"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="signature">Signature numérique (optionnel)</label>
+              <input
+                type="text"
+                id="signature"
+                name="signature"
+                value="{{ signature_query }}"
+                placeholder="64 caractères hexadécimaux"
+              />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-shield-alt"></i>
+            Vérifier maintenant
+          </button>
+        </form>
+      </section>
+
+      {% if verification_checked %}
+        <section class="result-card tone-{{ status_info.tone|default:'info' }}">
+          <div class="result-icon">
+            <i class="{{ status_info.icon|default:'fas fa-info-circle' }}"></i>
+          </div>
+          <div class="result-copy">
+            <h2>{{ status_info.title|default:"Analyse effectuée" }}</h2>
+            <p>{{ status_info.message|default:"Nous avons analysé votre requête. Consultez les détails ci-dessous." }}</p>
+            <p class="timestamp">
+              Vérification effectuée le {{ verification_timestamp|date:"d/m/Y à H:i" }}
+            </p>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if show_bulletin_details and bulletin_data %}
+        <section class="details-grid">
+          <article class="detail-card">
+            <h3><i class="fas fa-user-graduate"></i> Éléments académiques</h3>
+            <ul>
+              <li>
+                <span>Nom de l'élève</span>
+                <strong>{{ bulletin_data.eleve_nom }}</strong>
+              </li>
+              <li>
+                <span>Classe</span>
+                <strong>
+                  {{ bulletin_data.classe_nom|default:"-" }}
+                  {% if bulletin_data.classe_niveau %} – {{ bulletin_data.classe_niveau }}{% endif %}
+                </strong>
+              </li>
+              <li>
+                <span>Effectif de la classe</span>
+                <strong>
+                  {% if bulletin_data.classe_effectif %}
+                    {{ bulletin_data.classe_effectif }} élève{% if bulletin_data.classe_effectif|default:0 > 1 %}s{% endif %}
+                  {% else %}
+                    Non précisé
+                  {% endif %}
+                </strong>
+              </li>
+              <li>
+                <span>Période</span>
+                <strong>{{ bulletin_data.periode_nom }} – {{ bulletin_data.annee_scolaire }}</strong>
+              </li>
+            </ul>
+          </article>
+
+          <article class="detail-card">
+            <h3><i class="fas fa-chart-line"></i> Résultats synthétiques</h3>
+            <ul>
+              <li>
+                <span>Moyenne générale</span>
+                <strong>
+                  {% if bulletin_data.moyenne_generale %}
+                    {{ bulletin_data.moyenne_generale|floatformat:2 }}/20
+                  {% else %}
+                    Non disponible
+                  {% endif %}
+                </strong>
+              </li>
+              <li>
+                <span>Rang</span>
+                <strong>
+                  {% if bulletin_data.rang %}
+                    {{ bulletin_data.rang }}
+                  {% else %}
+                    Non défini
+                  {% endif %}
+                </strong>
+              </li>
+              <li>
+                <span>Appréciation générale</span>
+                <strong>{{ bulletin_data.appreciation|default:"Non renseignée" }}</strong>
+              </li>
+              <li>
+                <span>Décision du conseil</span>
+                <strong>{{ bulletin_data.decision|default:"Non renseignée" }}</strong>
+              </li>
+            </ul>
+          </article>
+
+          <article class="detail-card">
+            <h3><i class="fas fa-university"></i> Établissement émetteur</h3>
+            <ul>
+              <li>
+                <span>Établissement</span>
+                <strong>{{ bulletin_data.etablissement_nom|default:"-" }}</strong>
+              </li>
+              <li>
+                <span>Coordonnées</span>
+                <strong>
+                  {% if bulletin_data.etablissement_adresse %}
+                    {{ bulletin_data.etablissement_adresse }}
+                  {% else %}
+                    Adresse non renseignée
+                  {% endif %}
+                </strong>
+              </li>
+              <li>
+                <span>Contact</span>
+                <strong>
+                  {% if bulletin_data.etablissement_email %}
+                    {{ bulletin_data.etablissement_email }}
+                  {% else %}
+                    —
+                  {% endif %}
+                  {% if bulletin_data.etablissement_telephone %}
+                    <br />{{ bulletin_data.etablissement_telephone }}
+                  {% endif %}
+                </strong>
+              </li>
+              <li>
+                <span>Date de signature</span>
+                <strong>
+                  {% if bulletin_data.date_generation %}
+                    {{ bulletin_data.date_generation|date:"d/m/Y à H:i" }}
+                  {% else %}
+                    Non générée
+                  {% endif %}
+                </strong>
+              </li>
+            </ul>
+          </article>
+
+          <article class="detail-card security-card">
+            <h3><i class="fas fa-fingerprint"></i> Traces d'authenticité</h3>
+            <ul>
+              <li>
+                <span>Numéro de série</span>
+                <strong>{{ bulletin_data.numero_serie }}</strong>
+              </li>
+              <li>
+                <span>Signature numérique</span>
+                <strong class="mono">
+                  {{ bulletin_data.signature }}
+                </strong>
+              </li>
+              <li>
+                <span>Dernière publication</span>
+                <strong>
+                  {% if bulletin_data.date_publication %}
+                    {{ bulletin_data.date_publication|date:"d/m/Y à H:i" }}
+                  {% else %}
+                    Non publiée
+                  {% endif %}
+                </strong>
+              </li>
+            </ul>
+            <p class="security-hint">
+              Ces éléments doivent figurer sur tout bulletin officiel Goo-School. Une modification invaliderait la signature.
+            </p>
+          </article>
+        </section>
+      {% endif %}
+    </main>
+  </body>
+</html>
+

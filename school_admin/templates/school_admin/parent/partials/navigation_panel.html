@@ -1,0 +1,72 @@
+<div class="navigation-overlay" id="navOverlay"></div>
+<section class="navigation-section" id="navigationSection">
+  <button class="close-btn" id="closeNavMenu" aria-label="Fermer le menu">
+    <i class="fas fa-times"></i>
+  </button>
+
+  <div class="nav-menu-header">
+    <h2>Navigation parent</h2>
+    <p>Bonjour {{ parent.nom_complet }}, accédez rapidement à vos outils.</p>
+  </div>
+
+  <div class="nav-cards-row nav-cards-compact">
+    <a href="{% url 'school_admin:dashboard_parent' %}" class="nav-link-card {% if request.resolver_match.url_name == 'dashboard_parent' %}active{% endif %}">
+      <div class="nav-card-icon neo-blue">
+        <i class="fas fa-home"></i>
+      </div>
+      <div class="nav-link-content">
+        <h3>Tableau de bord</h3>
+        <p>Vue globale de vos enfants</p>
+      </div>
+    </a>
+
+    <a href="{% url 'school_admin:annonces_parent' %}" class="nav-link-card {% if request.resolver_match.url_name == 'annonces_parent' %}active{% endif %}">
+      <div class="nav-card-icon neo-orange">
+        <i class="fas fa-bullhorn"></i>
+      </div>
+      <div class="nav-link-content">
+        <h3>Annonces</h3>
+        <p>Actualités de l’établissement</p>
+      </div>
+    </a>
+
+    <a
+      href="{% url 'school_admin:demande_liaison_enfant' %}"
+      class="nav-link-card"
+      data-open-liaison="true"
+      data-fallback="{% url 'school_admin:demande_liaison_enfant' %}"
+    >
+      <div class="nav-card-icon neo-green">
+        <i class="fas fa-link"></i>
+      </div>
+      <div class="nav-link-content">
+        <h3>Lier un enfant</h3>
+        <p>Associer un nouvel enfant à votre compte</p>
+      </div>
+    </a>
+
+    <a
+      href="{% url 'school_admin:retour_selection_enfant' %}"
+      class="nav-link-card {% if request.resolver_match.url_name == 'dashboard_enfant' %}active{% endif %}"
+    >
+      <div class="nav-card-icon neo-teal">
+        <i class="fas fa-arrow-left"></i>
+      </div>
+      <div class="nav-link-content">
+        <h3>Retour sélection</h3>
+        <p>Changer d’enfant suivi</p>
+      </div>
+    </a>
+
+    <a href="{% url 'school_admin:deconnexion_parent' %}" class="nav-link-card neo-red-card">
+      <div class="nav-card-icon neo-red">
+        <i class="fas fa-sign-out-alt"></i>
+      </div>
+      <div class="nav-link-content">
+        <h3>Déconnexion</h3>
+        <p>Quitter votre espace parent</p>
+      </div>
+    </a>
+  </div>
+</section>
+

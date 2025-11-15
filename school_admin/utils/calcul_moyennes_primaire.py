@@ -93,7 +93,15 @@ def calculer_moyenne_matiere(eleve, matiere, periode):
     moyenne = round(Decimal(total) / Decimal(nombre_notes), 2)
     
     # Enregistrer la moyenne dans la base de données
-    MoyenneMatierePrimaire.calculer_et_enregistrer(eleve, matiere, periode)
+    evaluations_ids = list(evaluations.values_list('id', flat=True))
+    MoyenneMatierePrimaire.calculer_et_enregistrer(
+        eleve,
+        matiere,
+        periode,
+        mode_calcul='toutes',
+        evaluations_utilisees=[str(eval_id) for eval_id in evaluations_ids],
+        ponderation='50_50',
+    )
     
     return moyenne
 
@@ -257,32 +265,52 @@ def calculer_toutes_moyennes_classe(classe, periode):
     
     matieres_list = sorted(matieres, key=lambda m: m.nom)
     
-    # Calculer les moyennes pour chaque élève
+    # Récupérer les moyennes ENREGISTRÉES (pas de recalcul)
     resultats = []
     for eleve in eleves:
         moyennes_par_matiere = {}
+        total_moyennes = Decimal('0.00')
+        nombre_matieres_avec_notes = 0
         
         for matiere in matieres_list:
-            moyenne = calculer_moyenne_matiere(eleve, matiere, periode)
+            # Récupérer la moyenne ENREGISTRÉE depuis la base de données
+            moyenne_obj = MoyenneMatierePrimaire.objects.filter(
+                eleve=eleve,
+                matiere=matiere,
+                periode_scolaire=periode
+            ).first()
+            
+            moyenne = moyenne_obj.moyenne if moyenne_obj and moyenne_obj.moyenne is not None else None
             moyennes_par_matiere[matiere.code] = {
                 'matiere': matiere,
                 'moyenne': moyenne
             }
         
-        # Calculer la moyenne générale
-        moyenne_generale_data = calculer_moyenne_generale(eleve, periode)
+            if moyenne is not None:
+                total_moyennes += moyenne
+                nombre_matieres_avec_notes += 1
+        
+        # Calculer la moyenne générale à partir des moyennes enregistrées
+        moyenne_generale = round(total_moyennes / Decimal(nombre_matieres_avec_notes), 2) if nombre_matieres_avec_notes > 0 else None
         
         resultats.append({
             'eleve': eleve,
             'moyennes_par_matiere': moyennes_par_matiere,
-            'moyenne_generale': moyenne_generale_data['moyenne'],
-            'nombre_matieres_avec_notes': moyenne_generale_data['nombre_matieres_avec_notes']
+            'moyenne_generale': moyenne_generale,
+            'nombre_matieres_avec_notes': nombre_matieres_avec_notes
         })
     
     return resultats
 
 
-def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', ponderation='50_50', evaluations_selectionnees=None):
+def calculer_moyenne_avec_mode(
+    eleve,
+    matiere,
+    periode,
+    mode_calcul='toutes',
+    ponderation='50_50',
+    evaluations_selectionnees=None,
+):
     """
     Calcule la moyenne d'un élève selon différents modes de calcul.
     
@@ -310,6 +338,8 @@ def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', po
     from django.db import transaction
     
     with transaction.atomic():
+        evaluations_utilisees_set = set(str(value) for value in (evaluations_selectionnees or []))
+
         # ÉTAPE 0 : Réinitialiser toutes les notes de cet élève à retenue=False
         all_evaluations = EvaluationPrimaire.objects.filter(
             classe=eleve.classe,
@@ -397,32 +427,48 @@ def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', po
             matieres=matiere,
             actif=True
         )
+        selected_exam_session_ids = []
+        if evaluations_selectionnees:
+            for eval_id in evaluations_selectionnees:
+                eval_id_str = str(eval_id)
+                if eval_id_str.startswith('examen_'):
+                    session_id_str = eval_id_str.replace('examen_', '')
+                    if session_id_str.isdigit():
+                        selected_exam_session_ids.append(int(session_id_str))
         
         note_examen_sur_20 = None
         note_examen_obj = None
-        if sessions_examens.exists():
-            # Prendre la première session (normalement il n'y en a qu'une par période/matière)
-            session = sessions_examens.first()
-            note_examen_obj = NoteExamen.objects.filter(
-                eleve=eleve,
-                session_examen=session,
-                matiere=matiere,
-                absent=False
-            ).exclude(note__isnull=True).first()
-            
-            if note_examen_obj and note_examen_obj.note is not None:
-                note_examen_sur_20 = float(note_examen_obj.note)
+        note_examen_qs = NoteExamen.objects.filter(
+            eleve=eleve,
+            matiere=matiere,
+            classe=eleve.classe,
+            session_examen__periode=periode
+        ).select_related('session_examen').order_by('-date_saisie')
+
+        if selected_exam_session_ids:
+            note_examen_qs = note_examen_qs.filter(session_examen_id__in=selected_exam_session_ids)
+
+        # Prioriser les notes présentes et non absentes
+        note_examen_qs_presentes = note_examen_qs.filter(absent=False).exclude(note__isnull=True)
+        note_examen_obj = note_examen_qs_presentes.first() or note_examen_qs.exclude(note__isnull=True).first()
+
+        if note_examen_obj:
+            if note_examen_obj.note_sur_20 is not None:
+                note_examen_sur_20 = float(note_examen_obj.note_sur_20)
+            elif note_examen_obj.note is not None and note_examen_obj.bareme and note_examen_obj.bareme > 0:
+                note_examen_sur_20 = float((note_examen_obj.note / note_examen_obj.bareme) * 20)
     
         # ÉTAPE 3 : Calculer la moyenne des devoirs/interrogations
-        moyenne_devoirs = None
-        notes_retenues_objets = []  # Pour garder les objets des notes retenues
+        notes_contribution = []
         
         if notes_devoirs_avec_objets:
             # Trier par ordre décroissant (meilleures en premier)
             notes_devoirs_avec_objets.sort(key=lambda x: x[0], reverse=True)
             
             # Sélectionner selon le mode de calcul
-            if mode_calcul == '2_meilleures':
+            if mode_calcul == '1_meilleure':
+                notes_selectionnees = notes_devoirs_avec_objets[:1]
+            elif mode_calcul == '2_meilleures':
                 notes_selectionnees = notes_devoirs_avec_objets[:2]
             elif mode_calcul == '3_meilleures':
                 notes_selectionnees = notes_devoirs_avec_objets[:3]
@@ -434,7 +480,7 @@ def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', po
             if notes_selectionnees:
                 # Extraire uniquement les valeurs pour le calcul
                 valeurs_notes = [n[0] for n in notes_selectionnees]
-                moyenne_devoirs = sum(valeurs_notes) / len(valeurs_notes)
+                notes_contribution.extend(valeurs_notes)
                 
                 # Marquer les notes sélectionnées comme retenues
                 # Chaque élément peut être une liste d'objets (pour les paires d'interrogations)
@@ -442,39 +488,26 @@ def calculer_moyenne_avec_mode(eleve, matiere, periode, mode_calcul='toutes', po
                     for note_obj in notes_objets_list:
                         note_obj.retenue = True
                         note_obj.save()
-                        notes_retenues_objets.append(note_obj)
-    
-        # ÉTAPE 4 : Calculer la moyenne finale
-        if note_examen_sur_20 is not None and moyenne_devoirs is not None:
-            # Marquer l'examen comme retenu
+                        evaluations_utilisees_set.add(str(note_obj.evaluation_primaire_id))
+        
+        # Ajouter la note d'examen aux contributions si disponible
+        if note_examen_sur_20 is not None:
+            notes_contribution.append(note_examen_sur_20)
             if note_examen_obj:
                 note_examen_obj.retenue = True
                 note_examen_obj.save()
-            
-            # Si examen ET devoirs présents : appliquer la pondération
-            if ponderation == '40_60':
-                moyenne_finale = (moyenne_devoirs * 0.4) + (note_examen_sur_20 * 0.6)
-            elif ponderation == '30_70':
-                moyenne_finale = (moyenne_devoirs * 0.3) + (note_examen_sur_20 * 0.7)
-            else:  # '50_50' par défaut
-                moyenne_finale = (moyenne_devoirs * 0.5) + (note_examen_sur_20 * 0.5)
-            
-            # Retourner la note exacte (arrondie à 2 décimales seulement)
-            return round(Decimal(str(moyenne_finale)), 2)
+                if note_examen_obj.session_examen_id:
+                    evaluations_utilisees_set.add(f"examen_{note_examen_obj.session_examen_id}")
         
-        elif note_examen_sur_20 is not None:
-            # Si seulement examen (pas de devoirs)
-            if note_examen_obj:
-                note_examen_obj.retenue = True
-                note_examen_obj.save()
-            return round(Decimal(str(note_examen_sur_20)), 2)
-        
-        elif moyenne_devoirs is not None:
-            # Si seulement devoirs (pas d'examen) : retourner la moyenne exacte
-            return round(Decimal(str(moyenne_devoirs)), 2)
+        if notes_contribution:
+            moyenne_finale = sum(notes_contribution) / len(notes_contribution)
+            return (
+                round(Decimal(str(moyenne_finale)), 2),
+                sorted(evaluations_utilisees_set),
+            )
         
         # Aucune note disponible
-        return None
+        return None, sorted(evaluations_utilisees_set)
 
 
 def get_appreciation_moyenne(moyenne):

@@ -14,7 +14,20 @@
 /* En-tête de page */
 .page-header {
     margin-bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+}
+
+.page-header-info {
     text-align: center;
+}
+
+.page-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
 }
 
 .page-title {
@@ -36,6 +49,73 @@
     font-size: 1rem;
     color: #64748b;
     font-weight: 400;
+}
+
+.btn-bulletin {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-radius: 16px;
+    border: none;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 12px 24px -12px rgba(59, 130, 246, 0.8);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-bulletin i {
+    font-size: 1.1rem;
+}
+
+.btn-bulletin span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.btn-bulletin span small {
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+.btn-bulletin:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 26px -12px rgba(59, 130, 246, 0.9);
+}
+
+.btn-bulletin.disabled {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.btn-bulletin.disabled i,
+.btn-bulletin.disabled span small {
+    opacity: 0.9;
+}
+
+@media (min-width: 768px) {
+    .page-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .page-header-info {
+        text-align: left;
+        align-items: flex-start;
+    }
+
+    .page-actions {
+        width: auto;
+        justify-content: flex-end;
+    }
 }
 
 /* Onglets des périodes */

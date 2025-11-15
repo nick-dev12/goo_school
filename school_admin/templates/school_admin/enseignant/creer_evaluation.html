@@ -173,30 +173,11 @@
                             <input type="date" 
                                    id="date_evaluation" 
                                    name="date_evaluation" 
-                                   value="{{ form_data.date_evaluation }}"
+                                   value="{{ form_data.date_evaluation|default:aujourdhui }}"
                                    required>
                             <div class="help-text">Planifiez la date à laquelle l'évaluation aura lieu.</div>
                             {% if errors.date_evaluation %}
                                 <span class="error-message">{{ errors.date_evaluation }}</span>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Durée -->
-                        <div class="form-group {% if errors.duree %}has-error{% endif %}">
-                            <label for="duree">
-                                <i class="fas fa-clock"></i>
-                                Durée (en minutes)
-                            </label>
-                            <input type="number" 
-                                   id="duree" 
-                                   name="duree" 
-                                   value="{{ form_data.duree }}"
-                                   min="5"
-                                   step="5"
-                                   placeholder="Ex: 60">
-                            <div class="help-text">Optionnel. Laissez vide si non pertinent.</div>
-                            {% if errors.duree %}
-                                <span class="error-message">{{ errors.duree }}</span>
                             {% endif %}
                         </div>
                         
@@ -288,6 +269,8 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
 </body>
 </html>
 

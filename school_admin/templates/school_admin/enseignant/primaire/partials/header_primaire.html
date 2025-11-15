@@ -1,4 +1,4 @@
-{% load static %}
+{% load static notes_tags %}
 <link
   rel="stylesheet"
   href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}"
@@ -15,10 +15,6 @@
       </div>
 
       <div class="header-right">
-        <div class="header-search">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Rechercher..." />
-        </div>
 
         <a href="{% url 'enseignant:notifications_enseignant' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
@@ -31,7 +27,7 @@
 
         <button class="header-button" aria-label="Messages">
           <i class="fas fa-envelope"></i>
-          <span class="notification-badge">5</span>
+          <span class="notification-badge">0</span>
         </button>
 
         <div class="header-profile">
@@ -52,14 +48,14 @@
           {{ professeur.etablissement.nom }} - Enseignant Primaire Polyvalent
         </p>
       </div>
-      <button
-        class="nav-toggle-btn"
-        id="openNavMenu"
-        aria-label="Ouvrir le menu"
+      <a
+        href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+        class="welcome-action logout-link"
+        aria-label="Se déconnecter"
       >
-        <span class="d-none d-sm-inline">Menu</span>
-        <i class="fas fa-th"></i>
-      </button>
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Déconnexion</span>
+      </a>
     </section>
 
     <!-- Navigation Overlay -->
@@ -75,60 +71,22 @@
       </button>
 
       <div class="nav-menu-header">
-        <h2>Menu de Navigation</h2>
-        <p>Accédez rapidement à toutes les fonctionnalités</p>
+        <h2>Menu complémentaire</h2>
+        <p>Accédez aux fonctionnalités additionnelles non visibles dans la barre principale.</p>
       </div>
 
-      <!-- Section 1: Tableau de bord -->
-      <div class="section-title">
-        <h2>Tableau de bord</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'enseignant_primaire:dashboard' %}" class="nav-link-card">
+      <div class="nav-cards-row nav-cards-compact">
+        {% if professeur|peut_justifier_notes %}
+        <a href="{% url 'enseignant_primaire:justifications_notes' %}" class="nav-link-card">
           <div class="nav-card-icon neo-blue">
-            <i class="fas fa-home"></i>
+            <i class="fas fa-scale-balanced"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Vue d'ensemble</h3>
-            <p>Tableau de bord principal</p>
+            <h3>Justification des notes</h3>
+            <p>Demander une correction officielle</p>
           </div>
         </a>
-      </div>
-
-      <!-- Section 2: Gestion -->
-      <div class="section-title">
-        <h2>Gestion</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'enseignant_primaire:gestion_classes' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-chalkboard"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Mes Classes</h3>
-            <p>Gérer mes classes affectées</p>
-          </div>
-        </a>
-
-        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-user-graduate"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Mes Élèves</h3>
-            <p>Consulter et gérer mes élèves</p>
-          </div>
-        </a>
-
-        <a href="{% url 'enseignant_primaire:gestion_notes' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-clipboard-list"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Notes & Évaluations</h3>
-            <p>Gérer les notes et évaluations</p>
-          </div>
-        </a>
+        {% endif %}
 
         <a href="{% url 'enseignant_primaire:gestion_presence' %}" class="nav-link-card">
           <div class="nav-card-icon neo-orange">
@@ -140,22 +98,6 @@
           </div>
         </a>
 
-        <a href="{% url 'enseignant_primaire:emploi_du_temps' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-cyan">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Emploi du Temps</h3>
-            <p>Consulter mon planning</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 3: Mon compte -->
-      <div class="section-title">
-        <h2>Mon compte</h2>
-      </div>
-      <div class="nav-cards-row">
         <a href="{% url 'enseignant_primaire:parametres_profil' %}" class="nav-link-card">
           <div class="nav-card-icon neo-cyan">
             <i class="fas fa-user-cog"></i>
@@ -163,19 +105,6 @@
           <div class="nav-link-content">
             <h3>Paramètres du profil</h3>
             <p>Informations personnelles</p>
-          </div>
-        </a>
-
-        <a
-          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
-          class="nav-link-card logout-card"
-        >
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-sign-out-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Déconnexion</h3>
-            <p>Quitter la session</p>
           </div>
         </a>
       </div>

@@ -1,6 +1,6 @@
 .bulletin-eleve-body {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   color: var(--gray-800);
   min-height: 100vh;
 }
@@ -101,10 +101,10 @@
 .institution-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 24px;
   border-bottom: 3px solid var(--gray-200);
   padding-bottom: 18px;
-  align-items: flex-start;
 }
 
 .institution-left {
@@ -160,17 +160,91 @@
 }
 
 .institution-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  justify-content: flex-end;
+  min-width: 280px;
+}
+
+.institution-meta {
   text-align: right;
   font-size: 14px;
   color: var(--gray-600);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 220px;
+  gap: 6px;
 }
 
-.institution-right strong {
+.institution-meta strong {
   color: var(--gray-800);
+}
+
+.bulletin-security-card {
+  background: var(--white);
+  border: 2px dashed rgba(59, 130, 246, 0.35);
+  border-radius: 16px;
+  padding: 12px 16px;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-subtle);
+}
+
+.security-qr-image,
+.security-qr-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  object-fit: contain;
+}
+
+.security-qr-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--gray-500);
+  text-align: center;
+  padding: 8px;
+  border-style: dashed;
+}
+
+.security-meta {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.serial-label,
+.signature-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.serial-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-900);
+  word-break: break-word;
+}
+
+.signature-value {
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: 11px;
+  color: var(--gray-700);
+  word-break: break-all;
+  line-height: 1.3;
 }
 
 .student-info-section {
@@ -338,6 +412,59 @@
   color: var(--gray-800);
 }
 
+.bulletin-security-section {
+  background: var(--gray-50);
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.05);
+}
+
+.security-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.security-item {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.security-item .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.security-item .value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+  word-break: break-word;
+}
+
+.security-item .security-signature {
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: 11px;
+  color: var(--gray-700);
+  word-break: break-all;
+}
+
+.security-note {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
 .footer-signatures {
   display: flex;
   justify-content: space-between;
@@ -372,6 +499,10 @@
   }
 
   .institution-right {
+    justify-content: flex-start;
+  }
+
+  .institution-meta {
     text-align: left;
   }
 

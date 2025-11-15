@@ -11,46 +11,44 @@ document.addEventListener('DOMContentLoaded', function () {
     const navigationSection = document.getElementById('navigationSection');
     const mainContent = document.getElementById('mainContent');
 
-    // Fonction pour ouvrir le menu de navigation
-    function openNavigation() {
-        // Afficher d'abord l'overlay pour l'animation fluide
-        navOverlay.classList.add('active');
-        // Puis activer le menu avec un léger délai pour une animation plus fluide
-        setTimeout(() => {
+    if (navigationSection && navOverlay && closeNavBtn) {
+        function openNavigation() {
+            navOverlay.classList.add('active');
             navigationSection.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Empêche le défilement du body
-        }, 50);
-    }
-
-    // Fonction pour fermer le menu de navigation
-    function closeNavigation() {
-        navigationSection.classList.remove('active');
-        // Attendre la fin de l'animation avant de cacher l'overlay
-        setTimeout(() => {
-            navOverlay.classList.remove('active');
-            document.body.style.overflow = ''; // Rétablit le défilement du body
-        }, 300);
-    }
-
-    // Gestionnaires d'événements
-    if (openNavBtn) {
-        openNavBtn.addEventListener('click', openNavigation);
-    }
-
-    if (closeNavBtn) {
-        closeNavBtn.addEventListener('click', closeNavigation);
-    }
-
-    if (navOverlay) {
-        navOverlay.addEventListener('click', closeNavigation);
-    }
-
-    // Fermeture du menu avec la touche Escape
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && navigationSection.classList.contains('active')) {
-            closeNavigation();
+            document.body.style.overflow = 'hidden';
+            document.dispatchEvent(new CustomEvent('directeurNavOpen'));
         }
-    });
+
+        function closeNavigation() {
+            navigationSection.classList.remove('active');
+            navOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            document.dispatchEvent(new CustomEvent('directeurNavClose'));
+        }
+
+        if (openNavBtn) {
+            openNavBtn.addEventListener('click', openNavigation);
+        }
+
+        closeNavBtn.addEventListener('click', closeNavigation);
+
+        navOverlay.addEventListener('click', function (event) {
+            if (event.target === navOverlay) {
+                closeNavigation();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && navigationSection.classList.contains('active')) {
+                closeNavigation();
+            }
+        });
+
+        window.directeurNavMenu = {
+            open: openNavigation,
+            close: closeNavigation,
+        };
+    }
 
     // Gestion du menu actif
     const currentPage = window.location.pathname.split('/').pop();
@@ -75,10 +73,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Ajuster la hauteur du menu pour les appareils mobiles
-        if (windowWidth < 576) {
-            navigationSection.style.height = '100vh';
-        } else {
-            navigationSection.style.height = '90vh';
+        if (navigationSection) {
+            if (windowWidth < 576) {
+                navigationSection.style.height = '100vh';
+            } else {
+                navigationSection.style.height = '90vh';
+            }
         }
     }
 

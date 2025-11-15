@@ -1,9 +1,29 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.http import HttpResponse
-from .controllers import CompteUserController, EtablissementController, CommercialCompteController, AdministrateurCompteController
 import logging
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import secrets
+from datetime import timedelta
+from typing import Optional
+
+from django.contrib import messages
+from django.contrib.auth import login
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+
+from .controllers import (
+    AdministrateurCompteController,
+    CommercialCompteController,
+    CompteUserController,
+    EtablissementController,
+)
+from .forms.professeur_otp_forms import (
+    ProfesseurOtpRequestForm,
+    ProfesseurOtpVerifyForm,
+)
+from .model.professeur_model import Professeur
+from .model.professeur_otp_model import ProfesseurOtpCode
+from .services.wasender_api import WasenderApiClient
 
 # Configurer le logger
 logger = logging.getLogger(__name__)
@@ -56,6 +76,246 @@ def connexion_compte_user(request):
         }
     
     return render(request, 'school_admin/connexion.html', context)
+
+
+OTP_RESEND_COOLDOWN_SECONDS = 60
+
+
+def _normalize_phone_digits(phone_value: Optional[str]) -> str:
+    if not phone_value:
+        return ""
+    return "".join(ch for ch in str(phone_value) if ch.isdigit())
+
+
+def _find_professeur_by_phone(phone_number: str) -> Optional[Professeur]:
+    """
+    Recherche un professeur actif en comparant le numéro sous plusieurs formats.
+    """
+
+    professeur = Professeur.objects.filter(
+        telephone__iexact=phone_number,
+        actif=True,
+    ).first()
+    if professeur:
+        return professeur
+
+    stripped_plus = phone_number.lstrip("+")
+    if stripped_plus != phone_number:
+        professeur = Professeur.objects.filter(
+            telephone__iexact=stripped_plus,
+            actif=True,
+        ).first()
+        if professeur:
+            return professeur
+
+    normalized_input = _normalize_phone_digits(phone_number)
+    if not normalized_input:
+        return None
+
+    for prof in Professeur.objects.filter(actif=True).only("id", "telephone", "actif"):
+        if _normalize_phone_digits(prof.telephone) == normalized_input:
+            return prof
+
+    return None
+
+
+def professeur_connexion_otp_request(request):
+    """
+    Affiche le formulaire de demande d'OTP pour les professeurs et gère l'envoi du code.
+    """
+
+    form = ProfesseurOtpRequestForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        phone_number = form.cleaned_data["phone_number"]
+        professeur = _find_professeur_by_phone(phone_number)
+
+        recent_code = (
+            ProfesseurOtpCode.objects.filter(
+                phone_number=phone_number,
+                is_used=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if (
+            recent_code
+            and not recent_code.is_expired()
+            and (timezone.now() - recent_code.created_at).total_seconds()
+            < OTP_RESEND_COOLDOWN_SECONDS
+        ):
+            wait_seconds = OTP_RESEND_COOLDOWN_SECONDS - int(
+                (timezone.now() - recent_code.created_at).total_seconds()
+            )
+            messages.warning(
+                request,
+                (
+                    "Veuillez patienter encore "
+                    f"{wait_seconds} seconde(s) avant de redemander un code."
+                ),
+            )
+        else:
+            otp_code = f"{secrets.randbelow(1_000_000):06d}"
+            otp_entry = ProfesseurOtpCode.objects.create(
+                professeur=professeur,
+                phone_number=phone_number,
+                code=otp_code,
+                expires_at=ProfesseurOtpCode.build_expiration(),
+            )
+
+            client = WasenderApiClient()
+            message = (
+                "Goo-school - Code de connexion: "
+                f"{otp_code}. Ce code expire dans 5 minutes."
+            )
+
+            try:
+                response = client.send_text_message(
+                    phone_number=phone_number,
+                    message=message,
+                )
+                if not response.is_success:
+                    raise ValueError(response.body)
+            except Exception as exc:
+                otp_entry.delete()
+                logger.exception("Erreur lors de l'envoi du code OTP")
+                messages.error(
+                    request,
+                    (
+                        "Impossible d'envoyer le code pour le moment. "
+                        "Veuillez réessayer ultérieurement."
+                    ),
+                )
+            else:
+                messages.success(
+                    request,
+                    (
+                        "Un code de validation vous a été envoyé sur WhatsApp. "
+                        "Veuillez le saisir pour poursuivre votre connexion."
+                    ),
+                )
+                return redirect(
+                    reverse(
+                        "school_admin:prof_connexion_otp_verify",
+                        kwargs={"token": str(otp_entry.token)},
+                    )
+                )
+
+    context = {
+        "form": form,
+    }
+    return render(
+        request,
+        "school_admin/professeurs/connexion_otp.html",
+        context,
+    )
+
+
+def professeur_connexion_otp_verification(request, token):
+    """
+    Vérifie le code OTP saisi et connecte le professeur.
+    """
+
+    otp_entry = get_object_or_404(ProfesseurOtpCode, token=token)
+
+    if otp_entry.is_used:
+        messages.info(
+            request,
+            "Ce code a déjà été utilisé. Veuillez en générer un nouveau.",
+        )
+        return redirect("school_admin:prof_connexion_otp")
+
+    if otp_entry.is_expired():
+        messages.error(
+            request,
+            "Ce code a expiré. Merci de demander un nouveau code.",
+        )
+        return redirect("school_admin:prof_connexion_otp")
+
+    form = ProfesseurOtpVerifyForm(
+        request.POST or None,
+        initial={"otp_token": otp_entry.token},
+    )
+
+    if request.method == "POST" and form.is_valid():
+        posted_token = form.cleaned_data["otp_token"]
+        if str(posted_token) != str(otp_entry.token):
+            messages.error(
+                request,
+                "Le jeton de validation est invalide. Veuillez recommencer.",
+            )
+            return redirect("school_admin:prof_connexion_otp")
+
+        if otp_entry.attempts >= ProfesseurOtpCode.MAX_ATTEMPTS:
+            messages.error(
+                request,
+                "Nombre de tentatives dépassé. Veuillez redemander un code.",
+            )
+            otp_entry.is_used = True
+            otp_entry.save(update_fields=["is_used", "updated_at"])
+            return redirect("school_admin:prof_connexion_otp")
+
+        if form.cleaned_data["otp_code"] != otp_entry.code:
+            otp_entry.attempts += 1
+            otp_entry.save(update_fields=["attempts", "updated_at"])
+            remaining = ProfesseurOtpCode.MAX_ATTEMPTS - otp_entry.attempts
+            messages.error(
+                request,
+                (
+                    "Code incorrect. "
+                    f"Il vous reste {max(remaining, 0)} tentative(s)."
+                ),
+            )
+        else:
+            professeur = otp_entry.professeur or _find_professeur_by_phone(
+                otp_entry.phone_number
+            )
+            if not professeur:
+                messages.error(
+                    request,
+                    (
+                        "Votre numéro n'est pas associé à un compte professeur actif. "
+                        "Veuillez contacter l'administration."
+                    ),
+                )
+                return redirect("school_admin:prof_connexion_otp")
+
+            if otp_entry.professeur is None:
+                otp_entry.professeur = professeur
+
+            otp_entry.is_used = True
+            otp_entry.used_at = timezone.now()
+            otp_entry.save(
+                update_fields=["is_used", "used_at", "professeur", "updated_at"]
+            )
+
+            professeur._auth_user_type = "professeur"
+            login(
+                request,
+                professeur,
+                backend="school_admin.authentication_backends.MultiUserBackend",
+            )
+
+            if professeur.etablissement.type_etablissement == "primary":
+                redirect_url = "enseignant_primaire:dashboard"
+            else:
+                redirect_url = "enseignant:dashboard_enseignant"
+
+            messages.success(request, "Connexion réussie. Bienvenue !")
+            return redirect(redirect_url)
+
+    context = {
+        "form": form,
+        "expires_in": otp_entry.remaining_seconds(),
+        "phone_number": otp_entry.phone_number,
+        "token": otp_entry.token,
+    }
+    return render(
+        request,
+        "school_admin/professeurs/connexion_otp_verification.html",
+        context,
+    )
 
 
 

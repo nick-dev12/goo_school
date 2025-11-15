@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,6 +7,14 @@
     <title>Annonces - Espace Parent</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/parent/nav_parent.css' %}"
+    />
     <style>
         /* Reset et Variables */
         :root {
@@ -68,6 +77,12 @@
             margin-bottom: 2rem;
             padding-bottom: 1.5rem;
             border-bottom: 2px solid var(--gray-200);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .header-content h1 {
@@ -547,10 +562,18 @@
                     </p>
                 {% endwith %}
             </div>
-            <a href="{% url 'school_admin:dashboard_parent' %}" class="btn-secondary">
-                <i class="fas fa-arrow-left"></i> Retour au dashboard
-            </a>
+            <div class="header-actions">
+                <button class="parent-nav-toggle" id="openNavMenu" aria-label="Ouvrir le menu de navigation">
+                    <span class="d-none d-sm-inline">Menu</span>
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <a href="{% url 'school_admin:dashboard_parent' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour au dashboard
+                </a>
+            </div>
         </div>
+
+        {% include 'school_admin/parent/partials/navigation_panel.html' %}
 
         <!-- Messages Django -->
         {% if messages %}
@@ -690,6 +713,9 @@
             {% endif %}
         </div>
     </div>
+
+    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
+    <script src="{% static 'school_admin/js/parent/header_parent.js' %}"></script>
 </body>
 </html>
 

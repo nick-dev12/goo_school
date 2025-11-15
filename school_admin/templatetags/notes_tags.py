@@ -1,5 +1,12 @@
+from typing import Iterable, Set
+
 from django import template
 from decimal import Decimal
+
+from ..model.professeur_model import Professeur
+from ..model.moyenne_model import Moyenne
+from ..model.note_primaire_model import MoyenneMatierePrimaire
+from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
 
 register = template.Library()
 
@@ -223,4 +230,58 @@ def min_note_sur_20(notes_list):
         if isinstance(note, dict) and 'note_sur_20' in note:
             notes.append(float(note['note_sur_20']))
     return min(notes) if notes else 0
+
+
+def _collect_affectations_professeur_primaire(professeur: Professeur) -> tuple[Set[int], Set[int]]:
+    """
+    Rassemble les classes et matières qu'un professeur du primaire enseigne.
+    """
+    classe_ids: Set[int] = set()
+    matiere_ids: Set[int] = set()
+
+    affectations: Iterable[AffectationProfesseurPrimaire] = (
+        AffectationProfesseurPrimaire.objects.filter(
+            professeur=professeur,
+            actif=True,
+        )
+        .select_related("classe")
+        .prefetch_related("matieres")
+    )
+
+    for affectation in affectations:
+        if affectation.classe_id:
+            classe_ids.add(affectation.classe_id)
+        matiere_ids.update(
+            affectation.matieres.values_list("id", flat=True)
+        )
+
+    return classe_ids, matiere_ids
+
+
+@register.filter
+def peut_justifier_notes(professeur: Professeur) -> bool:
+    """
+    Indique si le professeur peut accéder à la justification de notes,
+    c'est-à-dire si des moyennes ont déjà été soumises à la direction.
+    """
+    if not isinstance(professeur, Professeur) or not professeur.pk:
+        return False
+
+    if professeur.niveau_enseignement == "primaire":
+        classe_ids, matiere_ids = _collect_affectations_professeur_primaire(professeur)
+
+        if not classe_ids or not matiere_ids:
+            return False
+
+        return MoyenneMatierePrimaire.objects.filter(
+            classe_id__in=classe_ids,
+            matiere_id__in=matiere_ids,
+            soumis=True,
+        ).exists()
+
+    return Moyenne.objects.filter(
+        professeur=professeur,
+        soumis=True,
+        actif=True,
+    ).exists()
 

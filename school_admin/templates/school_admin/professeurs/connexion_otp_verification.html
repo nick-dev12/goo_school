@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vérification OTP Professeur</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    {% load static %}
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/professeurs/connexion_otp.css' %}"
+    />
+  </head>
+  <body class="otp-body">
+    <div class="otp-pattern"></div>
+
+    <main class="otp-wrapper">
+      <section class="otp-card">
+        <header class="otp-header">
+          <div class="otp-badge">Vérification</div>
+          <h1>Entrez votre code</h1>
+          <p>
+            Nous avons envoyé un code à <strong>{{ phone_number }}</strong>.
+            Vous disposez de {{ expires_in }} seconde(s) avant expiration.
+          </p>
+        </header>
+
+        {% if messages %}
+        <div class="otp-messages">
+          {% for message in messages %}
+          <div class="otp-alert otp-alert-{{ message.tags|default:'info' }}">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form
+          method="post"
+          action="{% url 'school_admin:prof_connexion_otp_verify' token=token %}"
+          class="otp-form"
+        >
+          {% csrf_token %}
+          {{ form.otp_token }}
+
+          <div class="otp-field {% if form.otp_code.errors %}has-error{% endif %}">
+            <label for="{{ form.otp_code.id_for_label }}">Code reçu</label>
+            <div class="otp-input-wrapper">
+              <span class="otp-input-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M12 12a5 5 0 115-5 5.006 5.006 0 01-5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"
+                  />
+                </svg>
+              </span>
+              <input
+                type="text"
+                inputmode="numeric"
+                id="{{ form.otp_code.id_for_label }}"
+                name="{{ form.otp_code.html_name }}"
+                maxlength="6"
+                minlength="6"
+                placeholder="123456"
+                required
+              />
+            </div>
+            {% for error in form.otp_code.errors %}
+            <span class="otp-error">{{ error }}</span>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="otp-btn-primary">
+            Valider et se connecter
+          </button>
+        </form>
+
+        <div class="otp-footer">
+          <p>Vous n'avez pas reçu le code ?</p>
+          <a href="{% url 'school_admin:prof_connexion_otp' %}"
+            >Demander un nouveau code</a
+          >
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+

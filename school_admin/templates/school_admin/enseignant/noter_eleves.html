@@ -32,6 +32,7 @@
                 </div>
             {% endfor %}
         {% endif %}
+        
 
         <!-- Statut du relevé -->
         {% if releve_notes.soumis %}
@@ -205,6 +206,7 @@
                         </label>
                         <select id="modeCalculMoyenne" class="form-select-inline">
                             <option value="toutes">Toutes les notes</option>
+                            <option value="1">1 meilleure note</option>
                             <option value="2">2 meilleures notes (composées)</option>
                             <option value="3">3 meilleures notes (composées)</option>
                             <option value="4">4 meilleures notes (composées)</option>
@@ -219,10 +221,32 @@
                         <i class="fas fa-calculator"></i> Calculer les moyennes
                     </button>
                     <button type="submit" 
-                            name="submit_notes" 
+                            name="action"
+                            value="enregistrer"
                             class="btn btn-primary"
                             {% if releve_notes.soumis %}disabled{% endif %}>
                         <i class="fas fa-save"></i> Enregistrer les notes
+                    </button>
+                    <button type="submit" 
+                            name="action"
+                            value="publier"
+                            class="btn btn-success"
+                            {% if releve_notes.soumis %}disabled{% endif %}>
+                        <i class="fas fa-bullhorn"></i> Publier les notes
+                    </button>
+                    <button type="submit" 
+                            name="action"
+                            value="enregistrer"
+                            class="btn btn-primary"
+                            {% if releve_notes.soumis %}disabled{% endif %}>
+                        <i class="fas fa-save"></i> Enregistrer les notes
+                    </button>
+                    <button type="submit" 
+                            name="action"
+                            value="publier"
+                            class="btn btn-success"
+                            {% if releve_notes.soumis %}disabled{% endif %}>
+                        <i class="fas fa-bullhorn"></i> Publier les notes
                     </button>
                 </div>
 
@@ -315,7 +339,7 @@
                                     
                                     <!-- Cellules des notes d'évaluations (incluant l'examen) -->
                                     {% for item in evaluations_liste %}
-                                        {% with note_value=notes_existantes|get_note:eleve.id|get_note:item.key %}
+                                        {% with note_value=notes_existantes|get_note:eleve.id|get_note:item.key note_obj=notes_objets|get_item:eleve.id|get_item:item.key %}
                                         <td class="note-cell has-evaluation {% if note_value %}note-saved{% endif %}">
                                             <input type="number" 
                                                    name="note_{{ eleve.id }}_{{ item.key }}" 
@@ -331,6 +355,21 @@
                                                    data-eval-id="{{ item.evaluation.id }}"
                                                    {% if releve_notes.soumis %}readonly{% endif %}
                                                    onchange="colorNote(this)">
+                                            {% if note_obj %}
+                                                <div class="retenue-badge-wrapper">
+                                                    {% if note_obj.retenue %}
+                                                        <span class="retenue-badge retenue-active" title="Note retenue pour le calcul">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            Retenue
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="retenue-badge retenue-inactive" title="Note non retenue pour le calcul">
+                                                            <i class="fas fa-minus-circle"></i>
+                                                            Non retenue
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
                                         </td>
                                         {% endwith %}
                                     {% endfor %}
@@ -357,6 +396,20 @@
                                                    onchange="colorNote(this)">
                                             {% if note_examen and note_examen.absent %}
                                                 <span class="absent-badge" title="Absent">ABS</span>
+                                            {% elif note_examen %}
+                                                <div class="retenue-badge-wrapper">
+                                                    {% if note_examen.retenue %}
+                                                        <span class="retenue-badge retenue-active" title="Note retenue pour le calcul">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            Retenue
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="retenue-badge retenue-inactive" title="Note non retenue pour le calcul">
+                                                            <i class="fas fa-minus-circle"></i>
+                                                            Non retenue
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
                                             {% endif %}
                                         </td>
                                         {% endwith %}
@@ -680,6 +733,8 @@
             });
         });
     </script>
+
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
 </body>
 </html>
 

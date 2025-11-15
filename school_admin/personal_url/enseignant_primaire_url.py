@@ -6,6 +6,7 @@ from ..personal_views.enseignant_primaire_view import (
     gestion_classes_primaire,
     gestion_eleves_primaire,
     gestion_notes_primaire,
+    exercices_maison_primaire,
     gestion_presence_primaire,
     eleves_en_difficulte_primaire,
     noter_eleves_primaire,
@@ -28,7 +29,8 @@ from ..personal_views.enseignant_primaire_view import (
     parametres_profil_primaire,
     emploi_du_temps_primaire,
     imprimer_tableau_presence,
-    annonces_enseignant_primaire
+    annonces_enseignant_primaire,
+    justifications_notes_primaire,
 )
 
 app_name = 'enseignant_primaire'
@@ -47,6 +49,8 @@ urlpatterns = [
     
     # Gestion des notes et évaluations
     path('enseignant/primaire/notes/', gestion_notes_primaire, name='gestion_notes'),
+    path('enseignant/primaire/justifications-notes/', justifications_notes_primaire, name='justifications_notes'),
+    path('enseignant/primaire/exercices/', exercices_maison_primaire, name='exercices_maison'),
     path('enseignant/primaire/presence/', gestion_presence_primaire, name='gestion_presence'),
     path('enseignant/primaire/eleves-difficulte/', eleves_en_difficulte_primaire, name='eleves_en_difficulte'),
     path('enseignant/primaire/noter/<int:classe_id>/', noter_eleves_primaire, name='noter_eleves'),

@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Espace Parent - {{ parent.nom_complet }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/parent/nav_parent.css' %}"
+    />
     <style>
         * {
             margin: 0;
@@ -1190,6 +1198,10 @@
                 </div>
             </div>
             <div class="header-right">
+                <button class="parent-nav-toggle" id="openNavMenu" aria-label="Ouvrir le menu de navigation">
+                    <span class="d-none d-sm-inline">Menu</span>
+                    <i class="fas fa-th-large"></i>
+                </button>
                 <button id="fcm-enable-btn" class="btn-fcm" type="button" style="display: none;" onclick="activerNotifications()">
                     <i class="fas fa-bell"></i>
                     Activer les notifications
@@ -1199,16 +1211,14 @@
                     Notifications
                     <span class="badge">{{ notifications_parent_non_lues|default:0 }}</span>
                 </a>
-                <a href="{% url 'school_admin:annonces_parent' %}" class="btn-annonces" style="text-decoration: none; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 12px 20px; border-radius: 12px; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); transition: all 0.3s ease;">
-                    <i class="fas fa-bullhorn"></i>
-                    Annonces
-                </a>
                 <a href="{% url 'school_admin:deconnexion_parent' %}" class="btn-deconnexion">
                     <i class="fas fa-sign-out-alt"></i>
                     Déconnexion
                 </a>
             </div>
         </div>
+
+        {% include 'school_admin/parent/partials/navigation_panel.html' %}
 
         <div id="fcm-success-message" class="fcm-success-message">
             <i class="fas fa-check-circle"></i>
@@ -1253,20 +1263,6 @@
                 <p>Cliquez sur une carte pour accéder à l'espace personnel</p>
             </div>
         {% endif %}
-
-        <!-- Bouton pour ajouter un enfant et Annonces -->
-        <div class="actions-container">
-            <button class="btn-ajouter-enfant" onclick="openModal()">
-                <i class="fas fa-user-plus"></i>
-                Ajouter un enfant
-            </button>
-            
-            <a href="{% url 'school_admin:annonces_parent' %}" class="btn-annonces" style="text-decoration: none; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 14px 24px; border-radius: 12px; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); transition: all 0.3s ease;">
-                <i class="fas fa-bullhorn"></i>
-                Annonces
-                <span style="background: rgba(255, 255, 255, 0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.9em; margin-left: 8px;">{{ nombre_annonces|default:0 }}</span>
-            </a>
-        </div>
 
         {% if enfants %}
             <!-- Grille des enfants -->
@@ -1443,6 +1439,8 @@
             });
         {% endif %}
     </script>
+    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
+    <script src="{% static 'school_admin/js/parent/header_parent.js' %}"></script>
     <script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
 </body>
 </html>

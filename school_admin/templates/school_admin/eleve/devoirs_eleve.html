@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devoirs à rendre - Espace Élève</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/devoirs_eleve.css' %}">
+</head>
+<body>
+    {% include 'school_admin/eleve/partials/header.html' %}
+
+    <main class="homework-page">
+        <div class="page-header">
+            <h2>
+                <i class="fas fa-tasks"></i>
+                Devoirs à rendre
+            </h2>
+            <p>
+                Visualisez l'ensemble des exercices programmés pour la classe {{ classe.nom }}.
+                Sélectionnez une matière ou une période pour filtrer vos devoirs.
+            </p>
+        </div>
+
+        <section class="summary-cards">
+            <article class="summary-card">
+                <h4>Total des devoirs</h4>
+                <p class="summary-value">{{ total_exercices }}</p>
+                <p class="summary-meta">Tous les exercices programmés</p>
+            </article>
+            <article class="summary-card">
+                <h4>Cette semaine</h4>
+                <p class="summary-value">{{ total_semaine }}</p>
+                <p class="summary-meta">Du lundi au dimanche en cours</p>
+            </article>
+            <article class="summary-card">
+                <h4>À venir</h4>
+                <p class="summary-value">{{ total_a_venir }}</p>
+                <p class="summary-meta">Exercices à rendre à partir d'aujourd'hui</p>
+            </article>
+        </section>
+
+        <section class="filters-section">
+            <div>
+                <h3>Matières</h3>
+                <div class="tabs-group" role="tablist" aria-label="Filtrer par matière">
+                    {% for tab in matieres_tabs %}
+                        <a href="?matiere={{ tab.id }}{% if periode_selectionnee != 'all' %}&periode={{ periode_selectionnee }}{% endif %}"
+                           class="tab-link {% if tab.id == matiere_selectionnee %}active{% endif %}">
+                            <span class="tab-title">{{ tab.nom }}</span>
+                            <span class="tab-count">{{ tab.total }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <h3>Périodes</h3>
+                <div class="tabs-group" role="tablist" aria-label="Filtrer par période">
+                    {% for tab in periodes_tabs %}
+                        <a href="?{% if matiere_selectionnee != 'all' %}matiere={{ matiere_selectionnee }}&{% endif %}periode={{ tab.id }}"
+                           class="tab-link {% if tab.id == periode_selectionnee %}active{% endif %}">
+                            <span class="tab-title">{{ tab.nom }}</span>
+                            <span class="tab-count">{{ tab.total }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        {% if exercices %}
+            <section class="exercices-grid">
+                {% for exercice in exercices %}
+                <article class="exercice-card">
+                    <span class="status-badge status-{{ exercice.statut }}">
+                        {% if exercice.statut == 'retard' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% elif exercice.statut == 'jour' %}
+                            <i class="fas fa-calendar-day"></i>
+                        {% elif exercice.statut == 'bientot' %}
+                            <i class="fas fa-hourglass-half"></i>
+                        {% elif exercice.statut == 'proche' %}
+                            <i class="fas fa-hourglass-start"></i>
+                        {% else %}
+                            <i class="fas fa-clock"></i>
+                        {% endif %}
+                        {{ exercice.statut_label }}
+                    </span>
+                    <div class="exercice-header">
+                        <span class="exercice-matiere">{{ exercice.matiere }}</span>
+                        <h3 class="exercice-titre">
+                            {{ exercice.titre }}
+                            <small>Prof. {{ exercice.professeur }}</small>
+                        </h3>
+                    </div>
+                    {% if exercice.description %}
+                    <p class="exercice-description">
+                        {{ exercice.description }}
+                    </p>
+                    {% endif %}
+                    <div class="exercice-meta">
+                        <span class="meta-item">
+                            <i class="fas fa-calendar-check"></i>
+                            Rendu le {{ exercice.date_rendu|date:"d/m/Y" }}
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-flag"></i>
+                            {{ exercice.periode }}
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-hourglass"></i>
+                            {% if exercice.jours_restant < 0 %}
+                                En retard de {{ exercice.jours_restant_abs }} jour{{ exercice.jours_restant_abs|pluralize }}
+                            {% elif exercice.jours_restant == 0 %}
+                                À rendre aujourd'hui
+                            {% elif exercice.jours_restant == 1 %}
+                                Dans 1 jour
+                            {% else %}
+                                Dans {{ exercice.jours_restant }} jours
+                            {% endif %}
+                        </span>
+                    </div>
+                </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-smile"></i>
+                <h3>Aucun devoir pour l'instant</h3>
+                <p>Vous n'avez aucun exercice à réaliser pour la sélection actuelle. Revenez régulièrement pour rester informé.</p>
+            </div>
+        {% endif %}
+
+        <a href="{% url 'eleve:dashboard_eleve' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+        </a>
+    </main>
+
+    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+</body>
+</html>
+

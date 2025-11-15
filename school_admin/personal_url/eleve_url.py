@@ -9,6 +9,8 @@ app_name = 'eleve'
 urlpatterns = [
     # Dashboard
     path('eleve/dashboard/', eleve_view.dashboard_eleve, name='dashboard_eleve'),
+    path('eleve/devoirs/', eleve_view.devoirs_eleve, name='devoirs_eleve'),
+    path('eleve/bulletin/', eleve_view.bulletin_eleve, name='bulletin_eleve'),
     
     # Emploi du temps
     path('eleve/emploi-du-temps/', eleve_view.emploi_du_temps_eleve, name='emploi_du_temps'),

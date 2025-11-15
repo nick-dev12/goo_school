@@ -37,7 +37,7 @@
 
       <div class="standards-form-wrapper">
         <div class="standards-sections">
-          <form method="post" class="standards-form" id="general-form">
+          <form method="post" action="{% url 'directeur:configuration_standards_reussite' %}" class="standards-form" id="general-form">
             {% csrf_token %}
             <input type="hidden" name="section" value="general" />
             {% if periode_active_id %}
@@ -64,7 +64,7 @@
                     id="moyenne_passage"
                     name="moyenne_passage"
                     class="form-control"
-                    value="{{ standards.moyenne_passage|floatformat:'2' }}"
+                    value="{{ general_settings.moyenne_passage }}"
                     required
                   />
                   <p class="form-help">Seuil minimal pour passer à la classe supérieure.</p>
@@ -83,7 +83,7 @@
                     id="moyenne_redoublement"
                     name="moyenne_redoublement"
                     class="form-control"
-                    value="{{ standards.moyenne_redoublement|floatformat:'2' }}"
+                    value="{{ general_settings.moyenne_redoublement }}"
                     required
                   />
                   <p class="form-help">Seuil en dessous duquel un redoublement est recommandé.</p>
@@ -100,7 +100,7 @@
                     class="form-control"
                     rows="3"
                     placeholder="Ex: Passage avec félicitations du conseil..."
-                  >{{ standards.appreciation_conseil|default_if_none:'' }}</textarea>
+                  >{{ general_settings.appreciation_conseil }}</textarea>
                   <p class="form-help">Texte affiché sur le bulletin lorsque l'élève satisfait les standards généraux.</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@
             </div>
           </form>
 
-          <form method="post" class="standards-form" id="conseil-form">
+          <form method="post" action="{% url 'directeur:configuration_standards_reussite' %}" class="standards-form" id="conseil-form">
             {% csrf_token %}
             <input type="hidden" name="section" value="conseil" />
             {% if periode_active_id %}
@@ -137,14 +137,14 @@
                 Définissez les notes minimales qui déclenchent une appréciation spécifique (ex: ≥ 12 « Encouragements »).
               </p>
 
-              <div class="ranges-container" id="conseil-container" data-next-index="{% if appreciations_conseil %}{{ appreciations_conseil|length }}{% else %}1{% endif %}">
-                {% if appreciations_conseil %}
-                  {% for conseil in appreciations_conseil %}
+              <div class="ranges-container" id="conseil-container" data-next-index="{% if conseil_ranges %}{{ conseil_ranges|length }}{% else %}1{% endif %}">
+                {% if conseil_ranges %}
+                  {% for conseil in conseil_ranges %}
                     <div class="range-row">
                       <div class="range-fields">
                         <label class="range-label">
                           À partir de
-                          <input type="number" step="0.01" min="0" max="20" name="conseil-{{ forloop.counter0 }}-min" value="{{ conseil.min|floatformat:'2' }}" required />
+                          <input type="number" step="0.01" min="0" max="20" name="conseil-{{ forloop.counter0 }}-min" value="{{ conseil.min }}" required />
                         </label>
                         <input type="text" name="conseil-{{ forloop.counter0 }}-label" value="{{ conseil.label }}" placeholder="Appréciation" required />
                       </div>
@@ -178,7 +178,7 @@
             </div>
           </form>
 
-          <form method="post" class="standards-form" id="matieres-form">
+          <form method="post" action="{% url 'directeur:configuration_standards_reussite' %}" class="standards-form" id="matieres-form">
             {% csrf_token %}
             <input type="hidden" name="section" value="matieres" />
             {% if periode_active_id %}
@@ -201,16 +201,16 @@
                 Définissez les intervalles de moyennes et les appréciations correspondantes (ex: 10-12 Passable, 12-14 Assez bien).
               </p>
 
-              <div class="ranges-container" id="ranges-container" data-next-index="{% if moyennes_standards %}{{ moyennes_standards|length }}{% else %}1{% endif %}">
-                {% if moyennes_standards %}
-                  {% for range in moyennes_standards %}
+              <div class="ranges-container" id="ranges-container" data-next-index="{% if matiere_ranges %}{{ matiere_ranges|length }}{% else %}1{% endif %}">
+                {% if matiere_ranges %}
+                  {% for range in matiere_ranges %}
                     <div class="range-row">
                       <div class="range-fields">
                         <label class="range-label">De
-                          <input type="number" step="0.01" min="0" max="20" name="ranges-{{ forloop.counter0 }}-min" value="{{ range.min|floatformat:'2' }}" required />
+                          <input type="number" step="0.01" min="0" max="20" name="ranges-{{ forloop.counter0 }}-min" value="{{ range.min }}" required />
                         </label>
                         <label class="range-label">à
-                          <input type="number" step="0.01" min="0" max="20" name="ranges-{{ forloop.counter0 }}-max" value="{{ range.max|floatformat:'2' }}" required />
+                          <input type="number" step="0.01" min="0" max="20" name="ranges-{{ forloop.counter0 }}-max" value="{{ range.max }}" required />
                         </label>
                         <input type="text" name="ranges-{{ forloop.counter0 }}-label" value="{{ range.label }}" placeholder="Appréciation" required />
                       </div>
@@ -364,6 +364,8 @@
         updateIndices();
       })();
     </script>
-  </body>
+  
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
 </html>
 

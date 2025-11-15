@@ -11,6 +11,7 @@ urlpatterns = [
     path('gestion-pedagogique/', gestion_pedagogique, name='gestion_pedagogique'),
     path('gestion-eleves/', gestion_eleves, name='gestion_eleves'),
     path('notes-et-resultats/', notes_et_resultats, name='notes_et_resultats'),
+    path('notes-et-resultats/justifications/', justifications_notes_directeur, name='justifications_notes'),
     path('bulletins/', bulletins_notes, name='bulletins_notes'),
     path('bulletins/voir/<int:classe_id>/<int:eleve_id>/', voir_bulletin_eleve, name='voir_bulletin_eleve'),
     path('bulletins/calculer-moyenne/<int:classe_id>/<int:eleve_id>/', calculer_moyenne_eleve, name='calculer_moyenne_eleve'),

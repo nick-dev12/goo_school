@@ -25,6 +25,16 @@ class NotePrimaire(models.Model):
         related_name='notes_primaire',
         verbose_name="Évaluation"
     )
+    STATUT_BROUILLON = "brouillon"
+    STATUT_PUBLIEE = "publiee"
+    STATUT_MODIFIEE = "modifiee"
+
+    STATUTS_PUBLICATION = [
+        (STATUT_BROUILLON, "Brouillon"),
+        (STATUT_PUBLIEE, "Publiée"),
+        (STATUT_MODIFIEE, "Modifiée"),
+    ]
+
     note = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -32,6 +42,24 @@ class NotePrimaire(models.Model):
         null=True,
         blank=True,
         verbose_name="Note obtenue"
+    )
+    note_publiee = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Dernière note publiée"
+    )
+    date_publication = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de publication"
+    )
+    statut_publication = models.CharField(
+        max_length=20,
+        choices=STATUTS_PUBLICATION,
+        default=STATUT_BROUILLON,
+        verbose_name="Statut de publication"
     )
     appreciation = models.TextField(
         blank=True,
@@ -178,6 +206,21 @@ class MoyenneMatierePrimaire(models.Model):
         null=True,
         verbose_name="Appréciation"
     )
+    ponderation = models.CharField(
+        max_length=10,
+        default='50_50',
+        verbose_name="Pondération devoirs/examen"
+    )
+    mode_calcul = models.CharField(
+        max_length=20,
+        default='toutes',
+        verbose_name="Mode de calcul utilisé"
+    )
+    evaluations_utilisees = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Identifiants des évaluations utilisées"
+    )
     date_calcul = models.DateTimeField(
         auto_now=True,
         verbose_name="Date de calcul"
@@ -242,11 +285,20 @@ class MoyenneMatierePrimaire(models.Model):
             return "Insuffisant"
     
     @classmethod
-    def calculer_et_enregistrer(cls, eleve, matiere, periode_scolaire):
+    def calculer_et_enregistrer(
+        cls,
+        eleve,
+        matiere,
+        periode_scolaire,
+        mode_calcul='toutes',
+        evaluations_utilisees=None,
+        ponderation='50_50',
+    ):
         """
         Calcule et enregistre la moyenne d'un élève pour une matière et une période.
         """
         from .evaluation_primaire_model import EvaluationPrimaire
+        evaluations_utilisees = evaluations_utilisees or []
         
         # Récupérer toutes les notes de l'élève pour cette matière et cette période
         evaluations = EvaluationPrimaire.objects.filter(
@@ -279,7 +331,10 @@ class MoyenneMatierePrimaire(models.Model):
             defaults={
                 'classe': eleve.classe,
                 'moyenne': moyenne,
-                'nombre_notes': nombre_notes
+                'nombre_notes': len(evaluations_utilisees),
+                'mode_calcul': mode_calcul,
+                'evaluations_utilisees': [str(value) for value in evaluations_utilisees],
+                'ponderation': ponderation,
             }
         )
         

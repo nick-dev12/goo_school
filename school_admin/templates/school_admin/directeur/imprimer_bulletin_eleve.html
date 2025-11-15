@@ -13,6 +13,7 @@
     <div class="print-container">
       <!-- En-tête de l'établissement -->
       <header class="print-header">
+      <div class="header_left_right">
         <div class="header-left">
           <div class="header-logo">
             {% if etablissement.logo %}
@@ -65,7 +66,21 @@
               <span class="info-value-header">{{ classe_effectif }} élève{{ classe_effectif|pluralize }}</span>
             </div>
           </div>
+          <div class="bulletin-security-card">
+            {% if bulletin_qr_image_url %}
+              <img src="{{ bulletin_qr_image_url }}" alt="QR code de vérification du bulletin" class="security-qr-image">
+            {% else %}
+              <div class="security-qr-placeholder">QR code indisponible</div>
+            {% endif %}
+            <div class="security-meta">
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="header_titre">
+        <h1 class="titre_bulletin">BULLETIN DE NOTES</h1>
+      </div>
       </header>
 
       <!-- Informations de l'élève -->
@@ -148,7 +163,10 @@
                   </td>
                   <td>
                     {% if matiere.appreciation %}
-                      {{ matiere.appreciation }}
+                      <span class="appreciation-text">{{ matiere.appreciation }}</span>
+                    {% if matiere.appreciation_source == 'initiale' %}
+                        <span class="appreciation-origin">Initiale</span>
+                      {% endif %}
                     {% else %}
                       –
                     {% endif %}
@@ -183,21 +201,36 @@
           </tr>
           <tr>
             <th>Appréciation générale</th>
-            <td colspan="3">{{ complement_info.appreciation_generale|default:'—' }}</td>
+          <td colspan="3">
+            {% if complement_info.appreciation_generale %}
+              <span class="appreciation-text">{{ complement_info.appreciation_generale }}</span>
+              {% if complement_info.appreciation_generale_source == 'initiale' %}
+                <span class="appreciation-origin">Initiale</span>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+            {% if complement_info.statut_conseil_label %}
+              <div class="statut-conseil">{{ complement_info.statut_conseil_label }}</div>
+            {% endif %}
+          </td>
           </tr>
+        {% if complement_info.decision_conseil %}
           <tr>
             <th>Décision du conseil</th>
-            <td colspan="3">{{ complement_info.decision_conseil }}</td>
+            <td colspan="3">
+              <span class="appreciation-text">{{ complement_info.decision_conseil }}</span>
+              {% if complement_info.decision_conseil_source == 'initiale' %}
+                <span class="appreciation-origin">Initiale</span>
+              {% endif %}
+            </td>
           </tr>
+        {% endif %}
         </table>
       </section>
 
       <!-- Signatures -->
       <section class="footer-signatures">
-        <div class="signature-block">
-          <span class="signature-label">Le professeur principal</span>
-          <span class="signature-line"></span>
-        </div>
         <div class="signature-block">
           <span class="signature-label">Le chef d'établissement</span>
           <span class="signature-line"></span>
@@ -207,7 +240,7 @@
       <!-- Pied de page -->
       <footer class="print-footer">
         <p class="footer-text">
-          Document officiel généré le {{ date_generation|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}
+          N° de série : {{ bulletin_numero_serie|default:"Non généré" }} — {{ etablissement.nom }}
         </p>
       </footer>
     </div>

@@ -1,4 +1,8 @@
+import hashlib
+import json
 import logging
+from io import BytesIO
+from urllib.parse import urlencode
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -6,7 +10,9 @@ from django.db.models import Sum, Count, Avg
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.utils import timezone
-from decimal import Decimal, ROUND_HALF_UP
+from django.utils.crypto import get_random_string
+from django.core.files.base import ContentFile
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from django.urls import reverse
 from ..model.etablissement_model import Etablissement
 from ..model.facturation_model import Facturation
@@ -14,15 +20,398 @@ from ..model.eleve_model import Eleve
 from ..model.demande_liaison_model import DemandeLiaisonParent
 from ..model.lien_familial_model import LienFamilial
 from ..model.ponderation_model import Ponderation
+from ..model.moyenne_periode_model import MoyennePeriode
 from collections import defaultdict
 from ..services.parent_notification_service import ParentNotificationService
 from ..services.eleve_notification_service import EleveNotificationService
 from ..services.notification_tasks import schedule_bulletin_publication
 from ..model.notification_directeur_model import NotificationDirecteur
+from ..model.justification_note_model import JustificationNote
+from ..model.note_primaire_model import MoyenneMatierePrimaire
+from ..utils.calcul_moyennes_primaire import calculer_moyenne_avec_mode, get_appreciation_moyenne
 from ..model.standards_reussite_model import StandardsReussite, AppreciationMatiereStandard, AppreciationConseilStandard
+
+try:
+    import qrcode
+    from qrcode.constants import ERROR_CORRECT_M
+except ImportError:  # pragma: no cover
+    qrcode = None
+    ERROR_CORRECT_M = None
 
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_decimal(value):
+    """Convertit une valeur en Decimal sans lever d'erreur."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, Decimal):
+        return value
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _format_decimal_value(value):
+    """Formate une valeur décimale avec deux chiffres après la virgule."""
+    decimal_value = _safe_decimal(value)
+    if decimal_value is None:
+        return None
+    return f"{decimal_value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
+
+
+def _fallback_appreciation_matiere(note_decimal):
+    """Appréciation générique utilisée si aucun palier n'est défini."""
+    if note_decimal is None:
+        return None
+    note_float = float(note_decimal)
+    if note_float < 7:
+        return "Très insuffisant"
+    if note_float < 10:
+        return "Insuffisant"
+    if note_float < 12:
+        return "Passable"
+    if note_float < 14:
+        return "Assez bien"
+    if note_float < 16:
+        return "Bien"
+    if note_float <= 18:
+        return "Très bien"
+    return "Excellent"
+
+
+def _fallback_appreciation_generale(note_decimal):
+    """Appréciation générale par défaut."""
+    if note_decimal is None:
+        return None
+    note_float = float(note_decimal)
+    if note_float < 7:
+        return "Très insuffisant"
+    if note_float < 10:
+        return "Insuffisant"
+    if note_float < 12:
+        return "Passable"
+    if note_float < 14:
+        return "Assez bien"
+    if note_float < 16:
+        return "Bien"
+    if note_float <= 18:
+        return "Très bien"
+    return "Excellent"
+
+
+def _resolve_standard_matiere_appreciation(note_decimal, ranges):
+    """Retourne l'appréciation standard correspondant au palier."""
+    if note_decimal is None or not ranges:
+        return None
+    for range_obj in ranges:
+        min_val = _safe_decimal(range_obj.note_min)
+        max_val = _safe_decimal(range_obj.note_max)
+        if min_val is None or max_val is None:
+            continue
+        if min_val <= note_decimal <= max_val:
+            return range_obj.appreciation
+    return None
+
+
+def _compute_statut_from_thresholds(note_decimal, standards):
+    """Retourne le statut (passage, redoublement, accompagnement) en fonction des seuils."""
+    if note_decimal is None or standards is None:
+        return None, None
+
+    passage = _safe_decimal(standards.moyenne_passage)
+    redoublement = _safe_decimal(standards.moyenne_redoublement)
+    statut_code = None
+
+    if passage is not None and note_decimal >= passage:
+        statut_code = 'passage'
+    elif redoublement is not None and note_decimal < redoublement:
+        statut_code = 'redoublement'
+    elif passage is not None or redoublement is not None:
+        statut_code = 'accompagnement'
+
+    if not statut_code:
+        return None, None
+
+    passage_str = _format_decimal_value(passage)
+    redoublement_str = _format_decimal_value(redoublement)
+
+    if statut_code == 'passage':
+        label = (
+            f"Passage recommandé (moyenne ≥ {passage_str}/20)"
+            if passage_str else "Passage recommandé"
+        )
+    elif statut_code == 'redoublement':
+        label = (
+            f"Redoublement recommandé (moyenne < {redoublement_str}/20)"
+            if redoublement_str else "Redoublement recommandé"
+        )
+    else:
+        if passage_str and redoublement_str:
+            label = (
+                f"Accompagnement conseillé ({redoublement_str}/20 ≤ moyenne < {passage_str}/20)"
+            )
+        else:
+            label = "Accompagnement conseillé"
+
+    return statut_code, label
+
+
+def _compute_matiere_appreciation(note_value, standards_bundle, initial_appreciation=None):
+    """
+    Détermine l'appréciation d'une matière à partir des standards configurés.
+    Retourne (appréciation_appliquée, source, appreciation_standard).
+    """
+    note_decimal = _safe_decimal(note_value)
+    if note_decimal is None:
+        return None, 'none', None
+
+    standard_label = None
+    if standards_bundle:
+        standard_label = _resolve_standard_matiere_appreciation(
+            note_decimal,
+            standards_bundle['matiere_ranges']
+        )
+
+    if standard_label:
+        return standard_label, 'standard', standard_label
+    fallback_value = _fallback_appreciation_matiere(note_decimal)
+    return fallback_value, 'fallback', None
+
+
+def _compute_appreciation_generale(note_value, standards_bundle, initial_appreciation=None):
+    """
+    Calcule l'appréciation générale selon les seuils généraux.
+    Retourne (appréciation, source, statut_code, statut_label, appreciation_standard).
+    """
+    note_decimal = _safe_decimal(note_value)
+    if note_decimal is None:
+        return None, 'none', None, None, None
+
+    standards = standards_bundle['instance'] if standards_bundle else None
+    statut_code, statut_label = _compute_statut_from_thresholds(note_decimal, standards)
+    appreciation_standard = None
+
+    if standards and statut_code == 'passage':
+        appreciation_standard = (
+            standards.appreciation_conseil.strip()
+            if standards.appreciation_conseil else None
+        )
+    elif statut_code == 'redoublement':
+        appreciation_standard = "Redoublement recommandé"
+    elif statut_code == 'accompagnement':
+        appreciation_standard = "Accompagnement conseillé"
+
+    if appreciation_standard:
+        return appreciation_standard, 'standard', statut_code, statut_label, appreciation_standard
+
+    fallback_value = _fallback_appreciation_generale(note_decimal)
+    return fallback_value, 'fallback', statut_code, statut_label, None
+
+
+def _compute_decision_conseil(note_value, standards_bundle, initial_decision=None):
+    """
+    Détermine la décision du conseil à partir des paliers.
+    Retourne (decision, source, decision_standard, statut_code, statut_label).
+    """
+    note_decimal = _safe_decimal(note_value)
+    if note_decimal is None:
+        if initial_decision:
+            return initial_decision, 'initiale', None, None, None
+        return None, 'none', None, None, None
+
+    standards = standards_bundle['instance'] if standards_bundle else None
+    conseil_ranges = standards_bundle['conseil_ranges'] if standards_bundle else []
+    statut_code, statut_label = _compute_statut_from_thresholds(note_decimal, standards)
+    decision_standard = None
+
+    if conseil_ranges:
+        for range_obj in conseil_ranges:
+            min_val = _safe_decimal(range_obj.note_min)
+            if min_val is None:
+                continue
+            if note_decimal >= min_val:
+                decision_standard = range_obj.appreciation
+            else:
+                break
+        if decision_standard:
+            return decision_standard, 'standard', decision_standard, statut_code, statut_label
+
+    if standards and standards.appreciation_conseil:
+        decision_standard = standards.appreciation_conseil.strip()
+        if decision_standard:
+            return decision_standard, 'standard', decision_standard, statut_code, statut_label
+
+    if initial_decision:
+        return initial_decision, 'initiale', None, statut_code, statut_label
+
+    return None, 'none', None, statut_code, statut_label
+
+
+def _get_standards_bundle(etablissement):
+    """Charge les standards de réussite liés à l'établissement."""
+    try:
+        standards = etablissement.standards_reussite
+    except StandardsReussite.DoesNotExist:
+        return None
+
+    return {
+        'instance': standards,
+        'matiere_ranges': list(standards.appreciations_matieres.all().order_by('note_min')),
+        'conseil_ranges': list(standards.appreciations_conseil.all().order_by('note_min')),
+    }
+
+
+def _build_standards_metadata(standards_bundle, appreciation_source, decision_source, statut_code, statut_label):
+    """Assemble des informations sur les standards utilisés."""
+    if not standards_bundle:
+        return None
+
+    standards = standards_bundle['instance']
+    return {
+        'moyenne_passage': float(standards.moyenne_passage) if standards.moyenne_passage is not None else None,
+        'moyenne_passage_display': _format_decimal_value(standards.moyenne_passage),
+        'moyenne_redoublement': float(standards.moyenne_redoublement) if standards.moyenne_redoublement is not None else None,
+        'moyenne_redoublement_display': _format_decimal_value(standards.moyenne_redoublement),
+        'appreciation_conseil': standards.appreciation_conseil.strip() if standards.appreciation_conseil else None,
+        'has_matiere_ranges': bool(standards_bundle['matiere_ranges']),
+        'has_conseil_ranges': bool(standards_bundle['conseil_ranges']),
+        'appreciation_source': appreciation_source,
+        'decision_source': decision_source,
+        'statut_code': statut_code,
+        'statut_label': statut_label,
+    }
+
+
+def _generate_bulletin_serial(eleve, periode):
+    """Crée un numéro de série unique et court pour un bulletin."""
+    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+    random_segment = get_random_string(5).upper()
+    base_serial = f"BUL-{periode.id}-{eleve.id}-{timestamp}-{random_segment}"
+    return base_serial[:64]
+
+
+def _ensure_bulletin_security_assets(moyenne_obj, *, eleve, classe, periode, etablissement, verification_url_base=None):
+    """
+    Génère (ou régénère) les éléments de traçabilité d'un bulletin :
+    numéro de série, signature numérique et QR code.
+    """
+    if not moyenne_obj or moyenne_obj.moyenne_generale is None:
+        return None, None
+
+    numero_serie = moyenne_obj.numero_serie or _generate_bulletin_serial(eleve, periode)
+    payload = {
+        'numero_serie': numero_serie,
+        'eleve_id': eleve.id,
+        'eleve': eleve.nom_complet,
+        'classe_id': classe.id,
+        'classe': classe.nom,
+        'periode_id': periode.id,
+        'periode': periode.nom_periode,
+        'etablissement_id': etablissement.id,
+        'etablissement': etablissement.nom,
+        'moyenne_generale': float(moyenne_obj.moyenne_generale),
+        'date_generation': timezone.now().isoformat(),
+    }
+
+    payload_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    signature = hashlib.sha256(payload_str.encode('utf-8')).hexdigest()
+
+    moyenne_obj.numero_serie = numero_serie
+    moyenne_obj.signature_numerique = signature
+    verification_url = None
+    if verification_url_base:
+        query = urlencode({
+            'numero_serie': numero_serie,
+            'signature': signature or '',
+        })
+        verification_url = f"{verification_url_base}?{query}"
+
+    qr_payload = verification_url or payload_str
+
+    moyenne_obj.qr_code_data = qr_payload
+    moyenne_obj.qr_code_generated_at = timezone.now()
+
+    updated_fields = ['numero_serie', 'signature_numerique', 'qr_code_data', 'qr_code_generated_at', 'updated_at']
+
+    if qrcode:
+        qr = qrcode.QRCode(
+            version=2,
+            error_correction=ERROR_CORRECT_M or qrcode.constants.ERROR_CORRECT_M,
+            box_size=7,
+            border=2,
+        )
+        qr.add_data(qr_payload)
+        qr.make(fit=True)
+        qr_image = qr.make_image(fill_color="#111827", back_color="#ffffff")
+        buffer = BytesIO()
+        qr_image.save(buffer, format='PNG')
+        filename = f"bulletin_qr_{numero_serie}.png"
+        if moyenne_obj.qr_code_image:
+            moyenne_obj.qr_code_image.delete(save=False)
+        moyenne_obj.qr_code_image.save(filename, ContentFile(buffer.getvalue()), save=False)
+        updated_fields.append('qr_code_image')
+
+    moyenne_obj.save(update_fields=updated_fields)
+    return numero_serie, signature
+
+
+def _apply_standards_to_bulletin(matieres_table, moyenne_generale, appreciation_generale, decision_conseil, standards_bundle):
+    """
+    Applique les standards au bulletin et retourne les valeurs recalculées et métadonnées.
+    """
+    extra = {
+        'appreciation_generale_standard': None,
+        'appreciation_generale_source': None,
+        'decision_conseil_standard': None,
+        'decision_conseil_source': None,
+        'statut_conseil_code': None,
+        'statut_conseil_label': None,
+        'standards_summary': None,
+    }
+
+    for item in matieres_table:
+        initial_appreciation = item.get('appreciation')
+        appreciation_value, source, standard_label = _compute_matiere_appreciation(
+            item.get('moyenne_eleve'),
+            standards_bundle,
+            initial_appreciation
+        )
+        item['appreciation_initiale'] = initial_appreciation
+        item['appreciation_standard'] = standard_label
+        item['appreciation_source'] = source
+        item['appreciation'] = appreciation_value
+
+    appreciation_generale_value, appreciation_source, statut_code, statut_label, appreciation_standard = _compute_appreciation_generale(
+        moyenne_generale,
+        standards_bundle,
+        appreciation_generale
+    )
+    extra['appreciation_generale_standard'] = appreciation_standard
+    extra['appreciation_generale_source'] = appreciation_source
+
+    decision_value, decision_source, decision_standard, statut_code_decision, statut_label_decision = _compute_decision_conseil(
+        moyenne_generale,
+        standards_bundle,
+        decision_conseil
+    )
+    extra['decision_conseil_standard'] = decision_standard
+    extra['decision_conseil_source'] = decision_source
+    extra['statut_conseil_code'] = statut_code_decision or statut_code
+    extra['statut_conseil_label'] = statut_label_decision or statut_label
+
+    extra['standards_summary'] = _build_standards_metadata(
+        standards_bundle,
+        appreciation_source,
+        decision_source,
+        extra['statut_conseil_code'],
+        extra['statut_conseil_label'],
+    )
+
+    return appreciation_generale_value, decision_value, extra
+
 
 @login_required
 def dashboard_directeur(request):
@@ -538,6 +927,226 @@ def notes_et_resultats(request):
 
 
 @login_required
+def justifications_notes_directeur(request):
+    """
+    Liste et traitement des demandes de justification de notes transmises par les enseignants.
+    """
+    if not isinstance(request.user, Etablissement):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    etablissement = request.user
+    from ..model.classe_model import Classe
+    from django.db import transaction
+    from django.shortcuts import get_object_or_404
+    from django.utils import timezone
+
+    classe_id = request.GET.get('classe')
+    statut_filtre = request.GET.get('statut')
+
+    classes = Classe.objects.filter(
+        etablissement=etablissement,
+        actif=True
+    ).order_by('niveau', 'nom')
+
+    justifications_queryset = JustificationNote.objects.filter(
+        etablissement=etablissement
+    ).select_related(
+        'classe',
+        'eleve',
+        'matiere',
+        'professeur',
+        'evaluation'
+    ).order_by('-date_creation')
+
+    if classe_id:
+        justifications_queryset = justifications_queryset.filter(classe_id=classe_id)
+
+    if statut_filtre in {
+        JustificationNote.STATUT_EN_ATTENTE,
+        JustificationNote.STATUT_VALIDEE,
+        JustificationNote.STATUT_REFUSEE,
+    }:
+        justifications_queryset = justifications_queryset.filter(statut=statut_filtre)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        justification_id = request.POST.get('justification_id')
+        commentaire = (request.POST.get('commentaire') or '').strip()
+
+        if not justification_id:
+            messages.error(request, "La justification à traiter est introuvable.")
+            return redirect(request.get_full_path())
+
+        with transaction.atomic():
+            justification = get_object_or_404(
+                JustificationNote,
+                id=justification_id,
+                etablissement=etablissement,
+            )
+
+            if justification.statut != JustificationNote.STATUT_EN_ATTENTE:
+                messages.warning(request, "Cette justification a déjà été traitée.")
+                return redirect(request.get_full_path())
+
+            if action == 'valider':
+                note_obj = justification.note or justification.note_primaire
+
+                if not note_obj:
+                    messages.error(request, "Impossible de mettre à jour la note ciblée.")
+                    return redirect(request.get_full_path())
+
+                bareme = None
+                if justification.note and justification.evaluation:
+                    bareme = justification.evaluation.bareme
+                elif justification.note_primaire and justification.evaluation_primaire:
+                    bareme = justification.evaluation_primaire.bareme
+
+                if bareme is not None and justification.nouvelle_note > bareme:
+                    messages.error(request, f"La note proposée dépasse le barème ({bareme}).")
+                    return redirect(request.get_full_path())
+
+                note_obj.note = justification.nouvelle_note
+                if hasattr(note_obj, 'absent'):
+                    note_obj.absent = False
+                note_obj.save()
+
+                justification.statut = JustificationNote.STATUT_VALIDEE
+                justification.commentaire_direction = commentaire
+                justification.valide_par = etablissement
+                justification.date_validation = timezone.now()
+                justification.save()
+
+                # Recalcul automatique des moyennes (Primaire)
+                if justification.note_primaire and justification.evaluation_primaire:
+                    try:
+                        matiere = justification.evaluation_primaire.matiere
+                        periode = justification.evaluation_primaire.periode_scolaire
+
+                        if matiere and periode:
+                            moyenne_obj, _ = MoyenneMatierePrimaire.objects.get_or_create(
+                                eleve=justification.eleve,
+                                matiere=matiere,
+                                periode_scolaire=periode,
+                                defaults={
+                                    'classe': justification.classe,
+                                    'mode_calcul': 'toutes',
+                                    'ponderation': '50_50',
+                                    'evaluations_utilisees': [],
+                                    'nombre_notes': 0,
+                                }
+                            )
+
+                            mode_calcul = moyenne_obj.mode_calcul or 'toutes'
+                            ponderation = moyenne_obj.ponderation or '50_50'
+                            evaluations_selectionnees = moyenne_obj.evaluations_utilisees or []
+
+                            moyenne_recalc, evaluations_effectives = calculer_moyenne_avec_mode(
+                                justification.eleve,
+                                matiere,
+                                periode,
+                                mode_calcul,
+                                ponderation,
+                                evaluations_selectionnees,
+                            )
+
+                            evaluations_finales = evaluations_effectives or evaluations_selectionnees
+                            if moyenne_recalc is not None:
+                                moyenne_obj.moyenne = moyenne_recalc
+                                moyenne_obj.appreciation = get_appreciation_moyenne(moyenne_recalc)
+                            moyenne_obj.mode_calcul = mode_calcul
+                            moyenne_obj.ponderation = ponderation
+                            moyenne_obj.evaluations_utilisees = evaluations_finales
+                            moyenne_obj.nombre_notes = len(evaluations_finales)
+                            if justification.classe:
+                                moyenne_obj.classe = justification.classe
+                            moyenne_obj.save()
+                    except Exception as exc:
+                        logger.exception("Recalcul moyenne primaire après justification impossible: %s", exc)
+                        messages.warning(
+                            request,
+                            "La note est mise à jour mais la moyenne n'a pas pu être recalculée automatiquement.",
+                        )
+
+                try:
+                    matiere_nom = getattr(justification.matiere, "nom", "Matière")
+                    evaluation_nom = None
+                    if justification.evaluation:
+                        evaluation_nom = getattr(justification.evaluation, "titre", None)
+                    elif justification.evaluation_primaire:
+                        evaluation_nom = getattr(justification.evaluation_primaire, "titre", None)
+
+                    EleveNotificationService.notify_note_justifiee(
+                        justification.eleve,
+                        matiere_nom=matiere_nom,
+                        nouvelle_note=justification.nouvelle_note,
+                        bareme=bareme,
+                        evaluation_nom=evaluation_nom,
+                        source=justification,
+                    )
+                    ParentNotificationService.notify_note_justifiee(
+                        justification.eleve,
+                        matiere_nom=matiere_nom,
+                        nouvelle_note=justification.nouvelle_note,
+                        bareme=bareme,
+                        evaluation_nom=evaluation_nom,
+                        source=justification,
+                    )
+                except Exception as notification_error:
+                    logger.error(
+                        "Erreur lors de l'envoi des notifications suite à la justification de note: %s",
+                        notification_error,
+                        exc_info=True,
+                    )
+
+                messages.success(
+                    request,
+                    f"La note de {justification.eleve.nom_complet} a été mise à jour."
+                )
+            elif action == 'rejeter':
+                justification.statut = JustificationNote.STATUT_REFUSEE
+                justification.commentaire_direction = commentaire
+                justification.valide_par = etablissement
+                justification.date_validation = timezone.now()
+                justification.save()
+
+                messages.info(
+                    request,
+                    "La demande de justification a été refusée."
+                )
+            else:
+                messages.error(request, "Action inconnue.")
+
+        return redirect(request.get_full_path())
+
+    demandes_grouped = {
+        JustificationNote.STATUT_EN_ATTENTE: [],
+        JustificationNote.STATUT_VALIDEE: [],
+        JustificationNote.STATUT_REFUSEE: [],
+    }
+
+    for justification in justifications_queryset:
+        demandes_grouped[justification.statut].append(justification)
+
+    stats = {
+        'en_attente': len(demandes_grouped[JustificationNote.STATUT_EN_ATTENTE]),
+        'validees': len(demandes_grouped[JustificationNote.STATUT_VALIDEE]),
+        'refusees': len(demandes_grouped[JustificationNote.STATUT_REFUSEE]),
+    }
+
+    context = {
+        'etablissement': etablissement,
+        'classes': classes,
+        'classe_selectionnee': classe_id,
+        'statut_selectionne': statut_filtre,
+        'demandes_grouped': demandes_grouped,
+        'stats': stats,
+    }
+
+    return render(request, 'school_admin/directeur/justifications_notes.html', context)
+
+
+@login_required
 def bulletins_notes(request):
     """Synthèse des bulletins par classe avec regroupement par niveau."""
     from collections import OrderedDict
@@ -824,6 +1433,13 @@ def calculer_moyennes_periode(request, classe_id):
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
 
     est_primaire = etablissement.type_etablissement == 'primary'
+    standards_bundle = _get_standards_bundle(etablissement)
+    verification_base_url = request.build_absolute_uri(
+        reverse('school_admin:verifier_bulletin_qr')
+    )
+    verification_base_url = request.build_absolute_uri(
+        reverse('school_admin:verifier_bulletin_qr')
+    )
     
     # Récupérer tous les élèves de la classe
     eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
@@ -947,19 +1563,11 @@ def calculer_moyennes_periode(request, classe_id):
                     # Calculer l'appréciation de la matière
                     appreciation_matiere = None
                     if moyenne_matiere is not None:
-                        moyenne_float = float(moyenne_matiere)
-                        if moyenne_float >= 16:
-                            appreciation_matiere = "Excellent travail, continuez ainsi !"
-                        elif moyenne_float >= 14:
-                            appreciation_matiere = "Très bon niveau, félicitations !"
-                        elif moyenne_float >= 12:
-                            appreciation_matiere = "Bon travail, continuez vos efforts."
-                        elif moyenne_float >= 10:
-                            appreciation_matiere = "Travail satisfaisant, peut mieux faire."
-                        elif moyenne_float >= 8:
-                            appreciation_matiere = "Résultats fragiles, des efforts sont nécessaires."
-                        else:
-                            appreciation_matiere = "Résultats insuffisants, un soutien est recommandé."
+                        appreciation_matiere, _, _ = _compute_matiere_appreciation(
+                            moyenne_matiere,
+                            standards_bundle,
+                            getattr(moyenne_obj, 'appreciation', None)
+                        )
                     
                     # Enregistrer ou mettre à jour la moyenne de la matière
                     if moyenne_matiere is not None:
@@ -996,38 +1604,20 @@ def calculer_moyennes_periode(request, classe_id):
                     moyenne_generale = (total_pondere / somme_coefficients).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
                 # Calculer l'appréciation générale et la décision du conseil
-                appreciation_generale = None
-                decision_conseil = None
-                
-                if moyenne_generale is not None:
-                    moyenne_float = float(moyenne_generale)
-                    if moyenne_float >= 16:
-                        appreciation_generale = "Excellent"
-                    elif moyenne_float >= 14:
-                        appreciation_generale = "Très bien"
-                    elif moyenne_float >= 12:
-                        appreciation_generale = "Bien"
-                    elif moyenne_float >= 10:
-                        appreciation_generale = "Assez bien"
-                    elif moyenne_float >= 8:
-                        appreciation_generale = "Insuffisant"
-                    else:
-                        appreciation_generale = "Faible"
-                    
-                    if moyenne_float >= 12:
-                        decision_conseil = "Avis favorable pour le passage."
-                    elif moyenne_float >= 10:
-                        decision_conseil = "Passage avec encouragement à poursuivre les efforts."
-                    elif moyenne_float >= 9:
-                        decision_conseil = "Avis réservé : renforcer le suivi pédagogique."
-                    else:
-                        decision_conseil = "Recommandation de redoublement ou soutien intensif."
-                else:
-                    decision_conseil = "Bulletin en attente de validation."
+                appreciation_generale, _, _, _, _ = _compute_appreciation_generale(
+                    moyenne_generale,
+                    standards_bundle,
+                    None
+                )
+                decision_conseil, _, _, _, _ = _compute_decision_conseil(
+                    moyenne_generale,
+                    standards_bundle,
+                    None
+                )
                 
                 # Enregistrer la moyenne générale
                 if moyenne_generale is not None:
-                    MoyennePeriode.objects.update_or_create(
+                    moyenne_generale_obj, _ = MoyennePeriode.objects.update_or_create(
                         eleve=eleve,
                         etablissement=etablissement,
                         periode=periode,
@@ -1040,6 +1630,15 @@ def calculer_moyennes_periode(request, classe_id):
                             'poids_classe': ponderation.poids_classe,
                             'poids_examen': ponderation.poids_examen,
                         }
+                    )
+
+                    _ensure_bulletin_security_assets(
+                        moyenne_generale_obj,
+                        eleve=eleve,
+                        classe=classe,
+                        periode=periode,
+                        etablissement=etablissement,
+                        verification_url_base=verification_base_url,
                     )
                     
                     eleves_moyennes_generales.append({
@@ -1152,6 +1751,7 @@ def _build_bulletin_context(request, classe_id, eleve_id):
         return None, redirect('directeur:bulletins_notes')
 
     est_primaire = etablissement.type_etablissement == 'primary'
+    standards_bundle = _get_standards_bundle(etablissement)
     matieres = classe.matieres.filter(actif=True).order_by('nom')
 
     if not matieres.exists():
@@ -1167,6 +1767,9 @@ def _build_bulletin_context(request, classe_id, eleve_id):
     moyenne_generale = None
     bulletin_valide = False
     general_scores = []
+    appreciation_generale = None
+    decision_conseil = None
+    rang_general = None
 
     classe_effectif = classe.eleves.filter(actif=True).count()
 
@@ -1178,6 +1781,12 @@ def _build_bulletin_context(request, classe_id, eleve_id):
         periode=periode,
         est_moyenne_generale=True
     ).first()
+
+    bulletin_numero_serie = None
+    bulletin_signature = None
+    bulletin_qr_image_url = None
+    bulletin_qr_data = None
+    bulletin_qr_generated_at = None
 
     # Si les moyennes ont été calculées, utiliser les données de MoyennePeriode
     if moyenne_periode_generale:
@@ -1205,6 +1814,12 @@ def _build_bulletin_context(request, classe_id, eleve_id):
         rang_general = moyenne_periode_generale.rang
         appreciation_generale = moyenne_periode_generale.appreciation_generale
         decision_conseil = moyenne_periode_generale.decision_conseil
+        bulletin_numero_serie = moyenne_periode_generale.numero_serie
+        bulletin_signature = moyenne_periode_generale.signature_numerique
+        bulletin_qr_data = moyenne_periode_generale.qr_code_data
+        bulletin_qr_generated_at = moyenne_periode_generale.qr_code_generated_at
+        if moyenne_periode_generale.qr_code_image:
+            bulletin_qr_image_url = moyenne_periode_generale.qr_code_image.url
         
         # Initialiser general_scores pour le calcul du rang si nécessaire
         general_scores = []
@@ -1463,6 +2078,14 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                         (data['sum'] / data['coeff']).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     ))
 
+    appreciation_generale, decision_conseil, standards_extra = _apply_standards_to_bulletin(
+        matieres_table,
+        moyenne_generale,
+        appreciation_generale,
+        decision_conseil,
+        standards_bundle
+    )
+
     soumissions = sum(1 for item in matieres_table if item['moyenne_eleve'] is not None)
     total_matieres = len(matieres_table)
     bulletin_disponible = soumissions > 0
@@ -1477,37 +2100,6 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 if eleve_ident == eleve.id:
                     rang_general = index
                     break
-
-    if 'appreciation_generale' not in locals() or appreciation_generale is None:
-        def appreciation_generale_from_moyenne(valeur):
-            if valeur is None:
-                return None
-            if valeur >= 16:
-                return "Excellent"
-            elif valeur >= 14:
-                return "Très bien"
-            elif valeur >= 12:
-                return "Bien"
-            elif valeur >= 10:
-                return "Assez bien"
-            elif valeur >= 8:
-                return "Insuffisant"
-            else:
-                return "Faible"
-
-        appreciation_generale = appreciation_generale_from_moyenne(moyenne_generale)
-
-    if 'decision_conseil' not in locals() or decision_conseil is None:
-        if moyenne_generale is None:
-            decision_conseil = "Bulletin en attente de validation."
-        elif moyenne_generale >= 12:
-            decision_conseil = "Avis favorable pour le passage."
-        elif moyenne_generale >= 10:
-            decision_conseil = "Passage avec encouragement à poursuivre les efforts."
-        elif moyenne_generale >= 9:
-            decision_conseil = "Avis réservé : renforcer le suivi pédagogique."
-        else:
-            decision_conseil = "Recommandation de redoublement ou soutien intensif."
 
     absences_justifiees = Presence.objects.filter(
         eleve=eleve,
@@ -1536,6 +2128,19 @@ def _build_bulletin_context(request, classe_id, eleve_id):
         'decision_conseil': decision_conseil,
     }
 
+    if standards_extra:
+        complement_info.update({
+            'appreciation_generale_standard': standards_extra['appreciation_generale_standard'],
+            'appreciation_generale_source': standards_extra['appreciation_generale_source'],
+            'statut_conseil_code': standards_extra['statut_conseil_code'],
+            'statut_conseil_label': standards_extra['statut_conseil_label'],
+        })
+        if decision_conseil:
+            complement_info.update({
+                'decision_conseil_standard': standards_extra['decision_conseil_standard'],
+                'decision_conseil_source': standards_extra['decision_conseil_source'],
+            })
+
     context = {
         'etablissement': etablissement,
         'classe': classe,
@@ -1556,6 +2161,13 @@ def _build_bulletin_context(request, classe_id, eleve_id):
         'rang_general': rang_general,
         'complement_info': complement_info,
         'impression_url': reverse('directeur:imprimer_bulletin_eleve', args=[classe.id, eleve.id]),
+        'standards_summary': standards_extra['standards_summary'] if standards_extra else None,
+        'standards_applied': bool(standards_bundle),
+        'bulletin_qr_image_url': bulletin_qr_image_url,
+        'bulletin_qr_data': bulletin_qr_data,
+        'bulletin_qr_generated_at': bulletin_qr_generated_at,
+        'bulletin_signature': bulletin_signature,
+        'bulletin_numero_serie': bulletin_numero_serie,
     }
 
     logger.debug(
@@ -1602,6 +2214,10 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
 
     est_primaire = etablissement.type_etablissement == 'primary'
+    standards_bundle = _get_standards_bundle(etablissement)
+    verification_base_url = request.build_absolute_uri(
+        reverse('school_admin:verifier_bulletin_qr')
+    )
 
     # Récupérer les matières
     matieres = classe.matieres.filter(actif=True).order_by('nom')
@@ -1715,19 +2331,11 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                 # Calculer l'appréciation de la matière
                 appreciation_matiere = None
                 if moyenne_matiere is not None:
-                    moyenne_float = float(moyenne_matiere)
-                    if moyenne_float >= 16:
-                        appreciation_matiere = "Excellent travail, continuez ainsi !"
-                    elif moyenne_float >= 14:
-                        appreciation_matiere = "Très bon niveau, félicitations !"
-                    elif moyenne_float >= 12:
-                        appreciation_matiere = "Bon travail, continuez vos efforts."
-                    elif moyenne_float >= 10:
-                        appreciation_matiere = "Travail satisfaisant, peut mieux faire."
-                    elif moyenne_float >= 8:
-                        appreciation_matiere = "Résultats fragiles, des efforts sont nécessaires."
-                    else:
-                        appreciation_matiere = "Résultats insuffisants, un soutien est recommandé."
+                    appreciation_matiere, _, _ = _compute_matiere_appreciation(
+                        moyenne_matiere,
+                        standards_bundle,
+                        getattr(moyenne_obj, 'appreciation', None)
+                    )
 
                 # Enregistrer ou mettre à jour la moyenne de la matière
                 if moyenne_matiere is not None:
@@ -1764,38 +2372,20 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                 moyenne_generale = (total_pondere / somme_coefficients).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
             # Calculer l'appréciation générale et la décision du conseil
-            appreciation_generale = None
-            decision_conseil = None
-
-            if moyenne_generale is not None:
-                moyenne_float = float(moyenne_generale)
-                if moyenne_float >= 16:
-                    appreciation_generale = "Excellent"
-                elif moyenne_float >= 14:
-                    appreciation_generale = "Très bien"
-                elif moyenne_float >= 12:
-                    appreciation_generale = "Bien"
-                elif moyenne_float >= 10:
-                    appreciation_generale = "Assez bien"
-                elif moyenne_float >= 8:
-                    appreciation_generale = "Insuffisant"
-                else:
-                    appreciation_generale = "Faible"
-
-                if moyenne_float >= 12:
-                    decision_conseil = "Avis favorable pour le passage."
-                elif moyenne_float >= 10:
-                    decision_conseil = "Passage avec encouragement à poursuivre les efforts."
-                elif moyenne_float >= 9:
-                    decision_conseil = "Avis réservé : renforcer le suivi pédagogique."
-                else:
-                    decision_conseil = "Recommandation de redoublement ou soutien intensif."
-            else:
-                decision_conseil = "Bulletin en attente de validation."
+            appreciation_generale, _, _, _, _ = _compute_appreciation_generale(
+                moyenne_generale,
+                standards_bundle,
+                None
+            )
+            decision_conseil, _, _, _, _ = _compute_decision_conseil(
+                moyenne_generale,
+                standards_bundle,
+                None
+            )
 
             # Enregistrer ou mettre à jour la moyenne générale
             if moyenne_generale is not None:
-                MoyennePeriode.objects.update_or_create(
+                moyenne_generale_obj, _ = MoyennePeriode.objects.update_or_create(
                     eleve=eleve,
                     etablissement=etablissement,
                     periode=periode,
@@ -1808,6 +2398,15 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                         'poids_classe': ponderation.poids_classe,
                         'poids_examen': ponderation.poids_examen,
                     }
+                )
+
+                _ensure_bulletin_security_assets(
+                    moyenne_generale_obj,
+                    eleve=eleve,
+                    classe=classe,
+                    periode=periode,
+                    etablissement=etablissement,
+                    verification_url_base=verification_base_url,
                 )
 
             # Recalculer les rangs de toute la classe (car le rang dépend des autres élèves)
@@ -2117,6 +2716,136 @@ def imprimer_bulletins_classe(request, classe_id):
     return render(request, 'school_admin/directeur/imprimer_bulletins_classe.html', context)
 
 
+def verifier_bulletin_qr(request):
+    """
+    Page publique d'authentification d'un bulletin via numéro de série + signature numérique.
+    """
+    numero_query_raw = request.GET.get('numero_serie') or request.GET.get('numero') or request.GET.get('serial') or ''
+    signature_query_raw = request.GET.get('signature') or request.GET.get('hash') or ''
+
+    numero_query = numero_query_raw.strip()
+    numero_lookup = numero_query.upper()
+    signature_query = signature_query_raw.strip()
+    signature_lookup = signature_query.lower()
+
+    verification_checked = bool(numero_lookup)
+    verification_status = 'idle'
+    bulletin_data = None
+    show_details = False
+
+    status_messages = {
+        'valid': {
+            'title': "Bulletin authentique",
+            'message': "Le numéro de série et la signature correspondent à un bulletin officiel généré par l'établissement.",
+            'tone': 'success',
+            'icon': 'fas fa-check-circle',
+        },
+        'invalid_signature': {
+            'title': "Signature numérique invalide",
+            'message': "La signature transmise ne correspond pas à celle enregistrée pour ce bulletin. Vérifiez que le QR code provient bien de l'établissement.",
+            'tone': 'danger',
+            'icon': 'fas fa-times-circle',
+        },
+        'missing_signature': {
+            'title': "Signature requise",
+            'message': "Ce bulletin est signé numériquement. Scannez le QR code complet ou renseignez la signature pour confirmer l'authenticité.",
+            'tone': 'warning',
+            'icon': 'fas fa-exclamation-triangle',
+        },
+        'unsigned': {
+            'title': "Bulletin non signé",
+            'message': "Ce bulletin ne dispose pas encore d'une signature numérique. Contactez l'établissement pour régénérer le document.",
+            'tone': 'warning',
+            'icon': 'fas fa-info-circle',
+        },
+        'not_found': {
+            'title': "Numéro introuvable",
+            'message': "Aucun bulletin ne correspond à ce numéro de série. Vérifiez la saisie ou contactez l'établissement.",
+            'tone': 'danger',
+            'icon': 'fas fa-question-circle',
+        },
+    }
+
+    if verification_checked:
+        moyenne = (
+            MoyennePeriode.objects.filter(
+                numero_serie=numero_lookup,
+                est_moyenne_generale=True,
+            )
+            .select_related('eleve__classe', 'etablissement', 'periode')
+            .first()
+        )
+
+        if not moyenne:
+            verification_status = 'not_found'
+        else:
+            stored_signature = (moyenne.signature_numerique or '').lower()
+            if stored_signature:
+                if signature_lookup:
+                    if signature_lookup == stored_signature:
+                        verification_status = 'valid'
+                        show_details = True
+                    else:
+                        verification_status = 'invalid_signature'
+                else:
+                    verification_status = 'missing_signature'
+            else:
+                verification_status = 'unsigned'
+
+            if show_details:
+                eleve = moyenne.eleve
+                classe = eleve.classe if eleve else None
+                etablissement = moyenne.etablissement
+                periode = moyenne.periode
+
+                adresse_parts = [
+                    etablissement.adresse or '',
+                    etablissement.ville or '',
+                    etablissement.pays or '',
+                ]
+                adresse = ', '.join(part for part in adresse_parts if part).strip(', ')
+
+                effectif = None
+                if classe:
+                    effectif = classe.eleves.filter(actif=True).count()
+
+                bulletin_data = {
+                    'eleve_nom': eleve.nom_complet if eleve else None,
+                    'classe_nom': classe.nom if classe else None,
+                    'classe_niveau': classe.get_niveau_display() if classe else None,
+                    'classe_effectif': effectif,
+                    'periode_nom': periode.nom_periode if periode else None,
+                    'annee_scolaire': periode.annee_scolaire if periode else None,
+                    'moyenne_generale': float(moyenne.moyenne_generale) if moyenne.moyenne_generale is not None else None,
+                    'rang': moyenne.rang,
+                    'appreciation': moyenne.appreciation_generale,
+                    'decision': moyenne.decision_conseil,
+                    'numero_serie': moyenne.numero_serie,
+                    'signature': moyenne.signature_numerique,
+                    'date_generation': moyenne.qr_code_generated_at,
+                    'date_publication': moyenne.date_publication,
+                    'etablissement_nom': etablissement.nom if etablissement else None,
+                    'etablissement_adresse': adresse,
+                    'etablissement_email': etablissement.email if etablissement else None,
+                    'etablissement_telephone': etablissement.telephone if etablissement else None,
+                }
+
+    status_info = status_messages.get(verification_status) if verification_status != 'idle' else None
+
+    context = {
+        'numero_serie_query': numero_query,
+        'signature_query': signature_query,
+        'verification_checked': verification_checked,
+        'verification_status': verification_status,
+        'status_info': status_info,
+        'bulletin_data': bulletin_data,
+        'show_bulletin_details': show_details,
+        'verification_timestamp': timezone.now(),
+    }
+
+    return render(request, 'school_admin/directeur/verification_bulletin.html', context)
+
+
 @login_required
 def configuration_moyennes_generales(request):
     """Configuration des paramètres de calcul des moyennes générales."""
@@ -2193,7 +2922,36 @@ def configuration_standards_reussite(request):
     etablissement = request.user
 
     standards, _ = StandardsReussite.objects.get_or_create(etablissement=etablissement)
-    appreciations = list(standards.appreciations_matieres.all())
+
+    def _format_decimal(value):
+        if value is None:
+            return ''
+        if not isinstance(value, Decimal):
+            value = Decimal(str(value))
+        return f"{value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
+
+    general_settings = {
+        'moyenne_passage': _format_decimal(standards.moyenne_passage),
+        'moyenne_redoublement': _format_decimal(standards.moyenne_redoublement),
+        'appreciation_conseil': standards.appreciation_conseil or '',
+    }
+
+    matiere_ranges = [
+        {
+            'min': _format_decimal(appreciation.note_min),
+            'max': _format_decimal(appreciation.note_max),
+            'label': appreciation.appreciation,
+        }
+        for appreciation in standards.appreciations_matieres.all().order_by('note_min')
+    ]
+
+    conseil_ranges = [
+        {
+            'min': _format_decimal(appreciation.note_min),
+            'label': appreciation.appreciation,
+        }
+        for appreciation in standards.appreciations_conseil.all().order_by('note_min')
+    ]
 
     periode_active_id = request.GET.get('periode') or request.POST.get('periode')
 
@@ -2300,27 +3058,14 @@ def configuration_standards_reussite(request):
         else:
             messages.error(request, "Section de formulaire inconnue.")
 
-    appreciations_matieres = list(standards.appreciations_matieres.all().order_by('note_min'))
-    appreciations_conseil = list(standards.appreciations_conseil.all().order_by('note_min'))
-
     context = {
         'etablissement': etablissement,
         'standards': standards,
-        'moyennes_standards': [
-            {
-                'min': appreciation.note_min,
-                'max': appreciation.note_max,
-                'label': appreciation.appreciation,
-            }
-            for appreciation in appreciations_matieres
-        ],
-        'conseil_standards': [
-            {
-                'min': appreciation.note_min,
-                'label': appreciation.appreciation,
-            }
-            for appreciation in appreciations_conseil
-        ],
+        'general_settings': general_settings,
+        'matiere_ranges': matiere_ranges,
+        'conseil_ranges': conseil_ranges,
+        'moyennes_standards': matiere_ranges,
+        'conseil_standards': conseil_ranges,
         'periode_active_id': periode_active_id,
     }
     return render(request, 'school_admin/directeur/configuration_standards_reussite.html', context)

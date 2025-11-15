@@ -152,6 +152,12 @@
                                     <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
                                 </div>
                                 <div class="class-header-actions">
+                                    <a href="{% url 'directeur:justifications_notes' %}?classe={{ classe_data.classe.id }}" 
+                                       class="btn-justification" 
+                                       title="Voir les demandes de justification de notes">
+                                        <i class="fas fa-scale-balanced"></i>
+                                        Demandes de justification
+                                    </a>
                                     <a href="{% url 'directeur:imprimer_releve_notes' classe_data.classe.id %}" 
                                        class="btn-print-releve" 
                                        target="_blank"
@@ -917,6 +923,8 @@
             filterNotesPrimaireStudents(classeId);
         }
     </script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>
 

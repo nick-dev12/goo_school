@@ -221,6 +221,18 @@ body {
   color: var(--eleve-primary);
 }
 
+.header-button.header-bulletin-link {
+  background: var(--primary-light);
+  color: var(--eleve-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-button.header-bulletin-link:hover {
+  background: rgba(79, 70, 229, 0.2);
+  color: var(--eleve-secondary);
+  box-shadow: var(--shadow-md);
+}
+
 .notification-badge {
   position: absolute;
   top: -2px;
@@ -284,6 +296,45 @@ body {
   max-width: 1000px;
   margin: 15px auto; /* Reduced margin */
   border-radius: 16px; /* Slightly reduced radius */
+}
+
+.welcome-action {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #f4f4f4;
+  border-radius: var(--radius);
+  color: #000000;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 11px;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.welcome-action.back-link {
+  background: #f4f4f4;
+}
+
+.welcome-action.logout-link {
+  background: #f4f4f4;
+}
+
+.welcome-action i {
+  font-size: 1rem;
+}
+
+.welcome-action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.welcome-action:active {
+  transform: translateY(0);
+  opacity: 0.85;
 }
 
 .welcome-banner::before,
@@ -497,6 +548,20 @@ body {
   margin-bottom: 1.25rem; /* Reduced margin */
 }
 
+.nav-cards-row.nav-cards-compact {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-inline: auto;
+  max-width: 820px;
+}
+
+.nav-cards-row.nav-cards-compact .nav-link-card {
+  flex: 1 1 240px;
+  max-width: 320px;
+}
+
 .nav-link-card {
   display: flex;
   align-items: center;
@@ -689,6 +754,11 @@ body {
     margin: 12px auto;
     padding: 1.25rem 1rem;
   }
+
+  .welcome-action {
+    width: 60%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 768px) {
@@ -709,6 +779,9 @@ body {
     padding: 1.25rem 0.75rem;
     margin: 10px 10px;
     border-radius: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .banner-title {
@@ -904,4 +977,3 @@ body {
     font-size: 0.7rem;
   }
 }
-

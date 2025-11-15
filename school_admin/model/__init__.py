@@ -22,6 +22,7 @@ from .lien_familial_model import LienFamilial
 from .demande_liaison_model import DemandeLiaisonParent
 from .periode_model import PeriodeScolaire
 from .session_examen_model import SessionExamen
+from .exercice_maison_model import ExerciceMaison
 from .creneau_examen_model import CreneauExamen
 from .ponderation_model import Ponderation
 from .moyenne_periode_model import MoyennePeriode
@@ -30,3 +31,5 @@ from .notification_directeur_model import NotificationDirecteur
 from .notification_enseignant_model import NotificationEnseignant
 from .notification_eleve_model import NotificationEleve
 from .standards_reussite_model import StandardsReussite, AppreciationMatiereStandard, AppreciationConseilStandard
+from .justification_note_model import JustificationNote
+from .professeur_otp_model import ProfesseurOtpCode

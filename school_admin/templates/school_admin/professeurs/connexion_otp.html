@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connexion Professeur - OTP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    {% load static %}
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/professeurs/connexion_otp.css' %}"
+    />
+  </head>
+  <body class="otp-body">
+    <div class="otp-pattern"></div>
+
+    <main class="otp-wrapper">
+      <section class="otp-card">
+        <header class="otp-header">
+          <div class="otp-badge">Connexion sécurisée</div>
+          <h1>Connexion Professeur</h1>
+          <p>
+            Saisissez votre numéro WhatsApp pour recevoir un code d'accès à usage
+            unique (OTP) valable 5 minutes.
+          </p>
+        </header>
+
+        {% if messages %}
+        <div class="otp-messages">
+          {% for message in messages %}
+          <div class="otp-alert otp-alert-{{ message.tags|default:'info' }}">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form
+          method="post"
+          action="{% url 'school_admin:prof_connexion_otp' %}"
+          class="otp-form"
+        >
+          {% csrf_token %}
+
+          <div class="otp-field {% if form.phone_number.errors %}has-error{% endif %}">
+            <label for="{{ form.phone_number.id_for_label }}"
+              >Numéro de téléphone</label
+            >
+            <div class="otp-input-wrapper">
+              <span class="otp-input-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M6.62 10.79a15.564 15.564 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.72 11.72 0 003.67.59 1 1 0 011 1v3.5a1 1 0 01-.91 1 16 16 0 01-14.24-14.24 1 1 0 01.95-.91h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.67 1 1 0 01-.24 1z"
+                  />
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="{{ form.phone_number.id_for_label }}"
+                name="{{ form.phone_number.html_name }}"
+                value="{{ form.phone_number.value|default_if_none:'' }}"
+                placeholder="+237 699 00 00 00"
+                required
+              />
+            </div>
+            {% for error in form.phone_number.errors %}
+            <span class="otp-error">{{ error }}</span>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="otp-btn-primary">
+            Envoyer le code OTP
+          </button>
+        </form>
+
+        <div class="otp-footer">
+          <p>Vous avez déjà reçu un code ?</p>
+          <a href="{% url 'school_admin:connexion_compte_user' %}"
+            >Retourner à la connexion classique</a
+          >
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+

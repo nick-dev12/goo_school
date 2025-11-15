@@ -4,9 +4,9 @@
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.25rem;
   background-color: var(--gray-50);
-  border-radius: var(--radius-lg);
+  border-radius: 24px;
 }
 
 /* Titre de section */
@@ -31,18 +31,19 @@
 /* Boutons d'accès rapide */
 .quick-access-buttons {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .quick-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 0.9rem;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
   font-weight: 600;
   color: white;
   text-decoration: none;
@@ -75,6 +76,14 @@
   background: linear-gradient(135deg, #ea580c, #c2410c);
 }
 
+.quick-btn-purple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.quick-btn-purple:hover {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
 .quick-btn-red {
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
@@ -96,10 +105,18 @@
 /* Grille pour les cartes */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
   align-items: stretch;
+}
+
+.dashboard-stats-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 10px;
+  width: 100%;
 }
 
 /* Organisation en deux colonnes pour les sections importantes */
@@ -110,15 +127,17 @@
 /* Carte d'information */
 .info-card {
   background-color: var(--white);
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   box-shadow: var(--shadow-card);
-  padding: 1.5rem;
+  padding: 1rem;
   transition: all 0.3s ease;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   border: 1px solid var(--gray-100);
+  min-height: 160px;
+  width: 450px;
 }
 
 .info-card:hover {
@@ -131,19 +150,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .info-card-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--gray-800);
   margin: 0;
 }
 
 .info-card-icon {
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -154,19 +173,22 @@
 }
 
 .info-card-content {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .info-card-value {
-  font-size: 1.8rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
 }
 
 .info-card-description {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--gray-500);
   margin: 0.5rem 0 0 0;
 }
@@ -175,9 +197,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   border-top: 1px solid var(--gray-100);
-  padding-top: 1rem;
+  padding-top: 0.75rem;
   margin-top: auto;
 }
 
@@ -342,6 +364,78 @@
   font-weight: 500;
 }
 
+@media (max-width: 1024px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-grid.two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+    border-radius: 20px;
+  }
+
+  .quick-btn {
+    flex: 1 1 calc(50% - 10px);
+    justify-content: center;
+  }
+
+  .info-card {
+    padding: 1rem;
+  }
+
+  .info-card-value {
+    font-size: 1.45rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .quick-access-buttons {
+    gap: 8px;
+  }
+
+  .quick-btn {
+    flex: 1 1 calc(33.33% - 8px);
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 0.75rem;
+  }
+
+  .info-card-title {
+    font-size: 0.95rem;
+  }
+
+  .info-card-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .info-card-description {
+    font-size: 0.8rem;
+  }
+
+  .info-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
 /* Carte des devoirs à faire */
 .homework-card {
   background-color: var(--white);
@@ -426,6 +520,13 @@
   font-weight: 600;
   color: var(--gray-800);
   margin: 0 0 0.5rem 0;
+}
+
+.homework-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin: 0 0 0.4rem 0;
 }
 
 .homework-description {
@@ -1153,4 +1254,3 @@
     transform: translateY(0);
   }
 }
-

@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes de justification - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/justifications_notes.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="main-content-container">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-scale-balanced"></i>
+                    Demandes de justification des notes
+                </h1>
+                <p class="page-subtitle">
+                    Validez ou refusez les corrections proposées par les enseignants.
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:notes_et_resultats' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour aux notes et résultats
+                </a>
+            </div>
+        </div>
+
+        <form method="get" class="filters-bar">
+            <div class="filter-group">
+                <label for="classeFilter">
+                    <i class="fas fa-chalkboard"></i>
+                    Classe
+                </label>
+                <select id="classeFilter" name="classe" onchange="this.form.submit()">
+                    <option value="">Toutes les classes</option>
+                    {% for classe in classes %}
+                        <option value="{{ classe.id }}" {% if classe_selectionnee|stringformat:'s' == classe.id|stringformat:'s' %}selected{% endif %}>
+                            {{ classe.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="statutFilter">
+                    <i class="fas fa-filter"></i>
+                    Statut
+                </label>
+                <select id="statutFilter" name="statut" onchange="this.form.submit()">
+                    <option value="">Tous les statuts</option>
+                    <option value="en_attente" {% if statut_selectionne == 'en_attente' %}selected{% endif %}>En attente</option>
+                    <option value="validee" {% if statut_selectionne == 'validee' %}selected{% endif %}>Validées</option>
+                    <option value="refusee" {% if statut_selectionne == 'refusee' %}selected{% endif %}>Refusées</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="stats-container">
+            <div class="stat-card primary">
+                <div class="stat-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.en_attente }}</span>
+                    <span class="stat-label">En attente</span>
+                </div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.validees }}</span>
+                    <span class="stat-label">Validées</span>
+                </div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.refusees }}</span>
+                    <span class="stat-label">Refusées</span>
+                </div>
+            </div>
+        </div>
+
+        <section class="demandes-section">
+            <h2 class="section-title">
+                <i class="fas fa-hourglass-half"></i>
+                Demandes en attente
+            </h2>
+            {% if demandes_grouped.en_attente %}
+                <div class="demandes-grid">
+                    {% for justification in demandes_grouped.en_attente %}
+                        <article class="demande-card">
+                            <header class="demande-header">
+                                <div>
+                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
+                                    <p class="classe-name">{{ justification.classe.nom }}{% if justification.matiere %} &middot; {{ justification.matiere.nom }}{% endif %}</p>
+                                </div>
+                                <span class="badge badge-warning">En attente</span>
+                            </header>
+                            <div class="demande-body">
+                                <div class="value-line">
+                                    <span>Ancienne note</span>
+                                    <strong>{{ justification.ancienne_note|default:"-" }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Nouvelle note proposée</span>
+                                    <strong>{{ justification.nouvelle_note }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Motif</span>
+                                    <p class="motif">{{ justification.motif }}</p>
+                                </div>
+                                {% if justification.description %}
+                                    <div class="value-line">
+                                        <span>Détails</span>
+                                        <p class="description">{{ justification.description }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Enseignant</span>
+                                    <p>{{ justification.professeur.nom_complet }}</p>
+                                </div>
+                                <div class="value-line">
+                                    <span>Date</span>
+                                    <p>{{ justification.date_creation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                            <footer class="demande-footer">
+                                <form method="post" action="" class="demande-actions">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="justification_id" value="{{ justification.id }}">
+                                    <div class="form-commentaire">
+                                        <label for="commentaire-{{ justification.id }}">Commentaire (optionnel)</label>
+                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="Ajoutez un commentaire pour l'enseignant..."></textarea>
+                                    </div>
+                                    <div class="actions-buttons">
+                                        <button type="submit" name="action" value="rejeter" class="btn-outline">
+                                            <i class="fas fa-times"></i>
+                                            Refuser
+                                        </button>
+                                        <button type="submit" name="action" value="valider" class="btn-primary">
+                                            <i class="fas fa-check"></i>
+                                            Valider
+                                        </button>
+                                    </div>
+                                </form>
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Aucune demande en attente pour le moment.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="demandes-section">
+            <h2 class="section-title">
+                <i class="fas fa-check-circle"></i>
+                Demandes validées
+            </h2>
+            {% if demandes_grouped.validee %}
+                <div class="demandes-grid">
+                    {% for justification in demandes_grouped.validee %}
+                        <article class="demande-card">
+                            <header class="demande-header">
+                                <div>
+                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
+                                    <p class="classe-name">{{ justification.classe.nom }}{% if justification.matiere %} &middot; {{ justification.matiere.nom }}{% endif %}</p>
+                                </div>
+                                <span class="badge badge-success">Validée</span>
+                            </header>
+                            <div class="demande-body">
+                                <div class="value-line">
+                                    <span>Ancienne note</span>
+                                    <strong>{{ justification.ancienne_note|default:"-" }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Nouvelle note</span>
+                                    <strong>{{ justification.nouvelle_note }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Motif</span>
+                                    <p class="motif">{{ justification.motif }}</p>
+                                </div>
+                                {% if justification.commentaire_direction %}
+                                    <div class="value-line">
+                                        <span>Commentaire direction</span>
+                                        <p class="description">{{ justification.commentaire_direction }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Validée le</span>
+                                    <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Aucune justification validée avec les filtres actuels.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="demandes-section">
+            <h2 class="section-title">
+                <i class="fas fa-times-circle"></i>
+                Demandes refusées
+            </h2>
+            {% if demandes_grouped.refusee %}
+                <div class="demandes-grid">
+                    {% for justification in demandes_grouped.refusee %}
+                        <article class="demande-card">
+                            <header class="demande-header">
+                                <div>
+                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
+                                    <p class="classe-name">{{ justification.classe.nom }}{% if justification.matiere %} &middot; {{ justification.matiere.nom }}{% endif %}</p>
+                                </div>
+                                <span class="badge badge-danger">Refusée</span>
+                            </header>
+                            <div class="demande-body">
+                                <div class="value-line">
+                                    <span>Ancienne note</span>
+                                    <strong>{{ justification.ancienne_note|default:"-" }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Motif</span>
+                                    <p class="motif">{{ justification.motif }}</p>
+                                </div>
+                                {% if justification.commentaire_direction %}
+                                    <div class="value-line">
+                                        <span>Commentaire direction</span>
+                                        <p class="description">{{ justification.commentaire_direction }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Décision</span>
+                                    <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Aucune justification refusée avec les filtres actuels.</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>
+

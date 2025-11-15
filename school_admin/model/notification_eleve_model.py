@@ -12,6 +12,7 @@ class NotificationEleve(models.Model):
         ("bulletin", "Bulletin"),
         ("note", "Note"),
         ("sanction", "Sanction"),
+        ("evaluation", "Évaluation programmée"),
         ("information", "Information"),
     ]
 

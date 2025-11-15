@@ -23,11 +23,34 @@
     <div class="notes-container">
         <!-- Titre de la page -->
         <div class="page-header">
-            <h2 class="page-title">
-                <i class="fas fa-star"></i>
-                Notes & Résultats
-            </h2>
-            <p class="page-subtitle">Suivi de vos performances scolaires</p>
+            <div class="page-header-info">
+                <h2 class="page-title">
+                    <i class="fas fa-star"></i>
+                    Notes & Résultats
+                </h2>
+                <p class="page-subtitle">Suivi de vos performances scolaires</p>
+            </div>
+            <div class="page-actions">
+                {% if bulletin_disponible %}
+                    <a href="{{ bulletin_url }}" class="btn-bulletin" title="Bulletin {% if bulletin_periode_label %}{{ bulletin_periode_label }}{% else %}disponible{% endif %}">
+                        <i class="fas fa-file-signature"></i>
+                        <span>
+                            Voir mon bulletin
+                            {% if bulletin_periode_label %}
+                                <small>{{ bulletin_periode_label }}</small>
+                            {% endif %}
+                        </span>
+                    </a>
+                {% else %}
+                    <button type="button" class="btn-bulletin disabled" disabled title="Bulletin en cours de préparation">
+                        <i class="fas fa-clock"></i>
+                        <span>
+                            Bulletin indisponible
+                            <small>Bientôt publié</small>
+                        </span>
+                    </button>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Système d'onglets pour les périodes -->
@@ -176,11 +199,9 @@
                     <thead>
                         <tr>
                             <th class="th-matiere">MATIÈRE</th>
-                            {% with max_notes=periode_data.tableau_notes|first %}
-                                {% for note in max_notes.notes %}
-                                    <th class="th-note">NOTE {{ forloop.counter }}</th>
-                                {% endfor %}
-                            {% endwith %}
+                            {% for idx in periode_data.notes_indices %}
+                                <th class="th-note">NOTE {{ forloop.counter }}</th>
+                            {% endfor %}
                             <th class="th-examen">EXAMEN</th>
                             <th class="th-moyenne">MOYENNE</th>
                         </tr>
@@ -203,19 +224,16 @@
                                         </span>
                                     </td>
                                 {% endfor %}
-                                <!-- Remplir les cellules vides -->
-                                {% with max_notes_count=periode_data.tableau_notes.0.notes|length %}
-                                    {% for i in "x"|ljust:max_notes_count %}
-                                        {% if forloop.counter > ligne.notes|length %}
-                                            <td class="td-note empty" data-label="Note {{ forloop.counter }}">-</td>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endwith %}
+                                {% for idx in periode_data.notes_indices %}
+                                    {% if idx >= ligne.notes|length %}
+                                        <td class="td-note empty" data-label="Note {{ idx|add:1 }}">-</td>
+                                    {% endif %}
+                                {% endfor %}
                                 <!-- Note d'examen -->
                                 <td class="td-examen" data-label="Examen">
-                                    {% if ligne.note_examen %}
+                                    {% if ligne.note_examen is not None %}
                                         <span class="note-value {% if ligne.note_examen >= 16 %}excellent{% elif ligne.note_examen >= 14 %}good{% elif ligne.note_examen >= 12 %}average{% elif ligne.note_examen >= 10 %}below-average{% else %}poor{% endif %}">
-                                            {{ ligne.note_examen }}
+                                            {{ ligne.note_examen|floatformat:2 }}
                                         </span>
                                     {% else %}
                                         <span class="note-empty">-</span>
@@ -429,5 +447,7 @@
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/eleve/header_eleve.js' %}"></script>
 <script src="{% static 'school_admin/js/eleve/notes_evaluations_eleve.js' %}"></script>
+
+    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
 </body>
 </html>

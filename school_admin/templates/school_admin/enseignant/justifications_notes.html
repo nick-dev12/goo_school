@@ -1,0 +1,319 @@
+{% load static %}
+{% load notes_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Justification des notes - Espace Enseignant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/justifications_notes.css' %}">
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+
+    <div class="main-content-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-scale-balanced"></i>
+                    Justification des notes
+                </h1>
+                <p class="page-subtitle">
+                    Soumettez vos demandes de rectification pour validation par la direction.
+                </p>
+            </div>
+        </div>
+
+        {% if stats.total_classes > 0 %}
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_classes }}</span>
+                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon secondary">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ stats.total_eleves }}</span>
+                        <span class="stat-label">Élève{{ stats.total_eleves|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-container">
+                <div class="tabs-nav">
+                    {% for categorie, data in classes_grouped.items %}
+                        <button class="tab-btn {% if forloop.first %}active{% endif %}" data-tab="tab-{{ forloop.counter }}" onclick="switchTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <span class="tab-title">{{ categorie }}</span>
+                                <span class="tab-badge">{{ data.classes|length }}</span>
+                            </div>
+                            <div class="tab-info">
+                                <span class="tab-students">{{ data.total_eleves }} élèves</span>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                {% for categorie, data in classes_grouped.items %}
+                    <div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                        <div class="category-info">
+                            <div class="category-details">
+                                <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                                <p>
+                                    {{ data.classes|length }} classe{{ data.classes|length|pluralize }} -
+                                    {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="classes-tabs">
+                            {% for classe_data in data.classes %}
+                                <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
+                                        data-classe="classe-{{ categorie|slugify }}-{{ forloop.counter }}"
+                                        onclick="showClasse('classe-{{ categorie|slugify }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
+                                    <div class="classe-tab-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="classe-tab-content">
+                                        <span class="classe-tab-name">
+                                            {{ classe_data.classe.nom }}
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge-small">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                        </span>
+                                        {% if classe_data.est_principal %}
+                                            <span class="classe-tab-badge principal">Principal</span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="classe-tab-count">{{ classe_data.nombre_eleves }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        {% for classe_data in data.classes %}
+                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie|slugify }}-{{ forloop.counter }}">
+                                <section class="classe-section">
+                                    <div class="classe-header">
+                                        <div>
+                                            <h2>
+                                                <i class="fas fa-clipboard-check"></i>
+                                                {{ classe_data.classe.nom }}
+                                            </h2>
+                                            {% if classe_data.matiere %}
+                                                <span class="matiere-badge">{{ classe_data.matiere.nom }}</span>
+                                            {% endif %}
+                                            <p class="classe-meta">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</p>
+                                        </div>
+                                        <div class="classe-actions">
+                                            <a href="{% url 'enseignant:gestion_notes' %}" class="btn-secondary">
+                                                <i class="fas fa-arrow-left"></i>
+                                                Retour aux notes
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {% if classe_data.eleves %}
+                                        {% if classe_data.evaluations %}
+                                            <div class="table-responsive">
+                                                <table class="releve-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="col-numero">#</th>
+                                                            <th class="col-eleve">Élève</th>
+                                                            {% for eval_item in classe_data.evaluations %}
+                                                                <th class="col-evaluation" title="{{ eval_item.evaluation.titre }}">
+                                                                    <div class="eval-header-cell">
+                                                                        <span class="eval-title" title="{{ eval_item.evaluation.titre }}">{{ eval_item.evaluation.titre|truncatechars:20 }}</span>
+                                                                        <span class="eval-bareme">/{{ eval_item.evaluation.bareme }}</span>
+                                                                    </div>
+                                                                </th>
+                                                            {% endfor %}
+                                                            <th class="col-justification">Dernière justification</th>
+                                                            <th class="col-action">Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for eleve_data in classe_data.eleves %}
+                                                            <tr class="{% cycle 'row-even' 'row-odd' %}">
+                                                                <td class="col-numero">{{ forloop.counter }}</td>
+                                                                <td class="col-eleve">
+                                                                    <div class="eleve-info">
+                                                                        <div class="eleve-avatar">{{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}</div>
+                                                                        <div>
+                                                                            <div class="eleve-nom">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                {% for eval_item in classe_data.evaluations %}
+                                                                    {% with entry=eleve_data.notes|get_item:eval_item.evaluation.id %}
+                                                                        <td class="col-evaluation-note">
+                                                                            {% if entry %}
+                                                                                {% with note_obj=entry.note justification=entry.justification %}
+                                                                                    {% if note_obj.absent %}
+                                                                                        <span class="note-badge absent" title="Absent">ABS</span>
+                                                                                    {% elif note_obj.note is not None %}
+                                                                                        {% with note_class=note_obj.note|get_note_color_class:eval_item.evaluation.bareme %}
+                                                                                            <span class="note-badge {% if note_class %}{{ note_class }}{% endif %}">
+                                                                                                {{ note_obj.note|floatformat:2 }}/{{ eval_item.evaluation.bareme }}
+                                                                                            </span>
+                                                                                        {% endwith %}
+                                                                                    {% else %}
+                                                                                        <span class="note-badge non-renseigne">-</span>
+                                                                                    {% endif %}
+                                                                                    {% if justification %}
+                                                                                        <span class="justif-status {{ justification.statut }}">
+                                                                                            {% if justification.statut == 'en_attente' %}En attente{% elif justification.statut == 'validee' %}Validée{% else %}Refusée{% endif %}
+                                                                                        </span>
+                                                                                    {% endif %}
+                                                                                {% endwith %}
+                                                                            {% else %}
+                                                                                <span class="note-badge non-renseigne">-</span>
+                                                                            {% endif %}
+                                                                        </td>
+                                                                    {% endwith %}
+                                                                {% endfor %}
+                                                                <td class="col-justification">
+                                                                    {% if eleve_data.derniere_justification %}
+                                                                        <span class="status-chip status-{{ eleve_data.derniere_justification.statut }}">
+                                                                            {% if eleve_data.derniere_justification.statut == 'en_attente' %}
+                                                                                En attente
+                                                                            {% elif eleve_data.derniere_justification.statut == 'validee' %}
+                                                                                Validée
+                                                                            {% else %}
+                                                                                Refusée
+                                                                            {% endif %}
+                                                                        </span>
+                                                                        <p class="status-comment">
+                                                                            Motif : {{ eleve_data.derniere_justification.motif }}
+                                                                        </p>
+                                                                    {% else %}
+                                                                        <span class="status-chip status-none">Aucune</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="col-action">
+                                                                    {% if eleve_data.notes %}
+                                                                <button
+                                                                            type="button"
+                                                                            class="btn-primary"
+                                                                            data-justify-btn
+                                                                            data-eleve-id="{{ eleve_data.eleve.id }}"
+                                                                    data-eleve-nom="{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}"
+                                                                    data-classe-id="{{ classe_data.classe.id }}"
+                                                                    data-matiere-id="{% if classe_data.matiere %}{{ classe_data.matiere.id }}{% endif %}"
+                                                                        >
+                                                                            <i class="fas fa-pencil-alt"></i>
+                                                                            Justifier une note
+                                                                        </button>
+                                                                    {% else %}
+                                                                        <span class="notes-empty">Aucune note</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        {% else %}
+                                            <div class="empty-class-state">
+                                                <i class="fas fa-file-circle-plus"></i>
+                                                <p>Aucune évaluation n'a encore été créée pour cette matière.</p>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="empty-state">
+                                            <i class="fas fa-folder-open"></i>
+                                            <p>Aucun élève disponible pour cette classe.</p>
+                                        </div>
+                                    {% endif %}
+                                </section>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state global">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>Aucune classe affectée</h3>
+                <p>Contactez l'administrateur pour être affecté à une classe.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="modal-overlay" id="justificationModal" aria-hidden="true">
+        <div class="modal-dialog" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-pencil-alt"></i>
+                    Justifier une note
+                </h2>
+                <button type="button" class="modal-close" id="closeJustificationModal" aria-label="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'enseignant:justifications_notes' %}" class="modal-form">
+                {% csrf_token %}
+                <input type="hidden" name="eleve_id" id="modalEleveId">
+                <div class="form-group">
+                    <label for="noteSelect">Sélectionnez la note à justifier *</label>
+                    <select name="note_id" id="noteSelect" required>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="nouvelleNoteInput">Nouvelle valeur proposée *</label>
+                    <input type="number" name="nouvelle_note" id="nouvelleNoteInput" step="0.01" min="0" required>
+                    <small class="input-hint" id="baremeHint">Barème maximum : -</small>
+                </div>
+                <div class="form-group">
+                    <label for="motifInput">Motif de la justification *</label>
+                    <select name="motif" id="motifInput" required>
+                        <option value="" disabled selected>Choisissez un motif</option>
+                        {% for code, label in motifs_justification.items %}
+                            <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="descriptionInput">Détails complémentaires</label>
+                    <textarea name="description" id="descriptionInput" rows="4" placeholder="Ajoutez un commentaire pour faciliter la validation."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelJustification">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        Envoyer la demande
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script id="notes-data" type="application/json">{{ notes_json|safe }}</script>
+    <script src="{% static 'school_admin/js/enseignant/justifications_notes.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+</body>
+</html>
+

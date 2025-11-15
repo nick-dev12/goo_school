@@ -149,6 +149,104 @@ class DirecteurNotificationService:
         )
 
     @classmethod
+    def notify_justification_note(cls, justification) -> dict:
+        """
+        Notifie le directeur lorsqu'un enseignant soumet ou met à jour
+        une demande de justification de note.
+        """
+        if not justification:
+            return {"created": 0, "push": None}
+
+        etablissement = getattr(justification, "etablissement", None)
+        if not etablissement:
+            return {"created": 0, "push": None}
+
+        professeur = getattr(justification, "professeur", None)
+        professeur_nom = getattr(professeur, "nom_complet", None) if professeur else None
+        if not professeur_nom and professeur is not None:
+            professeur_nom = str(professeur)
+        if not professeur_nom:
+            professeur_nom = "Un enseignant"
+
+        eleve = getattr(justification, "eleve", None)
+        eleve_nom = getattr(eleve, "nom_complet", "Un élève") if eleve else "Un élève"
+
+        classe = getattr(justification, "classe", None)
+        classe_nom = getattr(classe, "nom", "Classe")
+
+        matiere = getattr(justification, "matiere", None)
+        matiere_nom = getattr(matiere, "nom", "Matière")
+
+        ancienne_note = justification.ancienne_note
+        nouvelle_note = justification.nouvelle_note
+
+        bareme = None
+        evaluation = getattr(justification, "evaluation", None)
+        evaluation_primaire = getattr(justification, "evaluation_primaire", None)
+        if evaluation and getattr(evaluation, "bareme", None) is not None:
+            bareme = evaluation.bareme
+        elif evaluation_primaire and getattr(evaluation_primaire, "bareme", None) is not None:
+            bareme = evaluation_primaire.bareme
+
+        def _format_note(value, bareme_value=None):
+            if value is None:
+                return "-"
+            note_str = f"{value:.2f}" if isinstance(value, float) else f"{value}"
+            if bareme_value:
+                return f"{note_str}/{bareme_value}"
+            return note_str
+
+        if isinstance(ancienne_note, (int, float)):
+            ancienne_note_fmt = _format_note(float(ancienne_note), bareme)
+        else:
+            ancienne_note_fmt = _format_note(ancienne_note, bareme)
+
+        if isinstance(nouvelle_note, (int, float)):
+            nouvelle_note_fmt = _format_note(float(nouvelle_note), bareme)
+        else:
+            nouvelle_note_fmt = _format_note(nouvelle_note, bareme)
+
+        titre = f"Justification de note - {classe_nom}"
+        message = (
+            f"{professeur_nom} a soumis une justification pour {eleve_nom} "
+            f"en {matiere_nom}. {ancienne_note_fmt} → {nouvelle_note_fmt}."
+        )
+
+        payload = {
+            "justification_id": getattr(justification, "id", None),
+            "statut": getattr(justification, "statut", None),
+            "classe_id": getattr(classe, "id", None),
+            "classe_nom": classe_nom,
+            "eleve_id": getattr(eleve, "id", None),
+            "eleve_nom": eleve_nom,
+            "matiere_id": getattr(matiere, "id", None),
+            "matiere_nom": matiere_nom,
+            "ancienne_note": ancienne_note_fmt,
+            "nouvelle_note": nouvelle_note_fmt,
+            "motif": getattr(justification, "motif", ""),
+        }
+
+        push_title = f"📌 Justification - {eleve_nom}"
+        push_body = message
+        push_data = {
+            "type": "justification_note",
+            "justification_id": str(getattr(justification, "id", "")),
+            "classe_id": str(getattr(classe, "id", "")) if classe else "",
+        }
+
+        return cls._dispatch(
+            etablissement,
+            type_notification="justification_note",
+            titre=titre,
+            message=message,
+            payload=payload,
+            source=justification,
+            push_title=push_title,
+            push_body=push_body,
+            push_data=push_data,
+        )
+
+    @classmethod
     def notify_sanction(cls, sanction) -> dict:
         if not sanction:
             return {"created": 0, "push": None}

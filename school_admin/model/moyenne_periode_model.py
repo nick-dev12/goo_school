@@ -124,6 +124,40 @@ class MoyennePeriode(models.Model):
         verbose_name="Décision du conseil"
     )
 
+    numero_serie = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name="Numéro de série du bulletin"
+    )
+
+    signature_numerique = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        verbose_name="Signature numérique (SHA-256)"
+    )
+
+    qr_code_data = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Payload encodé dans le QR code"
+    )
+
+    qr_code_image = models.ImageField(
+        upload_to='bulletins/qrcodes/',
+        blank=True,
+        null=True,
+        verbose_name="Image du QR code du bulletin"
+    )
+
+    qr_code_generated_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Date de génération du QR code"
+    )
+
     est_publie = models.BooleanField(
         default=False,
         verbose_name="Bulletin publié"

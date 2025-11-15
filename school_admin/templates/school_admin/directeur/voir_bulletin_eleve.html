@@ -53,10 +53,25 @@
             </div>
           </div>
           <div class="institution-right">
-            <p><strong>Année scolaire :</strong> {{ periode.annee_scolaire }}</p>
-            <p><strong>Période :</strong> {{ periode.nom_periode }}</p>
-            <p><strong>Date d'édition :</strong> {{ date_generation|date:"d/m/Y" }}</p>
-            <p><strong>Effectif :</strong> {{ classe_effectif }} élève{{ classe_effectif|pluralize }}</p>
+            <div class="institution-meta">
+              <p><strong>Année scolaire :</strong> {{ periode.annee_scolaire }}</p>
+              <p><strong>Période :</strong> {{ periode.nom_periode }}</p>
+              <p><strong>Date d'édition :</strong> {{ date_generation|date:"d/m/Y" }}</p>
+              <p><strong>Effectif :</strong> {{ classe_effectif }} élève{{ classe_effectif|pluralize }}</p>
+            </div>
+            <div class="bulletin-security-card">
+              {% if bulletin_qr_image_url %}
+                <img src="{{ bulletin_qr_image_url }}" alt="QR code de vérification du bulletin" class="security-qr-image" />
+              {% else %}
+                <div class="security-qr-placeholder">QR code indisponible</div>
+              {% endif %}
+              <div class="security-meta">
+               
+                {% if bulletin_signature %}
+                
+                {% endif %}
+              </div>
+            </div>
           </div>
         </header>
 
@@ -138,7 +153,10 @@
                     </td>
                     <td>
                       {% if matiere.appreciation %}
-                        {{ matiere.appreciation }}
+                        <span class="appreciation-text">{{ matiere.appreciation }}</span>
+                        {% if matiere.appreciation_source == 'initiale' %}
+                          <span class="appreciation-origin">Initiale</span>
+                        {% endif %}
                       {% else %}
                         –
                       {% endif %}
@@ -172,13 +190,58 @@
             </tr>
             <tr>
               <th>Appréciation générale</th>
-              <td colspan="3">{{ complement_info.appreciation_generale|default:'—' }}</td>
+              <td colspan="3">
+                {% if complement_info.appreciation_generale %}
+                  <span class="appreciation-text">{{ complement_info.appreciation_generale }}</span>
+                  {% if complement_info.appreciation_generale_source == 'initiale' %}
+                    <span class="appreciation-origin">Initiale</span>
+                  {% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              
+              </td>
             </tr>
-            <tr>
-              <th>Décision du conseil</th>
-              <td colspan="3">{{ complement_info.decision_conseil }}</td>
-            </tr>
+            {% if complement_info.decision_conseil %}
+              <tr>
+                <th>Décision du conseil</th>
+                <td colspan="3">
+                  <span class="appreciation-text">{{ complement_info.decision_conseil }}</span>
+                  {% if complement_info.decision_conseil_source == 'initiale' %}
+                    <span class="appreciation-origin">Initiale</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endif %}
           </table>
+        </section>
+
+        <section class="bulletin-security-section">
+          <div class="security-row">
+            <div class="security-item">
+              <span class="label">N° de série</span>
+              <span class="value">{{ bulletin_numero_serie|default:"Non généré" }}</span>
+            </div>
+            <div class="security-item">
+              <span class="label">Signature numérique</span>
+              <span class="value security-signature">
+                {{ bulletin_signature|default:"Non disponible" }}
+              </span>
+            </div>
+            <div class="security-item">
+              <span class="label">QR code</span>
+              <span class="value">
+                {% if bulletin_qr_image_url %}
+                  Scannez pour vérifier l'authenticité
+                {% else %}
+                  Non généré
+                {% endif %}
+              </span>
+            </div>
+          </div>
+          <p class="security-note">
+            Ce bulletin est protégé par un QR code sécurisé et une signature numérique. Conservez ces informations pour toute vérification officielle.
+          </p>
         </section>
 
         <section class="footer-signatures">
@@ -200,5 +263,7 @@
        * (optionnel si on veut conserver le comportement précédent)
        */
     </script>
-  </body>
+  
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
 </html>

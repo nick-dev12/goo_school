@@ -1,0 +1,146 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}"
+/>
+<nav
+  class="enseignant-bottom-nav bottom-nav-parent"
+  aria-label="Navigation principale de l’espace parent"
+>
+  <ul class="bottom-nav-list">
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'dashboard_parent' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:dashboard_parent' %}">
+        <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
+        <span class="label">Accueil</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'annonces_parent' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:annonces_parent' %}">
+        <span class="icon-wrapper icon-annonces"
+          ><i class="fas fa-bullhorn"></i
+        ></span>
+        <span class="label">Annonces</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary">
+      <a
+        href="{% url 'school_admin:demande_liaison_enfant' %}"
+        data-open-liaison="true"
+        data-fallback="{% url 'school_admin:demande_liaison_enfant' %}"
+      >
+        <span class="icon-wrapper icon-exercices"
+          ><i class="fas fa-link"></i
+        ></span>
+        <span class="label">Liaison</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'retour_selection_enfant' or request.resolver_match.url_name == 'dashboard_enfant' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:retour_selection_enfant' %}">
+        <span class="icon-wrapper icon-retour"
+          ><i class="fas fa-arrow-left"></i
+        ></span>
+        <span class="label">Retour</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-extra">
+      <a href="{% url 'school_admin:deconnexion_parent' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-sign-out-alt"></i
+        ></span>
+        <span class="label">Déconnexion</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item menu-toggle-item">
+      <button
+        type="button"
+        class="menu-toggle-button"
+        id="parentNavToggle"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="navigationSection"
+      >
+        <span class="icon-wrapper icon-menu"
+          ><i class="fas fa-ellipsis-h"></i
+        ></span>
+        <span class="label">Menu</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const toggleButton = document.getElementById("parentNavToggle");
+    const navSection = document.getElementById("navigationSection");
+    const navOverlay = document.getElementById("navOverlay");
+    const closeBtn = document.getElementById("closeNavMenu");
+
+    if (!toggleButton || !navSection || !navOverlay || !closeBtn) {
+      return;
+    }
+
+    const ensureController = () => {
+      if (window.parentNavMenu) {
+        return window.parentNavMenu;
+      }
+
+      const openFallback = () => {
+        navOverlay.classList.add("active");
+        navSection.classList.add("active");
+        document.body.classList.add("parent-nav-open");
+        document.dispatchEvent(new CustomEvent("parentNavOpen"));
+      };
+
+      const closeFallback = () => {
+        navSection.classList.remove("active");
+        navOverlay.classList.remove("active");
+        document.body.classList.remove("parent-nav-open");
+        document.dispatchEvent(new CustomEvent("parentNavClose"));
+      };
+
+      closeBtn.addEventListener("click", closeFallback);
+      navOverlay.addEventListener("click", (event) => {
+        if (event.target === navOverlay) {
+          closeFallback();
+        }
+      });
+
+      window.parentNavMenu = {
+        open: openFallback,
+        close: closeFallback,
+      };
+
+      return window.parentNavMenu;
+    };
+
+    toggleButton.addEventListener("click", () => {
+      const controller = ensureController();
+      if (!controller) {
+        return;
+      }
+
+      const isOpen = navSection.classList.contains("active");
+      if (isOpen) {
+        controller.close();
+      } else {
+        controller.open();
+      }
+    });
+
+    const setExpanded = (value) => {
+      toggleButton.setAttribute("aria-expanded", value ? "true" : "false");
+      toggleButton.classList.toggle("menu-open", value);
+    };
+
+    ensureController();
+    document.addEventListener("parentNavOpen", () => setExpanded(true));
+    document.addEventListener("parentNavClose", () => setExpanded(false));
+  });
+</script>
+

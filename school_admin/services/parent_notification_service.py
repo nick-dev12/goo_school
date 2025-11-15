@@ -324,6 +324,54 @@ class ParentNotificationService:
         )
 
     @classmethod
+    def notify_note_justifiee(
+        cls,
+        eleve: Eleve,
+        *,
+        matiere_nom: str,
+        nouvelle_note,
+        bareme=None,
+        evaluation_nom: Optional[str] = None,
+        source=None,
+    ) -> dict:
+        classe_nom = cls._format_classe(eleve)
+        note_str = cls._format_score(nouvelle_note, bareme)
+        evaluation_label = f" ({evaluation_nom})" if evaluation_nom else ""
+
+        titre = f"Note mise à jour - {matiere_nom}"
+        message = (
+            f"La note de votre enfant {eleve.nom_complet} en {classe_nom} "
+            f"pour {matiere_nom}{evaluation_label} a été mise à jour à {note_str} "
+            "suite à une justification validée par la direction."
+        )
+
+        payload = {
+            "matiere": matiere_nom,
+            "note": note_str,
+            "evaluation": evaluation_nom,
+            "type": "justification_note",
+        }
+
+        push_data = {
+            "type": "parent_note_justifiee",
+            "eleve_id": str(eleve.id),
+            "matiere": matiere_nom,
+            "note": note_str,
+        }
+
+        return cls._dispatch(
+            eleve,
+            "note_justifiee",
+            titre,
+            message,
+            payload=payload,
+            source=source,
+            push_title=titre,
+            push_body=message,
+            push_data=push_data,
+        )
+
+    @classmethod
     def notify_moyenne(
         cls,
         eleve: Eleve,

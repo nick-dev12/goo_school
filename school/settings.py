@@ -39,7 +39,7 @@ SECRET_KEY = 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -153,6 +153,9 @@ FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Configuration pour la collecte des fichiers statiques en production
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

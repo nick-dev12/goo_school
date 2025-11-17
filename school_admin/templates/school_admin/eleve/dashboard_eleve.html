@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Intégration de Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PWA Meta Tags -->
+    {% include 'school_admin/partials/pwa_meta.html' %}
     <!-- Style CSS personnalisé -->
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
@@ -27,38 +29,17 @@
         Tableau de bord
     </h2>
 
-    {% comment %} <!-- Boutons d'accès rapide -->
-    <div class="quick-access-buttons">
-        <a href="{% url 'eleve:notes_evaluations' %}" class="quick-btn quick-btn-blue">
-            <i class="fas fa-star"></i>
-            <span>Notes & Résultats</span>
-        </a>
-        <a href="{% url 'school_admin:absences_retards' %}" class="quick-btn quick-btn-orange">
-            <i class="fas fa-calendar-times"></i>
-            <span>Absences & Retards</span>
-        </a>
-        <a href="{% url 'eleve:devoirs_eleve' %}" class="quick-btn quick-btn-purple">
-            <i class="fas fa-tasks"></i>
-            <span>Devoirs à rendre</span>
-        </a>
-        {% if est_parent %}
-        <a href="{% url 'school_admin:sanctions_eleve' %}" class="quick-btn quick-btn-red">
-            <i class="fas fa-gavel"></i>
-            <span>Sanctions</span>
-        </a>
-        {% endif %}
-        <button id="fcm-enable-btn" class="quick-btn quick-btn-green" style="display: none;" onclick="activerNotifications()">
-            <i class="fas fa-bell"></i>
-            <span>Activer les notifications</span>
-        </button>
-    </div>
-     {% endcomment %}
+    <!-- Bouton d'activation des notifications -->
+    <button id="fcm-enable-btn" class="btn-activate-notifications" style="display: none;" onclick="activerNotifications()">
+        <i class="fas fa-bell"></i>
+        Activer les notifications
+    </button>
+    
     <!-- Message de succès pour les notifications -->
     <div id="fcm-success-message" class="fcm-success-banner" style="display: none;">
         <i class="fas fa-check-circle"></i>
         <div>
             <strong>Notifications activées !</strong>
-            <p>Vous recevrez désormais des alertes pour vos notes et annonces.</p>
         </div>
     </div>
 

@@ -282,3 +282,66 @@ class CompteUserController:
             'administrateur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
             }
         return redirect(redirect_mapping.get(fonction, 'administrateur_etablissement:dashboard_administrateur_etablissement'))
+    
+    @staticmethod
+    def get_user_dashboard_url(user):
+        """
+        Retourne l'URL du tableau de bord approprié pour un utilisateur connecté.
+        Utilisé pour rediriger les utilisateurs déjà connectés qui tentent d'accéder à la page de connexion.
+        
+        Args:
+            user: L'utilisateur authentifié
+            
+        Returns:
+            str: Le nom de l'URL (reverse) du tableau de bord approprié
+        """
+        logger.info(f"get_user_dashboard_url - Type utilisateur: {type(user).__name__}, User: {user}")
+        
+        # Vérifier Parent en premier car il hérite de AbstractUser et pourrait être confondu
+        if isinstance(user, Parent):
+            logger.info("Utilisateur détecté comme Parent")
+            return 'school_admin:dashboard_parent'
+        elif isinstance(user, PersonnelAdministratif):
+            fonction = user.fonction
+            logger.info(f"Utilisateur détecté comme PersonnelAdministratif - Fonction: {fonction}")
+            redirect_mapping = {
+                'secretaire': 'secretaire:dashboard_secretaire',
+                'surveillant_general': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+                'censeur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+                'administrateur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+            }
+            return redirect_mapping.get(fonction, 'administrateur_etablissement:dashboard_administrateur_etablissement')
+        elif isinstance(user, Etablissement):
+            logger.info("Utilisateur détecté comme Etablissement")
+            return 'directeur:dashboard_directeur'
+        elif isinstance(user, Professeur):
+            logger.info("Utilisateur détecté comme Professeur")
+            # Vérifier le type d'établissement pour rediriger vers le bon dashboard
+            if hasattr(user, 'etablissement') and user.etablissement:
+                if user.etablissement.type_etablissement == 'primary':
+                    return 'enseignant_primaire:dashboard'
+                else:
+                    return 'enseignant:dashboard_enseignant'
+            else:
+                # Par défaut si pas d'établissement, rediriger vers le dashboard enseignant standard
+                return 'enseignant:dashboard_enseignant'
+        elif isinstance(user, Eleve):
+            logger.info("Utilisateur détecté comme Eleve")
+            return 'eleve:dashboard_eleve'
+        elif isinstance(user, CompteUser):
+            logger.info(f"Utilisateur détecté comme CompteUser - Fonction: {user.fonction}")
+            # Redirection basée sur la fonction de l'utilisateur (CompteUser)
+            redirect_mapping = {
+                'commercial': 'school_admin:dashboard_commercial',
+                'administrateur': 'school_admin:dashboard',
+                'support': 'school_admin:dashboard_support',
+                'developpeur': 'school_admin:dashboard_developpeur',
+                'marketing': 'school_admin:dashboard_marketing',
+                'comptable': 'school_admin:dashboard_comptable',
+                'ressources humaines': 'school_admin:dashboard_rh',
+            }
+            return redirect_mapping.get(user.fonction, 'school_admin:dashboard')
+        else:
+            logger.warning(f"Type d'utilisateur non reconnu: {type(user).__name__}, redirection vers dashboard par défaut")
+            # Par défaut, rediriger vers le dashboard principal
+            return 'school_admin:dashboard'

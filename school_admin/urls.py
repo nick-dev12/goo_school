@@ -1,5 +1,6 @@
 from django.urls import path, include
 from . import views
+from . import pwa_views
 from .controllers.administrateur_compte_controller import AdministrateurCompteController
 from .personal_views.administrateur_view import *
 from .personal_views.commercial_view import *
@@ -10,6 +11,11 @@ from .api_views import fcm_views, fcm_test_views, test_notes_notifications
 app_name = 'school_admin'
 
 urlpatterns =[
+    # PWA - Routes pour la Progressive Web App (doivent être en premier)
+    path('manifest.json', pwa_views.manifest_view, name='manifest'),
+    path('service-worker.js', pwa_views.service_worker_view, name='service_worker'),
+    path('offline/', pwa_views.offline_view, name='offline'),
+    
     # Service Worker Firebase (doit être à la racine)
     path('firebase-messaging-sw.js', views.firebase_messaging_sw, name='firebase_messaging_sw'),
     

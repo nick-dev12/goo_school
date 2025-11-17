@@ -35,6 +35,14 @@
         "documentation": {}
     },
     {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
         "label": "sys",
         "kind": 6,
         "isExtraImport": true,
@@ -876,6 +884,14 @@
         "documentation": {}
     },
     {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
         "label": "static",
         "importPath": "django.conf.urls.static",
         "description": "django.conf.urls.static",
@@ -964,6 +980,22 @@
         "documentation": {}
     },
     {
+        "label": "JsonResponse",
+        "importPath": "django.http",
+        "description": "django.http",
+        "isExtraImport": true,
+        "detail": "django.http",
+        "documentation": {}
+    },
+    {
+        "label": "HttpResponse",
+        "importPath": "django.http",
+        "description": "django.http",
+        "isExtraImport": true,
+        "detail": "django.http",
+        "documentation": {}
+    },
+    {
         "label": "require_http_methods",
         "importPath": "django.views.decorators.http",
         "description": "django.views.decorators.http",
@@ -989,6 +1021,14 @@
     },
     {
         "label": "require_POST",
+        "importPath": "django.views.decorators.http",
+        "description": "django.views.decorators.http",
+        "isExtraImport": true,
+        "detail": "django.views.decorators.http",
+        "documentation": {}
+    },
+    {
+        "label": "require_GET",
         "importPath": "django.views.decorators.http",
         "description": "django.views.decorators.http",
         "isExtraImport": true,
@@ -7638,6 +7678,22 @@
         "documentation": {}
     },
     {
+        "label": "cache_control",
+        "importPath": "django.views.decorators.cache",
+        "description": "django.views.decorators.cache",
+        "isExtraImport": true,
+        "detail": "django.views.decorators.cache",
+        "documentation": {}
+    },
+    {
+        "label": "cache_control",
+        "importPath": "django.views.decorators.cache",
+        "description": "django.views.decorators.cache",
+        "isExtraImport": true,
+        "detail": "django.views.decorators.cache",
+        "documentation": {}
+    },
+    {
         "label": "TestCase",
         "importPath": "django.test",
         "description": "django.test",
@@ -7652,14 +7708,6 @@
         "importPath": "secrets",
         "description": "secrets",
         "detail": "secrets",
-        "documentation": {}
-    },
-    {
-        "label": "cache_control",
-        "importPath": "django.views.decorators.cache",
-        "description": "django.views.decorators.cache",
-        "isExtraImport": true,
-        "detail": "django.views.decorators.cache",
         "documentation": {}
     },
     {
@@ -13175,6 +13223,51 @@
         "documentation": {}
     },
     {
+        "label": "generate_icons",
+        "kind": 2,
+        "importPath": "school_admin.generate_icons",
+        "description": "school_admin.generate_icons",
+        "peekOfCode": "def generate_icons():\n    \"\"\"Génère toutes les icônes PWA à partir du logo\"\"\"\n    # Vérifier que le logo existe\n    if not LOGO_PATH.exists():\n        print(f\"[ERREUR] Logo introuvable : {LOGO_PATH}\")\n        print(\"   Assurez-vous que le fichier logo.jpeg existe dans le bon repertoire.\")\n        return False\n    # Créer le dossier de sortie si nécessaire\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    # Supprimer les anciennes icônes avant de générer les nouvelles",
+        "detail": "school_admin.generate_icons",
+        "documentation": {}
+    },
+    {
+        "label": "BASE_DIR",
+        "kind": 5,
+        "importPath": "school_admin.generate_icons",
+        "description": "school_admin.generate_icons",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent\nLOGO_PATH = BASE_DIR / 'static' / 'school_admin' / 'img' / 'logo.jpeg'\nOUTPUT_DIR = BASE_DIR / 'static' / 'school_admin' / 'img' / 'icons'\n# Tailles requises pour la PWA\nSIZES = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512]\ndef generate_icons():\n    \"\"\"Génère toutes les icônes PWA à partir du logo\"\"\"\n    # Vérifier que le logo existe\n    if not LOGO_PATH.exists():\n        print(f\"[ERREUR] Logo introuvable : {LOGO_PATH}\")",
+        "detail": "school_admin.generate_icons",
+        "documentation": {}
+    },
+    {
+        "label": "LOGO_PATH",
+        "kind": 5,
+        "importPath": "school_admin.generate_icons",
+        "description": "school_admin.generate_icons",
+        "peekOfCode": "LOGO_PATH = BASE_DIR / 'static' / 'school_admin' / 'img' / 'logo.jpeg'\nOUTPUT_DIR = BASE_DIR / 'static' / 'school_admin' / 'img' / 'icons'\n# Tailles requises pour la PWA\nSIZES = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512]\ndef generate_icons():\n    \"\"\"Génère toutes les icônes PWA à partir du logo\"\"\"\n    # Vérifier que le logo existe\n    if not LOGO_PATH.exists():\n        print(f\"[ERREUR] Logo introuvable : {LOGO_PATH}\")\n        print(\"   Assurez-vous que le fichier logo.jpeg existe dans le bon repertoire.\")",
+        "detail": "school_admin.generate_icons",
+        "documentation": {}
+    },
+    {
+        "label": "OUTPUT_DIR",
+        "kind": 5,
+        "importPath": "school_admin.generate_icons",
+        "description": "school_admin.generate_icons",
+        "peekOfCode": "OUTPUT_DIR = BASE_DIR / 'static' / 'school_admin' / 'img' / 'icons'\n# Tailles requises pour la PWA\nSIZES = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512]\ndef generate_icons():\n    \"\"\"Génère toutes les icônes PWA à partir du logo\"\"\"\n    # Vérifier que le logo existe\n    if not LOGO_PATH.exists():\n        print(f\"[ERREUR] Logo introuvable : {LOGO_PATH}\")\n        print(\"   Assurez-vous que le fichier logo.jpeg existe dans le bon repertoire.\")\n        return False",
+        "detail": "school_admin.generate_icons",
+        "documentation": {}
+    },
+    {
+        "label": "SIZES",
+        "kind": 5,
+        "importPath": "school_admin.generate_icons",
+        "description": "school_admin.generate_icons",
+        "peekOfCode": "SIZES = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512]\ndef generate_icons():\n    \"\"\"Génère toutes les icônes PWA à partir du logo\"\"\"\n    # Vérifier que le logo existe\n    if not LOGO_PATH.exists():\n        print(f\"[ERREUR] Logo introuvable : {LOGO_PATH}\")\n        print(\"   Assurez-vous que le fichier logo.jpeg existe dans le bon repertoire.\")\n        return False\n    # Créer le dossier de sortie si nécessaire\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)",
+        "detail": "school_admin.generate_icons",
+        "documentation": {}
+    },
+    {
         "label": "AuthenticationMiddleware",
         "kind": 6,
         "importPath": "school_admin.middleware",
@@ -13193,11 +13286,38 @@
         "documentation": {}
     },
     {
+        "label": "manifest_view",
+        "kind": 2,
+        "importPath": "school_admin.pwa_views",
+        "description": "school_admin.pwa_views",
+        "peekOfCode": "def manifest_view(request):\n    \"\"\"\n    Vue pour servir le manifest.json de la PWA\n    \"\"\"\n    manifest_path = os.path.join(\n        settings.BASE_DIR,\n        'school_admin',\n        'static',\n        'school_admin',\n        'manifest.json'",
+        "detail": "school_admin.pwa_views",
+        "documentation": {}
+    },
+    {
+        "label": "service_worker_view",
+        "kind": 2,
+        "importPath": "school_admin.pwa_views",
+        "description": "school_admin.pwa_views",
+        "peekOfCode": "def service_worker_view(request):\n    \"\"\"\n    Vue pour servir le service-worker.js\n    \"\"\"\n    sw_path = os.path.join(\n        settings.BASE_DIR,\n        'school_admin',\n        'static',\n        'school_admin',\n        'service-worker.js'",
+        "detail": "school_admin.pwa_views",
+        "documentation": {}
+    },
+    {
+        "label": "offline_view",
+        "kind": 2,
+        "importPath": "school_admin.pwa_views",
+        "description": "school_admin.pwa_views",
+        "peekOfCode": "def offline_view(request):\n    \"\"\"\n    Vue pour afficher une page hors ligne\n    \"\"\"\n    html_content = \"\"\"\n    <!DOCTYPE html>\n    <html lang=\"fr\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+        "detail": "school_admin.pwa_views",
+        "documentation": {}
+    },
+    {
         "label": "app_name",
         "kind": 5,
         "importPath": "school_admin.urls",
         "description": "school_admin.urls",
-        "peekOfCode": "app_name = 'school_admin'\nurlpatterns =[\n    # Service Worker Firebase (doit être à la racine)\n    path('firebase-messaging-sw.js', views.firebase_messaging_sw, name='firebase_messaging_sw'),\n    # API FCM\n    path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),\n    path('api/fcm/delete-token/', fcm_views.delete_fcm_token, name='delete_fcm_token'),\n    path('api/fcm/test-notification/', fcm_test_views.test_notification, name='test_notification'),\n    path('api/fcm/check-status/', fcm_test_views.check_fcm_status, name='check_fcm_status'),\n    # Page de test FCM",
+        "peekOfCode": "app_name = 'school_admin'\nurlpatterns =[\n    # PWA - Routes pour la Progressive Web App (doivent être en premier)\n    path('manifest.json', pwa_views.manifest_view, name='manifest'),\n    path('service-worker.js', pwa_views.service_worker_view, name='service_worker'),\n    path('offline/', pwa_views.offline_view, name='offline'),\n    # Service Worker Firebase (doit être à la racine)\n    path('firebase-messaging-sw.js', views.firebase_messaging_sw, name='firebase_messaging_sw'),\n    # API FCM\n    path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),",
         "detail": "school_admin.urls",
         "documentation": {}
     },
@@ -13215,7 +13335,7 @@
         "kind": 2,
         "importPath": "school_admin.views",
         "description": "school_admin.views",
-        "peekOfCode": "def connexion_compte_user(request):\n    \"\"\"\n    Gère la connexion d'un utilisateur (public)\n    \"\"\"\n    if request.method == 'POST':\n        # Utiliser le contrôleur pour traiter la connexion\n        result = CompteUserController.compte_user_login_view(request)\n        if isinstance(result, tuple) and len(result) == 2:\n            context, response = result\n            if response:",
+        "peekOfCode": "def connexion_compte_user(request):\n    \"\"\"\n    Gère la connexion d'un utilisateur (public)\n    Si l'utilisateur est déjà connecté, il est redirigé vers son tableau de bord.\n    \"\"\"\n    # Importer les modèles pour la vérification\n    from .model.parent_model import Parent\n    from .model.compte_user import CompteUser\n    from .model.etablissement_model import Etablissement\n    from .model.personnel_administratif_model import PersonnelAdministratif",
         "detail": "school_admin.views",
         "documentation": {}
     },

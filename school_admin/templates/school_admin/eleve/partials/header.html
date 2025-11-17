@@ -6,8 +6,7 @@
             <header class="dashboard-header-horizontal">
                 <div class="header-left">
                     <div class="header-logo">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>Aria</span>
+                        <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria Logo" style="height: 90px; width: auto;">
                     </div>
                 </div>
 
@@ -50,25 +49,32 @@
                     <h1 class="banner-title">Bienvenue, {{ eleve.prenom }}</h1>
                     <p class="banner-subtitle">{{ eleve.etablissement.nom }} - Année scolaire {% now "Y" %}-{% now "Y"|add:1 %}</p>
                 </div>
-                {% if est_parent %}
-                <a
-                    href="{% url 'school_admin:retour_selection_enfant' %}"
-                    class="welcome-action back-link"
-                    aria-label="Retour à la sélection des enfants"
-                >
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
-                </a>
-                {% else %}
-                <a
-                    href="{% url 'eleve:deconnexion_eleve' %}"
-                    class="welcome-action logout-link"
-                    aria-label="Se déconnecter"
-                >
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Déconnexion</span>
-                </a>
-                {% endif %}
+             
+                    <!-- Bouton d'installation PWA -->
+                    <button id="pwa-install-btn" class="welcome-action pwa-install-btn" style="display: none;" aria-label="Installer l'application">
+                        <i class="fas fa-download"></i>
+                        <span>Installer</span>
+                    </button>
+                    {% if est_parent %}
+                    <a
+                        href="{% url 'school_admin:retour_selection_enfant' %}"
+                        class="welcome-action back-link"
+                        aria-label="Retour à la sélection des enfants"
+                    >
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Retour</span>
+                    </a>
+                    {% else %}
+                    <a
+                        href="{% url 'eleve:deconnexion_eleve' %}"
+                        class="welcome-action logout-link"
+                        aria-label="Se déconnecter"
+                    >
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Déconnexion</span>
+                    </a>
+                    {% endif %}
+               
             </section>
 
             <!-- Navigation Overlay -->

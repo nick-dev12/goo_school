@@ -56,7 +56,31 @@ def inscription_compte_user(request):
 def connexion_compte_user(request):
     """
     Gère la connexion d'un utilisateur (public)
+    Si l'utilisateur est déjà connecté, il est redirigé vers son tableau de bord.
     """
+    # Importer les modèles pour la vérification
+    from .model.parent_model import Parent
+    from .model.compte_user import CompteUser
+    from .model.etablissement_model import Etablissement
+    from .model.personnel_administratif_model import PersonnelAdministratif
+    from .model.eleve_model import Eleve
+    from .model.professeur_model import Professeur
+    from django.contrib.auth.models import AnonymousUser
+    
+    # Vérifier si l'utilisateur est déjà authentifié
+    # Vérifier aussi directement le type pour éviter les problèmes avec is_authenticated
+    is_authenticated_user = (
+        request.user.is_authenticated or
+        isinstance(request.user, (Parent, CompteUser, Etablissement, PersonnelAdministratif, Eleve, Professeur))
+    ) and not isinstance(request.user, AnonymousUser)
+    
+    if is_authenticated_user:
+        logger.info(f"Utilisateur déjà connecté - Type: {type(request.user).__name__}, User: {request.user}, is_authenticated: {request.user.is_authenticated}")
+        # Obtenir l'URL du tableau de bord approprié pour cet utilisateur
+        dashboard_url = CompteUserController.get_user_dashboard_url(request.user)
+        logger.info(f"Redirection vers: {dashboard_url}")
+        return redirect(dashboard_url)
+    
     if request.method == 'POST':
         # Utiliser le contrôleur pour traiter la connexion
         result = CompteUserController.compte_user_login_view(request)
@@ -75,7 +99,12 @@ def connexion_compte_user(request):
             'form_data': {}
         }
     
-    return render(request, 'school_admin/connexion.html', context)
+    response = render(request, 'school_admin/connexion.html', context)
+    # Empêcher la mise en cache pour éviter qu'un utilisateur connecté puisse revoir cette page
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 OTP_RESEND_COOLDOWN_SECONDS = 60

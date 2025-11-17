@@ -27,16 +27,16 @@ const messaging = getMessaging(app);
 export async function requestNotificationPermission() {
   try {
     console.log('[FCM] Demande de permission pour les notifications...');
-    
+
     // Vérifier si les notifications sont supportées
     if (!('Notification' in window)) {
       console.error('[FCM] Les notifications ne sont pas supportées par ce navigateur');
       return null;
     }
-    
+
     // Demander la permission
     const permission = await Notification.requestPermission();
-    
+
     if (permission === 'granted') {
       console.log('[FCM] Permission accordée');
       return await registerServiceWorkerAndGetToken();
@@ -63,19 +63,19 @@ async function registerServiceWorkerAndGetToken() {
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
       scope: '/'
     });
-    
+
     console.log('[FCM] Service worker enregistré:', registration);
-    
+
     // Attendre que le service worker soit actif
     await navigator.serviceWorker.ready;
-    
+
     // Obtenir le token FCM
     console.log('[FCM] Obtention du token FCM...');
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
     });
-    
+
     if (token) {
       console.log('[FCM] Token obtenu:', token);
       await saveTokenToServer(token);
@@ -96,9 +96,9 @@ async function registerServiceWorkerAndGetToken() {
 async function saveTokenToServer(token) {
   try {
     console.log('[FCM] Sauvegarde du token sur le serveur...');
-    
+
     const csrfToken = getCookie('csrftoken');
-    
+
     const response = await fetch('/api/fcm/save-token/', {
       method: 'POST',
       headers: {
@@ -111,14 +111,14 @@ async function saveTokenToServer(token) {
         device_name: navigator.userAgent
       })
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       console.log('[FCM] Token sauvegardé avec succès:', data);
-      
+
       // Afficher le message de succès
       showSuccessMessage();
-      
+
       return true;
     } else {
       console.error('[FCM] Erreur lors de la sauvegarde du token:', response.status);
@@ -136,7 +136,7 @@ async function saveTokenToServer(token) {
 export function handleForegroundMessages() {
   onMessage(messaging, (payload) => {
     console.log('[FCM] Message reçu en avant-plan:', payload);
-    
+
     // Afficher une notification personnalisée
     const notificationTitle = payload.notification?.title || 'Nouvelle notification';
     const notificationOptions = {
@@ -148,12 +148,12 @@ export function handleForegroundMessages() {
       requireInteraction: true,
       vibrate: [200, 100, 200],
     };
-    
+
     // Afficher la notification
     if (Notification.permission === 'granted') {
       new Notification(notificationTitle, notificationOptions);
     }
-    
+
     // Afficher aussi une alerte toast dans l'interface
     showToastNotification(notificationTitle, notificationOptions.body);
   });
@@ -174,15 +174,15 @@ function showToastNotification(title, message) {
     </div>
     <div class="fcm-toast-body">${message}</div>
   `;
-  
+
   // Ajouter au body
   document.body.appendChild(toast);
-  
+
   // Animer l'apparition
   setTimeout(() => {
     toast.classList.add('show');
   }, 100);
-  
+
   // Gérer la fermeture
   const closeBtn = toast.querySelector('.fcm-toast-close');
   closeBtn.addEventListener('click', () => {
@@ -191,7 +191,7 @@ function showToastNotification(title, message) {
       toast.remove();
     }, 300);
   });
-  
+
   // Auto-fermeture après 5 secondes
   setTimeout(() => {
     toast.classList.remove('show');
@@ -224,7 +224,7 @@ function getCookie(name) {
  */
 export async function initializeFCM() {
   console.log('[FCM] Initialisation...');
-  
+
   // Vérifier si l'utilisateur a déjà donné la permission
   if (Notification.permission === 'granted') {
     console.log('[FCM] Permission déjà accordée, enregistrement du token...');
@@ -237,7 +237,7 @@ export async function initializeFCM() {
     console.log('[FCM] Permission refusée');
     hideNotificationButton();
   }
-  
+
   // Écouter les messages en avant-plan
   handleForegroundMessages();
 }
@@ -270,7 +270,7 @@ function showSuccessMessage() {
   if (msg) {
     // Afficher le message avec animation
     msg.classList.add('show');
-    
+
     // Masquer automatiquement après 5 secondes
     setTimeout(() => {
       msg.classList.remove('show');
@@ -281,10 +281,10 @@ function showSuccessMessage() {
 /**
  * Fonction appelée par le bouton d'activation
  */
-window.activerNotifications = async function() {
+window.activerNotifications = async function () {
   console.log('[FCM] Bouton activer notifications cliqué');
   const token = await requestNotificationPermission();
-  
+
   if (token) {
     hideNotificationButton();
     showSuccessMessage();

@@ -9,8 +9,7 @@
     <header class="dashboard-header-horizontal">
       <div class="header-left">
         <div class="header-logo">
-          <i class="fas fa-chalkboard-teacher"></i>
-          <span>Aria</span>
+          <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria Logo" style="height: 90px; width: auto;">
         </div>
       </div>
 
@@ -48,6 +47,11 @@
           {{ professeur.etablissement.nom }} - Enseignant Primaire Polyvalent
         </p>
       </div>
+      <!-- Bouton d'installation PWA -->
+      <button id="pwa-install-btn" class="welcome-action pwa-install-btn" style="display: none;" aria-label="Installer l'application">
+        <i class="fas fa-download"></i>
+        <span>Installer</span>
+      </button>
       <a
         href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
         class="welcome-action logout-link"

@@ -115,4 +115,64 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Gestion du bouton d'installation PWA
+    const pwaInstallBtn = document.getElementById('pwa-install-btn');
+    let deferredPrompt = null;
+
+    // Écouter l'événement beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Empêcher l'affichage automatique du prompt
+        e.preventDefault();
+        // Stocker l'événement pour l'utiliser plus tard
+        deferredPrompt = e;
+        // Afficher le bouton d'installation
+        if (pwaInstallBtn) {
+            pwaInstallBtn.style.display = 'inline-flex';
+        }
+    });
+
+    // Gérer le clic sur le bouton d'installation
+    if (pwaInstallBtn) {
+        pwaInstallBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (deferredPrompt) {
+                // Afficher le prompt d'installation (doit être appelé directement depuis le gestionnaire de clic)
+                deferredPrompt.prompt();
+                
+                // Attendre la réponse de l'utilisateur
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('[PWA] L\'utilisateur a accepté l\'installation');
+                    } else {
+                        console.log('[PWA] L\'utilisateur a refusé l\'installation');
+                    }
+                    
+                    // Masquer le bouton après la réponse
+                    if (pwaInstallBtn) {
+                        pwaInstallBtn.style.display = 'none';
+                    }
+                    
+                    // Réinitialiser
+                    deferredPrompt = null;
+                });
+            }
+        });
+    }
+
+    // Masquer le bouton si l'application est déjà installée
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (pwaInstallBtn) {
+            pwaInstallBtn.style.display = 'none';
+        }
+    }
+
+    // Écouter l'événement appinstalled
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] Application installée avec succès');
+        if (pwaInstallBtn) {
+            pwaInstallBtn.style.display = 'none';
+        }
+        deferredPrompt = null;
+    });
 });

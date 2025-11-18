@@ -33,7 +33,30 @@ wheels/
 MANIFEST
 
 # Django
+# Fichiers statiques collectés (générés par collectstatic)
+staticfiles/
+static_root/
 
+# Fichiers médias (photos, documents uploadés)
+media/
+media_root/
+
+# Fichiers de cache Django
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Fichiers de cache Django spécifiques
+.cache/
+*.cache
+db.sqlite3
+db.sqlite3-journal
 
 # Environnement
 .env
@@ -106,4 +129,11 @@ firebase/*.json
 *.db
 *.sqlite
 *.sqlite3
+db.sqlite3
+db.sqlite3-journal
+
+# Fichiers de migration (optionnel - normalement on les versionne)
+# Si vous voulez ignorer les migrations, décommentez la ligne suivante :
+# school_admin/migrations/*.py
+# !school_admin/migrations/__init__.py
 

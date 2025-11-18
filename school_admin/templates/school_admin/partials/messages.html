@@ -1,8 +1,11 @@
+{% load static %}
 <!-- Messages Template Partial -->
+<link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}?v=1.0.2">
+
 {% if messages %}
   <div class="messages-container">
     {% for message in messages %}
-      <div class="message message-{{ message.tags }}">
+      <div class="message message-{{ message.tags }}" data-message-id="{{ forloop.counter }}">
         <div class="message-icon">
           <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% elif message.tags == 'info' %}info-circle{% else %}info-circle{% endif %}"></i>
         </div>
@@ -12,6 +15,7 @@
         <button type="button" class="message-close" onclick="closeMessage(this)" title="Fermer">
           <i class="fas fa-times"></i>
         </button>
+        <div class="message-progress"></div>
       </div>
     {% endfor %}
   </div>
@@ -20,25 +24,41 @@
 <script>
   function closeMessage(button) {
     const message = button.closest('.message');
+    if (!message) return;
+    
+    message.classList.add('message-closing');
     message.style.opacity = '0';
     message.style.transform = 'translateX(100%)';
+    
     setTimeout(() => {
-      message.remove();
-    }, 300);
+      if (message.parentNode) {
+        message.remove();
+      }
+    }, 400);
   }
 
-  // Auto-close success messages after 5 seconds
+  // Auto-close all messages after 4 seconds
   document.addEventListener('DOMContentLoaded', function() {
-    const successMessages = document.querySelectorAll('.message-success');
-    successMessages.forEach(message => {
+    const allMessages = document.querySelectorAll('.message');
+    
+    allMessages.forEach((message, index) => {
+      // Démarrer l'animation de la barre de progression
+      const progressBar = message.querySelector('.message-progress');
+      if (progressBar) {
+        progressBar.style.animation = 'progressBar 4s linear forwards';
+      }
+      
+      // Fermer automatiquement après 4 secondes
       setTimeout(() => {
-        if (message.parentNode) {
+        if (message.parentNode && !message.classList.contains('message-closing')) {
           const closeButton = message.querySelector('.message-close');
           if (closeButton) {
             closeButton.click();
+          } else {
+            closeMessage(message);
           }
         }
-      }, 5000);
+      }, 4000);
     });
   });
 </script>

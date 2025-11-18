@@ -393,39 +393,6 @@
             background: #d97706;
             transform: translateY(-2px);
         }
-
-        /* Messages Django */
-        .messages-container {
-            margin-bottom: 24px;
-        }
-
-        .alert {
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 15px;
-            font-weight: 500;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border-left: 4px solid #10b981;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
-        }
-
-        .alert i {
-            font-size: 20px;
-        }
     </style>
 </head>
 <body>
@@ -446,22 +413,6 @@
                 </p>
             </div>
         </div>
-
-        <!-- Messages Django -->
-        {% if messages %}
-            <div class="messages-container">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {% if message.tags == 'error' %}
-                            <i class="fas fa-exclamation-circle"></i>
-                        {% elif message.tags == 'success' %}
-                            <i class="fas fa-check-circle"></i>
-                        {% endif %}
-                        <span>{{ message }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
 
         <!-- Statistiques -->
         <div class="stats-container">

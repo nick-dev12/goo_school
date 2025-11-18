@@ -43,7 +43,7 @@ class Professeur(AbstractUser):
     # Informations personnelles
     nom = models.CharField(max_length=100, verbose_name="Nom de famille")
     prenom = models.CharField(max_length=100, verbose_name="Prénom")
-    email = models.EmailField(unique=True, verbose_name="Adresse email")
+    email = models.EmailField(unique=True, blank=True, null=True, verbose_name="Adresse email", help_text="Ce champ est facultatif")
     telephone = models.CharField(max_length=20, verbose_name="Numéro de téléphone")
     
     # Informations professionnelles
@@ -96,7 +96,7 @@ class Professeur(AbstractUser):
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'numero_employe'
     REQUIRED_FIELDS = ['nom', 'prenom', 'telephone', 'matiere_principale', 'niveau_enseignement']
     
     class Meta:
@@ -130,7 +130,7 @@ class Professeur(AbstractUser):
         return ", ".join(matieres)
     
     def save(self, *args, **kwargs):
-        # Générer le username si pas défini
-        if not self.username:
-            self.username = self.email
+        # Ne plus générer automatiquement le username à partir de l'email
+        # Le username doit être généré explicitement lors de la création
+        # via ProfesseurController.generate_matricule_professeur()
         super().save(*args, **kwargs)

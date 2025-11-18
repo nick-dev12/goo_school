@@ -3,6 +3,9 @@
   rel="stylesheet"
   href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
 />
+<!-- Messages Template -->
+{% include 'school_admin/partials/messages.html' %}
+
 <div class="dashboard">
   <main class="main-content full-width" id="mainContent">
     <!-- Header Horizontal -->
@@ -41,7 +44,7 @@
       <div class="banner-content">
         <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
         <p class="banner-subtitle">
-          {{ request.user.nom }} - Année scolaire 2024-2025
+          {{ request.user.nom }}{% if periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
         </p>
       </div>
       <!-- Bouton d'installation PWA -->

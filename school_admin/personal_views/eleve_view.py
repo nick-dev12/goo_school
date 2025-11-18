@@ -156,10 +156,13 @@ def dashboard_eleve(request):
             from ..model.periode_model import PeriodeScolaire
             from ..model.moyenne_periode_model import MoyennePeriode
 
-            periodes_qs = PeriodeScolaire.objects.filter(etablissement=eleve.etablissement).order_by('date_debut')
-            periode_active = periodes_qs.filter(est_active=True).first()
+            # Utiliser la méthode get_periode_active qui vérifie les dates et est_active
+            periode_active = PeriodeScolaire.get_periode_active(eleve.etablissement)
+            
+            # Si aucune période active trouvée, prendre la dernière période de l'établissement
             if not periode_active:
-                periode_active = periodes_qs.last()
+                periodes_qs = PeriodeScolaire.objects.filter(etablissement=eleve.etablissement).order_by('-date_debut')
+                periode_active = periodes_qs.first()
 
             moyenne_obj = None
             if periode_active:
@@ -416,6 +419,7 @@ def dashboard_eleve(request):
             'eleve': eleve,
             'est_parent': est_parent,
             'moyenne_generale': moyenne_generale,
+            'periode_active': periode_active,
             'dernieres_notes': dernieres_notes,
             'taux_presence': taux_presence,
             'jours_present': jours_present,

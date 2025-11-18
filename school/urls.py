@@ -37,6 +37,8 @@ urlpatterns = [
     path('', include('school_admin.personal_url.affectation_salle_url', namespace='affectation_salle')),
 ]
 
-# Servir les fichiers média en mode développement
+# Servir les fichiers statiques et média en mode développement
 if settings.DEBUG:
+    from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+    urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

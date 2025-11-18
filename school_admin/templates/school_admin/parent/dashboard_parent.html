@@ -238,13 +238,13 @@
         }
 
         .btn-notifications {
-            background: linear-gradient(135deg, var(--secondary), var(--accent));
-            color: var(--white);
+            background: var(--primary);
+            color: white !important;
         }
 
         .btn-fcm {
             background: linear-gradient(135deg, var(--success), #059669);
-            color: var(--white);
+            color: white !important;
             border: none;
             cursor: pointer;
         }
@@ -387,11 +387,12 @@
 
         /* Grille des enfants */
         .enfants-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 320px));
+            display: flex;
+            flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 24px;
             justify-content: center;
+            align-items: center;
         }
 
         /* Carte Enfant avec max-width 320px et couleurs uniques */
@@ -663,6 +664,45 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
             transition: all 0.4s ease;
             position: relative;
+            overflow: hidden;
+        }
+
+        .enfant-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 14px;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .enfant-avatar-fallback {
+            position: relative;
+            z-index: 1;
+            display: none;
+        }
+
+        .enfant-avatar .enfant-avatar-img {
+            display: block;
+        }
+
+        .enfant-avatar .enfant-avatar-img + .enfant-avatar-fallback {
+            display: none;
+        }
+
+        .enfant-avatar .enfant-avatar-img.error + .enfant-avatar-fallback {
+            display: flex;
+        }
+
+        .enfant-avatar .enfant-avatar-img.error {
+            display: none;
+        }
+
+        .enfant-avatar:not(:has(.enfant-avatar-img)) .enfant-avatar-fallback {
+            display: flex;
         }
 
         .enfant-avatar::after {
@@ -1198,10 +1238,7 @@
                 </div>
             </div>
             <div class="header-right">
-                <button class="parent-nav-toggle" id="openNavMenu" aria-label="Ouvrir le menu de navigation">
-                    <span class="d-none d-sm-inline">Menu</span>
-                    <i class="fas fa-th-large"></i>
-                </button>
+                
                 <button id="fcm-enable-btn" class="btn-fcm" type="button" style="display: none;" onclick="activerNotifications()">
                     <i class="fas fa-bell"></i>
                     Activer les notifications
@@ -1272,7 +1309,12 @@
                         <!-- Header de la carte -->
                         <div class="enfant-header">
                             <div class="enfant-avatar">
-                                {{ enfant_data.eleve.prenom|slice:":1"|upper }}{{ enfant_data.eleve.nom|slice:":1"|upper }}
+                                {% if enfant_data.eleve.photo_profil %}
+                                    <img src="{{ enfant_data.eleve.photo_profil.url }}" alt="Photo de {{ enfant_data.eleve.nom_complet }}" class="enfant-avatar-img">
+                                {% else %}
+                                    <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="Photo par défaut" class="enfant-avatar-img">
+                                {% endif %}
+                                <span class="enfant-avatar-fallback">{{ enfant_data.eleve.prenom|slice:":1"|upper }}{{ enfant_data.eleve.nom|slice:":1"|upper }}</span>
                             </div>
                             <div class="enfant-info">
                                 <h3>{{ enfant_data.eleve.nom_complet }}</h3>
@@ -1438,6 +1480,16 @@
                 openModal();
             });
         {% endif %}
+
+        // Gestion des erreurs de chargement d'images pour les avatars
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarImages = document.querySelectorAll('.enfant-avatar-img');
+            avatarImages.forEach(function(img) {
+                img.addEventListener('error', function() {
+                    this.classList.add('error');
+                });
+            });
+        });
     </script>
     {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
     <script src="{% static 'school_admin/js/parent/header_parent.js' %}"></script>

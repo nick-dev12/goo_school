@@ -161,8 +161,49 @@ def detaille_etablissement(request):
         messages.error(request, "Établissement non trouvé.")
         return redirect('school_admin:etablissements')
     
-    # Affichage du formulaire avec les données actuelles
-    return render(request, 'school_admin/etablissements/detaille_etablissement.html', {'etablissement': etablissement})
+    # Calculer les statistiques de l'établissement
+    from ..model.eleve_model import Eleve
+    from ..model.professeur_model import Professeur
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Nombre d'élèves inscrits (actifs)
+    nombre_eleves = Eleve.objects.filter(etablissement=etablissement, actif=True).count()
+    
+    # Nombre d'élèves inscrits ce mois (pour la tendance)
+    date_aujourdhui = timezone.now().date()
+    premier_jour_mois = date_aujourdhui.replace(day=1)
+    eleves_ce_mois = Eleve.objects.filter(
+        etablissement=etablissement,
+        date_inscription__gte=premier_jour_mois,
+        actif=True
+    ).count()
+    
+    # Calculer le pourcentage d'augmentation (tendance)
+    eleves_mois_precedent = Eleve.objects.filter(
+        etablissement=etablissement,
+        date_inscription__gte=premier_jour_mois - timedelta(days=30),
+        date_inscription__lt=premier_jour_mois,
+        actif=True
+    ).count()
+    
+    pourcentage_evolution = 0
+    if eleves_mois_precedent > 0:
+        pourcentage_evolution = round(((eleves_ce_mois - eleves_mois_precedent) / eleves_mois_precedent) * 100, 1)
+    elif eleves_ce_mois > 0:
+        pourcentage_evolution = 100.0
+    
+    # Nombre d'enseignants (actifs)
+    nombre_enseignants = Professeur.objects.filter(etablissement=etablissement, actif=True).count()
+    
+    context = {
+        'etablissement': etablissement,
+        'nombre_eleves': nombre_eleves,
+        'nombre_enseignants': nombre_enseignants,
+        'pourcentage_evolution_eleves': pourcentage_evolution,
+    }
+    
+    return render(request, 'school_admin/etablissements/detaille_etablissement.html', context)
 
 
 @login_required

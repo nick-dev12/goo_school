@@ -40,6 +40,77 @@ class ProfesseurController:
         return numero
     
     @staticmethod
+    def generate_matricule_professeur(etablissement):
+        """
+        Génère un matricule unique pour un professeur avec des chiffres aléatoires
+        Format : [XX][6 chiffres aléatoires]
+        Exemple : BP482937 (Blaise Pascal, professeur avec chiffres aléatoires)
+        Le matricule sera enregistré dans numero_employe
+        Vérifie l'unicité dans la base de données avant de retourner
+        """
+        import random
+        
+        # Extraire les initiales de l'établissement (2 premiers mots)
+        mots = etablissement.nom.split()[:2]
+        initiales = ''.join([mot[0].upper() for mot in mots if mot])
+        
+        # Si moins de 2 mots, utiliser les 2 premières lettres du nom
+        if len(initiales) < 2:
+            initiales = etablissement.nom[:2].upper()
+        
+        # Générer un matricule avec des chiffres aléatoires
+        max_tentatives = 10000  # Augmenter le nombre de tentatives pour plus de robustesse
+        tentatives = 0
+        
+        while tentatives < max_tentatives:
+            # Générer 6 chiffres aléatoires
+            chiffres_aleatoires = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            matricule = f"{initiales}{chiffres_aleatoires}"
+            
+            # Vérifier l'unicité dans la base de données
+            # Vérifier dans numero_employe (champ principal)
+            if not Professeur.objects.filter(numero_employe=matricule).exists():
+                # Vérifier aussi dans username pour éviter les conflits
+                if not Professeur.objects.filter(username=matricule).exists():
+                    return matricule
+            
+            tentatives += 1
+        
+        # Fallback avec timestamp si trop de tentatives (très rare)
+        import time
+        timestamp = int(time.time() * 1000) % 1000000
+        matricule_fallback = f"{initiales}{timestamp:06d}"
+        
+        # Vérifier l'unicité du fallback
+        if not Professeur.objects.filter(numero_employe=matricule_fallback).exists() and \
+           not Professeur.objects.filter(username=matricule_fallback).exists():
+            return matricule_fallback
+        
+        # Dernier recours : utiliser un UUID tronqué (6 derniers chiffres)
+        import uuid
+        uuid_int = abs(uuid.uuid4().int) % 1000000  # Prendre les 6 derniers chiffres
+        uuid_part = f"{uuid_int:06d}"
+        matricule_uuid = f"{initiales}{uuid_part}"
+        
+        # Vérifier une dernière fois
+        if not Professeur.objects.filter(numero_employe=matricule_uuid).exists() and \
+           not Professeur.objects.filter(username=matricule_uuid).exists():
+            return matricule_uuid
+        
+        # Si vraiment aucun matricule unique n'a pu être généré (extrêmement rare)
+        # Essayer une dernière fois avec un mélange timestamp + random
+        import time
+        final_random = random.randint(100000, 999999)
+        final_timestamp = int(time.time()) % 1000000
+        final_matricule = f"{initiales}{(final_random + final_timestamp) % 1000000:06d}"
+        
+        if not Professeur.objects.filter(numero_employe=final_matricule).exists() and \
+           not Professeur.objects.filter(username=final_matricule).exists():
+            return final_matricule
+        
+        raise ValueError(f"Impossible de générer un matricule unique pour l'établissement {etablissement.nom} après {max_tentatives} tentatives")
+    
+    @staticmethod
     @login_required
     def liste_professeurs(request):
         """
@@ -138,8 +209,8 @@ class ProfesseurController:
             # Pour le primaire, on n'exige pas de matière principale
             # À la place, on exige au moins une matière secondaire
             if etablissement.type_etablissement == 'primary':
-                # Champs obligatoires pour le primaire (sans matière principale)
-                required_fields = ['nom', 'prenom', 'email', 'telephone', 'niveau_enseignement']
+                # Champs obligatoires pour le primaire (sans matière principale, email facultatif)
+                required_fields = ['nom', 'prenom', 'telephone', 'niveau_enseignement']
                 for field in required_fields:
                     if not form_data[field]:
                         field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -153,8 +224,8 @@ class ProfesseurController:
                 # Pour le primaire, la matière principale sera la première matière secondaire
                 matiere_principale_obj = None
             else:
-                # Champs obligatoires pour collège/lycée
-                required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement']
+                # Champs obligatoires pour collège/lycée (email facultatif)
+                required_fields = ['nom', 'prenom', 'telephone', 'matiere_principale', 'niveau_enseignement']
                 for field in required_fields:
                     if not form_data[field]:
                         field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -170,22 +241,22 @@ class ProfesseurController:
                         field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
                         is_valid = False
             
-            # Validation de l'email
-            if form_data['email'] and '@' not in form_data['email']:
-                field_errors['email'] = "L'adresse email n'est pas valide."
-                is_valid = False
-            
-            # Vérification de l'unicité de l'email
-            if form_data['email'] and Professeur.objects.filter(email=form_data['email']).exists():
-                field_errors['email'] = "Cette adresse email est déjà utilisée."
-                is_valid = False
+            # Validation de l'email (seulement si fourni)
+            if form_data['email']:
+                if '@' not in form_data['email']:
+                    field_errors['email'] = "L'adresse email n'est pas valide."
+                    is_valid = False
+                # Vérification de l'unicité de l'email (seulement si fourni)
+                elif Professeur.objects.filter(email=form_data['email']).exists():
+                    field_errors['email'] = "Cette adresse email est déjà utilisée."
+                    is_valid = False
             
             # Si tout est valide, créer le professeur
             if is_valid:
                 try:
                     with transaction.atomic():
-                        # Générer le numéro d'employé
-                        numero_employe = ProfesseurController.generate_numero_employe(etablissement)
+                        # Générer le matricule : initiales + 6 chiffres (sera utilisé comme numero_employe)
+                        matricule = ProfesseurController.generate_matricule_professeur(etablissement)
                         
                         # Générer un mot de passe provisoire de 4 chiffres
                         import random
@@ -198,18 +269,23 @@ class ProfesseurController:
                                 matiere_principale_obj = Matiere.objects.get(id=form_data['matieres_secondaires'][0])
                         
                         # Créer le professeur
+                        # Gérer l'email : utiliser None si vide, sinon utiliser la valeur
+                        email_value = form_data['email'] if form_data['email'] else None
+                        
                         professeur = Professeur(
                             nom=form_data['nom'],
                             prenom=form_data['prenom'],
-                            email=form_data['email'],
+                            email=email_value,  # Peut être None si non fourni
                             telephone=form_data['telephone'],
                             matiere_principale=matiere_principale_obj,
                             niveau_enseignement=form_data['niveau_enseignement'],
-                            username=form_data['email'],
-                            numero_employe=numero_employe,
+                            numero_employe=matricule,  # Le matricule est enregistré dans numero_employe
                             etablissement=etablissement,
                             mot_de_passe_provisoire=mot_de_passe_provisoire,
                         )
+                        
+                        # Définir le username avec le matricule pour compatibilité
+                        professeur.username = matricule
                         
                         # Définir le mot de passe provisoire hashé
                         professeur.set_password(mot_de_passe_provisoire)

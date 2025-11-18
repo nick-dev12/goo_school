@@ -16,16 +16,6 @@
 
     <!-- Main Content -->
     <div class="main-content-wrapper">
-        <!-- Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-
         <!-- Breadcrumb -->
         <nav class="breadcrumb">
             <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>

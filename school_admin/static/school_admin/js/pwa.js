@@ -126,27 +126,50 @@ if ('serviceWorker' in navigator) {
   }
 
   // Exécuter immédiatement et de manière répétée
+  // Utiliser un debounce pour éviter les exécutions trop fréquentes
+  let removeButtonsTimeout;
+  function debouncedRemoveAutoPWAButtons() {
+    clearTimeout(removeButtonsTimeout);
+    removeButtonsTimeout = setTimeout(() => {
+      removeAutoPWAButtons();
+    }, 500); // Attendre 500ms avant d'exécuter
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       removeAutoPWAButtons();
-      // Observer les changements du DOM pour supprimer les nouveaux boutons
-      const observer = new MutationObserver(() => {
-        removeAutoPWAButtons();
+      // Observer UNIQUEMENT les ajouts d'enfants directs au body, pas tout le subtree
+      // Cela évite d'interférer avec les styles des éléments existants
+      const observer = new MutationObserver((mutations) => {
+        // Ne traiter que les ajouts d'éléments au niveau du body
+        const hasNewChildren = mutations.some(mutation => 
+          mutation.type === 'childList' && mutation.addedNodes.length > 0
+        );
+        if (hasNewChildren) {
+          debouncedRemoveAutoPWAButtons();
+        }
       });
+      // Observer uniquement les enfants directs du body, pas tout le subtree
       observer.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: false // IMPORTANT : ne pas observer tout le subtree pour éviter les interférences
       });
     });
   } else {
     removeAutoPWAButtons();
-    // Observer les changements du DOM
-    const observer = new MutationObserver(() => {
-      removeAutoPWAButtons();
+    // Observer UNIQUEMENT les ajouts d'enfants directs au body
+    const observer = new MutationObserver((mutations) => {
+      const hasNewChildren = mutations.some(mutation => 
+        mutation.type === 'childList' && mutation.addedNodes.length > 0
+      );
+      if (hasNewChildren) {
+        debouncedRemoveAutoPWAButtons();
+      }
     });
+    // Observer uniquement les enfants directs du body, pas tout le subtree
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: false // IMPORTANT : ne pas observer tout le subtree pour éviter les interférences
     });
   }
 

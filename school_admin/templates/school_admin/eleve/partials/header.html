@@ -13,10 +13,7 @@
                 <div class="header-right">
                     
 
-                    <button class="nav-toggle-btn" id="openNavMenu" aria-label="Ouvrir le menu complémentaire">
-                        <i class="fas fa-bars"></i>
-                        <span>Menu</span>
-                    </button>
+                  
 
                     <a href="{% url 'eleve:notifications_eleve' %}" class="header-button" aria-label="Notifications">
                         <i class="fas fa-bell"></i>
@@ -47,7 +44,14 @@
             <section class="welcome-banner">
                 <div class="banner-content">
                     <h1 class="banner-title">Bienvenue, {{ eleve.prenom }}</h1>
-                    <p class="banner-subtitle">{{ eleve.etablissement.nom }} - Année scolaire {% now "Y" %}-{% now "Y"|add:1 %}</p>
+                    <p class="banner-subtitle">
+                        {{ eleve.etablissement.nom }}
+                        {% if periode_active %}
+                            - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}
+                        {% else %}
+                            - Année scolaire {% now "Y" %}-{% now "Y"|add:1 %}
+                        {% endif %}
+                    </p>
                 </div>
              
                     <!-- Bouton d'installation PWA -->

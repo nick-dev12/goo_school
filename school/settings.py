@@ -39,7 +39,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG est False en production, True en développement
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# Par défaut, True en développement local
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 # Hosts autorisés
 ALLOWED_HOSTS = [
@@ -91,6 +92,7 @@ TEMPLATES = [
                 'school_admin.context_processors.notifications_enseignant',
                 'school_admin.context_processors.notifications_parent',
                 'school_admin.context_processors.notifications_eleve',
+                'school_admin.context_processors.periode_active',
             ],
         },
     },
@@ -162,8 +164,7 @@ FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
+# STATIC_URL est déjà défini plus haut (ligne 22)
 
 # Configuration pour la collecte des fichiers statiques en production
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

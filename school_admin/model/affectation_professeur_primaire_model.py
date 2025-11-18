@@ -67,10 +67,11 @@ class AffectationProfesseurPrimaire(models.Model):
         """
         Validation personnalisée pour s'assurer de la cohérence des affectations
         """
-        # Vérifier que le professeur est bien de niveau primaire
-        if self.professeur.niveau_enseignement != 'primaire':
+        # Vérifier que l'établissement est de type primaire (garde-fou principal)
+        etablissement = getattr(self.professeur, "etablissement", None)
+        if not etablissement or getattr(etablissement, "type_etablissement", None) != 'primary':
             raise ValidationError(
-                "Ce type d'affectation est réservé aux enseignants du primaire."
+                "Ce type d'affectation est réservé aux établissements de type primaire."
             )
         
         # Vérifier que la classe est bien de niveau primaire

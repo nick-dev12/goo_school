@@ -15,16 +15,6 @@
 
     <!-- Main Content -->
     <div class="main-content-container">
-        <!-- Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; {% if message.tags == 'success' %}background: #d1fae5; color: #065f46; border-left: 4px solid #10b981;{% elif message.tags == 'error' %}background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444;{% elif message.tags == 'warning' %}background: #fed7aa; color: #9a3412; border-left: 4px solid #f59e0b;{% else %}background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6;{% endif %}">
-                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-        
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-title-section">

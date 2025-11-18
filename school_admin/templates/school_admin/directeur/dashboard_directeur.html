@@ -8,15 +8,15 @@
     {% include 'school_admin/partials/pwa_meta.html' %}
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}"
+      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/fcm_notifications.css' %}"
+      href="{% static 'school_admin/css/fcm_notifications.css' %}?v=1.0.0"
     />
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css?v=1.0.0"
     />
     <title>Tableau de bord - Directeur</title>
   </head>
@@ -35,7 +35,6 @@
         <i class="fas fa-check-circle"></i>
         <div>
           <strong>Notifications activées !</strong>
-          <p>Vous recevrez désormais des alertes importantes.</p>
         </div>
       </div>
       
@@ -136,21 +135,7 @@
             </a>
           </div>
 
-          <div class="indicator-card {% if stats.alertes > 0 %}alert{% endif %}">
-            <div class="indicator-icon" style="background-color: var(--red)">
-              <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="indicator-content">
-              <h3>Alertes</h3>
-              <p class="indicator-value">{{ stats.alertes|default:"0" }}</p>
-              <span class="indicator-trend {% if stats.alertes > 0 %}negative{% endif %}">
-                {% if stats.alertes > 0 %}Nécessitent votre attention{% else %}Aucune alerte{% endif %}
-              </span>
-            </div>
-            <a href="#" class="indicator-link">
-              <i class="fas fa-arrow-right"></i>
-            </a>
-          </div>
+        
 
           <!-- Nouvelles cartes ajoutées -->
           <div class="indicator-card">
@@ -169,19 +154,7 @@
             </a>
           </div>
 
-          <div class="indicator-card">
-            <div class="indicator-icon" style="background-color: var(--purple)">
-              <i class="fas fa-book-reader"></i>
-            </div>
-            <div class="indicator-content">
-              <h3>Ressources pédagogiques</h3>
-              <p class="indicator-value">{{ stats.ressources_pedagogiques|default:"0" }}</p>
-              <span class="indicator-trend">Non disponible</span>
-            </div>
-            <a href="#" class="indicator-link">
-              <i class="fas fa-arrow-right"></i>
-            </a>
-          </div>
+       
 
           <div class="indicator-card">
             <div class="indicator-icon" style="background-color: var(--blue)">
@@ -199,138 +172,7 @@
         </div>
       </div>
 
-      <!-- Dernières activités -->
-      <div class="latest-activities-section">
-        <h2 class="section-title">Dernières activités</h2>
-
-        <div class="activities-container">
-          <div class="activity-card">
-            <div class="activity-header">
-              <div class="activity-icon" style="background-color: var(--green)">
-                <i class="fas fa-user-graduate"></i>
-              </div>
-              <h3>Derniers élèves inscrits</h3>
-            </div>
-            <div class="activity-list">
-              {% if derniers_eleves %}
-                {% for eleve in derniers_eleves %}
-                <div class="activity-item">
-                  <div class="activity-avatar">
-                    <i class="fas fa-user-circle" style="font-size: 40px; color: var(--blue);"></i>
-                  </div>
-                  <div class="activity-details">
-                    <h4>{{ eleve.prenom }} {{ eleve.nom }}</h4>
-                    <p>Classe de {{ eleve.classe.nom }}</p>
-                    <span class="activity-time">{{ eleve.date_inscription|timesince }}</span>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucun élève récent</p>
-              {% endif %}
-            </div>
-            <a href="#" class="activity-link"
-              >Voir tous les élèves <i class="fas fa-chevron-right"></i
-            ></a>
-          </div>
-
-          <div class="activity-card">
-            <div class="activity-header">
-              <div class="activity-icon" style="background-color: var(--blue)">
-                <i class="fas fa-user-tie"></i>
-              </div>
-              <h3>Derniers personnels ajoutés</h3>
-            </div>
-            <div class="activity-list">
-              {% if derniers_personnels %}
-                {% for personnel in derniers_personnels %}
-                <div class="activity-item">
-                  <div class="activity-avatar">
-                    <i class="fas fa-user-circle" style="font-size: 40px; color: var(--purple);"></i>
-                  </div>
-                  <div class="activity-details">
-                    <h4>{{ personnel.prenom }} {{ personnel.nom }}</h4>
-                    <p>{{ personnel.get_type_personnel_display|default:"Personnel" }}</p>
-                    <span class="activity-time">{{ personnel.date_creation|timesince }}</span>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucun personnel récent</p>
-              {% endif %}
-            </div>
-            <a href="#" class="activity-link"
-              >Voir tout le personnel <i class="fas fa-chevron-right"></i
-            ></a>
-          </div>
-
-          <div class="activity-card">
-            <div class="activity-header">
-              <div
-                class="activity-icon"
-                style="background-color: var(--orange)"
-              >
-                <i class="fas fa-star"></i>
-              </div>
-              <h3>Dernières notes publiées</h3>
-            </div>
-            <div class="activity-list">
-              {% if dernieres_moyennes %}
-                {% for moyenne in dernieres_moyennes %}
-                <div class="activity-item">
-                  <div class="activity-subject">
-                    <i class="fas fa-book"></i>
-                  </div>
-                  <div class="activity-details">
-                    <h4>{{ moyenne.matiere.nom }} - {{ moyenne.classe.nom }}</h4>
-                    <p>{{ moyenne.eleve.nom_complet }}: {{ moyenne.moyenne|floatformat:1 }}/20</p>
-                    <span class="activity-time">{{ moyenne.date_calcul|timesince }}</span>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucune note récente</p>
-              {% endif %}
-            </div>
-            <a href="{% url 'directeur:notes_et_resultats' %}" class="activity-link"
-              >Voir toutes les notes <i class="fas fa-chevron-right"></i
-            ></a>
-          </div>
-
-          <div class="activity-card">
-            <div class="activity-header">
-              <div
-                class="activity-icon"
-                style="background-color: var(--purple)"
-              >
-                <i class="fas fa-tasks"></i>
-              </div>
-              <h3>Dernières évaluations</h3>
-            </div>
-            <div class="activity-list">
-              {% if dernieres_evaluations %}
-                {% for evaluation in dernieres_evaluations %}
-                <div class="activity-item">
-                  <div class="activity-subject">
-                    <i class="fas fa-clipboard-check"></i>
-                  </div>
-                  <div class="activity-details">
-                    <h4>{{ evaluation.matiere.nom }} - {{ evaluation.classe.nom }}</h4>
-                    <p>{{ evaluation.titre }}</p>
-                    <span class="activity-time">{{ evaluation.date_evaluation|timesince }}</span>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-                <p style="text-align: center; padding: 20px; color: #9ca3af;">Aucune évaluation récente</p>
-              {% endif %}
-            </div>
-            <a href="#" class="activity-link"
-              >Voir toutes les évaluations <i class="fas fa-chevron-right"></i
-            ></a>
-          </div>
-        </div>
-      </div>
+      
 
       <!-- Alertes et notifications importantes -->
     </div>

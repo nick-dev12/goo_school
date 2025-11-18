@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Affectation des Professeurs - {{ etablissement.nom }}</title>
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/affectation_professeurs.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/affectation_professeurs.css' %}?v=1.0.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -35,18 +35,7 @@
                 </div>
             </div>
 
-            <!-- Messages -->
-            {% if messages %}
-                <div class="messages-container">
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }}">
-                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
+           
             <!-- Statistics Cards -->
             <div class="stats-grid">
                 <div class="stat-card">

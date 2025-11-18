@@ -483,12 +483,27 @@ def dashboard_directeur(request):
         evaluations_semaine = 0
     
     # === BULLETINS PUBLIÉS ===
-    # Compter les moyennes soumises ce trimestre (approximation des bulletins)
-    moyennes_soumises = Moyenne.objects.filter(
-        eleve__etablissement=etablissement,
-        soumis=True,
-        actif=True
-    ).count()
+    # Compter les bulletins publiés (MoyennePeriode avec est_publie=True)
+    from ..model.periode_model import PeriodeScolaire
+    
+    # Récupérer la période active
+    periode_active = PeriodeScolaire.get_periode_active(etablissement)
+    
+    # Compter les bulletins publiés pour la période active ou toutes les périodes
+    if periode_active:
+        bulletins_publies = MoyennePeriode.objects.filter(
+            etablissement=etablissement,
+            periode=periode_active,
+            est_publie=True,
+            est_moyenne_generale=True  # Seulement les moyennes générales (bulletins)
+        ).count()
+    else:
+        # Si pas de période active, compter tous les bulletins publiés de l'établissement
+        bulletins_publies = MoyennePeriode.objects.filter(
+            etablissement=etablissement,
+            est_publie=True,
+            est_moyenne_generale=True
+        ).count()
     
     # === ALERTES ===
     # Compter les élèves avec un taux de présence < 80% ou moyenne < 10
@@ -512,16 +527,27 @@ def dashboard_directeur(request):
     alertes_count = eleves_avec_absences
     
     # === TAUX DE RÉUSSITE ===
-    # Calculer le taux basé sur les moyennes >= 10/20
-    moyennes_valides = Moyenne.objects.filter(
-        eleve__etablissement=etablissement,
-        soumis=True,
-        actif=True
-    ).exclude(moyenne__isnull=True)
+    # Calculer le taux basé sur les moyennes générales de MoyennePeriode >= 10/20
+    # Seulement les moyennes générales (bulletins) pour la période active
+    if periode_active:
+        moyennes_generales = MoyennePeriode.objects.filter(
+            etablissement=etablissement,
+            periode=periode_active,
+            est_moyenne_generale=True,
+            moyenne_generale__isnull=False
+        )
+    else:
+        # Si pas de période active, utiliser toutes les moyennes générales
+        moyennes_generales = MoyennePeriode.objects.filter(
+            etablissement=etablissement,
+            est_moyenne_generale=True,
+            moyenne_generale__isnull=False
+        )
     
-    if moyennes_valides.exists():
-        moyennes_reussies = moyennes_valides.filter(moyenne__gte=10).count()
-        total_moyennes = moyennes_valides.count()
+    if moyennes_generales.exists():
+        # Compter les moyennes >= 10/20 comme réussies
+        moyennes_reussies = moyennes_generales.filter(moyenne_generale__gte=Decimal('10.00')).count()
+        total_moyennes = moyennes_generales.count()
         taux_reussite = round((moyennes_reussies / total_moyennes) * 100) if total_moyennes > 0 else 0
     else:
         taux_reussite = 0
@@ -572,6 +598,7 @@ def dashboard_directeur(request):
     # Préparer le contexte avec les données de l'établissement
     context = {
         'etablissement': etablissement,
+        'periode_active': periode_active,  # Ajouter la période active au contexte
         
         # Statistiques principales
         'stats': {
@@ -582,7 +609,7 @@ def dashboard_directeur(request):
             'changement_personnel': changement_personnel,
             'nombre_classes': nombre_classes,
             'evaluations_semaine': evaluations_semaine,
-            'bulletins_publies': moyennes_soumises,
+            'bulletins_publies': bulletins_publies,
             'alertes': alertes_count,
             'taux_reussite': taux_reussite,
             'ressources_pedagogiques': ressources_pedagogiques,
@@ -3379,44 +3406,88 @@ def gestion_periodes_scolaires(request):
         from ..model.periode_model import PeriodeScolaire
         from django.db import transaction
         from datetime import datetime
-        
+
+        action = request.POST.get('action', 'ajouter').strip()
+
+        def _parse_date(date_str: str):
+            if not date_str:
+                return None
+            return datetime.strptime(date_str, '%Y-%m-%d').date()
+
         try:
-            with transaction.atomic():
-                nom_periode = request.POST.get('nom_periode', '').strip()
-                type_periode = request.POST.get('type_periode', 'trimestre')
-                date_debut_str = request.POST.get('date_debut', '')
-                date_fin_str = request.POST.get('date_fin', '')
-                annee_scolaire = request.POST.get('annee_scolaire', annee_scolaire_actuelle)
-                est_active = request.POST.get('est_active') == 'on'
-                
-                # Validations
-                if not all([nom_periode, date_debut_str, date_fin_str, annee_scolaire]):
-                    messages.error(request, "Tous les champs obligatoires doivent être remplis.")
+            if action == 'ajouter':
+                with transaction.atomic():
+                    nom_periode = request.POST.get('nom_periode', '').strip()
+                    type_periode = request.POST.get('type_periode', 'trimestre').strip()
+                    date_debut_str = request.POST.get('date_debut', '')
+                    date_fin_str = request.POST.get('date_fin', '')
+                    annee_scolaire = request.POST.get('annee_scolaire', annee_scolaire_actuelle).strip()
+                    est_active = request.POST.get('est_active') == 'on'
+
+                    if not all([nom_periode, date_debut_str, date_fin_str, annee_scolaire]):
+                        messages.error(request, "Tous les champs obligatoires doivent être remplis.")
+                        return redirect('directeur:gestion_periodes_scolaires')
+
+                    date_debut = _parse_date(date_debut_str)
+                    date_fin = _parse_date(date_fin_str)
+
+                    periode = PeriodeScolaire.objects.create(
+                        etablissement=etablissement,
+                        nom_periode=nom_periode,
+                        type_periode=type_periode,
+                        date_debut=date_debut,
+                        date_fin=date_fin,
+                        annee_scolaire=annee_scolaire,
+                        est_active=est_active
+                    )
+
+                    messages.success(request, f"La période '{periode.nom_periode}' a été créée avec succès.")
                     return redirect('directeur:gestion_periodes_scolaires')
-                
-                # Convertir les dates string en objets date
-                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
-                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
-                
-                # Créer la période
-                periode = PeriodeScolaire.objects.create(
-                    etablissement=etablissement,
-                    nom_periode=nom_periode,
-                    type_periode=type_periode,
-                    date_debut=date_debut,
-                    date_fin=date_fin,
-                    annee_scolaire=annee_scolaire,
-                    est_active=est_active
-                )
-                
-                messages.success(request, f"La période '{periode.nom_periode}' a été créée avec succès.")
+
+            elif action == 'modifier':
+                periode_id = request.POST.get('periode_id')
+                if not periode_id:
+                    messages.error(request, "Période introuvable.")
+                    return redirect('directeur:gestion_periodes_scolaires')
+
+                with transaction.atomic():
+                    periode = PeriodeScolaire.objects.get(id=periode_id, etablissement=etablissement)
+                    periode.nom_periode = request.POST.get('nom_periode', periode.nom_periode).strip()
+                    periode.type_periode = request.POST.get('type_periode', periode.type_periode).strip()
+                    periode.date_debut = _parse_date(request.POST.get('date_debut')) or periode.date_debut
+                    periode.date_fin = _parse_date(request.POST.get('date_fin')) or periode.date_fin
+                    periode.annee_scolaire = request.POST.get('annee_scolaire', periode.annee_scolaire).strip()
+                    periode.est_active = request.POST.get('est_active') == 'on'
+                    periode.save()
+
+                    messages.success(request, f"La période '{periode.nom_periode}' a été mise à jour.")
+                    return redirect('directeur:gestion_periodes_scolaires')
+
+            elif action == 'supprimer':
+                periode_id = request.POST.get('periode_id')
+                if not periode_id:
+                    messages.error(request, "Période introuvable.")
+                    return redirect('directeur:gestion_periodes_scolaires')
+
+                with transaction.atomic():
+                    periode = PeriodeScolaire.objects.get(id=periode_id, etablissement=etablissement)
+                    nom_periode = periode.nom_periode
+                    periode.delete()
+                    messages.success(request, f"La période '{nom_periode}' a été supprimée.")
+                    return redirect('directeur:gestion_periodes_scolaires')
+
+            else:
+                messages.error(request, "Action invalide.")
                 return redirect('directeur:gestion_periodes_scolaires')
-                
+
+        except PeriodeScolaire.DoesNotExist:
+            messages.error(request, "Période introuvable.")
+            return redirect('directeur:gestion_periodes_scolaires')
         except ValidationError as e:
             messages.error(request, f"Erreur de validation : {e}")
             return redirect('directeur:gestion_periodes_scolaires')
         except Exception as e:
-            messages.error(request, f"Erreur lors de la création de la période : {str(e)}")
+            messages.error(request, f"Erreur lors du traitement de la période : {str(e)}")
             return redirect('directeur:gestion_periodes_scolaires')
     
     # Récupérer toutes les périodes de l'établissement

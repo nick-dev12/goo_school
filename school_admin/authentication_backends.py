@@ -77,7 +77,7 @@ class MultiUserBackend(BaseBackend):
         # SECTION 4: PROFESSEURS
         # ==========================================
         try:
-            professeur = Professeur.objects.get(username=username)
+            professeur = Professeur.objects.get(numero_employe=username)
             if professeur.check_password(password) and professeur.actif:
                 professeur._auth_user_type = 'professeur'
                 return professeur

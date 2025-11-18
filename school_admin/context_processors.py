@@ -72,3 +72,36 @@ def notifications_eleve(request) -> Dict[str, int]:
     return {
         'notifications_eleve_non_lues': SimpleLazyObject(_count),
     }
+
+
+def periode_active(request) -> Dict:
+    """Retourne la période scolaire active pour l'établissement de l'utilisateur connecté."""
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
+        return {}
+
+    etablissement = None
+
+    # Vérifier si l'utilisateur est un établissement (directeur)
+    # Etablissement hérite de AbstractUser, donc user est l'établissement
+    if hasattr(user, 'directeur_prenom'):
+        etablissement = user
+    # Vérifier si l'utilisateur est un professeur
+    elif hasattr(user, 'etablissement') and hasattr(user, 'matiere_principale'):
+        etablissement = user.etablissement
+    # Vérifier si l'utilisateur est un élève
+    elif hasattr(user, 'etablissement') and hasattr(user, 'classe'):
+        etablissement = user.etablissement
+    else:
+        return {}
+
+    if not etablissement:
+        return {}
+
+    def _get_periode():
+        from school_admin.model.periode_model import PeriodeScolaire
+        return PeriodeScolaire.get_periode_active(etablissement)
+
+    return {
+        'periode_active': SimpleLazyObject(_get_periode),
+    }

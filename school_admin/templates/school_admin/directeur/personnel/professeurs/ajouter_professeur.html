@@ -19,7 +19,7 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}"
+        href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.1"
     />
 </head>
 <body>
@@ -44,9 +44,9 @@
                         </div>
                     </div>
                     <div class="page-actions">
-                        <a href="{% url 'professeur:liste_professeurs' %}" class="btn-back btn-gradient">
+                        <a href="{% url 'personnel:liste_personnel' %}" class="btn-back btn-gradient">
                             <i class="fas fa-arrow-left"></i>
-                            <span>Retour à la liste</span>
+                            <span>Retour au personnel</span>
                         </a>
                     </div>
                 </div>
@@ -124,18 +124,19 @@
                             <div class="form-group">
                                 <label class="form-label" for="email">
                                     <i class="fas fa-envelope"></i>
-                                    Adresse email *
+                                    Adresse email
+                                    <span class="label-optional">(Facultatif)</span>
                                 </label>
                                 <input type="email" 
                                        class="form-control {% if field_errors.email %}is-invalid{% endif %}" 
                                        id="email" 
                                        name="email" 
                                        value="{{ form_data.email }}"
-                                       placeholder="Ex: marie.dupont@email.com"
-                                       required>
+                                       placeholder="Ex: marie.dupont@email.com">
                                 {% if field_errors.email %}
                                     <div class="invalid-feedback">{{ field_errors.email }}</div>
                                 {% endif %}
+                                <small class="form-text text-muted">Ce champ est optionnel. L'email peut être ajouté ultérieurement.</small>
                             </div>
                             
                             <div class="form-group">
@@ -283,17 +284,14 @@
                             <i class="fas fa-info-circle"></i>
                             <div>
                                 <strong>Génération automatique du mot de passe</strong>
-                                <p>Un mot de passe provisoire de 4 chiffres sera généré automatiquement lors de la création du compte. Ce mot de passe sera affiché dans la page de détails du professeur après l'ajout.</p>
+                                <p>Un mot de passe provisoire sera généré automatiquement lors de la création du compte. Ce mot de passe sera affiché dans la page de détails du professeur après l'ajout.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Actions -->
                     <div class="form-actions">
-                        <button type="button" class="btn-cancel">
-                            <i class="fas fa-times"></i>
-                            <span>Annuler</span>
-                        </button>
+            
                         <button type="submit" class="btn-submit btn-gradient">
                             <i class="fas fa-save"></i>
                             <span>Ajouter le professeur</span>

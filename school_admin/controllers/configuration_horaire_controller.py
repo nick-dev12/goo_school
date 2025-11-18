@@ -1,10 +1,13 @@
 # school_admin/controllers/configuration_horaire_controller.py
 
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db import transaction
+from datetime import datetime
 import logging
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.shortcuts import redirect, render
 
 from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
 from ..model.etablissement_model import Etablissement
@@ -17,6 +20,16 @@ class ConfigurationHoraireController:
     """
     Contrôleur pour gérer la configuration des horaires de l'établissement
     """
+
+    @staticmethod
+    def _parse_time_value(time_str: str):
+        """Convertit une chaîne HH:MM en objet time."""
+        if not time_str:
+            return None
+        try:
+            return datetime.strptime(time_str, "%H:%M").time()
+        except ValueError:
+            return None
     
     @staticmethod
     @login_required
@@ -203,6 +216,21 @@ class ConfigurationHoraireController:
                         if not all([nom, type_periode, heure_debut, heure_fin]):
                             messages.error(request, "Tous les champs sont obligatoires.")
                             return redirect('administrateur_etablissement:gerer_periodes')
+
+                        if type_periode not in dict(PeriodeEtablissement.TYPE_PERIODE_CHOICES):
+                            messages.error(request, "Type de période invalide.")
+                            return redirect('administrateur_etablissement:gerer_periodes')
+
+                        heure_debut_obj = ConfigurationHoraireController._parse_time_value(heure_debut)
+                        heure_fin_obj = ConfigurationHoraireController._parse_time_value(heure_fin)
+
+                        if not heure_debut_obj or not heure_fin_obj:
+                            messages.error(request, "Les heures fournies sont invalides.")
+                            return redirect('administrateur_etablissement:gerer_periodes')
+
+                        if heure_fin_obj <= heure_debut_obj:
+                            messages.error(request, "L'heure de fin doit être postérieure à l'heure de début.")
+                            return redirect('administrateur_etablissement:gerer_periodes')
                         
                         # Récupérer l'ordre max actuel
                         dernier_ordre = PeriodeEtablissement.objects.filter(
@@ -213,8 +241,8 @@ class ConfigurationHoraireController:
                             configuration_horaire=configuration,
                             nom=nom,
                             type_periode=type_periode,
-                            heure_debut=heure_debut,
-                            heure_fin=heure_fin,
+                            heure_debut=heure_debut_obj,
+                            heure_fin=heure_fin_obj,
                             ordre=dernier_ordre + 1,
                             actif=True
                         )
@@ -222,10 +250,59 @@ class ConfigurationHoraireController:
                         messages.success(request, f"Période '{periode.nom}' ajoutée avec succès !")
                         return redirect('administrateur_etablissement:gerer_periodes')
                         
+                except ValidationError as exc:
+                    messages.error(request, "; ".join(exc.messages))
                 except Exception as e:
                     logger.error(f"Erreur lors de l'ajout de la période: {str(e)}")
                     messages.error(request, f"Erreur: {str(e)}")
             
+            elif action == 'modifier_periode':
+                periode_id = request.POST.get('periode_id')
+                nom = request.POST.get('nom', '').strip()
+                type_periode = request.POST.get('type_periode', '').strip()
+                heure_debut = request.POST.get('heure_debut', '').strip()
+                heure_fin = request.POST.get('heure_fin', '').strip()
+
+                if not all([periode_id, nom, type_periode, heure_debut, heure_fin]):
+                    messages.error(request, "Tous les champs sont obligatoires pour modifier la période.")
+                    return redirect('administrateur_etablissement:gerer_periodes')
+
+                if type_periode not in dict(PeriodeEtablissement.TYPE_PERIODE_CHOICES):
+                    messages.error(request, "Type de période invalide.")
+                    return redirect('administrateur_etablissement:gerer_periodes')
+
+                heure_debut_obj = ConfigurationHoraireController._parse_time_value(heure_debut)
+                heure_fin_obj = ConfigurationHoraireController._parse_time_value(heure_fin)
+
+                if not heure_debut_obj or not heure_fin_obj:
+                    messages.error(request, "Les heures fournies sont invalides.")
+                    return redirect('administrateur_etablissement:gerer_periodes')
+
+                if heure_fin_obj <= heure_debut_obj:
+                    messages.error(request, "L'heure de fin doit être postérieure à l'heure de début.")
+                    return redirect('administrateur_etablissement:gerer_periodes')
+
+                try:
+                    periode = PeriodeEtablissement.objects.get(
+                        id=periode_id,
+                        configuration_horaire=configuration
+                    )
+                    periode.nom = nom
+                    periode.type_periode = type_periode
+                    periode.heure_debut = heure_debut_obj
+                    periode.heure_fin = heure_fin_obj
+                    periode.save()
+                    messages.success(request, f"Période « {periode.nom} » mise à jour avec succès.")
+                except PeriodeEtablissement.DoesNotExist:
+                    messages.error(request, "Période introuvable.")
+                except ValidationError as exc:
+                    messages.error(request, "; ".join(exc.messages))
+                except Exception as e:
+                    logger.error(f"Erreur lors de la modification de la période: {str(e)}")
+                    messages.error(request, f"Erreur: {str(e)}")
+
+                return redirect('administrateur_etablissement:gerer_periodes')
+
             elif action == 'supprimer_periode':
                 # Supprimer une période
                 periode_id = request.POST.get('periode_id')

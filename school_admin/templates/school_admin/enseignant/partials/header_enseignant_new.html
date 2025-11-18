@@ -3,6 +3,8 @@
   rel="stylesheet"
   href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}"
 />
+<link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}?v=1.0.0">
+{% include 'school_admin/partials/messages.html' %}
 <div class="dashboard">
   <main class="main-content full-width" id="mainContent">
     <!-- Header Horizontal -->
@@ -45,7 +47,7 @@
       <div class="banner-content">
         <h1 class="banner-title">Bienvenue, {{ professeur.nom_complet }}</h1>
         <p class="banner-subtitle">
-          {{ professeur.etablissement.nom }} - {{ professeur.matiere_display }}
+          {{ professeur.etablissement.nom }} - {{ professeur.matiere_display }}{% if periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% endif %}
         </p>
       </div>
       <!-- Bouton d'installation PWA -->

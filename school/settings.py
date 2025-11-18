@@ -34,12 +34,21 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9'
+# Utiliser une variable d'environnement en production
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG est False en production, True en développement
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']
+# Hosts autorisés
+ALLOWED_HOSTS = [
+    'aria-edu.com',
+    'www.aria-edu.com',
+    '157.173.102.180',
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -96,11 +105,11 @@ WSGI_APPLICATION = 'school.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'goo_school',          # ← Le nom de ta base
-        'USER': 'postgres',             # ← Utilisateur (par défaut postgres)
-        'PASSWORD': 'Ludvanne', # ← Le mot de passe que tu as défini à l'installation
-        'HOST': 'localhost',            # ← Ou 127.0.0.1
-        'PORT': '5432',                 # ← Port par défaut de PostgreSQL
+        'NAME': os.getenv('DB_NAME', 'goo_school'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'Ludvanne'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {
             'client_encoding': 'UTF8',
         },
@@ -177,28 +186,41 @@ AUTHENTICATION_BACKENDS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Configuration du logging pour le débogage
+# Configuration du logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose',
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'] if not DEBUG else ['console'],
+        'level': 'INFO' if not DEBUG else 'DEBUG',
     },
     'loggers': {
-        'django.contrib.auth': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
+        'django': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console'],
+            'level': 'INFO' if not DEBUG else 'DEBUG',
+            'propagate': False,
         },
         'school_admin': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'handlers': ['console', 'file'] if not DEBUG else ['console'],
+            'level': 'INFO' if not DEBUG else 'DEBUG',
+            'propagate': False,
         },
     },
 }
@@ -217,6 +239,27 @@ WASENDER_API_TOKEN = os.getenv(
 WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")
 
 # ============================================
+# Configuration de sécurité pour la production
+# ============================================
+# Configuration pour les proxies (Nginx)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Cookies sécurisés en HTTPS
+SESSION_COOKIE_SECURE = not DEBUG  # True en production (HTTPS)
+CSRF_COOKIE_SECURE = not DEBUG    # True en production (HTTPS)
+
+# Headers de sécurité
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# HSTS (HTTP Strict Transport Security) - seulement en HTTPS
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000  # 1 an
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# ============================================
 # Configuration CORS (Cross-Origin Resource Sharing)
 # ============================================
 # Désactiver CORS_ORIGIN_WHITELIST (déprécié)
@@ -224,6 +267,8 @@ CORS_ORIGIN_WHITELIST = []
 
 # Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)
 CORS_ALLOWED_ORIGINS = [
+    "https://aria-edu.com",
+    "https://www.aria-edu.com",
     "http://157.173.102.180",
     "http://localhost:8000",
     "http://127.0.0.1:8000",

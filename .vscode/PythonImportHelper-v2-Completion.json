@@ -7861,7 +7861,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "SESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé\n# Age de la session en secondes\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9'\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']",
+        "peekOfCode": "SESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé\n# Age de la session en secondes\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!\n# DEBUG est False en production, True en développement",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7870,7 +7870,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9'\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']\n# Application definition\nINSTALLED_APPS = [",
+        "peekOfCode": "SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!\n# DEBUG est False en production, True en développement\nDEBUG = os.getenv('DEBUG', 'False').lower() == 'true'\n# Hosts autorisés",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7879,7 +7879,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "SECRET_KEY = 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9'\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']\n# Application definition\nINSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',",
+        "peekOfCode": "SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!\n# DEBUG est False en production, True en développement\nDEBUG = os.getenv('DEBUG', 'False').lower() == 'true'\n# Hosts autorisés\nALLOWED_HOSTS = [\n    'aria-edu.com',\n    'www.aria-edu.com',\n    '157.173.102.180',\n    'localhost',",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7888,7 +7888,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "DEBUG = True\nALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']\n# Application definition\nINSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',",
+        "peekOfCode": "DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'\n# Hosts autorisés\nALLOWED_HOSTS = [\n    'aria-edu.com',\n    'www.aria-edu.com',\n    '157.173.102.180',\n    'localhost',\n    '127.0.0.1',\n]\n# Application definition",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7897,7 +7897,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "ALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']\n# Application definition\nINSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',\n    'corsheaders',  # Django CORS Headers",
+        "peekOfCode": "ALLOWED_HOSTS = [\n    'aria-edu.com',\n    'www.aria-edu.com',\n    '157.173.102.180',\n    'localhost',\n    '127.0.0.1',\n]\n# Application definition\nINSTALLED_APPS = [\n    'django.contrib.admin',",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7942,7 +7942,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WSGI_APPLICATION = 'school.wsgi.application'\n# Database\n# https://docs.djangoproject.com/en/5.2/ref/settings/#databases\nDATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': 'goo_school',          # ← Le nom de ta base\n        'USER': 'postgres',             # ← Utilisateur (par défaut postgres)\n        'PASSWORD': 'Ludvanne', # ← Le mot de passe que tu as défini à l'installation\n        'HOST': 'localhost',            # ← Ou 127.0.0.1",
+        "peekOfCode": "WSGI_APPLICATION = 'school.wsgi.application'\n# Database\n# https://docs.djangoproject.com/en/5.2/ref/settings/#databases\nDATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': os.getenv('DB_NAME', 'goo_school'),\n        'USER': os.getenv('DB_USER', 'postgres'),\n        'PASSWORD': os.getenv('DB_PASSWORD', 'Ludvanne'),\n        'HOST': os.getenv('DB_HOST', 'localhost'),",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7951,7 +7951,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "DATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': 'goo_school',          # ← Le nom de ta base\n        'USER': 'postgres',             # ← Utilisateur (par défaut postgres)\n        'PASSWORD': 'Ludvanne', # ← Le mot de passe que tu as défini à l'installation\n        'HOST': 'localhost',            # ← Ou 127.0.0.1\n        'PORT': '5432',                 # ← Port par défaut de PostgreSQL\n        'OPTIONS': {\n            'client_encoding': 'UTF8',",
+        "peekOfCode": "DATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': os.getenv('DB_NAME', 'goo_school'),\n        'USER': os.getenv('DB_USER', 'postgres'),\n        'PASSWORD': os.getenv('DB_PASSWORD', 'Ludvanne'),\n        'HOST': os.getenv('DB_HOST', 'localhost'),\n        'PORT': os.getenv('DB_PORT', '5432'),\n        'OPTIONS': {\n            'client_encoding': 'UTF8',",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8059,7 +8059,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "AUTH_USER_MODEL = 'school_admin.CompteUser'\n# Configuration des backends d'authentification\nAUTHENTICATION_BACKENDS = [\n    'school_admin.authentication_backends.MultiUserBackend',\n    'django.contrib.auth.backends.ModelBackend',  # Garder le backend par défaut en fallback\n]\n# Configuration des fichiers média\nMEDIA_URL = '/media/'\nMEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging pour le débogage",
+        "peekOfCode": "AUTH_USER_MODEL = 'school_admin.CompteUser'\n# Configuration des backends d'authentification\nAUTHENTICATION_BACKENDS = [\n    'school_admin.authentication_backends.MultiUserBackend',\n    'django.contrib.auth.backends.ModelBackend',  # Garder le backend par défaut en fallback\n]\n# Configuration des fichiers média\nMEDIA_URL = '/media/'\nMEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8068,7 +8068,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "AUTHENTICATION_BACKENDS = [\n    'school_admin.authentication_backends.MultiUserBackend',\n    'django.contrib.auth.backends.ModelBackend',  # Garder le backend par défaut en fallback\n]\n# Configuration des fichiers média\nMEDIA_URL = '/media/'\nMEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging pour le débogage\nLOGGING = {\n    'version': 1,",
+        "peekOfCode": "AUTHENTICATION_BACKENDS = [\n    'school_admin.authentication_backends.MultiUserBackend',\n    'django.contrib.auth.backends.ModelBackend',  # Garder le backend par défaut en fallback\n]\n# Configuration des fichiers média\nMEDIA_URL = '/media/'\nMEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging\nLOGGING = {\n    'version': 1,",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8077,7 +8077,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "MEDIA_URL = '/media/'\nMEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging pour le débogage\nLOGGING = {\n    'version': 1,\n    'disable_existing_loggers': False,\n    'handlers': {\n        'console': {\n            'class': 'logging.StreamHandler',\n        },",
+        "peekOfCode": "MEDIA_URL = '/media/'\nMEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging\nLOGGING = {\n    'version': 1,\n    'disable_existing_loggers': False,\n    'formatters': {\n        'verbose': {\n            'format': '{levelname} {asctime} {module} {message}',\n            'style': '{',",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8086,7 +8086,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "MEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging pour le débogage\nLOGGING = {\n    'version': 1,\n    'disable_existing_loggers': False,\n    'handlers': {\n        'console': {\n            'class': 'logging.StreamHandler',\n        },\n    },",
+        "peekOfCode": "MEDIA_ROOT = os.path.join(BASE_DIR, 'media')\n# Configuration du logging\nLOGGING = {\n    'version': 1,\n    'disable_existing_loggers': False,\n    'formatters': {\n        'verbose': {\n            'format': '{levelname} {asctime} {module} {message}',\n            'style': '{',\n        },",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8095,7 +8095,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "LOGGING = {\n    'version': 1,\n    'disable_existing_loggers': False,\n    'handlers': {\n        'console': {\n            'class': 'logging.StreamHandler',\n        },\n    },\n    'root': {\n        'handlers': ['console'],",
+        "peekOfCode": "LOGGING = {\n    'version': 1,\n    'disable_existing_loggers': False,\n    'formatters': {\n        'verbose': {\n            'format': '{levelname} {asctime} {module} {message}',\n            'style': '{',\n        },\n    },\n    'handlers': {",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8113,7 +8113,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\n# Désactiver CORS_ORIGIN_WHITELIST (déprécié)\nCORS_ORIGIN_WHITELIST = []",
+        "peekOfCode": "WASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration de sécurité pour la production\n# ============================================\n# Configuration pour les proxies (Nginx)\nSECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8122,7 +8122,61 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\n# Désactiver CORS_ORIGIN_WHITELIST (déprécié)\nCORS_ORIGIN_WHITELIST = []\n# Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",",
+        "peekOfCode": "WASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration de sécurité pour la production\n# ============================================\n# Configuration pour les proxies (Nginx)\nSECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')\n# Cookies sécurisés en HTTPS\nSESSION_COOKIE_SECURE = not DEBUG  # True en production (HTTPS)\nCSRF_COOKIE_SECURE = not DEBUG    # True en production (HTTPS)\n# Headers de sécurité",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "SECURE_PROXY_SSL_HEADER",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')\n# Cookies sécurisés en HTTPS\nSESSION_COOKIE_SECURE = not DEBUG  # True en production (HTTPS)\nCSRF_COOKIE_SECURE = not DEBUG    # True en production (HTTPS)\n# Headers de sécurité\nSECURE_BROWSER_XSS_FILTER = True\nSECURE_CONTENT_TYPE_NOSNIFF = True\nX_FRAME_OPTIONS = 'DENY'\n# HSTS (HTTP Strict Transport Security) - seulement en HTTPS\nif not DEBUG:",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "SESSION_COOKIE_SECURE",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "SESSION_COOKIE_SECURE = not DEBUG  # True en production (HTTPS)\nCSRF_COOKIE_SECURE = not DEBUG    # True en production (HTTPS)\n# Headers de sécurité\nSECURE_BROWSER_XSS_FILTER = True\nSECURE_CONTENT_TYPE_NOSNIFF = True\nX_FRAME_OPTIONS = 'DENY'\n# HSTS (HTTP Strict Transport Security) - seulement en HTTPS\nif not DEBUG:\n    SECURE_HSTS_SECONDS = 31536000  # 1 an\n    SECURE_HSTS_INCLUDE_SUBDOMAINS = True",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CSRF_COOKIE_SECURE",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "CSRF_COOKIE_SECURE = not DEBUG    # True en production (HTTPS)\n# Headers de sécurité\nSECURE_BROWSER_XSS_FILTER = True\nSECURE_CONTENT_TYPE_NOSNIFF = True\nX_FRAME_OPTIONS = 'DENY'\n# HSTS (HTTP Strict Transport Security) - seulement en HTTPS\nif not DEBUG:\n    SECURE_HSTS_SECONDS = 31536000  # 1 an\n    SECURE_HSTS_INCLUDE_SUBDOMAINS = True\n    SECURE_HSTS_PRELOAD = True",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "SECURE_BROWSER_XSS_FILTER",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "SECURE_BROWSER_XSS_FILTER = True\nSECURE_CONTENT_TYPE_NOSNIFF = True\nX_FRAME_OPTIONS = 'DENY'\n# HSTS (HTTP Strict Transport Security) - seulement en HTTPS\nif not DEBUG:\n    SECURE_HSTS_SECONDS = 31536000  # 1 an\n    SECURE_HSTS_INCLUDE_SUBDOMAINS = True\n    SECURE_HSTS_PRELOAD = True\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "SECURE_CONTENT_TYPE_NOSNIFF",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "SECURE_CONTENT_TYPE_NOSNIFF = True\nX_FRAME_OPTIONS = 'DENY'\n# HSTS (HTTP Strict Transport Security) - seulement en HTTPS\nif not DEBUG:\n    SECURE_HSTS_SECONDS = 31536000  # 1 an\n    SECURE_HSTS_INCLUDE_SUBDOMAINS = True\n    SECURE_HSTS_PRELOAD = True\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "X_FRAME_OPTIONS",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "X_FRAME_OPTIONS = 'DENY'\n# HSTS (HTTP Strict Transport Security) - seulement en HTTPS\nif not DEBUG:\n    SECURE_HSTS_SECONDS = 31536000  # 1 an\n    SECURE_HSTS_INCLUDE_SUBDOMAINS = True\n    SECURE_HSTS_PRELOAD = True\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\n# Désactiver CORS_ORIGIN_WHITELIST (déprécié)",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8131,7 +8185,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "CORS_ORIGIN_WHITELIST = []\n# Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)\nCORS_ALLOW_CREDENTIALS = True\n# Headers autorisés",
+        "peekOfCode": "CORS_ORIGIN_WHITELIST = []\n# Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)\nCORS_ALLOWED_ORIGINS = [\n    \"https://aria-edu.com\",\n    \"https://www.aria-edu.com\",\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8140,7 +8194,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "CORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)\nCORS_ALLOW_CREDENTIALS = True\n# Headers autorisés\nCORS_ALLOW_HEADERS = [\n    'accept',",
+        "peekOfCode": "CORS_ALLOWED_ORIGINS = [\n    \"https://aria-edu.com\",\n    \"https://www.aria-edu.com\",\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)\nCORS_ALLOW_CREDENTIALS = True\n# Headers autorisés",
         "detail": "school.settings",
         "documentation": {}
     },

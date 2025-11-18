@@ -17,9 +17,26 @@ cd ~/aria/goo_school
 echo "🐍 Activation de l'environnement virtuel..."
 source venv/bin/activate
 
+# Gérer les modifications locales (fichiers de logs, etc.)
+echo "🔍 Vérification des modifications locales..."
+if ! git diff-index --quiet HEAD --; then
+    echo "⚠️  Modifications locales détectées (fichiers de logs, etc.)"
+    echo "📦 Stash des modifications locales..."
+    git stash push -m "Modifications locales avant déploiement $(date +%Y-%m-%d_%H:%M:%S)"
+    STASHED=true
+else
+    STASHED=false
+fi
+
 # Récupérer les modifications
 echo "📥 Récupération des modifications depuis GitHub..."
 git pull origin main
+
+# Supprimer le stash si on a stasher (on ne veut pas réappliquer les modifications locales)
+if [ "$STASHED" = true ]; then
+    echo "🗑️  Suppression du stash (modifications locales ignorées)..."
+    git stash drop || true
+fi
 
 # Installer les nouvelles dépendances (si nécessaire)
 echo "📦 Installation des dépendances..."

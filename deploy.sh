@@ -8,6 +8,16 @@
 
 set -e  # Arrêter en cas d'erreur
 
+# Obtenir le chemin absolu du script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
+
+# Vérifier et corriger les permissions d'exécution du script
+if [ ! -x "$SCRIPT_PATH" ]; then
+    echo "🔧 Correction des permissions du script..."
+    chmod +x "$SCRIPT_PATH"
+fi
+
 echo "🚀 Début du déploiement..."
 
 # Aller dans le dossier du projet

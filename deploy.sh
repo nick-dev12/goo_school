@@ -54,7 +54,20 @@ pip install -r requirements.txt --quiet
 
 # Effectuer les migrations (si nécessaire)
 echo "🗄️  Application des migrations..."
+# Désactiver temporairement set -e pour permettre de continuer en cas d'erreur
+set +e
 python manage.py migrate --noinput
+MIGRATE_EXIT_CODE=$?
+set -e
+
+if [ $MIGRATE_EXIT_CODE -ne 0 ]; then
+    echo "⚠️  Erreur lors des migrations (code: $MIGRATE_EXIT_CODE)"
+    echo "💡 Si une colonne existe déjà, vous devrez marquer la migration comme appliquée:"
+    echo "   python manage.py migrate school_admin 0142 --fake"
+    echo "   Puis relancer: python manage.py migrate --noinput"
+    echo ""
+    echo "⏭️  Continuation du déploiement malgré l'erreur de migration..."
+fi
 
 # Re-collecter les fichiers statiques
 echo "📁 Collecte des fichiers statiques..."

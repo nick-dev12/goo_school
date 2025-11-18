@@ -265,6 +265,7 @@ if not DEBUG:
 # Désactiver CORS_ORIGIN_WHITELIST (déprécié)
 CORS_ORIGIN_WHITELIST = []
 
+
 # Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)
 CORS_ALLOWED_ORIGINS = [
     "https://aria-edu.com",

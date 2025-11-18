@@ -5199,6 +5199,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -7881,7 +7897,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "ALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']\n# Application definition\nINSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',\n    'school_admin',",
+        "peekOfCode": "ALLOWED_HOSTS = ['157.173.102.180', 'localhost', '127.0.0.1']\n# Application definition\nINSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',\n    'corsheaders',  # Django CORS Headers",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7890,7 +7906,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "INSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',\n    'school_admin',\n]\nMIDDLEWARE = [",
+        "peekOfCode": "INSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',\n    'corsheaders',  # Django CORS Headers\n    'school_admin',\n]",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -7899,7 +7915,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "MIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n    'django.middleware.common.CommonMiddleware',\n    'django.middleware.csrf.CsrfViewMiddleware',\n    'django.contrib.auth.middleware.AuthenticationMiddleware',\n    'django.contrib.messages.middleware.MessageMiddleware',\n    'django.middleware.clickjacking.XFrameOptionsMiddleware',\n    'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé\n]",
+        "peekOfCode": "MIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n    'corsheaders.middleware.CorsMiddleware',  # CORS middleware (doit être avant CommonMiddleware)\n    'django.middleware.common.CommonMiddleware',\n    'django.middleware.csrf.CsrfViewMiddleware',\n    'django.contrib.auth.middleware.AuthenticationMiddleware',\n    'django.contrib.messages.middleware.MessageMiddleware',\n    'django.middleware.clickjacking.XFrameOptionsMiddleware',\n    'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8088,7 +8104,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_API_BASE_URL = os.getenv(\n    \"WASENDER_API_BASE_URL\",\n    \"https://wasenderapi.com/api\",\n)\nWASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")",
+        "peekOfCode": "WASENDER_API_BASE_URL = os.getenv(\n    \"WASENDER_API_BASE_URL\",\n    \"https://wasenderapi.com/api\",\n)\nWASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8097,7 +8113,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")",
+        "peekOfCode": "WASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8106,7 +8122,34 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")",
+        "peekOfCode": "WASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CORS_ALLOWED_ORIGINS",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "CORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)\nCORS_ALLOW_CREDENTIALS = True\n# Headers autorisés\nCORS_ALLOW_HEADERS = [\n    'accept',",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CORS_ALLOW_CREDENTIALS",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "CORS_ALLOW_CREDENTIALS = True\n# Headers autorisés\nCORS_ALLOW_HEADERS = [\n    'accept',\n    'accept-encoding',\n    'authorization',\n    'content-type',\n    'dnt',\n    'origin',\n    'user-agent',",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CORS_ALLOW_HEADERS",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "CORS_ALLOW_HEADERS = [\n    'accept',\n    'accept-encoding',\n    'authorization',\n    'content-type',\n    'dnt',\n    'origin',\n    'user-agent',\n    'x-csrftoken',\n    'x-requested-with',",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -9872,6 +9915,15 @@
         "description": "school_admin.migrations.0140_alter_professeurotpcode_professeur",
         "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0139_professeurotpcode'),\n    ]\n    operations = [\n        migrations.AlterField(\n            model_name='professeurotpcode',\n            name='professeur',\n            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='otp_codes', to='school_admin.professeur'),\n        ),",
         "detail": "school_admin.migrations.0140_alter_professeurotpcode_professeur",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0142_add_photo_profil_to_eleve",
+        "description": "school_admin.migrations.0142_add_photo_profil_to_eleve",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0141_eleve_qr_code_identifier'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='eleve',\n            name='photo_profil',\n            field=models.ImageField(\n                blank=True,",
+        "detail": "school_admin.migrations.0142_add_photo_profil_to_eleve",
         "documentation": {}
     },
     {

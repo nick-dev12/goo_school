@@ -51,12 +51,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',  # Django CORS Headers
     'school_admin',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware (doit être avant CommonMiddleware)
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -213,3 +215,28 @@ WASENDER_API_TOKEN = os.getenv(
     "ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1",
 )
 WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")
+
+# ============================================
+# Configuration CORS (Cross-Origin Resource Sharing)
+# ============================================
+CORS_ALLOWED_ORIGINS = [
+    "http://157.173.102.180",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+# Autoriser les credentials (cookies, headers d'authentification)
+CORS_ALLOW_CREDENTIALS = True
+
+# Headers autorisés
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]

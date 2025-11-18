@@ -219,6 +219,10 @@ WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")
 # ============================================
 # Configuration CORS (Cross-Origin Resource Sharing)
 # ============================================
+# Désactiver CORS_ORIGIN_WHITELIST (déprécié)
+CORS_ORIGIN_WHITELIST = []
+
+# Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)
 CORS_ALLOWED_ORIGINS = [
     "http://157.173.102.180",
     "http://localhost:8000",

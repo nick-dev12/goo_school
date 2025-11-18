@@ -8113,7 +8113,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",",
+        "peekOfCode": "WASENDER_API_TOKEN = os.getenv(\n    \"WASENDER_API_TOKEN\",\n    \"ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1\",\n)\nWASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\n# Désactiver CORS_ORIGIN_WHITELIST (déprécié)\nCORS_ORIGIN_WHITELIST = []",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8122,7 +8122,16 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "WASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)",
+        "peekOfCode": "WASENDER_DEFAULT_SESSION_ID = os.getenv(\"WASENDER_DEFAULT_SESSION_ID\", \"31658\")\n# ============================================\n# Configuration CORS (Cross-Origin Resource Sharing)\n# ============================================\n# Désactiver CORS_ORIGIN_WHITELIST (déprécié)\nCORS_ORIGIN_WHITELIST = []\n# Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CORS_ORIGIN_WHITELIST",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "CORS_ORIGIN_WHITELIST = []\n# Utiliser CORS_ALLOWED_ORIGINS (nouvelle méthode)\nCORS_ALLOWED_ORIGINS = [\n    \"http://157.173.102.180\",\n    \"http://localhost:8000\",\n    \"http://127.0.0.1:8000\",\n]\n# Autoriser les credentials (cookies, headers d'authentification)\nCORS_ALLOW_CREDENTIALS = True\n# Headers autorisés",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -9922,7 +9931,7 @@
         "kind": 6,
         "importPath": "school_admin.migrations.0142_add_photo_profil_to_eleve",
         "description": "school_admin.migrations.0142_add_photo_profil_to_eleve",
-        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0141_eleve_qr_code_identifier'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='eleve',\n            name='photo_profil',\n            field=models.ImageField(\n                blank=True,",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0140_alter_professeurotpcode_professeur'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='eleve',\n            name='photo_profil',\n            field=models.ImageField(\n                blank=True,",
         "detail": "school_admin.migrations.0142_add_photo_profil_to_eleve",
         "documentation": {}
     },

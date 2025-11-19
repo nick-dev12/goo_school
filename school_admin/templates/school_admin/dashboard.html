@@ -52,8 +52,8 @@
           </div>
           <div class="indicator-content">
             <h3>Nombre d'élèves</h3>
-            <p class="indicator-value">0</p>
-            <span class="indicator-trend">Total des élèves</span>
+            <p class="indicator-value">{{ total_eleves|default:0 }}</p>
+            <span class="indicator-trend">Total des élèves inscrits</span>
           </div>
           <a href="#" class="indicator-link"
             ><i class="fas fa-arrow-right"></i
@@ -80,10 +80,12 @@
           </div>
           <div class="indicator-content">
             <h3>Paiements en retard</h3>
-            <p class="indicator-value">87</p>
-            <span class="indicator-trend negative">+12% ce mois-ci</span>
+            <p class="indicator-value">{{ etablissements_retard|default:0 }}</p>
+            <span class="indicator-trend {% if pourcentage_evolution_retard >= 0 %}negative{% else %}positive{% endif %}">
+              {% if pourcentage_evolution_retard >= 0 %}+{% endif %}{{ pourcentage_evolution_retard }}% ce mois-ci
+            </span>
           </div>
-          <a href="suivi-absences.php" class="indicator-link"
+          <a href="{% url 'school_admin:paiements_retard' %}" class="indicator-link"
             ><i class="fas fa-arrow-right"></i
           ></a>
         </div>
@@ -110,10 +112,24 @@
           </div>
           <div class="indicator-content">
             <h3>En conformité</h3>
-            <p class="indicator-value">5</p>
+            <p class="indicator-value">{{ etablissements_en_conformite|default:0 }}</p>
             <span class="indicator-trend">Dans les 30 prochains jours</span>
           </div>
-          <a href="#" class="indicator-link"
+          <a href="{% url 'school_admin:gestion_etablissements' %}" class="indicator-link"
+            ><i class="fas fa-arrow-right"></i
+          ></a>
+        </div>
+
+        <div class="indicator-card">
+          <div class="indicator-icon" style="background-color: var(--accent)">
+            <i class="fas fa-ban"></i>
+          </div>
+          <div class="indicator-content">
+            <h3>Établissements inactifs</h3>
+            <p class="indicator-value">{{ inactive_etablissements|default:0 }}</p>
+            <span class="indicator-trend">Sur {{ total_etablissements }} total</span>
+          </div>
+          <a href="{% url 'school_admin:etablissements' %}" class="indicator-link"
             ><i class="fas fa-arrow-right"></i
           ></a>
         </div>

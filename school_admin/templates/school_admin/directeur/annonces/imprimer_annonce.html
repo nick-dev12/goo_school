@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+{% load static %}
+{% load l10n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annonce - {{ annonce.titre }}</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/imprimer_annonce.css' %}?v=1.0.4">
+</head>
+<body>
+    <div class="letter-container">
+        <!-- Informations destinataire avec logo établissement -->
+        <div class="recipient-header">
+            <div class="recipient-info">
+                <p><strong>À l'attention de :</strong></p>
+                <p>{{ annonce.get_destinataires_display }}</p>
+                <p><strong>{{ etablissement.ville }}{% if etablissement.pays %}, {{ etablissement.pays }}{% endif %}</strong></p>
+            </div>
+            <div class="etablissement-header">
+                {% if etablissement.logo %}
+                <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" class="etablissement-logo">
+                {% endif %}
+                <div class="etablissement-name">{{ etablissement.nom }}</div>
+            </div>
+        </div>
+
+        <!-- Objet centré et souligné -->
+        <div class="letter-subject">
+            OBJET : {{ annonce.titre|upper }}
+        </div>
+
+        <!-- Salutation -->
+       
+
+        <!-- Corps du texte -->
+        <div class="letter-body">
+            {{ annonce.contenu|linebreaks }}
+        </div>
+
+        <!-- Fichier joint si présent -->
+        {% if annonce.fichier_joint %}
+        <div class="letter-attachment">
+            <h4><i class="fas fa-paperclip"></i> Pièce jointe</h4>
+            <p><strong>Fichier :</strong> {{ annonce.fichier_joint.name|slice:"17:" }}</p>
+            <p><strong>Taille :</strong> {{ annonce.fichier_joint.size|filesizeformat }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Informations expéditeur et date -->
+        <div class="sender-info">
+            <div class="sender-personal">
+                <p><strong>{{ annonce.get_nom_auteur }}</strong></p>
+            </div>
+            <div class="letter-date-footer">
+                <strong>{{ etablissement.ville }}</strong>, le <strong>{{ date_formatee }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions d'impression (masquées à l'impression) -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fas fa-print"></i>
+            Imprimer l'annonce
+        </button>
+        <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            Retour à l'aperçu
+        </a>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>
+

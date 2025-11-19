@@ -6,6 +6,8 @@ from ..controllers.compte_user_controller import CompteUserController
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.contrib.auth import update_session_auth_hash
+from ..model.etablissement_model import Etablissement
+from ..model.eleve_model import Eleve
 
 
 
@@ -23,6 +25,18 @@ class AdministrateurCompteController:
         else:
             return None
         return render(request, 'school_admin/administrateur/register.html')
+    
+    @staticmethod
+    def get_admin_statistics():
+        """
+        Récupère les statistiques pour le profil administrateur
+        """
+        nombre_etablissements = Etablissement.objects.filter(actif=True).count()
+        nombre_eleves = Eleve.objects.filter(is_active=True).count()
+        return {
+            'nombre_etablissements': nombre_etablissements,
+            'nombre_eleves': nombre_eleves,
+        }
     
     
     @staticmethod
@@ -42,9 +56,16 @@ class AdministrateurCompteController:
        
         user = request.user
         user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)
+        statistics = AdministrateurCompteController.get_admin_statistics()
+        
+        # Vérifier si l'utilisateur est administrateur
+        is_administrateur = user.is_authenticated and hasattr(user, 'fonction') and user.fonction == 'administrateur'
+        
         context = {
-        'user': user,
-        'user_administrateur': user_administrateur
+            'user': user,
+            'user_administrateur': user_administrateur,
+            'is_administrateur': is_administrateur,
+            **statistics
         }
         return render(request, 'school_admin/profil_admin.html', context)
    
@@ -61,8 +82,8 @@ class AdministrateurCompteController:
 
         # Vérification que l'utilisateur est bien authentifié et administrateur
         if not request.user.is_authenticated or getattr(request.user, 'fonction', None) != 'administrateur':
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
+            messages.error(request, "Accès non autorisé. Seuls les administrateurs peuvent modifier leurs informations.")
+            return redirect('school_admin:profil_admin')
 
         if request.method == 'POST':
             form_data = {
@@ -124,22 +145,30 @@ class AdministrateurCompteController:
                     field_errors['__all__'] = "Une erreur interne est survenue. Veuillez réessayer."
                 # Afficher les erreurs si une exception est levée
                 user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)
+                statistics = AdministrateurCompteController.get_admin_statistics()
+                is_administrateur = request.user.is_authenticated and hasattr(request.user, 'fonction') and request.user.fonction == 'administrateur'
                 return render(request, 'school_admin/profil_admin.html', {
                     'field_errors': field_errors,
                     'form_data': form_data,
                     'user': request.user,
                     'user_administrateur': user_administrateur,
-                    'active_tab': 'security'  # Activer l'onglet de sécurité pour afficher les erreurs
+                    'is_administrateur': is_administrateur,
+                    'active_tab': 'security',  # Activer l'onglet de sécurité pour afficher les erreurs
+                    **statistics
                 })
             else:
                 # Afficher les erreurs de validation
                 user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)
+                statistics = AdministrateurCompteController.get_admin_statistics()
+                is_administrateur = request.user.is_authenticated and hasattr(request.user, 'fonction') and request.user.fonction == 'administrateur'
                 return render(request, 'school_admin/profil_admin.html', {
                     'field_errors': field_errors,
                     'form_data': form_data,
                     'user': request.user,
                     'user_administrateur': user_administrateur,
-                    'active_tab': 'security'  # Activer l'onglet de sécurité pour afficher les erreurs
+                    'is_administrateur': is_administrateur,
+                    'active_tab': 'security',  # Activer l'onglet de sécurité pour afficher les erreurs
+                    **statistics
                 })
 
         # GET ou autre méthode : afficher le formulaire pré-rempli
@@ -150,20 +179,25 @@ class AdministrateurCompteController:
             'email': user.email,
             'telephone': user.telephone,
         }
+        statistics = AdministrateurCompteController.get_admin_statistics()
+        is_administrateur = user.is_authenticated and hasattr(user, 'fonction') and user.fonction == 'administrateur'
         return render(request, 'school_admin/profil_admin.html', {
             'form_data': form_data,
-            'user': user
+            'user': user,
+            'is_administrateur': is_administrateur,
+            **statistics
         })
         
     @staticmethod
     def update_password_admin(request):
         """
-        Mettre à jour le mot de passe de l'administrateur
+        Mettre à jour le mot de passe de l'utilisateur
+        Accessible à tous les utilisateurs authentifiés
         """
         
-        # Vérification que l'utilisateur est bien authentifié et administrateur
-        if not request.user.is_authenticated or request.user.fonction != 'administrateur':
-            messages.error(request, "Accès non autorisé.")
+        # Vérification que l'utilisateur est bien authentifié
+        if not request.user.is_authenticated:
+            messages.error(request, "Vous devez être connecté pour modifier votre mot de passe.")
             return redirect('school_admin:connexion_compte_user')
         
         # Initialisation des variables
@@ -204,21 +238,29 @@ class AdministrateurCompteController:
                     return redirect('school_admin:profil_admin')
             # Si validation échouée ou exception, réafficher le formulaire avec les erreurs
             user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)
+            statistics = AdministrateurCompteController.get_admin_statistics()
+            is_administrateur = request.user.is_authenticated and hasattr(request.user, 'fonction') and request.user.fonction == 'administrateur'
             return render(request, 'school_admin/profil_admin.html', {
                 'field_errors': field_errors,
                 'form_data': form_data,
                 'user': request.user,
                 'user_administrateur': user_administrateur,
-                'active_tab': 'security'
+                'is_administrateur': is_administrateur,
+                'active_tab': 'security',
+                **statistics
             })
         
         # GET ou autre méthode : afficher le formulaire vide
         user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)
+        statistics = AdministrateurCompteController.get_admin_statistics()
+        is_administrateur = request.user.is_authenticated and hasattr(request.user, 'fonction') and request.user.fonction == 'administrateur'
         return render(request, 'school_admin/profil_admin.html', {
             'form_data': form_data,
             'field_errors': {},
             'user': request.user,
             'user_administrateur': user_administrateur,
-            'active_tab': 'security'
+            'is_administrateur': is_administrateur,
+            'active_tab': 'security',
+            **statistics
         })
         

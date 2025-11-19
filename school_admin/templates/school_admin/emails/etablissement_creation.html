@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenue sur Aria - Votre établissement a été créé</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .email-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .email-body {
+            padding: 30px 20px;
+        }
+        .welcome-message {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .info-section {
+            background-color: #f9fafb;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .info-section h2 {
+            color: #1d4ed8;
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .info-item {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #4b5563;
+            display: inline-block;
+            width: 180px;
+        }
+        .info-value {
+            color: #1f2937;
+        }
+        .credentials-box {
+            background-color: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .credentials-box h3 {
+            color: #1d4ed8;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .credential-item {
+            background-color: #ffffff;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #dbeafe;
+        }
+        .credential-label {
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .credential-value {
+            color: #1f2937;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            background-color: #f9fafb;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .login-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .login-button:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+        }
+        .modules-section {
+            margin-top: 25px;
+        }
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .module-item {
+            background-color: #f0fdf4;
+            border: 1px solid #86efac;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #166534;
+        }
+        .email-footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .email-footer a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .security-note {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #92400e;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+            .info-label {
+                width: 100%;
+                display: block;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>🎓 Bienvenue sur Aria</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Votre établissement a été créé avec succès</p>
+        </div>
+        
+        <div class="email-body">
+            <div class="welcome-message">
+                Bonjour {{ directeur_prenom }} {{ directeur_nom }},
+            </div>
+            
+            <p>
+                Nous sommes ravis de vous accueillir sur la plateforme <strong>Aria</strong>, votre solution complète de gestion scolaire.
+                Votre établissement <strong>{{ establishment_name }}</strong> a été créé avec succès dans notre système.
+            </p>
+            
+            <div class="info-section">
+                <h2>📋 Informations de votre établissement</h2>
+                <div class="info-item">
+                    <span class="info-label">Nom de l'établissement :</span>
+                    <span class="info-value">{{ establishment_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Type d'établissement :</span>
+                    <span class="info-value">{{ establishment_type_display }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Code établissement :</span>
+                    <span class="info-value"><strong>{{ code_etablissement }}</strong></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Adresse :</span>
+                    <span class="info-value">{{ establishment_address }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Ville :</span>
+                    <span class="info-value">{{ establishment_city }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Pays :</span>
+                    <span class="info-value">{{ establishment_country }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email établissement :</span>
+                    <span class="info-value">{{ establishment_email }}</span>
+                </div>
+                {% if establishment_phone %}
+                <div class="info-item">
+                    <span class="info-label">Téléphone :</span>
+                    <span class="info-value">{{ establishment_phone }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="credentials-box">
+                <h3>🔐 Vos identifiants de connexion</h3>
+                <p style="margin-top: 0; color: #6b7280; font-size: 14px;">
+                    Utilisez ces identifiants pour vous connecter à votre espace directeur :
+                </p>
+                <div class="credential-item">
+                    <div class="credential-label">Email de connexion :</div>
+                    <div class="credential-value">{{ establishment_email }}</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-label">Mot de passe provisoire :</div>
+                    <div class="credential-value">{{ establishment_password }}</div>
+                </div>
+            </div>
+            
+            <div class="security-note">
+                <strong>⚠️ Important :</strong> Pour des raisons de sécurité, nous vous recommandons fortement de changer votre mot de passe lors de votre première connexion.
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ login_url }}" class="login-button">
+                    🚀 Accéder à mon espace directeur
+                </a>
+            </div>
+            
+            {% if modules_actives %}
+            <div class="modules-section">
+                <h2 style="color: #1d4ed8; font-size: 18px; margin-bottom: 10px;">✨ Modules activés</h2>
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 15px;">
+                    Les modules suivants ont été activés pour votre établissement :
+                </p>
+                <div class="modules-grid">
+                    {% for module in modules_actives %}
+                    <div class="module-item">✓ {{ module }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if type_facturation %}
+            <div class="info-section" style="margin-top: 25px;">
+                <h2>💰 Configuration de facturation</h2>
+                <div class="info-item">
+                    <span class="info-label">Type de facturation :</span>
+                    <span class="info-value">{{ type_facturation_display }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Montant par élève :</span>
+                    <span class="info-value"><strong>{{ montant_par_eleve }} FCFA</strong></span>
+                </div>
+            </div>
+            {% endif %}
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                Si vous avez des questions ou besoin d'assistance, n'hésitez pas à nous contacter à 
+                <a href="mailto:support@aria-edu.com" style="color: #3b82f6;">support@aria-edu.com</a>
+            </p>
+        </div>
+        
+        <div class="email-footer">
+            <p style="margin: 0 0 10px 0;">
+                <strong>Aria - Plateforme de gestion scolaire</strong>
+            </p>
+            <p style="margin: 0; font-size: 12px;">
+                Cet email a été envoyé automatiquement, merci de ne pas y répondre.<br>
+                © 2025 Aria. Tous droits réservés.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -51,11 +51,21 @@ urlpatterns =[
     # Gestion des équipes
     path('management_equipes/ajouter/', add_team_member, name='add_team_member'),
     path('commercial/profile/<int:commercial_id>/', commercial_profile, name='commercial_profile'),
+    path('team_member/profile/<int:member_id>/', team_member_profile, name='team_member_profile'),
+    path('team_member/update/<int:member_id>/', update_team_member, name='update_team_member'),
+    path('team_member/toggle_status/<int:member_id>/', toggle_team_member_status, name='toggle_team_member_status'),
+    path('team_member/delete/<int:member_id>/', delete_team_member, name='delete_team_member'),
    
     
     # Authentification
     path('inscription/', views.inscription_compte_user, name='inscription_compte_user'),
     path('connexion/', views.connexion_compte_user, name='connexion_compte_user'),
+    path('password-reset/', views.password_reset_request, name='password_reset_request'),
+    path('password-reset/verify/<str:identifier>/<str:user_type>/', views.password_reset_verify, name='password_reset_verify'),
+    path('password-reset/professeur/verify/<str:matricule>/', views.password_reset_professeur_verify, name='password_reset_professeur_verify'),
+    path('password-reset/professeur/reset/<str:matricule>/', views.password_reset_professeur_reset, name='password_reset_professeur_reset'),
+    path('password-reset/eleve/verify/<str:matricule>/', views.password_reset_eleve_verify, name='password_reset_eleve_verify'),
+    path('password-reset/eleve/reset/<str:matricule>/', views.password_reset_eleve_reset, name='password_reset_eleve_reset'),
     path(
         'connexion/professeurs/otp/',
         views.professeur_connexion_otp_request,
@@ -110,6 +120,8 @@ urlpatterns =[
         #comptable
         path('dashboard/comptable/',dashboard_comptable, name='dashboard_comptable'),
         path('suivi_revenus/',suivi_revenus, name='suivi_revenus'),
+        path('gestion_comptable/depense/<int:depense_id>/', depense_detail_json, name='depense_detail_json'),
+        path('gestion_comptable/depenses/<int:depense_id>/', depense_detail, name='depense_detail'),
         path('paiements_retard/',paiements_retard, name='paiements_retard'),
         path('calculs_automatiques/',calculs_automatiques, name='calculs_automatiques'),
         path('rapports_mensuels/',rapports_mensuels, name='rapports_mensuels'),

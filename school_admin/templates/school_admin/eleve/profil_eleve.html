@@ -11,13 +11,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Style CSS personnalisé -->
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/profil_eleve.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/profil_eleve.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}">
 </head>
 
 <body>
 {% include 'school_admin/eleve/partials/header.html' %}
 
+{% include 'school_admin/partials/messages.html' %}
 <!-- Contenu principal -->
 <div class="content-container">
     <div class="profil-container">
@@ -70,6 +71,14 @@
                         >
                             <i class="fas fa-id-card"></i>
                             Voir ma carte d'identité
+                        </button>
+                        <button
+                            type="button"
+                            class="password-action-button"
+                            id="openPasswordModal"
+                        >
+                            <i class="fas fa-lock"></i>
+                            Modifier le mot de passe
                         </button>
                     </div>
                     {% else %}
@@ -699,10 +708,307 @@
     </div>
 </div>
 
-<!-- Scripts JavaScript -->
-<script src="{% static 'school_admin/js/eleve/header.js' %}"></script>
+<!-- Modal plein écran pour le changement de mot de passe -->
 {% if not est_parent %}
-<script src="{% static 'school_admin/js/eleve/profil_photo_modal.js' %}"></script>
+<div
+    class="password-modal-overlay {% if password_modal_open %}active{% endif %}"
+    id="passwordModalOverlay"
+    aria-hidden="{% if password_modal_open %}false{% else %}true{% endif %}"
+>
+    <div
+        class="password-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="passwordModalTitle"
+    >
+        <button
+            type="button"
+            class="password-modal-close"
+            id="closePasswordModal"
+            aria-label="Fermer le formulaire de changement de mot de passe"
+        >
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="password-modal-body">
+            <header class="password-modal-header">
+                <h2 id="passwordModalTitle">
+                    <i class="fas fa-shield-alt"></i>
+                    Modifier le mot de passe
+                </h2>
+                <p>
+                    Pour des raisons de sécurité, veuillez entrer votre mot de passe actuel
+                    avant de définir un nouveau mot de passe.
+                </p>
+            </header>
+            
+            {% if password_errors %}
+            <div class="form-errors">
+                {% for error in password_errors %}
+                <p><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                    <button type="button" class="close-alert">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <form
+                id="passwordChangeForm"
+                method="post"
+                action="{% url 'eleve:profil_eleve' %}"
+            >
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_password" />
+                
+                <div class="password-form-grid">
+                    <div class="password-form-fields">
+                        <div class="form-field">
+                            <label for="old_password">
+                                <i class="fas fa-key"></i>
+                                Ancien mot de passe *
+                            </label>
+                            <div class="password-input-wrapper">
+                                <input
+                                    type="password"
+                                    id="old_password"
+                                    name="old_password"
+                                    class="form-input"
+                                    required
+                                    placeholder="Entrez votre ancien mot de passe"
+                                />
+                                <button type="button" class="toggle-password" data-target="old_password" aria-label="Afficher/Masquer le mot de passe">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="new_password">
+                                <i class="fas fa-lock"></i>
+                                Nouveau mot de passe *
+                            </label>
+                            <div class="password-input-wrapper">
+                                <input
+                                    type="password"
+                                    id="new_password"
+                                    name="new_password"
+                                    class="form-input"
+                                    required
+                                    placeholder="Entrez un nouveau mot de passe (min. 8 caractères)"
+                                />
+                                <button type="button" class="toggle-password" data-target="new_password" aria-label="Afficher/Masquer le mot de passe">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="form-hint">Le mot de passe doit contenir au moins 8 caractères</small>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="confirm_password">
+                                <i class="fas fa-lock"></i>
+                                Confirmer le nouveau mot de passe *
+                            </label>
+                            <div class="password-input-wrapper">
+                                <input
+                                    type="password"
+                                    id="confirm_password"
+                                    name="confirm_password"
+                                    class="form-input"
+                                    required
+                                    placeholder="Confirmez votre nouveau mot de passe"
+                                />
+                                <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Afficher/Masquer le mot de passe">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="password-tips">
+                            <h4><i class="fas fa-info-circle"></i> Conseils pour un mot de passe sécurisé :</h4>
+                            <ul>
+                                <li>Au moins 8 caractères</li>
+                                <li>Combinaison de lettres, chiffres et symboles</li>
+                                <li>Ne pas utiliser d'informations personnelles</li>
+                                <li>Ne pas réutiliser un ancien mot de passe</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="submit-password-button">
+                                <i class="fas fa-save"></i>
+                                Enregistrer le nouveau mot de passe
+                            </button>
+                            <button
+                                type="button"
+                                class="cancel-password-button"
+                                id="cancelPasswordModal"
+                            >
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Scripts JavaScript -->
+<script src="{% static 'school_admin/js/eleve/header.js' %}?v=1.0.1"></script>
+{% if not est_parent %}
+<script src="{% static 'school_admin/js/eleve/profil_photo_modal.js' %}?v=1.0.1"></script>
+
+<script>
+    // Gestion du modal de changement de mot de passe
+    const passwordModalOverlay = document.getElementById('passwordModalOverlay');
+    const openPasswordModalBtn = document.getElementById('openPasswordModal');
+    const closePasswordModalBtn = document.getElementById('closePasswordModal');
+    const cancelPasswordModalBtn = document.getElementById('cancelPasswordModal');
+    
+    if (openPasswordModalBtn && passwordModalOverlay) {
+        openPasswordModalBtn.addEventListener('click', function() {
+            passwordModalOverlay.classList.add('active');
+            passwordModalOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+    
+    function closePasswordModal() {
+        if (passwordModalOverlay) {
+            passwordModalOverlay.classList.remove('active');
+            passwordModalOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    if (closePasswordModalBtn) {
+        closePasswordModalBtn.addEventListener('click', closePasswordModal);
+    }
+    
+    if (cancelPasswordModalBtn) {
+        cancelPasswordModalBtn.addEventListener('click', closePasswordModal);
+    }
+    
+    // Fermer le modal en cliquant sur l'overlay
+    if (passwordModalOverlay) {
+        passwordModalOverlay.addEventListener('click', function(e) {
+            if (e.target === passwordModalOverlay) {
+                closePasswordModal();
+            }
+        });
+    }
+    
+    // Fermer avec la touche Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && passwordModalOverlay && passwordModalOverlay.classList.contains('active')) {
+            closePasswordModal();
+        }
+    });
+    
+    // Ouvrir automatiquement le modal si le paramètre GET est présent
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('password_modal') === 'open' && passwordModalOverlay) {
+        passwordModalOverlay.classList.add('active');
+        passwordModalOverlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        // Nettoyer l'URL pour retirer le paramètre
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // Gestion de l'affichage/masquage des mots de passe
+    function initPasswordToggles() {
+        const togglePasswordButtons = document.querySelectorAll('.toggle-password');
+        
+        togglePasswordButtons.forEach(button => {
+            // Forcer la visibilité du bouton avec des styles inline
+            button.style.cssText = `
+                position: absolute !important;
+                right: 12px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 32px !important;
+                height: 32px !important;
+                background: white !important;
+                border: 1px solid #d1d5db !important;
+                border-radius: 50% !important;
+                cursor: pointer !important;
+                z-index: 9999 !important;
+                visibility: visible !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            `;
+            
+            // Vérifier que l'icône est présente
+            const icon = button.querySelector('i');
+            if (!icon) {
+                console.error('Icône manquante dans le bouton toggle');
+                return;
+            }
+            
+            // Forcer le style de l'icône
+            icon.style.cssText = `
+                font-size: 16px !important;
+                color: #4b5563 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            `;
+            
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = this.getAttribute('data-target');
+                const passwordInput = document.getElementById(targetId);
+                const iconElement = this.querySelector('i');
+                
+                if (passwordInput && iconElement) {
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        iconElement.classList.remove('fa-eye');
+                        iconElement.classList.add('fa-eye-slash');
+                        this.setAttribute('aria-label', 'Masquer le mot de passe');
+                    } else {
+                        passwordInput.type = 'password';
+                        iconElement.classList.remove('fa-eye-slash');
+                        iconElement.classList.add('fa-eye');
+                        this.setAttribute('aria-label', 'Afficher le mot de passe');
+                    }
+                } else {
+                    console.error('Champ de mot de passe ou icône introuvable pour:', targetId);
+                }
+            });
+        });
+    }
+    
+    // Initialiser immédiatement (script à la fin du body)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPasswordToggles);
+    } else {
+        initPasswordToggles();
+    }
+    
+    // Fermer les alertes
+    const closeAlerts = document.querySelectorAll('.close-alert');
+    closeAlerts.forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.parentElement.style.display = 'none';
+        });
+    });
+</script>
 {% endif %}
 
     {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}

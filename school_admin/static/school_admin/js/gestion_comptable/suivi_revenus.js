@@ -1,14 +1,18 @@
 // Suivi des Revenus JavaScript
 document.addEventListener('DOMContentLoaded', function () {
     initializeTabs();
-    initializeSearch();
-    initializeFilters();
+    initializeSubTabs();
+    initializeSearchEntrees();
+    initializeSearchDepenses();
+    initializeFiltersEntrees();
+    initializeFiltersDepenses();
     initializeTableActions();
     initializeTooltips();
     initializeAnimations();
+    initializeDepenseModals();
 });
 
-// Initialize Tabs
+// Initialize Main Tabs
 function initializeTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
@@ -45,99 +49,273 @@ function initializeTabs() {
     }
 }
 
-// Initialize Search
-function initializeSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const tableRows = document.querySelectorAll('.data-table tbody tr');
+// Initialize Sub-tabs for Categories
+function initializeSubTabs() {
+    const subTabButtons = document.querySelectorAll('.sub-tab-btn');
+    const subTabTables = document.querySelectorAll('.sub-tab-table');
+    const mainTable = document.getElementById('tableToutesDepenses');
 
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase().trim();
+    function activateSubTab(button) {
+        subTabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
 
-            tableRows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                const shouldShow = text.includes(searchTerm);
+        if (mainTable) {
+            mainTable.style.display = button.dataset.subTab === 'toutes' ? 'table' : 'none';
+        }
 
-                row.style.display = shouldShow ? '' : 'none';
+        subTabTables.forEach(table => table.style.display = 'none');
 
-                if (shouldShow) {
-                    row.classList.add('search-highlight');
-                    setTimeout(() => {
-                        row.classList.remove('search-highlight');
-                    }, 1000);
+        if (button.dataset.subTab !== 'toutes') {
+            const targetId = button.dataset.target;
+            if (targetId) {
+                const targetTable = document.getElementById(targetId);
+                if (targetTable) {
+                    targetTable.style.display = 'table';
                 }
-            });
+            }
+        }
 
-            // Update empty state if no results
-            updateEmptyState();
+        applyDepensesFilters();
+    }
+
+    subTabButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            activateSubTab(this);
         });
+    });
+
+    const defaultButton = document.querySelector('.sub-tab-btn.active') || subTabButtons[0];
+    if (defaultButton) {
+        activateSubTab(defaultButton);
     }
 }
 
-// Initialize Filters
-function initializeFilters() {
-    const statusFilter = document.getElementById('statusFilter');
-    const monthFilter = document.getElementById('monthFilter');
-    const clearFiltersBtn = document.getElementById('clearFilters');
-    const tableRows = document.querySelectorAll('.data-table tbody tr');
+// Initialize Search for Entrées Tab
+function initializeSearchEntrees() {
+    const searchInput = document.getElementById('searchInputEntrees');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function () {
+        const searchTerm = this.value.toLowerCase().trim();
+        const tableRows = document.querySelectorAll('#entrees .data-table tbody tr');
+
+        tableRows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const shouldShow = text.includes(searchTerm);
+            row.style.display = shouldShow ? '' : 'none';
+        });
+
+        updateEmptyStateEntrees();
+    });
+}
+
+// Initialize Search for Dépenses Tab
+function initializeSearchDepenses() {
+    const searchInput = document.getElementById('searchInputDepenses');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function () {
+        applyDepensesFilters();
+    });
+}
+
+// Initialize Filters for Entrées Tab
+function initializeFiltersEntrees() {
+    const statusFilter = document.getElementById('statusFilterEntrees');
+    const typeFilter = document.getElementById('typeFilterEntrees');
+    const clearFiltersBtn = document.getElementById('clearFiltersEntrees');
 
     function applyFilters() {
-        const statusValue = statusFilter.value;
-        const monthValue = monthFilter.value;
+        const statusValue = statusFilter?.value || '';
+        const typeValue = typeFilter?.value || '';
+        const searchTerm = document.getElementById('searchInputEntrees')?.value.toLowerCase().trim() || '';
+        const tableRows = document.querySelectorAll('#entrees .data-table tbody tr');
 
         tableRows.forEach(row => {
             let shouldShow = true;
+
+            // Search filter
+            if (searchTerm) {
+                const text = row.textContent.toLowerCase();
+                shouldShow = shouldShow && text.includes(searchTerm);
+            }
 
             // Status filter
             if (statusValue) {
                 const statusBadge = row.querySelector('.status-badge');
                 if (statusBadge) {
-                    const status = statusBadge.textContent.toLowerCase().trim();
+                    const statusText = statusBadge.textContent.toLowerCase().trim();
                     const statusMap = {
-                        'actif': 'en-cours',
-                        'en_attente': 'en-attente',
-                        'en_retard': 'en-retard',
-                        'termine': 'termine'
+                        'en_regle': ['en règle', 'en-regle'],
+                        'en_retard': ['en retard', 'en-retard'],
+                        'non_en_regle': ['non en règle', 'non-en-regle'],
+                        'contentieux': ['contentieux']
                     };
-                    shouldShow = shouldShow && status.includes(statusMap[statusValue] || statusValue);
+                    const matches = statusMap[statusValue] || [];
+                    shouldShow = shouldShow && matches.some(m => statusText.includes(m));
                 }
             }
 
-            // Month filter (simplified - would need actual date data)
-            if (monthValue) {
-                const dateElement = row.querySelector('.date');
-                if (dateElement) {
-                    const dateText = dateElement.textContent.toLowerCase();
-                    shouldShow = shouldShow && dateText.includes(monthValue);
+            // Type filter
+            if (typeValue) {
+                const etablissementInfo = row.querySelector('.etablissement-info');
+                if (etablissementInfo) {
+                    const typeBadge = row.querySelector('.type-badge');
+                    if (typeBadge) {
+                        const typeText = typeBadge.textContent.toLowerCase().trim();
+                        shouldShow = shouldShow && typeText.includes(typeValue);
+                    }
                 }
             }
 
             row.style.display = shouldShow ? '' : 'none';
         });
 
-        updateEmptyState();
+        updateEmptyStateEntrees();
     }
 
-    if (statusFilter) {
-        statusFilter.addEventListener('change', applyFilters);
-    }
-
-    if (monthFilter) {
-        monthFilter.addEventListener('change', applyFilters);
-    }
-
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+    if (typeFilter) typeFilter.addEventListener('change', applyFilters);
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', function () {
-            statusFilter.value = '';
-            monthFilter.value = '';
-            document.getElementById('searchInput').value = '';
-
-            tableRows.forEach(row => {
-                row.style.display = '';
-            });
-
-            updateEmptyState();
+            if (statusFilter) statusFilter.value = '';
+            if (typeFilter) typeFilter.value = '';
+            const searchInput = document.getElementById('searchInputEntrees');
+            if (searchInput) searchInput.value = '';
+            applyFilters();
         });
+    }
+}
+
+// Initialize Filters for Dépenses Tab
+function initializeFiltersDepenses() {
+    const statutFilter = document.getElementById('statutFilterDepenses');
+    const typeDepenseFilter = document.getElementById('typeDepenseFilter');
+    const methodePaiementFilter = document.getElementById('methodePaiementFilter');
+    const clearFiltersBtn = document.getElementById('clearFiltersDepenses');
+
+    function applyFilters() {
+        applyDepensesFilters();
+    }
+
+    if (statutFilter) statutFilter.addEventListener('change', applyFilters);
+    if (typeDepenseFilter) typeDepenseFilter.addEventListener('change', applyFilters);
+    if (methodePaiementFilter) methodePaiementFilter.addEventListener('change', applyFilters);
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function () {
+            if (statutFilter) statutFilter.value = '';
+            if (typeDepenseFilter) typeDepenseFilter.value = '';
+            if (methodePaiementFilter) methodePaiementFilter.value = '';
+            const searchInput = document.getElementById('searchInputDepenses');
+            if (searchInput) searchInput.value = '';
+            applyDepensesFilters();
+        });
+    }
+}
+
+// Apply filters for Dépenses
+function applyDepensesFilters() {
+    const searchTerm = document.getElementById('searchInputDepenses')?.value.toLowerCase().trim() || '';
+    const statutValue = document.getElementById('statutFilterDepenses')?.value || '';
+    const typeDepenseValue = document.getElementById('typeDepenseFilter')?.value || '';
+    const methodePaiementValue = document.getElementById('methodePaiementFilter')?.value || '';
+
+    const depensesTables = document.querySelectorAll('#depenses .data-table');
+
+    depensesTables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+            let shouldShow = true;
+
+            if (searchTerm) {
+                const searchText = row.getAttribute('data-search-text') || '';
+                shouldShow = shouldShow && searchText.includes(searchTerm);
+            }
+
+            if (statutValue) {
+                const rowStatut = row.getAttribute('data-statut') || '';
+                shouldShow = shouldShow && rowStatut === statutValue;
+            }
+
+            if (typeDepenseValue) {
+                const rowTypeDepense = row.getAttribute('data-type-depense') || '';
+                shouldShow = shouldShow && rowTypeDepense === typeDepenseValue;
+            }
+
+            if (methodePaiementValue) {
+                const rowMethodePaiement = (row.getAttribute('data-methode-paiement') || '').toLowerCase();
+                shouldShow = shouldShow && rowMethodePaiement === methodePaiementValue;
+            }
+
+            row.style.display = shouldShow ? '' : 'none';
+        });
+    });
+
+    updateEmptyStateDepenses();
+}
+
+// Update Empty State for Entrées
+function updateEmptyStateEntrees() {
+    const entreesPanel = document.getElementById('entrees');
+    if (!entreesPanel) return;
+    
+    const visibleRows = entreesPanel.querySelectorAll('.data-table tbody tr:not([style*="display: none"])');
+    const emptyState = entreesPanel.querySelector('.empty-state');
+    
+    if (visibleRows.length === 0 && !emptyState) {
+        const emptyStateDiv = document.createElement('div');
+        emptyStateDiv.className = 'empty-state';
+        emptyStateDiv.innerHTML = `
+            <i class="fas fa-search"></i>
+            <h3>Aucun résultat trouvé</h3>
+            <p>Essayez de modifier vos critères de recherche ou de filtrage</p>
+        `;
+        const tableContainer = entreesPanel.querySelector('.table-container');
+        if (tableContainer) {
+            tableContainer.appendChild(emptyStateDiv);
+        }
+    } else if (visibleRows.length > 0 && emptyState) {
+        emptyState.remove();
+    }
+}
+
+// Update Empty State for Dépenses
+function updateEmptyStateDepenses() {
+    const depensesPanel = document.getElementById('depenses');
+    if (!depensesPanel) return;
+    
+    const activeSubTab = document.querySelector('.sub-tab-btn.active');
+    const defaultTable = document.getElementById('tableToutesDepenses');
+    let activeTable = defaultTable;
+
+    if (activeSubTab) {
+        if (activeSubTab.dataset.subTab === 'toutes' || !activeSubTab.dataset.target) {
+            activeTable = defaultTable;
+        } else {
+            activeTable = document.getElementById(activeSubTab.dataset.target) || defaultTable;
+        }
+    }
+    
+    if (!activeTable) return;
+    
+    const visibleRows = activeTable.querySelectorAll('tbody tr:not([style*="display: none"])');
+    const tableWrapper = activeTable.closest('.table-wrapper');
+    let emptyState = tableWrapper?.querySelector('.empty-state');
+    
+    if (visibleRows.length === 0 && !emptyState) {
+        const emptyStateDiv = document.createElement('div');
+        emptyStateDiv.className = 'empty-state';
+        emptyStateDiv.innerHTML = `
+            <i class="fas fa-search"></i>
+            <h3>Aucun résultat trouvé</h3>
+            <p>Essayez de modifier vos critères de recherche ou de filtrage</p>
+        `;
+        if (tableWrapper) {
+            tableWrapper.appendChild(emptyStateDiv);
+        }
+    } else if (visibleRows.length > 0 && emptyState) {
+        emptyState.remove();
     }
 }
 
@@ -148,68 +326,8 @@ function initializeTableActions() {
     actionButtons.forEach(button => {
         button.addEventListener('click', function (e) {
             e.stopPropagation();
-            const action = this.getAttribute('title');
-            const row = this.closest('tr');
-            const etablissement = row.querySelector('h4')?.textContent || 'cet élément';
-
-            handleAction(action, etablissement, row);
         });
     });
-}
-
-// Handle Action
-function handleAction(action, etablissement, row) {
-    const actions = {
-        'Voir détails': () => showDetails(etablissement, row),
-        'Modifier': () => editItem(etablissement, row),
-        'Envoyer rappel': () => sendReminder(etablissement),
-        'Envoyer relance': () => sendFollowUp(etablissement),
-        'Télécharger facture': () => downloadInvoice(etablissement),
-        'Télécharger reçu': () => downloadReceipt(etablissement),
-        'Télécharger quittance': () => downloadQuittance(etablissement)
-    };
-
-    if (actions[action]) {
-        actions[action]();
-    } else {
-        showNotification(`Action "${action}" non implémentée`, 'info');
-    }
-}
-
-// Action Functions
-function showDetails(etablissement, row) {
-    showNotification(`Affichage des détails pour ${etablissement}`, 'info');
-    // Here you would open a modal or navigate to details page
-}
-
-function editItem(etablissement, row) {
-    showNotification(`Modification de ${etablissement}`, 'info');
-    // Here you would open an edit form
-}
-
-function sendReminder(etablissement) {
-    showNotification(`Rappel envoyé à ${etablissement}`, 'success');
-    // Here you would send an actual reminder
-}
-
-function sendFollowUp(etablissement) {
-    showNotification(`Relance envoyée à ${etablissement}`, 'warning');
-    // Here you would send a follow-up
-}
-
-function downloadInvoice(etablissement) {
-    showNotification(`Téléchargement de la facture pour ${etablissement}`, 'info');
-    // Here you would trigger file download
-}
-
-function downloadReceipt(etablissement) {
-    showNotification(`Téléchargement du reçu pour ${etablissement}`, 'info');
-    // Here you would trigger file download
-}
-
-function downloadQuittance(etablissement) {
-    showNotification(`Téléchargement de la quittance pour ${etablissement}`, 'info');
-    // Here you would trigger file download
 }
 
 // Initialize Tooltips
@@ -299,45 +417,274 @@ function initializeAnimations() {
     });
 }
 
-// Update Empty State
-function updateEmptyState() {
-    const activePanel = document.querySelector('.tab-panel.active');
-    const visibleRows = activePanel.querySelectorAll('.data-table tbody tr:not([style*="display: none"])');
-
-    if (visibleRows.length === 0) {
-        showEmptyState(activePanel);
-    } else {
-        hideEmptyState(activePanel);
+// Initialize Depense Modals
+function initializeDepenseModals() {
+    // Bouton ajouter dépense
+    const btnAjouterDepense = document.getElementById('btnAjouterDepense');
+    if (btnAjouterDepense) {
+        btnAjouterDepense.addEventListener('click', function() {
+            ouvrirModalDepense();
+        });
+    }
+    
+    // Fermer modal en cliquant en dehors
+    const depenseModal = document.getElementById('depenseModal');
+    if (depenseModal) {
+        depenseModal.addEventListener('click', function(e) {
+            if (e.target === depenseModal) {
+                fermerModalDepense();
+            }
+        });
+    }
+    
+    const voirDepenseModal = document.getElementById('voirDepenseModal');
+    if (voirDepenseModal) {
+        voirDepenseModal.addEventListener('click', function(e) {
+            if (e.target === voirDepenseModal) {
+                fermerModalVoirDepense();
+            }
+        });
     }
 }
 
-// Show Empty State
-function showEmptyState(panel) {
-    let emptyState = panel.querySelector('.empty-state');
-
-    if (!emptyState) {
-        emptyState = document.createElement('div');
-        emptyState.className = 'empty-state';
-        emptyState.innerHTML = `
-            <i class="fas fa-search"></i>
-            <h3>Aucun résultat trouvé</h3>
-            <p>Essayez de modifier vos critères de recherche ou de filtrage</p>
-        `;
-
-        const tableContainer = panel.querySelector('.table-container');
-        if (tableContainer) {
-            tableContainer.appendChild(emptyState);
+// Ouvrir modal pour ajouter une dépense
+function ouvrirModalDepense() {
+    const modal = document.getElementById('depenseModal');
+    const form = document.getElementById('depenseForm');
+    const title = document.getElementById('modalDepenseTitle');
+    
+    if (modal && form && title) {
+        // Réinitialiser le formulaire
+        form.reset();
+        document.getElementById('depenseAction').value = 'ajouter_depense';
+        document.getElementById('depenseId').value = '';
+        document.getElementById('datePaiementGroup').style.display = 'none';
+        document.getElementById('pieceJointePreview').style.display = 'none';
+        const typeSelect = document.getElementById('type_depense');
+        if (typeSelect) {
+            typeSelect.value = 'unique';
         }
+        
+        // Mettre à jour le titre
+        title.innerHTML = '<i class="fas fa-plus-circle"></i> Ajouter une dépense';
+        
+        // Afficher le modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
-
-    emptyState.style.display = 'block';
 }
 
-// Hide Empty State
-function hideEmptyState(panel) {
-    const emptyState = panel.querySelector('.empty-state');
-    if (emptyState) {
-        emptyState.style.display = 'none';
+// Modifier une dépense
+function modifierDepense(depenseId) {
+    // Récupérer les données de la dépense depuis le serveur
+    fetch(`/gestion_comptable/depense/${depenseId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const depense = data.depense;
+                const modal = document.getElementById('depenseModal');
+                const form = document.getElementById('depenseForm');
+                const title = document.getElementById('modalDepenseTitle');
+                
+                if (modal && form && title) {
+                    // Remplir le formulaire
+                    document.getElementById('depenseAction').value = 'modifier_depense';
+                    document.getElementById('depenseId').value = depenseId;
+                    document.getElementById('description').value = depense.description || '';
+                    document.getElementById('montant').value = depense.montant || '';
+                    document.getElementById('categorie').value = depense.categorie || '';
+                    if (document.getElementById('type_depense')) {
+                        document.getElementById('type_depense').value = depense.type_depense || 'unique';
+                    }
+                    document.getElementById('date_depense').value = depense.date_depense || '';
+                    document.getElementById('statut').value = depense.statut || 'en_attente';
+                    document.getElementById('fournisseur').value = depense.fournisseur || '';
+                    document.getElementById('numero_facture').value = depense.numero_facture || '';
+                    document.getElementById('methode_paiement').value = depense.methode_paiement || 'virement';
+                    document.getElementById('etablissement').value = depense.etablissement_id || '';
+                    document.getElementById('notes').value = depense.notes || '';
+                    
+                    // Gérer la date de paiement
+                    if (depense.date_paiement) {
+                        document.getElementById('date_paiement').value = depense.date_paiement;
+                    }
+                    toggleDatePaiement();
+                    
+                    // Gérer la pièce jointe
+                    if (depense.piece_jointe) {
+                        document.getElementById('pieceJointeLink').href = depense.piece_jointe;
+                        document.getElementById('pieceJointePreview').style.display = 'block';
+                    } else {
+                        document.getElementById('pieceJointePreview').style.display = 'none';
+                    }
+                    
+                    // Mettre à jour le titre
+                    title.innerHTML = '<i class="fas fa-edit"></i> Modifier la dépense';
+                    
+                    // Afficher le modal
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+            } else {
+                showNotification('Erreur lors du chargement de la dépense', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors du chargement de la dépense', 'error');
+        });
+}
+
+// Voir une dépense
+function voirDepense(depenseId) {
+    // Récupérer les données de la dépense depuis le serveur
+    fetch(`/gestion_comptable/depense/${depenseId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const depense = data.depense;
+                const modal = document.getElementById('voirDepenseModal');
+                const content = document.getElementById('voirDepenseContent');
+                
+                if (modal && content) {
+                    // Construire le contenu HTML
+                    let html = `
+                        <div class="depense-details">
+                            <div class="detail-section">
+                                <h3><i class="fas fa-info-circle"></i> Informations générales</h3>
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <label>Description:</label>
+                                        <p>${depense.description || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Catégorie:</label>
+                                        <p>${depense.categorie_display || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Type de dépense:</label>
+                                        <p>${depense.type_depense_display || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Montant:</label>
+                                        <p class="amount">${depense.montant_formatted || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Date de dépense:</label>
+                                        <p>${depense.date_depense_display || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Statut:</label>
+                                        <span class="status-badge ${depense.statut_class || ''}">${depense.statut_display || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h3><i class="fas fa-building"></i> Fournisseur et paiement</h3>
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <label>Fournisseur:</label>
+                                        <p>${depense.fournisseur || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Numéro de facture:</label>
+                                        <p>${depense.numero_facture || 'N/A'}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Méthode de paiement:</label>
+                                        <p>${depense.methode_paiement_display || 'N/A'}</p>
+                                    </div>
+                                    ${depense.date_paiement ? `
+                                    <div class="detail-item">
+                                        <label>Date de paiement:</label>
+                                        <p>${depense.date_paiement_display}</p>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            ${depense.etablissement ? `
+                            <div class="detail-section">
+                                <h3><i class="fas fa-school"></i> Établissement</h3>
+                                <div class="detail-item">
+                                    <label>Établissement concerné:</label>
+                                    <p>${depense.etablissement_nom}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${depense.notes ? `
+                            <div class="detail-section">
+                                <h3><i class="fas fa-sticky-note"></i> Notes</h3>
+                                <p>${depense.notes}</p>
+                            </div>
+                            ` : ''}
+                            
+                            ${depense.piece_jointe ? `
+                            <div class="detail-section">
+                                <h3><i class="fas fa-file"></i> Pièce jointe</h3>
+                                <a href="${depense.piece_jointe}" target="_blank" class="btn-primary">
+                                    <i class="fas fa-download"></i> Télécharger la pièce jointe
+                                </a>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    
+                    content.innerHTML = html;
+                    
+                    // Afficher le modal
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+            } else {
+                showNotification('Erreur lors du chargement de la dépense', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors du chargement de la dépense', 'error');
+        });
+}
+
+// Fermer modal dépense
+function fermerModalDepense() {
+    const modal = document.getElementById('depenseModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// Fermer modal voir dépense
+function fermerModalVoirDepense() {
+    const modal = document.getElementById('voirDepenseModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// Toggle date de paiement
+function toggleDatePaiement() {
+    const statut = document.getElementById('statut').value;
+    const datePaiementGroup = document.getElementById('datePaiementGroup');
+    
+    if (statut === 'paye') {
+        datePaiementGroup.style.display = 'block';
+        document.getElementById('date_paiement').required = true;
+    } else {
+        datePaiementGroup.style.display = 'none';
+        document.getElementById('date_paiement').required = false;
     }
 }
 
@@ -400,33 +747,13 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Export Functions
-function exportData(format = 'excel') {
-    showNotification(`Export ${format.toUpperCase()} en cours...`, 'info');
-
-    // Simulation d'export
-    setTimeout(() => {
-        showNotification(`Export ${format.toUpperCase()} terminé`, 'success');
-    }, 2000);
-}
-
-// Refresh Data
-function refreshData() {
-    showNotification('Actualisation des données...', 'info');
-
-    // Animation de rafraîchissement
-    const tableContainer = document.querySelector('.table-container');
-    if (tableContainer) {
-        tableContainer.classList.add('loading');
-    }
-
-    setTimeout(() => {
-        if (tableContainer) {
-            tableContainer.classList.remove('loading');
-        }
-        showNotification('Données actualisées', 'success');
-    }, 1000);
-}
+// Export functions to global scope
+window.ouvrirModalDepense = ouvrirModalDepense;
+window.modifierDepense = modifierDepense;
+window.voirDepense = voirDepense;
+window.fermerModalDepense = fermerModalDepense;
+window.fermerModalVoirDepense = fermerModalVoirDepense;
+window.toggleDatePaiement = toggleDatePaiement;
 
 // Add CSS for search highlight
 const style = document.createElement('style');
@@ -439,13 +766,22 @@ style.textContent = `
     .tooltip {
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-secondary);
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        margin: 0.5rem 0;
+        color: var(--text-primary);
+    }
 `;
 document.head.appendChild(style);
-
-// Export functions to global scope
-window.SuiviRevenus = {
-    exportData,
-    refreshData,
-    showNotification,
-    handleAction
-};

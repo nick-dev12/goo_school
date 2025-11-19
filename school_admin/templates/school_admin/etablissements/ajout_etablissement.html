@@ -139,17 +139,6 @@
               {% endif %}
             </div>
 
-            <!-- Mot de passe provisoire -->
-            <div class="form-row">
-              <div class="form-group {% if field_errors.establishment_password %}has-error{% endif %}">
-                <label for="establishment-password" class="required">Mot de passe provisoire</label>
-                <input type="password" id="establishment-password" name="establishment_password" value="{{ form_data.establishment_password|default:'Ens2024!' }}" required />
-                <span class="form-text">Ce mot de passe sera communiqué au directeur pour sa première connexion</span>
-                {% if field_errors.establishment_password %}
-                  <span class="error-message">{{ field_errors.establishment_password }}</span>
-                {% endif %}
-              </div>
-            </div>
 
             <!-- Configuration de facturation -->
             <div class="form-row">

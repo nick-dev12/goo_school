@@ -93,6 +93,9 @@ class Professeur(AbstractUser):
         null=True,
         verbose_name="Mot de passe provisoire"
     )
+    # Réinitialisation de mot de passe
+    password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
+    password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     

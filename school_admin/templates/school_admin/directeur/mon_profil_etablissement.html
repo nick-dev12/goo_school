@@ -5,8 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mon Profil - {{ etablissement.nom }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-yHDTjLzi2hO5WrxF7+I/6Y8DB5d4++PK5EKeosFVJeFt3PcTJS3BM4tiTnGMylrObK3y1Vn1NQf+Y2G0g8v7/A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/mon_profil_etablissement.css' %}">
+  <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css?v=1.0.0"
+    />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/mon_profil_etablissement.css' %}?v=1.0.6">
 </head>
 <body>
   <div class="page-wrapper">
@@ -70,17 +73,19 @@
 
     <section class="tabs-section">
       <div class="tabs-bar" role="tablist">
-        <button class="tab-link active" data-target="#tab-informations" type="button">Informations générales</button>
-        <button class="tab-link" data-target="#tab-logo" type="button">Logo</button>
-        <button class="tab-link" data-target="#tab-modules" type="button">Modules activés</button>
-        <button class="tab-link" data-target="#tab-facturation" type="button">Facturation</button>
+        <button class="tab-link {% if active_tab == 'informations' %}active{% endif %}" data-target="#tab-informations" data-tab="informations" type="button">Informations générales</button>
+        <button class="tab-link {% if active_tab == 'logo' %}active{% endif %}" data-target="#tab-logo" data-tab="logo" type="button">Logo</button>
+        <button class="tab-link {% if active_tab == 'modules' %}active{% endif %}" data-target="#tab-modules" data-tab="modules" type="button">Modules activés</button>
+        <button class="tab-link {% if active_tab == 'facturation' %}active{% endif %}" data-target="#tab-facturation" data-tab="facturation" type="button">Facturation</button>
+        <button class="tab-link {% if active_tab == 'securite' %}active{% endif %}" data-target="#tab-securite" data-tab="securite" type="button">Sécurité</button>
       </div>
 
       <div class="tabs-content">
-        <div class="tab-panel active" id="tab-informations" role="tabpanel">
+        <div class="tab-panel {% if active_tab == 'informations' %}active{% endif %}" id="tab-informations" role="tabpanel">
           <form action="{% url 'directeur:profil_etablissement' %}" method="post" class="profile-form">
             {% csrf_token %}
             <input type="hidden" name="form_type" value="update_information">
+            <input type="hidden" name="active_tab" value="informations" id="active_tab_input">
 
             <div class="form-block">
               <h3>Établissement</h3>
@@ -155,7 +160,7 @@
           </form>
         </div>
 
-        <div class="tab-panel" id="tab-logo" role="tabpanel">
+        <div class="tab-panel {% if active_tab == 'logo' %}active{% endif %}" id="tab-logo" role="tabpanel">
           <div class="logo-panel">
             <div class="logo-preview" id="logo-preview">
               {% if etablissement.logo %}
@@ -172,6 +177,7 @@
               <form action="{% url 'directeur:profil_etablissement' %}" method="post" enctype="multipart/form-data" class="logo-form" id="logo-upload-form">
                 {% csrf_token %}
                 <input type="hidden" name="form_type" value="update_logo">
+                <input type="hidden" name="active_tab" value="logo" id="active_tab_logo_upload">
                 <label for="logo" class="file-input-label">
                   <i class="fas fa-upload"></i>
                   Sélectionner un logo
@@ -186,6 +192,7 @@
               <form action="{% url 'directeur:profil_etablissement' %}" method="post" class="logo-form">
                 {% csrf_token %}
                 <input type="hidden" name="form_type" value="delete_logo">
+                <input type="hidden" name="active_tab" value="logo" id="active_tab_logo_delete">
                 <button type="submit" class="btn-danger">
                   <i class="fas fa-trash"></i>
                   Supprimer le logo
@@ -195,7 +202,7 @@
           </div>
         </div>
 
-        <div class="tab-panel" id="tab-modules" role="tabpanel">
+        <div class="tab-panel {% if active_tab == 'modules' %}active{% endif %}" id="tab-modules" role="tabpanel">
           <div class="modules-wrapper">
             {% for label, actif in modules_config %}
               <div class="module-card {% if actif %}active{% else %}inactive{% endif %}">
@@ -212,7 +219,7 @@
           </div>
         </div>
 
-        <div class="tab-panel" id="tab-facturation" role="tabpanel">
+        <div class="tab-panel {% if active_tab == 'facturation' %}active{% endif %}" id="tab-facturation" role="tabpanel">
           <div class="facturation-card">
             <div class="facturation-row">
               <div class="facturation-item">
@@ -246,6 +253,84 @@
             </div>
           </div>
         </div>
+
+        <div class="tab-panel {% if active_tab == 'securite' %}active{% endif %}" id="tab-securite" role="tabpanel">
+          <div class="security-panel">
+            <div class="security-header">
+              <h3><i class="fas fa-shield-alt"></i> Sécurité du compte</h3>
+              <p>Gérez la sécurité de votre compte en modifiant votre mot de passe.</p>
+            </div>
+
+            {% if messages %}
+              <div class="messages-container">
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                    <button type="button" class="close-alert">&times;</button>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <form action="{% url 'directeur:profil_etablissement' %}" method="post" class="security-form">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="update_password">
+              <input type="hidden" name="active_tab" value="securite" id="active_tab_securite">
+
+              <div class="form-block">
+                <h3>Changer le mot de passe</h3>
+                
+                <div class="form-row">
+                  <label for="current_password">Mot de passe actuel*</label>
+                  <div class="password-input-wrapper">
+                    <input type="password" id="current_password" name="current_password" placeholder="Entrez votre mot de passe actuel" required>
+                    <button type="button" class="toggle-password" data-target="current_password" aria-label="Afficher/Masquer le mot de passe">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <label for="new_password">Nouveau mot de passe*</label>
+                  <div class="password-input-wrapper">
+                    <input type="password" id="new_password" name="new_password" placeholder="Entrez un nouveau mot de passe (min. 8 caractères)" required>
+                    <button type="button" class="toggle-password" data-target="new_password" aria-label="Afficher/Masquer le mot de passe">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                  <small class="form-hint">Le mot de passe doit contenir au moins 8 caractères</small>
+                </div>
+
+                <div class="form-row">
+                  <label for="confirm_password">Confirmer le nouveau mot de passe*</label>
+                  <div class="password-input-wrapper">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirmez votre nouveau mot de passe" required>
+                    <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Afficher/Masquer le mot de passe">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="password-tips">
+                  <h4><i class="fas fa-info-circle"></i> Conseils pour un mot de passe sécurisé :</h4>
+                  <ul>
+                    <li>Au moins 8 caractères</li>
+                    <li>Combinaison de lettres, chiffres et symboles</li>
+                    <li>Ne pas utiliser d'informations personnelles</li>
+                    <li>Ne pas réutiliser un ancien mot de passe</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-save"></i>
+                  Enregistrer le nouveau mot de passe
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -254,10 +339,20 @@
     const tabLinks = document.querySelectorAll('.tab-link');
     const tabPanels = document.querySelectorAll('.tab-panel');
 
+    // Fonction pour mettre à jour tous les champs cachés active_tab
+    function updateActiveTabInputs(tabValue) {
+      const activeTabInputs = document.querySelectorAll('input[name="active_tab"]');
+      activeTabInputs.forEach(input => {
+        input.value = tabValue;
+      });
+    }
+
     tabLinks.forEach((link) => {
       link.addEventListener('click', () => {
         const targetSelector = link.getAttribute('data-target');
-        if (!targetSelector) {
+        const tabValue = link.getAttribute('data-tab');
+        
+        if (!targetSelector || !tabValue) {
           return;
         }
 
@@ -269,6 +364,9 @@
         if (targetPanel) {
           targetPanel.classList.add('active');
         }
+        
+        // Mettre à jour tous les champs cachés active_tab
+        updateActiveTabInputs(tabValue);
       });
     });
 
@@ -304,6 +402,100 @@
         reader.readAsDataURL(file);
       });
     }
+
+    // Initialiser les champs cachés active_tab au chargement de la page
+    const currentActiveTab = document.querySelector('.tab-link.active');
+    if (currentActiveTab) {
+      const currentTabValue = currentActiveTab.getAttribute('data-tab');
+      if (currentTabValue) {
+        updateActiveTabInputs(currentTabValue);
+      }
+    }
+
+    // Gestion de l'affichage/masquage des mots de passe
+    function initPasswordToggles() {
+      const togglePasswordButtons = document.querySelectorAll('.toggle-password');
+      
+      console.log('Nombre de boutons toggle trouvés:', togglePasswordButtons.length);
+      
+      togglePasswordButtons.forEach(button => {
+        // Forcer la visibilité du bouton avec des styles inline
+        button.style.cssText = `
+          position: absolute !important;
+          right: 12px !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 32px !important;
+          height: 32px !important;
+          background: white !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 50% !important;
+          cursor: pointer !important;
+          z-index: 9999 !important;
+          visibility: visible !important;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        `;
+        
+        // Vérifier que l'icône est présente
+        const icon = button.querySelector('i');
+        if (!icon) {
+          console.error('Icône manquante dans le bouton toggle');
+          return;
+        }
+        
+        // Forcer le style de l'icône
+        icon.style.cssText = `
+          font-size: 16px !important;
+          color: #4b5563 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        `;
+        
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const targetId = this.getAttribute('data-target');
+          const passwordInput = document.getElementById(targetId);
+          const iconElement = this.querySelector('i');
+          
+          if (passwordInput && iconElement) {
+            if (passwordInput.type === 'password') {
+              passwordInput.type = 'text';
+              iconElement.classList.remove('fa-eye');
+              iconElement.classList.add('fa-eye-slash');
+              this.setAttribute('aria-label', 'Masquer le mot de passe');
+            } else {
+              passwordInput.type = 'password';
+              iconElement.classList.remove('fa-eye-slash');
+              iconElement.classList.add('fa-eye');
+              this.setAttribute('aria-label', 'Afficher le mot de passe');
+            }
+          } else {
+            console.error('Champ de mot de passe ou icône introuvable pour:', targetId);
+          }
+        });
+      });
+    }
+    
+    // Initialiser immédiatement (script à la fin du body)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPasswordToggles);
+    } else {
+      initPasswordToggles();
+    }
+
+    // Fermer les alertes
+    const closeAlerts = document.querySelectorAll('.close-alert');
+    closeAlerts.forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.parentElement.style.display = 'none';
+      });
+    });
   </script>
 </body>
 </html>

@@ -68,25 +68,91 @@ def dashboard_administrateur(request):
         return redirect('school_admin:connexion_compte_user')
     
     # Si c'est un administrateur ou si la fonction n'est pas reconnue, afficher le tableau de bord administrateur
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    from django.db.models import Sum, Q
+    from ..model.facturation_model import Facturation
+    
+    # Mettre à jour les statuts de réglementation de tous les établissements
+    for etablissement in Etablissement.objects.filter(actif=True):
+        etablissement.mettre_a_jour_statut_reglementation()
+    
     # Récupérer les statistiques des établissements
     total_etablissements = EtablissementController.count_all_etablissements()
     active_etablissements = EtablissementController.count_active_etablissements()
+    inactive_etablissements = Etablissement.objects.filter(actif=False).count()
     stats_by_country = EtablissementController.get_etablissement_stats_by_country()
     stats_by_type = EtablissementController.get_etablissement_stats_by_type()
-    recent_etablissements = EtablissementController.get_recent_etablissements()
+    # Limiter à 3 établissements récents
+    recent_etablissements = Etablissement.objects.order_by('-date_creation')[:3]
     
-    # Récupérer les membres d'équipe récents
+    # Récupérer le nombre total d'élèves
+    total_eleves = Eleve.objects.filter(actif=True).count()
+    
+    # Paiements en retard (établissements avec statut_reglementation différent de 'en_regle')
+    etablissements_retard = Etablissement.objects.filter(
+        actif=True
+    ).exclude(statut_reglementation='en_regle').count()
+    
+    # Calculer l'évolution mensuelle des paiements en retard
+    maintenant = timezone.now()
+    mois_actuel = maintenant.month
+    annee_actuelle = maintenant.year
+    
+    if mois_actuel == 1:
+        mois_precedent = 12
+        annee_precedente = annee_actuelle - 1
+    else:
+        mois_precedent = mois_actuel - 1
+        annee_precedente = annee_actuelle
+    
+    # Compter les établissements en retard ce mois (basé sur les factures créées ce mois avec statut en retard)
+    factures_retard_mois_actuel = Facturation.objects.filter(
+        date_creation__year=annee_actuelle,
+        date_creation__month=mois_actuel,
+        statut__in=['en_retard', 'impaye', 'contentieux']
+    ).exclude(statut='annule').values('etablissement').distinct().count()
+    
+    factures_retard_mois_precedent = Facturation.objects.filter(
+        date_creation__year=annee_precedente,
+        date_creation__month=mois_precedent,
+        statut__in=['en_retard', 'impaye', 'contentieux']
+    ).exclude(statut='annule').values('etablissement').distinct().count()
+    
+    pourcentage_evolution_retard = 0
+    if factures_retard_mois_precedent > 0:
+        pourcentage_evolution_retard = round(((factures_retard_mois_actuel - factures_retard_mois_precedent) / factures_retard_mois_precedent) * 100, 1)
+    elif factures_retard_mois_actuel > 0 and factures_retard_mois_precedent == 0:
+        pourcentage_evolution_retard = 100  # Nouveau retard
+    
+    # Établissements en conformité dans les 30 prochains jours
+    # (établissements avec des factures dont la date d'échéance est dans les 30 prochains jours)
+    date_limite = maintenant.date() + timedelta(days=30)
+    factures_prochaines = Facturation.objects.filter(
+        date_echeance__gte=maintenant.date(),
+        date_echeance__lte=date_limite,
+        statut__in=['en_attente', 'en_retard']
+    ).exclude(statut='annule').values('etablissement').distinct()
+    
+    etablissements_en_conformite = factures_prochaines.count()
+    
+    # Récupérer les membres d'équipe récents (limiter à 3)
     recent_team_members = CompteUser.objects.filter(
         fonction__in=['commercial', 'support', 'developpeur', 'marketing', 'comptable', 'ressources humaines']
-    ).order_by('-date_joined')[:5]
+    ).order_by('-date_joined')[:3]
     
     context = {
         'total_etablissements': total_etablissements,
         'active_etablissements': active_etablissements,
+        'inactive_etablissements': inactive_etablissements,
         'stats_by_country': stats_by_country,
         'stats_by_type': stats_by_type,
         'recent_etablissements': recent_etablissements,
         'recent_team_members': recent_team_members,
+        'total_eleves': total_eleves,
+        'etablissements_retard': etablissements_retard,
+        'pourcentage_evolution_retard': pourcentage_evolution_retard,
+        'etablissements_en_conformite': etablissements_en_conformite,
         'user': request.user,
     }
     return render(request, 'school_admin/dashboard.html', context)
@@ -390,17 +456,64 @@ def management_equipes(request):
     """
     
     # Récupérer tous les utilisateurs sauf les administrateurs
-    team_members = CompteUser.objects.exclude(fonction='administrateur').order_by('nom', 'prenom')
+    all_team_members = CompteUser.objects.exclude(fonction='administrateur')
     
-    # Statistiques par fonction
-    team_stats = {
-        'commercial': team_members.filter(fonction='commercial').count(),
-        'developpeur': team_members.filter(fonction='developpeur').count(),
-        'comptable': team_members.filter(fonction='comptable').count(),
-        'comptable': team_members.filter(fonction='comptable').count(),
-        'ressources_humaines': team_members.filter(fonction='ressources humaines').count(),
-        'marketing': team_members.filter(fonction='marketing').count(),
-    }
+    # Récupérer directement depuis la base de données toutes les fonctions qui existent
+    # et compter le nombre d'utilisateurs pour chaque fonction
+    from django.db.models import Count
+    
+    # Récupérer toutes les fonctions distinctes qui existent dans la base de données
+    # Convertir en liste immédiatement pour éviter les problèmes de lazy evaluation
+    fonctions_distinctes = list(all_team_members.exclude(
+        fonction__isnull=True
+    ).exclude(
+        fonction=''
+    ).values_list('fonction', flat=True).distinct())
+    
+    # Fonction helper pour obtenir l'icône et la classe CSS selon la fonction
+    def get_fonction_icon_class(fonction_code):
+        """Retourne l'icône et la classe CSS pour une fonction donnée"""
+        icons_map = {
+            'commercial': ('fas fa-handshake', 'commercial'),
+            'developpeur': ('fas fa-code', 'developer'),
+            'comptable': ('fas fa-calculator', 'accountant'),
+            'ressources humaines': ('fas fa-users-cog', 'hr'),
+            'marketing': ('fas fa-bullhorn', 'marketing'),
+            'support': ('fas fa-headset', 'support'),
+        }
+        return icons_map.get(fonction_code, ('fas fa-user', 'default'))
+    
+    # Construire la liste des statistiques en comptant directement chaque fonction
+    # Cette méthode est plus fiable que la requête groupée
+    team_stats_list = []
+    fonction_choices_dict = dict(CompteUser.FONCTION_CHOICES)
+    
+    # Pour chaque fonction distincte trouvée dans la base, compter directement
+    for fonction_code in fonctions_distinctes:
+        # Compter directement le nombre d'utilisateurs avec cette fonction
+        count = all_team_members.filter(fonction=fonction_code).count()
+        
+        # Ajouter uniquement si count > 0
+        if count > 0:
+            # Récupérer le label depuis FONCTION_CHOICES
+            label = fonction_choices_dict.get(fonction_code, fonction_code)
+            
+            # Récupérer l'icône et la classe CSS
+            icon, css_class = get_fonction_icon_class(fonction_code)
+            
+            team_stats_list.append({
+                'fonction': fonction_code,
+                'count': count,
+                'icon': icon,
+                'class': css_class,
+                'label': label
+            })
+    
+    # Trier la liste par fonction pour un affichage cohérent
+    team_stats_list.sort(key=lambda x: x['fonction'])
+    
+    # Récupérer tous les utilisateurs sauf les administrateurs pour l'affichage (avec filtres)
+    team_members = all_team_members.order_by('nom', 'prenom')
     
     # Options pour les filtres
     team_member_roles = CompteUser.FONCTION_CHOICES
@@ -444,6 +557,12 @@ def management_equipes(request):
     
     if department_filter:
         team_members = team_members.filter(departement=department_filter)
+    
+    if status_filter:
+        if status_filter == 'actif':
+            team_members = team_members.filter(is_active=True)
+        elif status_filter == 'inactif':
+            team_members = team_members.filter(is_active=False)
     
     # Re-paginer après filtrage
     paginator = Paginator(team_members, 12)
@@ -672,7 +791,7 @@ def management_equipes(request):
     
     context = {
         'team_members': page_obj,
-        'team_stats': team_stats,
+        'team_stats_list': team_stats_list,  # Liste dynamique des statistiques par fonction
         'team_member_roles': team_member_roles,
         'team_member_statuses': team_member_statuses,
         'team_member_departments': team_member_departments,
@@ -873,4 +992,251 @@ def add_team_member(request):
     Ajouter un membre d'équipe
     """
     return render(request, 'school_admin/add_team_member.html')
+
+
+@login_required
+def team_member_profile(request, member_id):
+    """
+    Afficher le profil détaillé d'un membre de l'équipe
+    """
+    # Vérifier que l'utilisateur est un administrateur
+    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
+        messages.error(request, "Accès non autorisé. Vous devez être administrateur pour accéder à cette page.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    try:
+        member = CompteUser.objects.get(id=member_id)
+    except CompteUser.DoesNotExist:
+        messages.error(request, "Membre de l'équipe non trouvé.")
+        return redirect('school_admin:management_equipes')
+    
+    # Ne pas permettre de voir le profil d'un administrateur
+    if member.fonction == 'administrateur':
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:management_equipes')
+    
+    context = {
+        'member': member,
+        'fonction_choices': CompteUser.FONCTION_CHOICES,
+        'departement_choices': CompteUser.DEPARTEMENT_CHOICES,
+    }
+    
+    return render(request, 'school_admin/team_member_profile.html', context)
+
+
+@login_required
+def update_team_member(request, member_id):
+    """
+    Modifier les informations d'un membre de l'équipe
+    """
+    # Vérifier que l'utilisateur est un administrateur
+    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
+        messages.error(request, "Accès non autorisé. Vous devez être administrateur pour effectuer cette action.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    try:
+        member = CompteUser.objects.get(id=member_id)
+    except CompteUser.DoesNotExist:
+        messages.error(request, "Membre de l'équipe non trouvé.")
+        return redirect('school_admin:management_equipes')
+    
+    # Ne pas permettre de modifier un administrateur
+    if member.fonction == 'administrateur':
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:management_equipes')
+    
+    if request.method == 'POST':
+        errors = {}
+        
+        # Validation des champs obligatoires
+        nom = request.POST.get('nom', '').strip()
+        prenom = request.POST.get('prenom', '').strip()
+        email = request.POST.get('email', '').strip()
+        username = request.POST.get('username', '').strip()
+        fonction = request.POST.get('fonction', '').strip()
+        departement = request.POST.get('departement', '').strip()
+        
+        if not nom:
+            errors['nom'] = "Le nom est obligatoire."
+        if not prenom:
+            errors['prenom'] = "Le prénom est obligatoire."
+        if not email:
+            errors['email'] = "L'email est obligatoire."
+        elif not '@' in email:
+            errors['email'] = "L'email n'est pas valide."
+        if not username:
+            errors['username'] = "Le nom d'utilisateur est obligatoire."
+        if not fonction:
+            errors['fonction'] = "La fonction est obligatoire."
+        if not departement:
+            errors['departement'] = "Le département est obligatoire."
+        
+        # Vérifier que l'email n'est pas déjà utilisé par un autre utilisateur
+        if email and email != member.email:
+            if CompteUser.objects.filter(email=email).exclude(id=member.id).exists():
+                errors['email'] = "Cet email est déjà utilisé par un autre utilisateur."
+        
+        # Vérifier que le username n'est pas déjà utilisé par un autre utilisateur
+        if username and username != member.username:
+            if CompteUser.objects.filter(username=username).exclude(id=member.id).exists():
+                errors['username'] = "Ce nom d'utilisateur est déjà utilisé par un autre utilisateur."
+        
+        # Vérifier que la fonction est valide
+        valid_fonctions = dict(CompteUser.FONCTION_CHOICES).keys()
+        if fonction and fonction not in valid_fonctions:
+            errors['fonction'] = "La fonction n'est pas valide."
+        
+        # Vérifier que le département est valide
+        valid_departements = dict(CompteUser.DEPARTEMENT_CHOICES).keys()
+        if departement and departement not in valid_departements:
+            errors['departement'] = "Le département n'est pas valide."
+        
+        # Validation de la date de naissance
+        date_naissance = None
+        if request.POST.get('date_naissance'):
+            try:
+                from datetime import datetime
+                date_naissance = datetime.strptime(request.POST.get('date_naissance'), '%Y-%m-%d').date()
+                if date_naissance > datetime.today().date():
+                    errors['date_naissance'] = "La date de naissance ne peut pas être dans le futur."
+            except ValueError:
+                errors['date_naissance'] = "Format de date invalide."
+        
+        # Validation du salaire
+        salaire = None
+        salaire_str = request.POST.get('salaire', '').strip()
+        if salaire_str:
+            try:
+                from decimal import Decimal, InvalidOperation
+                salaire = Decimal(salaire_str)
+                if salaire < 0:
+                    errors['salaire'] = "Le salaire ne peut pas être négatif."
+            except (ValueError, InvalidOperation):
+                errors['salaire'] = "Le salaire doit être un nombre valide."
+        
+        # Si des erreurs sont détectées, afficher les messages d'erreur
+        if errors:
+            for field, error in errors.items():
+                messages.error(request, error)
+        else:
+            try:
+                # Mise à jour des informations
+                member.nom = nom
+                member.prenom = prenom
+                member.email = email
+                member.username = username
+                member.fonction = fonction
+                member.departement = departement
+                member.telephone = request.POST.get('telephone', '').strip()
+                
+                if date_naissance:
+                    member.date_naissance = date_naissance
+                
+                # Mise à jour du salaire
+                if salaire is not None:
+                    member.salaire = salaire
+                elif salaire_str == '':
+                    # Si le champ est vide, mettre à None
+                    member.salaire = None
+                
+                # Gestion de la photo
+                if 'photo' in request.FILES:
+                    photo = request.FILES['photo']
+                    # Valider que c'est une image
+                    if photo.content_type.startswith('image/'):
+                        member.photo = photo
+                    else:
+                        messages.error(request, "Le fichier doit être une image.")
+                
+                member.save()
+                messages.success(request, f"Les informations de {member.nom_complet} ont été mises à jour avec succès.")
+                
+            except Exception as e:
+                messages.error(request, f"Une erreur s'est produite lors de la mise à jour : {str(e)}")
+    
+    return redirect('school_admin:team_member_profile', member_id=member_id)
+
+
+@login_required
+def toggle_team_member_status(request, member_id):
+    """
+    Activer ou désactiver un membre de l'équipe
+    """
+    # Vérifier que l'utilisateur est un administrateur
+    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
+        messages.error(request, "Accès non autorisé. Vous devez être administrateur pour effectuer cette action.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if request.method == 'POST':
+        try:
+            member = CompteUser.objects.get(id=member_id)
+        except CompteUser.DoesNotExist:
+            messages.error(request, "Membre de l'équipe non trouvé.")
+            return redirect('school_admin:management_equipes')
+        
+        # Ne pas permettre de désactiver un administrateur
+        if member.fonction == 'administrateur':
+            messages.error(request, "Vous ne pouvez pas désactiver un administrateur.")
+            return redirect('school_admin:management_equipes')
+        
+        # Ne pas permettre de désactiver soi-même
+        if member.id == request.user.id:
+            messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
+            return redirect('school_admin:management_equipes')
+        
+        try:
+            # Inverser le statut
+            member.is_active = not member.is_active
+            member.save()
+            
+            status_text = "activé" if member.is_active else "désactivé"
+            messages.success(request, f"{member.nom_complet} a été {status_text} avec succès.")
+            
+        except Exception as e:
+            messages.error(request, f"Une erreur s'est produite lors de la modification du statut : {str(e)}")
+    
+    # Rediriger vers la page d'origine
+    referer = request.META.get('HTTP_REFERER', None)
+    if referer and 'team_member_profile' in referer:
+        return redirect('school_admin:team_member_profile', member_id=member_id)
+    else:
+        return redirect('school_admin:management_equipes')
+
+
+@login_required
+def delete_team_member(request, member_id):
+    """
+    Supprimer un membre de l'équipe
+    """
+    # Vérifier que l'utilisateur est un administrateur
+    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
+        messages.error(request, "Accès non autorisé. Vous devez être administrateur pour effectuer cette action.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if request.method == 'POST':
+        try:
+            member = CompteUser.objects.get(id=member_id)
+        except CompteUser.DoesNotExist:
+            messages.error(request, "Membre de l'équipe non trouvé.")
+            return redirect('school_admin:management_equipes')
+        
+        # Ne pas permettre de supprimer un administrateur
+        if member.fonction == 'administrateur':
+            messages.error(request, "Vous ne pouvez pas supprimer un administrateur.")
+            return redirect('school_admin:management_equipes')
+        
+        # Ne pas permettre de supprimer soi-même
+        if member.id == request.user.id:
+            messages.error(request, "Vous ne pouvez pas supprimer votre propre compte.")
+            return redirect('school_admin:management_equipes')
+        
+        try:
+            member_name = member.nom_complet
+            member.delete()
+            messages.success(request, f"{member_name} a été supprimé avec succès.")
+            
+        except Exception as e:
+            messages.error(request, f"Une erreur s'est produite lors de la suppression : {str(e)}")
+    
+    return redirect('school_admin:management_equipes')
 

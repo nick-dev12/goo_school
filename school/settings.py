@@ -291,3 +291,16 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# ============================================
+# Configuration Email (SMTP)
+# ============================================
+EMAIL_BACKEND = 'school_admin.email_backends.CustomSMTPEmailBackend'
+EMAIL_HOST = 'mail.aria-edu.com'
+EMAIL_PORT = 587
+EMAIL_USE_SSL = False
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'service@aria-edu.com'
+EMAIL_HOST_PASSWORD = 'Ludvanne12@gmail.com'
+DEFAULT_FROM_EMAIL = 'Aria - Plateforme de gestion scolaire <service@aria-edu.com>'
+SERVER_EMAIL = 'service@aria-edu.com'

@@ -1,21 +1,22 @@
 {% load static %}
+{% load exam_filters %}
 <!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Suivi des Revenus - Goo-School</title>
+    <title>Suivi des Revenus - Aria</title>
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}"
+      href="{% static 'school_admin/css/gestion_comptable/dashboard_comptable.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/gestion_comptable/suivi_revenus.css' %}"
+      href="{% static 'school_admin/css/gestion_comptable/suivi_revenus.css' %}?v=1.0.4"
     />
     <link
       rel="stylesheet"
@@ -27,6 +28,8 @@
 
     <!-- Main Content -->
     <div class="dashboard-content">
+      <!-- Messages Django -->
+      {% include 'school_admin/partials/messages.html' %}
       <!-- Page Header -->
       <div class="page-header">
         <div class="header-left">
@@ -34,42 +37,6 @@
           <p>Gestion des entrées et dépenses financières</p>
         </div>
         <div class="header-actions">
-          <button class="btn-primary">
-            <i class="fas fa-plus"></i> Nouvelle transaction
-          </button>
-          <button class="btn-secondary">
-            <i class="fas fa-download"></i> Exporter
-          </button>
-        </div>
-      </div>
-
-      <!-- Search and Filters -->
-      <div class="search-filters">
-        <div class="search-bar">
-          <i class="fas fa-search"></i>
-          <input
-            type="text"
-            placeholder="Rechercher un établissement, une transaction..."
-            id="searchInput"
-          />
-        </div>
-        <div class="filters">
-          <select class="filter-select" id="statusFilter">
-            <option value="">Tous les statuts</option>
-            <option value="actif">Actif</option>
-            <option value="en_attente">En attente</option>
-            <option value="en_retard">En retard</option>
-            <option value="termine">Terminé</option>
-          </select>
-          <select class="filter-select" id="monthFilter">
-            <option value="">Tous les mois</option>
-            <option value="decembre">Décembre 2023</option>
-            <option value="novembre">Novembre 2023</option>
-            <option value="octobre">Octobre 2023</option>
-          </select>
-          <button class="btn-filter" id="clearFilters">
-            <i class="fas fa-times"></i> Effacer
-          </button>
         </div>
       </div>
 
@@ -90,6 +57,37 @@
         <div class="tab-content">
           <!-- Entrées Tab -->
           <div class="tab-panel active" id="entrees">
+            <!-- Search and Filters for Entrées -->
+            <div class="search-filters">
+              <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input
+                  type="text"
+                  placeholder="Rechercher un établissement..."
+                  id="searchInputEntrees"
+                  class="tab-search-input"
+                />
+              </div>
+              <div class="filters">
+                <select class="filter-select" id="statusFilterEntrees">
+                  <option value="">Tous les statuts</option>
+                  <option value="en_regle">En règle</option>
+                  <option value="en_retard">En retard</option>
+                  <option value="non_en_regle">Non en règle</option>
+                  <option value="contentieux">Contentieux</option>
+                </select>
+                <select class="filter-select" id="typeFilterEntrees">
+                  <option value="">Tous les types</option>
+                  <option value="primaire">Primaire</option>
+                  <option value="college">Collège</option>
+                  <option value="lycee">Lycée</option>
+                </select>
+                <button class="btn-filter" id="clearFiltersEntrees">
+                  <i class="fas fa-times"></i> Effacer
+                </button>
+              </div>
+            </div>
+
             <!-- Summary Cards -->
             <div class="summary-cards">
               <div class="summary-card">
@@ -153,7 +151,7 @@
                       <th>Montant total</th>
                       <th>Premier versement</th>
                       <th>Montant dû</th>
-                      <th>Statut inscription</th>
+                      <th>Statut de réglementation</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -196,12 +194,13 @@
                       </td>
                       <td>
                         <span class="status-badge 
-                          {% if stat.statut_inscription == 'Payé' %}termine
-                          {% elif stat.statut_inscription == 'En attente de paiement' %}en-attente
-                          {% elif stat.statut_inscription == 'En retard' %}en-retard
-                          {% elif stat.statut_inscription == 'Aucune facture pour le moment' %}aucune-facture
+                          {% if stat.statut_reglementation_code == 'en_regle' %}termine
+                          {% elif stat.statut_reglementation_code == 'hors_service' %}aucune-facture
+                          {% elif stat.statut_reglementation_code == 'en_retard' %}en-retard
+                          {% elif stat.statut_reglementation_code == 'non_en_regle' %}en-retard
+                          {% elif stat.statut_reglementation_code == 'contentieux' %}en-retard
                           {% else %}en-cours{% endif %}">
-                          {{ stat.statut_inscription }}
+                          {{ stat.statut_reglementation }}
                         </span>
                         <br><small class="status-detail">{{ stat.nombre_eleves_factures }} élèves facturés</small>
                       </td>
@@ -212,24 +211,7 @@
                               <i class="fas fa-eye"></i>
                             </button>
                           </a>
-                          <button class="btn-action" title="Modifier établissement">
-                            <i class="fas fa-edit"></i>
-                          </button>
-                          {% if stat.montant_du > 0 %}
-                            {% if stat.statut_inscription == 'En retard' %}
-                            <button class="btn-action warning" title="Envoyer relance">
-                              <i class="fas fa-exclamation-triangle"></i>
-                            </button>
-                            {% else %}
-                            <button class="btn-action" title="Envoyer rappel">
-                              <i class="fas fa-bell"></i>
-                            </button>
-                            {% endif %}
-                          {% else %}
-                          <button class="btn-action" title="Télécharger facture">
-                            <i class="fas fa-download"></i>
-                          </button>
-                          {% endif %}
+                        
                         </div>
                       </td>
                     </tr>
@@ -252,6 +234,46 @@
 
           <!-- Dépenses Tab -->
           <div class="tab-panel" id="depenses">
+            <!-- Search and Filters for Dépenses -->
+            <div class="search-filters">
+              <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input
+                  type="text"
+                  placeholder="Rechercher une dépense (description, fournisseur, numéro de facture)..."
+                  id="searchInputDepenses"
+                  class="tab-search-input"
+                />
+              </div>
+              <div class="filters">
+                <select class="filter-select" id="statutFilterDepenses">
+                  <option value="">Tous les statuts</option>
+                  <option value="en_attente">En attente</option>
+                  <option value="approuve">Approuvé</option>
+                  <option value="paye">Payé</option>
+                  <option value="rejete">Rejeté</option>
+                </select>
+                <select class="filter-select" id="typeDepenseFilter">
+                  <option value="">Tous les types</option>
+                  {% for value, label in type_depense_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <select class="filter-select" id="methodePaiementFilter">
+                  <option value="">Toutes les méthodes</option>
+                  <option value="virement">Virement bancaire</option>
+                  <option value="cheque">Chèque</option>
+                  <option value="especes">Espèces</option>
+                  <option value="carte">Carte bancaire</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="autre">Autre</option>
+                </select>
+                <button class="btn-filter" id="clearFiltersDepenses">
+                  <i class="fas fa-times"></i> Effacer
+                </button>
+              </div>
+            </div>
+
             <!-- Summary Cards -->
             <div class="summary-cards">
               <div class="summary-card">
@@ -292,22 +314,36 @@
               </div>
             </div>
 
+            <!-- Sub-tabs for Categories -->
+            <div class="sub-tabs-container">
+              <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-sub-tab="toutes" data-target="tableToutesDepenses">
+                  <i class="fas fa-list"></i> Toutes
+                  <span class="sub-tab-count">{{ depenses_detailed|length }}</span>
+                </button>
+                {% for cat_key, cat_display in categorie_choices %}
+                <button class="sub-tab-btn" data-sub-tab="cat-{{ cat_key }}" data-target="tableCat-{{ cat_key }}">
+                  <i class="fas fa-tag"></i> {{ cat_display }}
+                  <span class="sub-tab-count">{% with depenses_cat=depenses_par_categorie|get_item:cat_key %}{{ depenses_cat|length|default:0 }}{% endwith %}</span>
+                </button>
+                {% endfor %}
+              </div>
+            </div>
+
             <!-- Dépenses Table -->
             <div class="table-container">
               <div class="table-header">
                 <h3><i class="fas fa-list"></i> Liste des Dépenses</h3>
                 <div class="table-actions">
-                  <button class="btn-small">
-                    <i class="fas fa-sort"></i> Trier
-                  </button>
-                  <button class="btn-small">
-                    <i class="fas fa-filter"></i> Filtrer
+                  <button class="btn-primary" id="btnAjouterDepense">
+                    <i class="fas fa-plus"></i> Ajouter une dépense
                   </button>
                 </div>
               </div>
 
               <div class="table-wrapper">
-                <table class="data-table">
+                <!-- Toutes les dépenses -->
+                <table class="data-table" id="tableToutesDepenses">
                   <thead>
                     <tr>
                       <th>Type</th>
@@ -320,7 +356,7 @@
                   </thead>
                   <tbody>
                     {% for depense in depenses_detailed %}
-                    <tr>
+                    <tr data-depense-id="{{ depense.id }}" data-categorie="{{ depense.categorie }}" data-statut="{{ depense.statut_code }}" data-type-depense="{{ depense.type_depense }}" data-methode-paiement="{{ depense.methode_paiement|default:'' }}" data-search-text="{{ depense.description|lower }} {{ depense.fournisseur|lower }} {{ depense.numero_facture|default:''|lower }}">
                       <td>
                         <div class="expense-type">
                           <div class="type-icon {{ depense.icon_class }}">
@@ -332,6 +368,9 @@
                       <td>
                         <h4>{{ depense.description }}</h4>
                         <p>{{ depense.details }}</p>
+                        <span class="type-chip type-{{ depense.type_depense|default:'unique' }}">
+                          <i class="fas fa-repeat"></i> {{ depense.type_depense_label|default:"Paiement unique" }}
+                        </span>
                       </td>
                       <td>
                         <span class="amount expense">{{ depense.montant|floatformat:0 }} FCFA</span>
@@ -341,26 +380,19 @@
                       </td>
                       <td>
                         <span class="status-badge 
-                          {% if depense.statut == 'Payé' %}termine
-                          {% elif depense.statut == 'En attente' %}en-attente
-                          {% else %}en-cours{% endif %}">
+                          {% if depense.statut_code == 'paye' %}termine
+                          {% elif depense.statut_code == 'en_attente' %}en-attente
+                          {% elif depense.statut_code == 'approuve' %}en-cours
+                          {% elif depense.statut_code == 'rejete' %}rejete
+                          {% else %}en-attente{% endif %}">
                           {{ depense.statut }}
                         </span>
                       </td>
                       <td>
                         <div class="action-buttons">
-                          <button class="btn-action" title="Voir détails">
+                          <a href="{% url 'school_admin:depense_detail' depense.id %}" class="btn-action" title="Ouvrir la page détail">
                             <i class="fas fa-eye"></i>
-                          </button>
-                          {% if depense.statut == 'Payé' %}
-                          <button class="btn-action" title="Télécharger reçu">
-                            <i class="fas fa-download"></i>
-                          </button>
-                          {% else %}
-                          <button class="btn-action" title="Modifier">
-                            <i class="fas fa-edit"></i>
-                          </button>
-                          {% endif %}
+                          </a>
                         </div>
                       </td>
                     </tr>
@@ -377,6 +409,79 @@
                     {% endfor %}
                   </tbody>
                 </table>
+
+                <!-- Tables par catégorie -->
+                {% for cat_key, cat_display in categorie_choices %}
+                {% with depenses_cat=depenses_par_categorie|get_item:cat_key %}
+                <table class="data-table sub-tab-table" id="tableCat-{{ cat_key }}" style="display: none;">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Description</th>
+                      <th>Montant</th>
+                      <th>Date</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if depenses_cat %}
+                    {% for depense in depenses_cat %}
+                    <tr data-depense-id="{{ depense.id }}" data-categorie="{{ depense.categorie }}" data-statut="{{ depense.statut_code }}" data-type-depense="{{ depense.type_depense }}" data-methode-paiement="{{ depense.methode_paiement|default:'' }}" data-search-text="{{ depense.description|lower }} {{ depense.fournisseur|lower }} {{ depense.numero_facture|default:''|lower }}">
+                      <td>
+                        <div class="expense-type">
+                          <div class="type-icon {{ depense.icon_class }}">
+                            <i class="{{ depense.icon }}"></i>
+                          </div>
+                          <span>{{ depense.type }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <h4>{{ depense.description }}</h4>
+                        <p>{{ depense.details }}</p>
+                        <span class="type-chip type-{{ depense.type_depense|default:'unique' }}">
+                          <i class="fas fa-repeat"></i> {{ depense.type_depense_label|default:"Paiement unique" }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="amount expense">{{ depense.montant|floatformat:0 }} FCFA</span>
+                      </td>
+                      <td>
+                        <span class="date">{{ depense.date }}</span>
+                      </td>
+                      <td>
+                        <span class="status-badge 
+                          {% if depense.statut_code == 'paye' %}termine
+                          {% elif depense.statut_code == 'en_attente' %}en-attente
+                          {% elif depense.statut_code == 'approuve' %}en-cours
+                          {% elif depense.statut_code == 'rejete' %}rejete
+                          {% else %}en-attente{% endif %}">
+                          {{ depense.statut }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <a href="{% url 'school_admin:depense_detail' depense.id %}" class="btn-action" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="6" style="text-align: center; padding: 2rem;">
+                        <div style="color: var(--text-secondary);">
+                          <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                          <p>Aucune dépense dans cette catégorie</p>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                  </tbody>
+                </table>
+                {% endwith %}
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -384,6 +489,177 @@
       </div>
     </div>
 
-    <script src="{% static 'school_admin/js/gestion_comptable/suivi_revenus.js' %}"></script>
+    <!-- Modal Ajouter/Modifier Dépense -->
+    <div id="depenseModal" class="modal-fullscreen">
+      <div class="modal-fullscreen-content">
+        <div class="modal-fullscreen-header">
+          <h2 id="modalDepenseTitle">
+            <i class="fas fa-plus-circle"></i> Ajouter une dépense
+          </h2>
+          <button class="modal-close" onclick="fermerModalDepense()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-fullscreen-body">
+          <form method="POST" action="{% url 'school_admin:suivi_revenus' %}" enctype="multipart/form-data" id="depenseForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="depenseAction" value="ajouter_depense">
+            <input type="hidden" name="depense_id" id="depenseId">
+            
+            <div class="form-grid">
+              <!-- Colonne gauche -->
+              <div class="form-column">
+                <div class="form-group">
+                  <label for="description">Description <span class="required">*</span></label>
+                  <input type="text" id="description" name="description" class="form-input" required placeholder="Ex: Salaires du mois de novembre">
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="montant">Montant (FCFA) <span class="required">*</span></label>
+                    <input type="number" id="montant" name="montant" class="form-input" step="0.01" min="0" required placeholder="0.00">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="categorie">Catégorie <span class="required">*</span></label>
+                    <select id="categorie" name="categorie" class="form-select" required>
+                      <option value="">Sélectionner une catégorie</option>
+                      <option value="personnel">Personnel</option>
+                      <option value="equipement">Équipement</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="formation">Formation</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="bureau">Bureau</option>
+                      <option value="transport">Transport</option>
+                      <option value="loyer">Loyer</option>
+                      <option value="autre">Autre</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="type_depense">Type de dépense <span class="required">*</span></label>
+                  <select id="type_depense" name="type_depense" class="form-select" required>
+                    {% for value,label in type_depense_choices %}
+                    <option value="{{ value }}" {% if value == 'unique' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <small class="form-hint">Indiquez si la dépense est ponctuelle ou récurrente.</small>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="date_depense">Date de la dépense <span class="required">*</span></label>
+                    <input type="date" id="date_depense" name="date_depense" class="form-input" required>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="statut">Statut <span class="required">*</span></label>
+                    <select id="statut" name="statut" class="form-select" required onchange="toggleDatePaiement()">
+                      <option value="en_attente">En attente</option>
+                      <option value="approuve">Approuvé</option>
+                      <option value="paye">Payé</option>
+                      <option value="rejete">Rejeté</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-group" id="datePaiementGroup" style="display: none;">
+                  <label for="date_paiement">Date de paiement</label>
+                  <input type="date" id="date_paiement" name="date_paiement" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                  <label for="fournisseur">Fournisseur / Bénéficiaire <span class="required">*</span></label>
+                  <input type="text" id="fournisseur" name="fournisseur" class="form-input" required placeholder="Ex: Société ABC">
+                </div>
+                
+                <div class="form-group">
+                  <label for="numero_facture">Numéro de facture / Référence</label>
+                  <input type="text" id="numero_facture" name="numero_facture" class="form-input" placeholder="Ex: FACT-2023-001">
+                </div>
+              </div>
+              
+              <!-- Colonne droite -->
+              <div class="form-column">
+                <div class="form-group">
+                  <label for="methode_paiement">Méthode de paiement</label>
+                  <select id="methode_paiement" name="methode_paiement" class="form-select">
+                    <option value="virement">Virement bancaire</option>
+                    <option value="cheque">Chèque</option>
+                    <option value="especes">Espèces</option>
+                    <option value="carte">Carte bancaire</option>
+                    <option value="mobile_money">Mobile Money</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="etablissement">Établissement concerné (optionnel)</label>
+                  <select id="etablissement" name="etablissement" class="form-select">
+                    <option value="">Aucun établissement</option>
+                    {% for etablissement in etablissements_list %}
+                    <option value="{{ etablissement.id }}">{{ etablissement.nom }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="piece_jointe">Pièce jointe (Facture, reçu, etc.)</label>
+                  <input type="file" id="piece_jointe" name="piece_jointe" class="form-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                  <small class="form-text">Formats acceptés: PDF, JPG, PNG, DOC, DOCX</small>
+                  <div id="pieceJointePreview" style="margin-top: 10px; display: none;">
+                    <a href="#" id="pieceJointeLink" target="_blank" style="color: var(--primary);">
+                      <i class="fas fa-file"></i> Voir la pièce jointe actuelle
+                    </a>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="notes">Notes additionnelles</label>
+                  <textarea id="notes" name="notes" class="form-textarea" rows="4" placeholder="Informations complémentaires sur cette dépense..."></textarea>
+                </div>
+              </div>
+            </div>
+            
+            <div class="modal-fullscreen-footer">
+              <button type="button" class="btn-secondary" onclick="fermerModalDepense()">
+                <i class="fas fa-times"></i> Annuler
+              </button>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-save"></i> Enregistrer la dépense
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Voir Dépense -->
+    <div id="voirDepenseModal" class="modal-fullscreen">
+      <div class="modal-fullscreen-content">
+        <div class="modal-fullscreen-header">
+          <h2>
+            <i class="fas fa-eye"></i> Détails de la dépense
+          </h2>
+          <button class="modal-close" onclick="fermerModalVoirDepense()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-fullscreen-body" id="voirDepenseContent">
+          <!-- Le contenu sera rempli dynamiquement par JavaScript -->
+        </div>
+        
+        <div class="modal-fullscreen-footer">
+          <button type="button" class="btn-secondary" onclick="fermerModalVoirDepense()">
+            <i class="fas fa-times"></i> Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/gestion_comptable/suivi_revenus.js' %}?v=1.0.5"></script>
   </body>
 </html>

@@ -3976,22 +3976,41 @@ def parametres_profil_primaire(request):
         elif action == 'change_password':
             # Changement de mot de passe
             from django.contrib.auth.hashers import check_password, make_password
+            from django.contrib.auth import update_session_auth_hash
             
-            old_password = request.POST.get('old_password')
-            new_password = request.POST.get('new_password')
-            confirm_password = request.POST.get('confirm_password')
+            old_password = request.POST.get('old_password', '').strip()
+            new_password = request.POST.get('new_password', '').strip()
+            confirm_password = request.POST.get('confirm_password', '').strip()
             
-            if not old_password or not new_password or not confirm_password:
-                messages.error(request, "Tous les champs sont requis.")
+            # Validation des champs obligatoires
+            validation_errors = []
+            
+            if not old_password:
+                validation_errors.append("L'ancien mot de passe est obligatoire.")
+            
+            if not new_password:
+                validation_errors.append("Le nouveau mot de passe est obligatoire.")
+            elif len(new_password) < 8:
+                validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+            
+            if not confirm_password:
+                validation_errors.append("La confirmation du mot de passe est obligatoire.")
+            elif new_password and confirm_password and new_password != confirm_password:
+                validation_errors.append("Les nouveaux mots de passe ne correspondent pas.")
+            
+            # Si des erreurs de validation existent, les afficher et arrêter
+            if validation_errors:
+                for error in validation_errors:
+                    messages.error(request, error)
+            # Vérifier le mot de passe actuel seulement si toutes les validations précédentes sont passées
             elif not check_password(old_password, professeur.password):
                 messages.error(request, "L'ancien mot de passe est incorrect.")
-            elif new_password != confirm_password:
-                messages.error(request, "Les nouveaux mots de passe ne correspondent pas.")
-            elif len(new_password) < 6:
-                messages.error(request, "Le mot de passe doit contenir au moins 6 caractères.")
             else:
+                # Toutes les validations sont passées, changer le mot de passe
                 professeur.password = make_password(new_password)
                 professeur.save()
+                # Maintenir la session active après changement de mot de passe
+                update_session_auth_hash(request, professeur)
                 messages.success(request, "Mot de passe modifié avec succès.")
                 logger.info(f"Mot de passe changé - Professeur primaire: {professeur.nom_complet}")
         

@@ -1986,46 +1986,109 @@ def profil_eleve(request):
     # Gestion du formulaire de photo de profil sans Django forms
     photo_errors = []
     photo_modal_open = False
+    # Ouvrir le modal de mot de passe si demandé via paramètre GET ou si des erreurs existent
+    password_modal_open = request.GET.get('password_modal') == 'open' or False
+    password_errors = []
 
-    if request.method == "POST" and request.POST.get("action") == "upload-photo":
-        photo_modal_open = True
+    if request.method == "POST":
+        action = request.POST.get("action")
+        
+        if action == "upload-photo":
+            photo_modal_open = True
 
-        if est_parent:
-            messages.error(
-                request,
-                "Seul l'élève connecté peut modifier sa photo de profil.",
-            )
-            return redirect("eleve:profil_eleve")
-
-        uploaded_file = request.FILES.get("photo_profil")
-
-        if not uploaded_file:
-            photo_errors.append("Veuillez sélectionner une image.")
-        else:
-            if uploaded_file.size > MAX_PHOTO_SIZE_BYTES:
-                photo_errors.append("L'image est trop volumineuse (maximal 5 Mo).")
-
-            content_type = getattr(uploaded_file, "content_type", "")
-            if content_type not in ALLOWED_PHOTO_CONTENT_TYPES:
-                photo_errors.append("Formats autorisés : JPG, PNG ou WebP.")
-
-        if not photo_errors:
-            try:
-                filename, content = _build_portrait_photo(uploaded_file)
-            except ValueError as exc:
-                photo_errors.append(str(exc))
-            else:
-                if eleve.photo_profil:
-                    eleve.photo_profil.delete(save=False)
-                eleve.photo_profil.save(
-                    filename,
-                    ContentFile(content),
-                    save=True,
-                )
-                messages.success(
+            if est_parent:
+                messages.error(
                     request,
-                    "Votre photo de profil a été mise à jour avec succès.",
+                    "Seul l'élève connecté peut modifier sa photo de profil.",
                 )
+                return redirect("eleve:profil_eleve")
+
+            uploaded_file = request.FILES.get("photo_profil")
+
+            if not uploaded_file:
+                photo_errors.append("Veuillez sélectionner une image.")
+            else:
+                if uploaded_file.size > MAX_PHOTO_SIZE_BYTES:
+                    photo_errors.append("L'image est trop volumineuse (maximal 5 Mo).")
+
+                content_type = getattr(uploaded_file, "content_type", "")
+                if content_type not in ALLOWED_PHOTO_CONTENT_TYPES:
+                    photo_errors.append("Formats autorisés : JPG, PNG ou WebP.")
+
+            if not photo_errors:
+                try:
+                    filename, content = _build_portrait_photo(uploaded_file)
+                except ValueError as exc:
+                    photo_errors.append(str(exc))
+                else:
+                    if eleve.photo_profil:
+                        eleve.photo_profil.delete(save=False)
+                    eleve.photo_profil.save(
+                        filename,
+                        ContentFile(content),
+                        save=True,
+                    )
+                    messages.success(
+                        request,
+                        "Votre photo de profil a été mise à jour avec succès.",
+                    )
+                    return redirect("eleve:profil_eleve")
+        
+        elif action == "change_password":
+            password_modal_open = True
+            
+            if est_parent:
+                messages.error(
+                    request,
+                    "Seul l'élève connecté peut modifier son mot de passe.",
+                )
+                return redirect("eleve:profil_eleve")
+            
+            # Changement de mot de passe
+            from django.contrib.auth.hashers import check_password, make_password
+            from django.contrib.auth import update_session_auth_hash
+            
+            old_password = request.POST.get('old_password', '').strip()
+            new_password = request.POST.get('new_password', '').strip()
+            confirm_password = request.POST.get('confirm_password', '').strip()
+            
+            # Validation des champs obligatoires
+            validation_errors = []
+            
+            if not old_password:
+                validation_errors.append("L'ancien mot de passe est obligatoire.")
+            
+            if not new_password:
+                validation_errors.append("Le nouveau mot de passe est obligatoire.")
+            elif len(new_password) < 8:
+                validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+            
+            if not confirm_password:
+                validation_errors.append("La confirmation du mot de passe est obligatoire.")
+            elif new_password and confirm_password and new_password != confirm_password:
+                validation_errors.append("Les nouveaux mots de passe ne correspondent pas.")
+            
+            # Si des erreurs de validation existent, les afficher et arrêter
+            if validation_errors:
+                password_errors = validation_errors
+                for error in validation_errors:
+                    messages.error(request, error)
+                # Rediriger avec un paramètre pour ouvrir le modal
+                return redirect(reverse('eleve:profil_eleve') + '?password_modal=open')
+            # Vérifier le mot de passe actuel seulement si toutes les validations précédentes sont passées
+            elif not check_password(old_password, eleve.password):
+                password_errors.append("L'ancien mot de passe est incorrect.")
+                messages.error(request, "L'ancien mot de passe est incorrect.")
+                # Rediriger avec un paramètre pour ouvrir le modal
+                return redirect(reverse('eleve:profil_eleve') + '?password_modal=open')
+            else:
+                # Toutes les validations sont passées, changer le mot de passe
+                eleve.password = make_password(new_password)
+                eleve.save()
+                # Maintenir la session active après changement de mot de passe
+                update_session_auth_hash(request, eleve)
+                messages.success(request, "Mot de passe modifié avec succès.")
+                logger.info(f"Mot de passe changé - Élève: {eleve.nom_complet}")
                 return redirect("eleve:profil_eleve")
     
     # Statistiques de notes
@@ -2095,6 +2158,8 @@ def profil_eleve(request):
         'today': timezone.now().date(),
         'photo_errors': photo_errors,
         'photo_modal_open': photo_modal_open,
+        'password_errors': password_errors,
+        'password_modal_open': password_modal_open,
         'carte_annee_scolaire': carte_annee_scolaire,
     }
     

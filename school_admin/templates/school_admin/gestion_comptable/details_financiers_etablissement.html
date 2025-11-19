@@ -1,22 +1,24 @@
 {% load static %}
+{% load l10n %}
 <!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Détails Financiers - Goo-School</title>
+    <title>Détails Financiers - Aria</title>
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/gestion_comptable/details_financiers_etablissement.css' %}"
+      href="{% static 'school_admin/css/gestion_comptable/details_financiers_etablissement.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   </head>
   <body>
     {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
@@ -40,12 +42,6 @@
           <button class="btn btn-secondary" onclick="refreshData()">
             <i class="fas fa-sync-alt"></i> Actualiser
           </button>
-          <button class="btn btn-primary" onclick="exportData()">
-            <i class="fas fa-download"></i> Exporter
-          </button>
-          <button class="btn btn-success" onclick="document.getElementById('invoiceModal').style.display='flex'; setTimeout(() => document.getElementById('invoiceModal').classList.add('show'), 10);">
-            <i class="fas fa-file-invoice"></i> Générer Facture
-          </button>
         </div>
       </div>
 
@@ -66,21 +62,44 @@
           </div>
         </div>
         <div class="etablissement-stats">
-          <div class="stat-item">
-            <div class="stat-value">{{ montant_total_facture|floatformat:0 }} FCFA</div>
-            <div class="stat-label">Montant Total</div>
+          <div class="stat-item stat-total">
+            <div class="stat-icon">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ montant_total_facture|floatformat:0 }} FCFA</div>
+              <div class="stat-label">Montant Total</div>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ montant_paye|floatformat:0 }} FCFA</div>
-            <div class="stat-label">Montant Payé</div>
+          <div class="stat-item stat-paid">
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ montant_paye|floatformat:0 }} FCFA</div>
+              <div class="stat-label">Montant Payé</div>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ montant_restant|floatformat:0 }} FCFA</div>
-            <div class="stat-label">Reste à Payer</div>
+          <div class="stat-item stat-remaining">
+            <div class="stat-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ montant_restant|floatformat:0 }} FCFA</div>
+              <div class="stat-label">Reste à Payer</div>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ taux_paiement }}%</div>
-            <div class="stat-label">Taux de Paiement</div>
+          <div class="stat-item stat-rate">
+            <div class="stat-icon">
+              <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ taux_paiement }}%</div>
+              <div class="stat-label">Taux de Paiement</div>
+              <div class="stat-progress">
+                <div class="progress-bar" style="width: {{ taux_paiement }}%"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -151,34 +170,26 @@
           <button class="tab-btn" data-tab="statistiques">
             <i class="fas fa-chart-bar"></i> Statistiques
           </button>
-          <button class="tab-btn" data-tab="documents">
-            <i class="fas fa-folder"></i> Documents
-          </button>
         </div>
 
         <!-- Tab: Historique des Paiements -->
         <div id="historique-paiements" class="tab-panel active">
           <div class="panel-header">
             <h3>Historique des Paiements</h3>
-            <div class="panel-actions">
-              <button class="btn btn-primary" onclick="addPayment()">
-                <i class="fas fa-plus"></i> Ajouter Paiement
-              </button>
-            </div>
+        
           </div>
           <div class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
                   <th>N° Facture</th>
-                  <th>Type de Paiement</th>
                   <th>Montant Facture</th>
                   <th>Montant Versé</th>
                   <th>Reste à Payer</th>
-                  <th>Statut</th>
+                  <th>Statut Paiement</th>
+                  <th>Statut Réglementation</th>
                   <th>Date Paiement</th>
-                  <th>Date Création</th>
-                  <th>Actions</th>
+              
                 </tr>
               </thead>
               <tbody>
@@ -189,9 +200,7 @@
                       <h4>{{ paiement.numero_facture }}</h4>
                     </div>
                   </td>
-                  <td>
-                    <span class="payment-type {% if etablissement.type_facturation == 'mensuel' %}mensuel{% else %}annuel{% endif %}">{{ paiement.type_paiement }}</span>
-                  </td>
+                 
                   <td><span class="amount">{{ paiement.montant_facture|floatformat:0 }} FCFA</span></td>
                   <td><span class="amount">{{ paiement.montant_verse|floatformat:0 }} FCFA</span></td>
                   <td>
@@ -210,22 +219,23 @@
                     <br><span class="paiement-partiel-indicator">Paiement partiel</span>
                     {% endif %}
                   </td>
-                  <td><span class="date">{{ paiement.date_paiement|date:"d M Y" }}</span></td>
-                  <td><span class="date">{{ paiement.date_creation|date:"d M Y" }}</span></td>
                   <td>
-                    <div class="action-buttons">
-                      <button class="btn-action" title="Voir détails">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn-action" title="Télécharger reçu">
-                        <i class="fas fa-download"></i>
-                      </button>
-                    </div>
+                    {% if paiement.statut_reglementation == 'contentieux' %}
+                      <span class="status-badge" style="background: #dc2626; color: white;">Contentieux</span>
+                    {% elif paiement.statut_reglementation == 'non_en_regle' %}
+                      <span class="status-badge" style="background: #f59e0b; color: white;">Non en règle</span>
+                    {% elif paiement.statut_reglementation == 'en_retard' %}
+                      <span class="status-badge" style="background: #ef4444; color: white;">En retard</span>
+                    {% else %}
+                      <span class="status-badge" style="background: #10b981; color: white;">En règle</span>
+                    {% endif %}
                   </td>
+                  <td><span class="date">{{ paiement.date_paiement|date:"d M Y" }}</span></td>
+                 
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                  <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                     <i class="fas fa-info-circle"></i> Aucun paiement enregistré
                   </td>
                 </tr>
@@ -275,8 +285,13 @@
                   </td>
                   <td>
                     <span class="amount">{{ facture.montant|floatformat:0 }} FCFA</span>
-                    {% if not facture.est_paiement_complet and facture.reste_a_payer > 0 %}
-                    <br><small style="color: #dc2626; font-size: 11px;">Reste: {{ facture.reste_a_payer|floatformat:0 }} FCFA</small>
+                    {% if facture.montant_verse and facture.montant_verse > 0 %}
+                    <br><small style="color: #059669; font-size: 11px;">Payé: {{ facture.montant_verse|floatformat:0 }} FCFA</small>
+                    {% endif %}
+                    {% if facture.reste_a_payer and facture.reste_a_payer > 0 %}
+                    <br><small style="color: #dc2626; font-size: 11px; font-weight: 600;">Reste: {{ facture.reste_a_payer|floatformat:0 }} FCFA</small>
+                    {% elif not facture.est_paiement_complet and facture.statut != 'paye' %}
+                    <br><small style="color: #dc2626; font-size: 11px; font-weight: 600;">Reste: {{ facture.montant|floatformat:0 }} FCFA</small>
                     {% endif %}
                   </td>
                   <td>
@@ -284,7 +299,7 @@
                     {% if facture.est_paiement_partiel %}
                     <br><span class="paiement-partiel-indicator">Paiement partiel</span>
                     {% endif %}
-                    {% if not facture.est_paiement_complet and facture.date_echeance_reste %}
+                    {% if facture.date_echeance_reste %}
                     <br><small style="color: #6b7280; font-size: 11px;">Échéance reste: {{ facture.date_echeance_reste|date:"d M Y" }}</small>
                     {% endif %}
                   </td>
@@ -295,16 +310,16 @@
                       <button class="btn-action" title="Voir facture" onclick="window.open('{% url 'school_admin:facture_etablissement' %}?facture_id={{ facture.numero_facture }}&etablissement_id={{ etablissement_id }}', '_blank')">
                         <i class="fas fa-eye"></i>
                       </button>
-                      <button class="btn-action" title="Télécharger PDF">
-                        <i class="fas fa-download"></i>
-                      </button>
+                    
                       <button class="btn-action" title="Envoyer">
                         <i class="fas fa-paper-plane"></i>
                       </button>
+                      {% if not facture.est_paiement_complet or facture.statut != 'paye' %}
                       <button class="btn-action btn-payment" title="Marquer comme payé" 
-                              onclick="openPaymentModal('{{ facture.numero_facture }}', {{ facture.montant }}, '{{ facture.statut }}')">
+                              onclick="openPaymentModal('{{ facture.numero_facture }}', {{ facture.montant|unlocalize }}, {% if facture.reste_a_payer %}{{ facture.reste_a_payer|unlocalize }}{% else %}{{ facture.montant|unlocalize }}{% endif %}, {% if facture.montant_verse %}{{ facture.montant_verse|unlocalize }}{% else %}0{% endif %}, '{{ facture.statut }}', '{{ facture.mode_paiement|default:""|escapejs }}', '{{ facture.reference_paiement|default:""|escapejs }}', '{% if facture.date_paiement %}{{ facture.date_paiement|date:"Y-m-d" }}{% endif %}')">
                         <i class="fas fa-money-bill-wave"></i>
                       </button>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
@@ -323,81 +338,179 @@
         <!-- Tab: Statistiques -->
         <div id="statistiques" class="tab-panel">
           <div class="panel-header">
-            <h3>Statistiques Financières</h3>
+            <h3><i class="fas fa-chart-bar"></i> Statistiques Financières</h3>
             <div class="panel-actions">
-              <button class="btn btn-primary" onclick="generateReport()">
-                <i class="fas fa-chart-line"></i> Générer Rapport
+              <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimer
               </button>
+            </div>
+          </div>
+
+          <!-- Key Metrics Cards -->
+          <div class="stats-metrics-grid">
+            <div class="metric-card metric-primary">
+              <div class="metric-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Total Facturé</div>
+                <div class="metric-value">{{ total_facture_historique|floatformat:0 }} FCFA</div>
+                <div class="metric-description">Toutes les factures générées</div>
+              </div>
+            </div>
+            <div class="metric-card metric-success">
+              <div class="metric-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Total Payé</div>
+                <div class="metric-value">{{ total_paye_historique|floatformat:0 }} FCFA</div>
+                <div class="metric-description">{{ taux_recouvrement }}% de recouvrement</div>
+              </div>
+            </div>
+            <div class="metric-card metric-warning">
+              <div class="metric-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">En Attente</div>
+                <div class="metric-value">{{ en_attente_historique|floatformat:0 }} FCFA</div>
+                <div class="metric-description">Reste à payer</div>
+              </div>
+            </div>
+            <div class="metric-card metric-info">
+              <div class="metric-icon">
+                <i class="fas fa-percentage"></i>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Taux de Recouvrement</div>
+                <div class="metric-value">{{ taux_recouvrement }}%</div>
+                <div class="metric-description">Taux de paiement global</div>
+              </div>
             </div>
           </div>
 
           <!-- Charts Container -->
           <div class="charts-container">
-            <div class="chart-card">
+            <!-- Évolution des Factures et Paiements -->
+            <div class="chart-card chart-large">
               <div class="chart-header">
-                <h4>Évolution des Paiements</h4>
-                <div class="chart-period">
-                  <select id="chartPeriod">
-                    <option value="6mois">6 derniers mois</option>
-                    <option value="1an">1 an</option>
-                    <option value="2ans">2 ans</option>
-                  </select>
-                </div>
+                <h4><i class="fas fa-chart-line"></i> Évolution des Factures et Paiements (6 derniers mois)</h4>
               </div>
               <div class="chart-content">
-                <div class="chart-placeholder">
-                  <i class="fas fa-chart-line"></i>
-                  <p>Graphique d'évolution des paiements</p>
-                </div>
+                <canvas id="evolutionChart" height="80"></canvas>
               </div>
             </div>
 
+            <!-- Répartition par Statut -->
             <div class="chart-card">
               <div class="chart-header">
-                <h4>Méthodes de Paiement</h4>
+                <h4><i class="fas fa-chart-pie"></i> Répartition par Statut</h4>
               </div>
               <div class="chart-content">
-                <div class="payment-methods-stats">
+                <canvas id="statutChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Méthodes de Paiement -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4><i class="fas fa-credit-card"></i> Méthodes de Paiement</h4>
+              </div>
+              <div class="chart-content">
+                {% if methodes_stats %}
+                <canvas id="methodesChart"></canvas>
+                <div class="payment-methods-legend">
                   {% for methode in methodes_stats %}
-                  <div class="method-stat">
-                    <div class="method-icon {% if methode.nom == 'Virement' %}virement{% elif methode.nom == 'Chèque' %}cheque{% else %}especes{% endif %}">
-                      <i class="fas {% if methode.nom == 'Virement' %}fa-university{% elif methode.nom == 'Chèque' %}fa-file-invoice{% else %}fa-money-bill{% endif %}"></i>
-                    </div>
-                    <div class="method-info">
-                      <div class="method-name">{{ methode.nom }}</div>
-                      <div class="method-percentage">{{ methode.pourcentage }}%</div>
-                    </div>
-                  </div>
-                  {% empty %}
-                  <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                    <i class="fas fa-info-circle"></i> Aucune donnée de paiement disponible
+                  <div class="method-legend-item">
+                    <span class="legend-color" style="background: {% cycle '#3b82f6' '#10b981' '#f59e0b' '#ef4444' '#8b5cf6' as color %}"></span>
+                    <span class="legend-label">{{ methode.nom }}</span>
+                    <span class="legend-value">{{ methode.pourcentage }}% ({{ methode.count }})</span>
                   </div>
                   {% endfor %}
                 </div>
+                {% else %}
+                <div class="chart-placeholder">
+                  <i class="fas fa-info-circle"></i>
+                  <p>Aucune donnée de paiement disponible</p>
+                </div>
+                {% endif %}
               </div>
             </div>
           </div>
 
-          <!-- Financial Summary -->
-          <div class="financial-summary">
-            <div class="summary-card">
-              <h4>Résumé Financier</h4>
-              <div class="summary-stats">
-                <div class="summary-stat">
-                  <div class="stat-label">Total Facturé</div>
-                  <div class="stat-value">{{ total_facture_historique|floatformat:0 }} FCFA</div>
+          <!-- Detailed Statistics -->
+          <div class="detailed-stats-grid">
+            <!-- Factures par Statut -->
+            <div class="stats-detail-card">
+              <div class="detail-card-header">
+                <h4><i class="fas fa-list-alt"></i> Factures par Statut</h4>
+              </div>
+              <div class="detail-card-body">
+                <div class="stat-row">
+                  <div class="stat-label-row">
+                    <span class="stat-indicator stat-paid"></span>
+                    <span>Payées</span>
+                  </div>
+                  <div class="stat-value-row">
+                    <strong>{{ factures_par_statut.paye }}</strong>
+                    <span class="stat-amount">{{ montants_par_statut.paye|floatformat:0 }} FCFA</span>
+                  </div>
                 </div>
-                <div class="summary-stat">
-                  <div class="stat-label">Total Payé</div>
-                  <div class="stat-value">{{ total_paye_historique|floatformat:0 }} FCFA</div>
+                <div class="stat-row">
+                  <div class="stat-label-row">
+                    <span class="stat-indicator stat-pending"></span>
+                    <span>En Attente</span>
+                  </div>
+                  <div class="stat-value-row">
+                    <strong>{{ factures_par_statut.en_attente }}</strong>
+                    <span class="stat-amount">{{ montants_par_statut.en_attente|floatformat:0 }} FCFA</span>
+                  </div>
                 </div>
-                <div class="summary-stat">
-                  <div class="stat-label">En Attente</div>
-                  <div class="stat-value">{{ en_attente_historique|floatformat:0 }} FCFA</div>
+                <div class="stat-row">
+                  <div class="stat-label-row">
+                    <span class="stat-indicator stat-delayed"></span>
+                    <span>En Retard</span>
+                  </div>
+                  <div class="stat-value-row">
+                    <strong>{{ factures_par_statut.en_retard }}</strong>
+                    <span class="stat-amount">{{ montants_par_statut.en_retard|floatformat:0 }} FCFA</span>
+                  </div>
                 </div>
-                <div class="summary-stat">
-                  <div class="stat-label">Taux de Recouvrement</div>
-                  <div class="stat-value">{{ taux_recouvrement }}%</div>
+                <div class="stat-row">
+                  <div class="stat-label-row">
+                    <span class="stat-indicator stat-unpaid"></span>
+                    <span>Impayées</span>
+                  </div>
+                  <div class="stat-value-row">
+                    <strong>{{ factures_par_statut.impaye }}</strong>
+                    <span class="stat-amount">{{ montants_par_statut.impaye|floatformat:0 }} FCFA</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Résumé Financier -->
+            <div class="stats-detail-card">
+              <div class="detail-card-header">
+                <h4><i class="fas fa-calculator"></i> Résumé Financier</h4>
+              </div>
+              <div class="detail-card-body">
+                <div class="summary-item">
+                  <div class="summary-label">Total Facturé</div>
+                  <div class="summary-value primary">{{ total_facture_historique|floatformat:0 }} FCFA</div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-label">Total Payé</div>
+                  <div class="summary-value success">{{ total_paye_historique|floatformat:0 }} FCFA</div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-label">En Attente</div>
+                  <div class="summary-value warning">{{ en_attente_historique|floatformat:0 }} FCFA</div>
+                </div>
+                <div class="summary-item summary-total">
+                  <div class="summary-label">Taux de Recouvrement</div>
+                  <div class="summary-value total">{{ taux_recouvrement }}%</div>
                 </div>
               </div>
             </div>
@@ -458,12 +571,25 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="type_facture" class="required">Type de facture</label>
-                <select name="type_facture" id="type_facture" required onchange="toggleModuleFields()">
-                  <option value="">Sélectionner un type</option>
-                  <option value="frais_service_mensuel">Frais de service mensuel</option>
-                  <option value="frais_service_annuel">Frais de service annuel</option>
-                  <option value="module_supplementaire">Module supplémentaire</option>
-                </select>
+                {% if etablissement.type_facturation == 'mensuel' %}
+                    <input type="text" value="Frais de service mensuel" readonly 
+                           style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <input type="hidden" name="type_facture" value="frais_service_mensuel" id="type_facture">
+                {% elif etablissement.type_facturation == 'annuel' %}
+                    <input type="text" value="Frais de service annuel" readonly 
+                           style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <input type="hidden" name="type_facture" value="frais_service_annuel" id="type_facture">
+                {% else %}
+                  <select name="type_facture" id="type_facture" required onchange="toggleModuleFields(); updateInvoiceFields();">
+                    <option value="">Sélectionner un type</option>
+                    <option value="frais_service_mensuel">Frais de service mensuel</option>
+                    <option value="frais_service_annuel">Frais de service annuel</option>
+                    <option value="module_supplementaire">Module supplémentaire</option>
+                  </select>
+                {% endif %}
+                <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">
+                  Type de facturation de l'établissement : <strong>{{ etablissement.get_type_facturation_display }}</strong> (défini automatiquement)
+                </small>
               </div>
               <div class="form-group">
                 <label>Quantité (nombre d'élèves)</label>
@@ -482,9 +608,48 @@
               </div>
               <div class="form-group">
                 <label for="date_echeance" class="required">Date d'échéance</label>
-                <input type="date" name="date_echeance" id="date_echeance" required>
+                <input type="text" id="date_echeance_display" readonly 
+                       style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <input type="hidden" name="date_echeance" id="date_echeance" required>
+                <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">
+                  Date calculée automatiquement selon le type de facturation
+                </small>
               </div>
             </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Période de facturation</label>
+                <input type="text" id="periode_facture_display" readonly 
+                       style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">
+                  Période calculée automatiquement (mois pour mensuel, année pour annuel)
+                </small>
+              </div>
+            </div>
+            
+            <!-- Sélection de période passée si des périodes sont manquantes -->
+            {% if periodes_sans_facture %}
+            <div class="form-row">
+              <div class="form-group">
+                <label for="periode_selectionnee">
+                  <i class="fas fa-calendar-alt" style="color: #f59e0b; margin-right: 5px;"></i>
+                  Sélectionner une période passée (optionnel)
+                </label>
+                <select name="periode_selectionnee" id="periode_selectionnee" onchange="updateInvoiceFields();">
+                  <option value="">Période actuelle (recommandé)</option>
+                  {% for periode in periodes_sans_facture %}
+                  <option value="{{ periode.valeur }}" style="color: #dc2626;">
+                    {{ periode.label }} {% if periode.type == 'mois' %}(Mois manquant){% else %}(Année manquante){% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
+                <small style="color: #f59e0b; font-size: 12px; margin-top: 4px; display: block;">
+                  <i class="fas fa-info-circle"></i> Des périodes sans facture ont été détectées. Sélectionnez une période passée pour générer une facture de rattrapage.
+                </small>
+              </div>
+            </div>
+            {% endif %}
             
             <!-- Champs pour module supplémentaire -->
             <div class="form-group">
@@ -548,27 +713,74 @@
           {% csrf_token %}
           <input type="hidden" name="facture_numero" id="facture_numero">
           <div class="modal-body">
-            <div class="payment-info">
-              <div class="info-item">
-                <label>Numéro de facture :</label>
-                <span id="payment_facture_numero"></span>
+            <div class="payment-info" style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <div class="info-item" style="margin-bottom: 12px;">
+                <label style="font-weight: 600; color: #374151;">Numéro de facture :</label>
+                <span id="payment_facture_numero" style="font-weight: 600; color: #1f2937;"></span>
               </div>
-              <div class="info-item">
-                <label>Montant initial :</label>
-                <span id="payment_montant_initial" class="amount-display"></span>
+              <div class="info-item" style="margin-bottom: 12px;">
+                <label style="font-weight: 600; color: #374151;">Montant total de la facture :</label>
+                <span id="payment_montant_total" class="amount-display" style="font-size: 18px; font-weight: 700; color: #1f2937;"></span>
+              </div>
+              <div class="info-item" style="margin-bottom: 12px; display: none;" id="payment_montant_verse_info">
+                <label style="font-weight: 600; color: #374151;">Montant déjà payé :</label>
+                <span id="payment_montant_verse_display" class="amount-display" style="font-size: 16px; font-weight: 600; color: #059669;"></span>
+              </div>
+              <div class="info-item" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 8px;">
+                <label style="font-weight: 700; color: #dc2626; font-size: 16px;">Reste à payer :</label>
+                <span id="payment_reste_initial" class="amount-display" style="font-size: 20px; font-weight: 700; color: #dc2626;"></span>
+              </div>
+            </div>
+            
+            <!-- Informations du premier paiement si existant -->
+            <div id="premier_paiement_info" style="display: none; background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 12px; margin-bottom: 16px; border-radius: 8px;">
+              <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px;">
+                <i class="fas fa-info-circle"></i> Informations du premier paiement
+              </h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                <div>
+                  <strong>Montant déjà payé :</strong>
+                  <span id="premier_paiement_montant" style="color: #059669; font-weight: 600;"></span>
+                </div>
+                <div>
+                  <strong>Date de paiement :</strong>
+                  <span id="premier_paiement_date"></span>
+                </div>
+                <div>
+                  <strong>Mode de paiement :</strong>
+                  <span id="premier_paiement_mode"></span>
+                </div>
+                <div>
+                  <strong>Référence :</strong>
+                  <span id="premier_paiement_reference"></span>
+                </div>
               </div>
             </div>
             
             <div class="form-group">
-              <label for="montant_verse" class="required">Montant versé (FCFA)</label>
+              <label for="montant_verse" class="required" id="montant_verse_label">Montant à verser maintenant (FCFA)</label>
               <input type="number" name="montant_verse" id="montant_verse" 
-                     min="0" step="0.01" required onchange="calculateReste()">
+                     min="0" step="0.01" required oninput="calculateReste()" onchange="calculateReste()">
+              <small id="montant_verse_help" style="color: #6b7280; font-size: 12px; display: none;">
+                Le montant ne peut pas dépasser le reste à payer
+              </small>
             </div>
             
-            <div class="form-group">
-              <label for="date_echeance_reste">Date d'échéance du reste à payer</label>
+            <!-- Aperçu du calcul en temps réel (lignes 675-684) -->
+            <!-- JavaScript calcule uniquement : reste_a_payer (DB) - montant_saisi -->
+            <div class="payment-summary" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+              <div class="summary-item" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <label>Reste à payer après ce paiement :</label>
+                <span id="reste_a_payer" class="amount-display" style="font-weight: 600; font-size: 16px; color: #dc2626;">0.00 FCFA</span>
+              </div>
+            </div>
+            
+            <div class="form-group" id="date_echeance_reste_group">
+              <label for="date_echeance_reste" id="date_echeance_reste_label">Date d'échéance du reste à payer</label>
               <input type="date" name="date_echeance_reste" id="date_echeance_reste">
-              <small style="color: #6b7280; font-size: 12px;">Optionnel - pour les paiements partiels</small>
+              <small style="color: #6b7280; font-size: 12px;" id="date_echeance_reste_help">
+                Requis si le paiement est partiel
+              </small>
             </div>
             
             <div class="form-group">
@@ -588,13 +800,6 @@
                      placeholder="Numéro de transaction, référence chèque, etc.">
             </div>
             
-            <!-- Calcul automatique du reste -->
-            <div class="payment-summary">
-              <div class="summary-item">
-                <label>Reste à payer :</label>
-                <span id="reste_a_payer" class="amount-display">0.00 FCFA</span>
-              </div>
-            </div>
           </div>
           
           <div class="modal-footer">
@@ -641,30 +846,73 @@
         if (openButton) {
             openButton.addEventListener('click', function() {
                 setTimeout(() => {
-                    const dateEcheance = document.getElementById('date_echeance');
-                    if (dateEcheance && !dateEcheance.value) {
-                        const today = new Date();
-                        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-                        dateEcheance.value = futureDate.toISOString().split('T')[0];
-                    }
+                    updateInvoiceFields();
                 }, 100);
             });
         }
+        
+        // Initialiser les champs au chargement si le type est déjà sélectionné
+        setTimeout(() => {
+            const typeFacture = document.getElementById('type_facture');
+            if (typeFacture && typeFacture.value) {
+                updateInvoiceFields();
+            }
+        }, 200);
     });
     
-    // Variables globales pour le modal de paiement
-    let currentFactureNumero = '';
-    let currentMontantInitial = 0;
+    // Variable globale pour le reste à payer (depuis la colonne reste_a_payer de la DB)
+    // Utilisée UNIQUEMENT pour le calcul en temps réel dans le formulaire
+    let currentResteAPayer = 0;
     
     // Fonction pour ouvrir le modal de paiement
-    function openPaymentModal(factureNumero, montantInitial, statut) {
-        currentFactureNumero = factureNumero;
-        currentMontantInitial = montantInitial;
+    // IMPORTANT : Toutes les données viennent directement des colonnes de la table Facturation
+    // Paramètres reçus (dans l'ordre) :
+    // 1. factureNumero : numéro de la facture
+    // 2. montantTotal : colonne montant_total
+    // 3. resteAPayer : colonne reste_a_payer (lignes 635-638 et 675-684)
+    // 4. montantDejaPaye : colonne montant_verse (lignes 631-634 et 647-650)
+    function openPaymentModal(factureNumero, montantTotal, resteAPayer, montantDejaPaye, statut, modePaiement, referencePaiement, datePaiement) {
+        // IMPORTANT : Convertir les valeurs en nombres (les Decimal Django peuvent être passés comme strings)
+        // resteAPayer vient directement de la colonne reste_a_payer de la DB
+        const resteAPayerNum = typeof resteAPayer === 'string' ? parseFloat(resteAPayer.replace(',', '.')) : parseFloat(resteAPayer) || 0;
+        const montantDejaPayeNum = typeof montantDejaPaye === 'string' ? parseFloat(montantDejaPaye.replace(',', '.')) : parseFloat(montantDejaPaye) || 0;
+        const montantTotalNum = typeof montantTotal === 'string' ? parseFloat(montantTotal.replace(',', '.')) : parseFloat(montantTotal) || 0;
         
-        // Remplir les informations
+        // Stocker le reste à payer depuis la DB pour le calcul en temps réel
+        currentResteAPayer = resteAPayerNum;
+        
+        // Remplir les informations de base (données brutes depuis la DB)
         document.getElementById('facture_numero').value = factureNumero;
         document.getElementById('payment_facture_numero').textContent = factureNumero;
-        document.getElementById('payment_montant_initial').textContent = montantInitial.toLocaleString() + ' FCFA';
+        document.getElementById('payment_montant_total').textContent = montantTotalNum.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' FCFA';
+        
+        // Lignes 631-634 : Afficher montant_verse directement depuis la colonne DB
+        // montantDejaPaye vient directement de la colonne montant_verse de la DB
+        const montantVerseInfo = document.getElementById('payment_montant_verse_info');
+        const montantVerseDisplay = document.getElementById('payment_montant_verse_display');
+        
+        if (montantDejaPayeNum > 0) {
+            montantVerseInfo.style.display = 'block';
+            montantVerseDisplay.textContent = montantDejaPayeNum.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' FCFA';
+        } else {
+            montantVerseInfo.style.display = 'none';
+        }
+        
+        // Lignes 635-638 : Afficher reste_a_payer directement depuis la colonne DB
+        // currentResteAPayer vient directement de la colonne reste_a_payer de la DB
+        document.getElementById('payment_reste_initial').textContent = currentResteAPayer.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' FCFA';
+        
+        // Lignes 647-650 : Afficher montant_verse directement depuis la colonne DB (informations du premier paiement)
+        const premierPaiementInfo = document.getElementById('premier_paiement_info');
+        if (montantDejaPayeNum > 0) {
+            premierPaiementInfo.style.display = 'block';
+            document.getElementById('premier_paiement_montant').textContent = montantDejaPayeNum.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' FCFA';
+            document.getElementById('premier_paiement_date').textContent = datePaiement || 'Non spécifiée';
+            document.getElementById('premier_paiement_mode').textContent = modePaiement || 'Non spécifié';
+            document.getElementById('premier_paiement_reference').textContent = referencePaiement || 'N/A';
+        } else {
+            premierPaiementInfo.style.display = 'none';
+        }
         
         // Afficher le modal
         const modal = document.getElementById('paymentModal');
@@ -674,6 +922,11 @@
         // Réinitialiser le formulaire
         document.getElementById('paymentForm').reset();
         document.getElementById('facture_numero').value = factureNumero;
+        
+        // Réinitialiser le champ montant versé
+        document.getElementById('montant_verse').value = '';
+        
+        // Calculer l'aperçu initial (ligne 675-684)
         calculateReste();
     }
     
@@ -684,24 +937,405 @@
         setTimeout(() => modal.style.display = 'none', 300);
     }
     
-    // Fonction pour calculer le reste à payer
+    // Fonction pour calculer le reste à payer en temps réel
+    // IMPORTANT : JavaScript utilisé UNIQUEMENT pour l'affichage en temps réel
+    // Le reste à payer actuel vient directement de la colonne reste_a_payer de la DB
+    // On soustrait simplement le montant saisi du reste actuel pour l'aperçu
     function calculateReste() {
         const montantVerse = parseFloat(document.getElementById('montant_verse').value) || 0;
-        const reste = Math.max(0, currentMontantInitial - montantVerse);
-        document.getElementById('reste_a_payer').textContent = reste.toLocaleString() + ' FCFA';
+        
+        // Calcul simple : reste_a_payer (DB) - montant saisi
+        // Lignes 675-684 : Afficher uniquement le reste après ce paiement
+        const nouveauReste = Math.max(0, currentResteAPayer - montantVerse);
+        
+        // Mettre à jour l'affichage du reste à payer après ce paiement
+        const resteElement = document.getElementById('reste_a_payer');
+        resteElement.textContent = nouveauReste.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' FCFA';
+        
+        // Changer la couleur selon s'il reste quelque chose à payer
+        if (nouveauReste > 0) {
+            resteElement.style.color = '#dc2626';
+        } else {
+            resteElement.style.color = '#059669';
+        }
+        
+        // Afficher/masquer le champ date d'échéance selon si c'est un paiement partiel
+        const dateEcheanceGroup = document.getElementById('date_echeance_reste_group');
+        const dateEcheanceInput = document.getElementById('date_echeance_reste');
+        const dateEcheanceLabel = document.getElementById('date_echeance_reste_label');
+        const dateEcheanceHelp = document.getElementById('date_echeance_reste_help');
+        
+        if (nouveauReste > 0) {
+            // Paiement partiel : date d'échéance requise
+            dateEcheanceGroup.style.display = 'block';
+            dateEcheanceInput.required = true;
+            dateEcheanceLabel.innerHTML = 'Date d\'échéance du reste à payer <span style="color: #dc2626;">*</span>';
+            dateEcheanceHelp.textContent = 'Requis pour les paiements partiels';
+            dateEcheanceHelp.style.color = '#dc2626';
+        } else {
+            // Paiement complet : date d'échéance optionnelle
+            dateEcheanceGroup.style.display = 'block';
+            dateEcheanceInput.required = false;
+            dateEcheanceLabel.textContent = 'Date d\'échéance du reste à payer';
+            dateEcheanceHelp.textContent = 'Optionnel - pour les paiements partiels';
+            dateEcheanceHelp.style.color = '#6b7280';
+        }
+        
+        // Validation simple : le montant versé ne peut pas dépasser le reste à payer actuel
+        const montantVerseInput = document.getElementById('montant_verse');
+        const montantVerseHelp = document.getElementById('montant_verse_help');
+        
+        if (montantVerse > currentResteAPayer) {
+            montantVerseInput.style.borderColor = '#dc2626';
+            montantVerseHelp.style.display = 'block';
+            montantVerseHelp.style.color = '#dc2626';
+            montantVerseHelp.textContent = `Le montant ne peut pas dépasser le reste à payer (${currentResteAPayer.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} FCFA)`;
+        } else if (montantVerse < 0) {
+            montantVerseInput.style.borderColor = '#dc2626';
+            montantVerseHelp.style.display = 'block';
+            montantVerseHelp.style.color = '#dc2626';
+            montantVerseHelp.textContent = 'Le montant doit être positif';
+        } else {
+            montantVerseInput.style.borderColor = '';
+            montantVerseHelp.style.display = 'none';
+        }
     }
     
-    // Confirmation simple avant soumission (sans validation)
+    // Confirmation simple avant soumission
     document.addEventListener('DOMContentLoaded', function() {
         const paymentForm = document.getElementById('paymentForm');
         if (paymentForm) {
             paymentForm.addEventListener('submit', function(e) {
                 const montantVerse = parseFloat(document.getElementById('montant_verse').value) || 0;
+                const factureNumero = document.getElementById('facture_numero').value;
                 
                 // Confirmation simple uniquement
-                const confirmation = confirm(`Confirmer le paiement de ${montantVerse.toLocaleString()} FCFA pour la facture ${currentFactureNumero} ?`);
+                const confirmation = confirm(`Confirmer le paiement de ${montantVerse.toLocaleString()} FCFA pour la facture ${factureNumero} ?`);
                 if (!confirmation) {
                     e.preventDefault();
+                }
+            });
+        }
+    });
+    
+    // Fonction pour mettre à jour automatiquement les champs du formulaire de facture
+    function updateInvoiceFields() {
+        const typeFacture = document.getElementById('type_facture');
+        const montantUnitaireDisplay = document.getElementById('montant_unitaire_display');
+        const dateEcheance = document.getElementById('date_echeance');
+        const dateEcheanceDisplay = document.getElementById('date_echeance_display');
+        const periodeFactureDisplay = document.getElementById('periode_facture_display');
+        const periodeSelectionnee = document.getElementById('periode_selectionnee');
+        
+        if (!typeFacture || !montantUnitaireDisplay || !dateEcheance) return;
+        
+        // Récupérer la valeur : soit depuis un select, soit depuis un input hidden
+        let typeFactureValue;
+        if (typeFacture.tagName === 'SELECT') {
+            typeFactureValue = typeFacture.value;
+        } else if (typeFacture.tagName === 'INPUT' && typeFacture.type === 'hidden') {
+            typeFactureValue = typeFacture.value;
+        } else {
+            return;
+        }
+        
+        const montantParEleve = parseFloat('{{ etablissement.montant_par_eleve }}');
+        const typeFacturation = '{{ etablissement.type_facturation }}';
+        
+        // Vérifier si une période passée est sélectionnée
+        let periodePassee = null;
+        if (periodeSelectionnee && periodeSelectionnee.value) {
+            periodePassee = periodeSelectionnee.value;
+        }
+        
+        // Mettre à jour le montant unitaire selon le type de facture
+        if (typeFactureValue === 'frais_service_mensuel') {
+            montantUnitaireDisplay.value = montantParEleve.toLocaleString() + ' FCFA';
+        } else if (typeFactureValue === 'frais_service_annuel') {
+            const montantAnnuel = montantParEleve * 12;
+            montantUnitaireDisplay.value = montantAnnuel.toLocaleString() + ' FCFA';
+        } else if (typeFactureValue === 'module_supplementaire') {
+            montantUnitaireDisplay.value = 'À définir';
+        }
+        
+        // Calculer automatiquement la date d'échéance selon le type de facturation
+        if (typeFactureValue && typeFactureValue !== 'module_supplementaire') {
+            let futureDate;
+            
+            if (periodePassee) {
+                // Si une période passée est sélectionnée, utiliser cette période
+                if (typeFactureValue === 'frais_service_mensuel') {
+                    // Format: "YYYY-MM"
+                    const [annee, mois] = periodePassee.split('-');
+                    // Date d'échéance = fin du mois sélectionné (dernier jour du mois)
+                    futureDate = new Date(parseInt(annee), parseInt(mois), 0);
+                } else if (typeFactureValue === 'frais_service_annuel') {
+                    // Format: "YYYY"
+                    futureDate = new Date(parseInt(periodePassee), 11, 31); // 31 décembre de l'année
+                }
+            } else {
+                // Sinon, calculer selon la date actuelle
+                const today = new Date();
+                if (typeFactureValue === 'frais_service_mensuel') {
+                    // Pour facturation mensuelle : date d'échéance = aujourd'hui + 1 mois
+                    futureDate = new Date(today);
+                    futureDate.setMonth(futureDate.getMonth() + 1);
+                } else if (typeFactureValue === 'frais_service_annuel') {
+                    // Pour facturation annuelle : date d'échéance = aujourd'hui + 1 an
+                    futureDate = new Date(today);
+                    futureDate.setFullYear(futureDate.getFullYear() + 1);
+                }
+            }
+            
+            if (futureDate) {
+                const dateStr = futureDate.toISOString().split('T')[0];
+                dateEcheance.value = dateStr;
+                
+                // Afficher la date formatée
+                if (dateEcheanceDisplay) {
+                    const options = { day: '2-digit', month: 'long', year: 'numeric' };
+                    dateEcheanceDisplay.value = futureDate.toLocaleDateString('fr-FR', options);
+                }
+                
+                // Calculer et afficher la période de facturation
+                if (periodeFactureDisplay) {
+                    if (typeFactureValue === 'frais_service_mensuel') {
+                        // Format: "Mois Année" (ex: "Janvier 2025")
+                        const moisFr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                                       'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                        periodeFactureDisplay.value = `${moisFr[futureDate.getMonth()]} ${futureDate.getFullYear()}`;
+                    } else if (typeFactureValue === 'frais_service_annuel') {
+                        // Format: "Année" (ex: "2025")
+                        periodeFactureDisplay.value = futureDate.getFullYear().toString();
+                    }
+                }
+            }
+        }
+        
+        // Mettre à jour l'aperçu du montant total
+        updateTotalPreview();
+    }
+    
+    // Fonction pour mettre à jour l'aperçu du montant total
+    function updateTotalPreview() {
+        const typeFacture = document.getElementById('type_facture');
+        const montantUnitaireDisplay = document.getElementById('montant_unitaire_display');
+        const nombreEleves = parseInt('{{ nombre_eleves }}');
+        const totalAmountSpan = document.getElementById('totalAmount');
+        const periodeSelectionnee = document.getElementById('periode_selectionnee');
+        
+        if (!typeFacture || !montantUnitaireDisplay || !totalAmountSpan) return;
+        
+        // Récupérer la valeur : soit depuis un select, soit depuis un input hidden
+        let typeFactureValue;
+        if (typeFacture.tagName === 'SELECT') {
+            typeFactureValue = typeFacture.value;
+        } else if (typeFacture.tagName === 'INPUT' && typeFacture.type === 'hidden') {
+            typeFactureValue = typeFacture.value;
+        } else {
+            return;
+        }
+        
+        const montantParEleve = parseFloat('{{ etablissement.montant_par_eleve }}');
+        
+        // Afficher un avertissement si une période passée est sélectionnée
+        if (periodeSelectionnee && periodeSelectionnee.value) {
+            const warningMsg = document.getElementById('periode-warning');
+            if (!warningMsg) {
+                const warningDiv = document.createElement('div');
+                warningDiv.id = 'periode-warning';
+                warningDiv.style.cssText = 'background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin-top: 10px; border-radius: 8px;';
+                warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-right: 8px;"></i><strong>Facture de rattrapage :</strong> Le nombre d\'élèves sera calculé automatiquement pour la période sélectionnée.';
+                periodeSelectionnee.closest('.form-group').appendChild(warningDiv);
+            }
+        } else {
+            const warningMsg = document.getElementById('periode-warning');
+            if (warningMsg) {
+                warningMsg.remove();
+            }
+        }
+        
+        // Note: Le nombre d'élèves exact pour la période passée sera calculé côté serveur
+        // Ici on affiche une estimation basée sur le nombre actuel
+        if (typeFactureValue === 'frais_service_mensuel') {
+            const total = montantParEleve * nombreEleves;
+            totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (periodeSelectionnee && periodeSelectionnee.value) {
+                totalAmountSpan.textContent += ' (estimation)';
+            }
+        } else if (typeFactureValue === 'frais_service_annuel') {
+            const total = (montantParEleve * 12) * nombreEleves;
+            totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (periodeSelectionnee && periodeSelectionnee.value) {
+                totalAmountSpan.textContent += ' (estimation)';
+            }
+        } else if (typeFactureValue === 'module_supplementaire') {
+            const montantModule = parseFloat(document.getElementById('montant_module_supplementaire').value) || 0;
+            totalAmountSpan.textContent = montantModule.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        } else {
+            totalAmountSpan.textContent = '0.00';
+        }
+    }
+    
+    // Écouter les changements sur le montant des modules supplémentaires
+    document.addEventListener('DOMContentLoaded', function() {
+        const montantModuleInput = document.getElementById('montant_module_supplementaire');
+        if (montantModuleInput) {
+            montantModuleInput.addEventListener('input', function() {
+                updateTotalPreview();
+            });
+        }
+    });
+    
+    // Chart.js Scripts pour les statistiques
+    document.addEventListener('DOMContentLoaded', function() {
+        // Données depuis Django (JSON)
+        const evolutionLabels = {{ labels_mois_json|safe }};
+        const evolutionFactures = {{ evolution_factures_json|safe }};
+        const evolutionPaiements = {{ evolution_paiements_json|safe }};
+        const facturesParStatut = {{ factures_par_statut_json|safe }};
+        const methodesStats = {{ methodes_stats_json|safe }};
+        
+        // Graphique d'évolution
+        const evolutionCtx = document.getElementById('evolutionChart');
+        if (evolutionCtx && typeof Chart !== 'undefined') {
+            new Chart(evolutionCtx, {
+                type: 'line',
+                data: {
+                    labels: evolutionLabels,
+                    datasets: [{
+                        label: 'Factures Générées',
+                        data: evolutionFactures,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Paiements Reçus',
+                        data: evolutionPaiements,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toLocaleString('fr-FR') + ' FCFA';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('fr-FR') + ' FCFA';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Graphique de répartition par statut
+        const statutCtx = document.getElementById('statutChart');
+        if (statutCtx && typeof Chart !== 'undefined') {
+            const statutData = [
+                facturesParStatut.paye || 0,
+                facturesParStatut.en_attente || 0,
+                facturesParStatut.en_retard || 0,
+                facturesParStatut.impaye || 0
+            ];
+            
+            new Chart(statutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Payées', 'En Attente', 'En Retard', 'Impayées'],
+                    datasets: [{
+                        data: statutData,
+                        backgroundColor: [
+                            '#10b981',
+                            '#3b82f6',
+                            '#f59e0b',
+                            '#ef4444'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Graphique des méthodes de paiement
+        const methodesCtx = document.getElementById('methodesChart');
+        if (methodesCtx && methodesStats.length > 0 && typeof Chart !== 'undefined') {
+            const methodesLabels = methodesStats.map(m => m.nom);
+            const methodesData = methodesStats.map(m => m.count);
+            const methodesColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+            
+            new Chart(methodesCtx, {
+                type: 'pie',
+                data: {
+                    labels: methodesLabels,
+                    datasets: [{
+                        data: methodesData,
+                        backgroundColor: methodesColors.slice(0, methodesData.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }

@@ -87,6 +87,15 @@ class Facturation(models.Model):
         verbose_name="Date de paiement"
     )
     
+    # Période de facturation (mois pour mensuel, année pour annuel)
+    periode_facture = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Période de facturation",
+        help_text="Mois (ex: Janvier 2025) pour facturation mensuelle, Année (ex: 2025) pour facturation annuelle"
+    )
+    
     # Détails
     description = models.TextField(
         verbose_name="Description",
@@ -175,6 +184,25 @@ class Facturation(models.Model):
         # Générer le numéro de facture s'il n'existe pas
         if not self.numero_facture:
             self.numero_facture = self.generer_numero_facture()
+        
+        # Si c'est une nouvelle facture (pas encore payée), initialiser le reste_a_payer au montant_total
+        from decimal import Decimal
+        if not self.pk:
+            # Nouvelle facture : initialiser reste_a_payer
+            if self.montant_verse and self.montant_verse > 0:
+                # Si un montant a déjà été versé, calculer le reste
+                self.reste_a_payer = self.calculer_reste_a_payer(self.montant_verse)
+            else:
+                # Sinon, le reste à payer = montant total
+                self.reste_a_payer = self.montant_total
+        elif self.statut != 'paye' and (self.reste_a_payer is None or self.reste_a_payer == 0):
+            # Facture existante non payée avec reste_a_payer non initialisé
+            if self.montant_verse and self.montant_verse > 0:
+                # Si un montant a déjà été versé, calculer le reste
+                self.reste_a_payer = self.calculer_reste_a_payer(self.montant_verse)
+            else:
+                # Sinon, le reste à payer = montant total
+                self.reste_a_payer = self.montant_total
         
         super().save(*args, **kwargs)
     
@@ -342,18 +370,30 @@ class Facturation(models.Model):
         return self.montant_total - montant_verse
     
     def traiter_paiement_partiel(self, montant_verse, date_echeance_reste=None):
-        """Traite un paiement partiel"""
+        """
+        Traite un paiement (partiel ou complet)
+        Met à jour automatiquement les colonnes montant_verse et reste_a_payer
+        Si reste_a_payer = 0, la facture est considérée comme réglée et en règle
+        """
         from decimal import Decimal
         
         # S'assurer que montant_verse est un Decimal
         if isinstance(montant_verse, (int, float)):
             montant_verse = Decimal(str(montant_verse))
         
-        # Sauvegarder le montant versé
+        # IMPORTANT : Mettre à jour directement les colonnes de la DB
+        # Sauvegarder le montant total versé (cumul de tous les paiements)
         self.montant_verse = montant_verse
+        
+        # Calculer le reste à payer : montant_total - montant_verse
         self.reste_a_payer = self.calculer_reste_a_payer(montant_verse)
+        
+        # Si date d'échéance pour le reste est fournie, l'enregistrer
         if date_echeance_reste:
             self.date_echeance_reste = date_echeance_reste
+        elif self.reste_a_payer == Decimal('0.00'):
+            # Si paiement complet, supprimer la date d'échéance du reste
+            self.date_echeance_reste = None
         
         # Mettre à jour le statut - toujours "payé" quand il y a un paiement
         self.statut = 'paye'
@@ -361,10 +401,13 @@ class Facturation(models.Model):
         
         # Déterminer si c'est un paiement partiel
         if self.reste_a_payer == Decimal('0.00'):
+            # Paiement complet : facture réglée et en règle
             self.paiement_partiel = False
         else:
+            # Paiement partiel : il reste encore à payer
             self.paiement_partiel = True
         
+        # Sauvegarder les modifications dans la DB
         self.save()
     
     def est_paiement_complet(self):

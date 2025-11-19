@@ -23,6 +23,9 @@
 
     <!-- Dashboard Content -->
     <div class="dashboard-content">
+      <!-- Messages Django -->
+      {% include 'school_admin/partials/messages.html' %}
+      
       <!-- KPIs Section -->
       <div class="kpis-section">
         <div class="kpi-card">
@@ -32,7 +35,9 @@
           <div class="kpi-content">
             <h3>{{ total_etablissements }}</h3>
             <p>Écoles actives</p>
-            <span class="kpi-trend positive">+2 ce mois</span>
+            <span class="kpi-trend {% if etablissements_ce_mois > 0 %}positive{% else %}neutral{% endif %}">
+              {% if etablissements_ce_mois > 0 %}+{{ etablissements_ce_mois }} ce mois{% else %}Aucun nouveau{% endif %}
+            </span>
           </div>
         </div>
 
@@ -43,7 +48,9 @@
           <div class="kpi-content">
             <h3>{{ total_eleves|floatformat:0 }}</h3>
             <p>Total élèves</p>
-            <span class="kpi-trend positive">+12% ce mois</span>
+            <span class="kpi-trend {% if pourcentage_evolution_eleves >= 0 %}positive{% else %}negative{% endif %}">
+              {% if pourcentage_evolution_eleves >= 0 %}+{% endif %}{{ pourcentage_evolution_eleves }}% ce mois
+            </span>
           </div>
         </div>
 
@@ -54,7 +61,9 @@
           <div class="kpi-content">
             <h3>{{ revenus_collectes|floatformat:0 }} FCFA</h3>
             <p>Revenus totaux</p>
-            <span class="kpi-trend positive">+8% ce mois</span>
+            <span class="kpi-trend {% if pourcentage_evolution_revenus >= 0 %}positive{% else %}negative{% endif %}">
+              {% if pourcentage_evolution_revenus >= 0 %}+{% endif %}{{ pourcentage_evolution_revenus }}% ce mois
+            </span>
           </div>
         </div>
 
@@ -98,9 +107,9 @@
               <div class="collection-rate">
                 <div class="rate-info">
                   <p>{{ revenus_collectes|floatformat:0 }} FCFA collectés sur {{ montant_total_attendu|floatformat:0 }} FCFA attendus</p>
-                  <span class="rate-trend positive"
-                    >+12% par rapport au mois dernier</span
-                  >
+                  <span class="rate-trend {% if pourcentage_evolution_revenus >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if pourcentage_evolution_revenus >= 0 %}+{% endif %}{{ pourcentage_evolution_revenus }}% par rapport au mois dernier
+                  </span>
                 </div>
                 <div class="progress-bar">
                   <div class="progress-fill" style="width: {{ taux_collecte }}%"></div>
@@ -120,11 +129,18 @@
                 {% for stat in etablissements_stats %}
                 <div class="school-item">
                   <div class="school-info">
-                    <h4>{{ stat.etablissement.nom }}</h4>
+                    <h4><a href="{% url 'school_admin:details_financiers_etablissement' stat.etablissement.id %}" style="text-decoration: none; color: inherit;">{{ stat.etablissement.nom }}</a></h4>
                     <p>{{ stat.nombre_eleves }} élèves • {{ stat.montant_total|floatformat:0 }} FCFA</p>
                   </div>
                   <div class="school-status">
-                    <span class="status-badge active">Actif</span>
+                    <span class="status-badge 
+                      {% if stat.etablissement.statut_reglementation == 'en_regle' %}active
+                      {% elif stat.etablissement.statut_reglementation == 'en_retard' %}warning
+                      {% elif stat.etablissement.statut_reglementation == 'non_en_regle' %}danger
+                      {% elif stat.etablissement.statut_reglementation == 'contentieux' %}critical
+                      {% else %}active{% endif %}">
+                      {{ stat.statut_reglementation }}
+                    </span>
                     {% if stat.montant_du > 0 %}
                     <span class="amount-due">{{ stat.montant_du|floatformat:0 }} FCFA dû</span>
                     {% endif %}
@@ -177,18 +193,18 @@
             </div>
           </div>
 
-          <!-- Inscriptions en retard -->
+          <!-- Paiements en retard -->
           <div class="card delayed-registrations">
             <div class="card-header warning">
               <h2>
-                <i class="fas fa-exclamation-triangle"></i> Inscriptions en
+                <i class="fas fa-exclamation-triangle"></i> Paiements en
                 retard
               </h2>
             </div>
             <div class="card-content">
-              <p>{{ inscriptions_retard }} école{% if inscriptions_retard > 1 %}s{% endif %} {% if inscriptions_retard > 1 %}ont{% else %}a{% endif %} des inscriptions en retard</p>
+              <p>{{ inscriptions_retard }} école{% if inscriptions_retard > 1 %}s{% endif %} {% if inscriptions_retard > 1 %}ont{% else %}a{% endif %} des paiements en retard</p>
               {% if inscriptions_retard > 0 %}
-              <button class="action-btn">Action requise</button>
+              <a href="{% url 'school_admin:paiements_retard' %}" class="action-btn" style="text-decoration: none; display: inline-block;">Voir les retards</a>
               {% endif %}
             </div>
           </div>
@@ -221,7 +237,9 @@
               <div class="benefit-info">
                 <h3 class="benefit-amount">{{ benefices_estimes|floatformat:0 }} FCFA</h3>
                 <p>Total des bénéfices</p>
-                <span class="benefit-trend positive">+15% ce mois</span>
+                <span class="benefit-trend {% if pourcentage_evolution_benefices >= 0 %}positive{% else %}negative{% endif %}">
+                  {% if pourcentage_evolution_benefices >= 0 %}+{% endif %}{{ pourcentage_evolution_benefices }}% ce mois
+                </span>
               </div>
             </div>
           </div>

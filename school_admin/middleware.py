@@ -20,6 +20,7 @@ class AuthenticationMiddleware:
             reverse('school_admin:inscription_compte_user'),
             reverse('school_admin:firebase_messaging_sw'),
             reverse('school_admin:prof_connexion_otp'),
+            reverse('school_admin:password_reset_request'),
             # Ajouter d'autres URLs publiques si nécessaire
         ]
 
@@ -40,11 +41,19 @@ class AuthenticationMiddleware:
             or request.path.startswith('/admin/')
             or request.path.startswith('/static/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
+            or request.path.startswith('/password-reset/')  # Pages de réinitialisation de mot de passe
         ):
             return self.get_response(request)
         
         # Si l'utilisateur n'est pas connecté et qu'il n'est pas sur une URL publique
-        if not request.user.is_authenticated and request.path not in public_urls and request.path not in technical_urls:
+        is_public_path = (
+            request.path in public_urls
+            or request.path in technical_urls
+            or request.path.startswith('/password-reset/')
+            or request.path.startswith('/connexion/professeurs/otp/verification/')
+        )
+        
+        if not request.user.is_authenticated and not is_public_path:
             print(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             logger.warning(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             # Sauvegarder l'URL actuelle pour rediriger l'utilisateur après connexion

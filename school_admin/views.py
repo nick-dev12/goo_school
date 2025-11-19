@@ -107,6 +107,602 @@ def connexion_compte_user(request):
     return response
 
 
+def password_reset_request(request):
+    """
+    Vue pour demander la réinitialisation du mot de passe
+    Pour les membres de l'équipe (CompteUser), les établissements (Etablissement), 
+    les professeurs (Professeur) et les élèves (Eleve)
+    Accepte soit un username (CompteUser), un email (Etablissement), un matricule (Professeur ou Eleve)
+    """
+    from .model.compte_user import CompteUser
+    from .model.etablissement_model import Etablissement
+    from .model.professeur_model import Professeur
+    from .model.eleve_model import Eleve
+    from django.contrib import messages
+    from django.utils import timezone
+    from datetime import timedelta
+    import random
+    
+    if request.method == 'POST':
+        identifier = request.POST.get('identifier', '').strip()  # Peut être username, email ou matricule
+        
+        if not identifier:
+            messages.error(request, "Veuillez entrer votre nom d'utilisateur, votre email ou votre matricule.")
+            return render(request, 'school_admin/password_reset_request.html', {
+                'form_data': {'identifier': identifier},
+                'field_errors': {'identifier': 'Ce champ est obligatoire'}
+            })
+        
+        # PRIORITÉ 1 : Vérifier d'abord les professeurs et élèves (pas d'email requis)
+        # Essayer d'abord de trouver un Professeur par numero_employe (matricule)
+        try:
+            professeur = Professeur.objects.get(numero_employe__iexact=identifier, actif=True)
+            # Si c'est un professeur, rediriger directement vers la page de vérification des informations
+            # AUCUN EMAIL N'EST ENVOYÉ pour les professeurs
+            return redirect('school_admin:password_reset_professeur_verify', matricule=identifier)
+        except Professeur.DoesNotExist:
+            pass
+        
+        # Essayer de trouver un Eleve par username (le matricule est dans username)
+        eleve = None
+        try:
+            # Chercher d'abord par username (car le matricule est dans username)
+            eleve = Eleve.objects.get(username__iexact=identifier, actif=True)
+            logger.info(f"Élève trouvé par username: {identifier}")
+        except Eleve.DoesNotExist:
+            # Si pas trouvé par username, essayer aussi par matricule_eleve (au cas où)
+            try:
+                eleve = Eleve.objects.filter(
+                    matricule_eleve__isnull=False
+                ).exclude(
+                    matricule_eleve=''
+                ).get(matricule_eleve__iexact=identifier, actif=True)
+                logger.info(f"Élève trouvé par matricule_eleve: {identifier}")
+            except Eleve.DoesNotExist:
+                pass
+        
+        if eleve:
+            # Si c'est un élève, rediriger directement vers la page de vérification des informations
+            # AUCUN EMAIL N'EST ENVOYÉ pour les élèves
+            # Utiliser le username comme matricule pour la redirection
+            matricule_to_use = eleve.username
+            logger.info(f"Redirection vers password_reset_eleve_verify avec matricule: {matricule_to_use}")
+            return redirect('school_admin:password_reset_eleve_verify', matricule=matricule_to_use)
+        
+        # PRIORITÉ 2 : Vérifier les CompteUser et Etablissement (email requis)
+        # Ces utilisateurs nécessitent un email pour recevoir le code de réinitialisation
+        user = None
+        user_type = None
+        
+        # Essayer de trouver un CompteUser par username
+        try:
+            user = CompteUser.objects.get(username=identifier)
+            user_type = 'compte_user'
+        except CompteUser.DoesNotExist:
+            # Si pas trouvé, essayer de trouver un Etablissement par email
+            try:
+                user = Etablissement.objects.get(email=identifier)
+                user_type = 'etablissement'
+            except Etablissement.DoesNotExist:
+                # Ne pas révéler si l'utilisateur existe ou non pour la sécurité
+                # Message générique qui ne mentionne pas l'email (car peut être un matricule invalide)
+                messages.success(request, "Si cet identifiant existe, vous recevrez les instructions de réinitialisation.")
+                return render(request, 'school_admin/password_reset_request.html', {
+                    'form_data': {},
+                })
+        
+        # Si on arrive ici, c'est un CompteUser ou Etablissement (nécessite un email)
+        if user and user_type:
+            # Vérifier que l'utilisateur a bien un email avant d'envoyer le code
+            user_email = None
+            if user_type == 'etablissement':
+                user_email = user.email
+            else:
+                user_email = user.email
+            
+            # Vérifier que l'email existe
+            if not user_email:
+                messages.error(request, "Aucune adresse email associée à ce compte. Veuillez contacter l'administration.")
+                return render(request, 'school_admin/password_reset_request.html', {
+                    'form_data': {'identifier': identifier},
+                })
+            
+            # Générer un code de 6 chiffres
+            reset_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            
+            # Stocker le code et définir l'expiration (15 minutes)
+            user.password_reset_code = reset_code
+            user.password_reset_expires = timezone.now() + timedelta(minutes=15)
+            user.save()
+            
+            # Envoyer l'email avec le code
+            from django.core.mail import send_mail
+            from django.template.loader import render_to_string
+            from django.conf import settings
+            
+            email_subject = "Réinitialisation de votre mot de passe - Aria"
+            
+            # Préparer le contexte selon le type d'utilisateur
+            if user_type == 'etablissement':
+                user_name = f"{user.directeur_prenom} {user.directeur_nom}"
+            else:
+                user_name = f"{user.prenom} {user.nom}"
+            
+            email_context = {
+                'user': user,
+                'user_name': user_name,
+                'reset_code': reset_code,
+                'expires_in': 15,
+                'user_type': user_type,
+            }
+            
+            email_html = render_to_string('school_admin/emails/password_reset_code.html', email_context)
+            
+            try:
+                send_mail(
+                    subject=email_subject,
+                    message=f"Votre code de réinitialisation est : {reset_code}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user_email],
+                    html_message=email_html,
+                    fail_silently=False,
+                )
+                messages.success(request, f"Un code de réinitialisation a été envoyé à votre adresse email ({user_email}).")
+                # Utiliser l'identifiant approprié selon le type
+                if user_type == 'etablissement':
+                    identifier_param = user.email
+                else:
+                    identifier_param = user.username
+                return redirect('school_admin:password_reset_verify', identifier=identifier_param, user_type=user_type)
+            except Exception as e:
+                logger.error(f"Erreur lors de l'envoi de l'email de réinitialisation: {str(e)}")
+                messages.error(request, "Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer plus tard.")
+                return render(request, 'school_admin/password_reset_request.html', {
+                    'form_data': {'identifier': identifier},
+                })
+        else:
+            # Ne pas révéler si l'utilisateur existe ou non pour la sécurité
+            messages.success(request, "Si cet identifiant existe, un code de réinitialisation a été envoyé à l'adresse email associée.")
+            return render(request, 'school_admin/password_reset_request.html', {
+                'form_data': {},
+            })
+    
+    return render(request, 'school_admin/password_reset_request.html', {
+        'form_data': {},
+        'field_errors': {}
+    })
+
+
+def password_reset_verify(request, identifier, user_type):
+    """
+    Vue pour vérifier le code et réinitialiser le mot de passe
+    Gère à la fois les CompteUser et les Etablissement
+    """
+    from .model.compte_user import CompteUser
+    from .model.etablissement_model import Etablissement
+    from django.contrib import messages
+    from django.utils import timezone
+    
+    user = None
+    
+    # Récupérer l'utilisateur selon le type
+    try:
+        if user_type == 'etablissement':
+            user = Etablissement.objects.get(email=identifier)
+        else:
+            user = CompteUser.objects.get(username=identifier)
+    except (CompteUser.DoesNotExist, Etablissement.DoesNotExist):
+        messages.error(request, "Utilisateur introuvable.")
+        return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        reset_code = request.POST.get('reset_code', '').strip()
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le code
+        if not reset_code:
+            validation_errors.append("Le code de réinitialisation est obligatoire.")
+        elif not user.password_reset_code or user.password_reset_code != reset_code:
+            validation_errors.append("Le code de réinitialisation est incorrect.")
+        elif not user.password_reset_expires or user.password_reset_expires < timezone.now():
+            validation_errors.append("Le code de réinitialisation a expiré. Veuillez en demander un nouveau.")
+        
+        # Vérifier le nouveau mot de passe
+        if not new_password:
+            validation_errors.append("Le nouveau mot de passe est obligatoire.")
+        elif len(new_password) < 8:
+            validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+        
+        if not confirm_password:
+            validation_errors.append("La confirmation du mot de passe est obligatoire.")
+        elif new_password and confirm_password and new_password != confirm_password:
+            validation_errors.append("Les mots de passe ne correspondent pas.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            return render(request, 'school_admin/password_reset_verify.html', {
+                'identifier': identifier,
+                'user_type': user_type,
+                'form_data': {
+                    'reset_code': reset_code,
+                    'new_password': new_password,
+                    'confirm_password': confirm_password,
+                },
+            })
+        
+        # Toutes les validations sont passées, réinitialiser le mot de passe
+        user.set_password(new_password)
+        user.password_reset_code = None
+        user.password_reset_expires = None
+        user.save()
+        
+        messages.success(request, "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.")
+        if user_type == 'etablissement':
+            logger.info(f"Mot de passe réinitialisé - Établissement: {user.email}")
+        else:
+            logger.info(f"Mot de passe réinitialisé - Utilisateur: {user.username}")
+        return redirect('school_admin:connexion_compte_user')
+    
+    return render(request, 'school_admin/password_reset_verify.html', {
+        'identifier': identifier,
+        'user_type': user_type,
+        'form_data': {},
+    })
+
+
+def password_reset_professeur_verify(request, matricule):
+    """
+    Vue pour vérifier les informations du professeur avant la réinitialisation du mot de passe
+    Vérifie : nom, prénom, nom de l'établissement, téléphone
+    Tout est insensible à la casse
+    """
+    from .model.professeur_model import Professeur
+    from django.contrib import messages
+    
+    try:
+        professeur = Professeur.objects.get(numero_employe__iexact=matricule, actif=True)
+    except Professeur.DoesNotExist:
+        messages.error(request, "Matricule introuvable ou compte inactif.")
+        return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        nom = request.POST.get('nom', '').strip()
+        prenom = request.POST.get('prenom', '').strip()
+        etablissement_nom = request.POST.get('etablissement_nom', '').strip()
+        telephone = request.POST.get('telephone', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le nom (insensible à la casse)
+        if not nom:
+            validation_errors.append("Le nom est obligatoire.")
+        elif nom.lower() != professeur.nom.lower():
+            validation_errors.append("Le nom ne correspond pas.")
+        
+        # Vérifier le prénom (insensible à la casse)
+        if not prenom:
+            validation_errors.append("Le prénom est obligatoire.")
+        elif prenom.lower() != professeur.prenom.lower():
+            validation_errors.append("Le prénom ne correspond pas.")
+        
+        # Vérifier le nom de l'établissement (insensible à la casse)
+        if not etablissement_nom:
+            validation_errors.append("Le nom de l'établissement est obligatoire.")
+        elif etablissement_nom.lower() != professeur.etablissement.nom.lower():
+            validation_errors.append("Le nom de l'établissement ne correspond pas.")
+        
+        # Vérifier le téléphone (normaliser et comparer - insensible à la casse et aux formats)
+        if not telephone:
+            validation_errors.append("Le numéro de téléphone est obligatoire.")
+        else:
+            # Normaliser les deux numéros (enlever espaces, tirets, +, etc.)
+            def normalize_phone(phone_str):
+                if not phone_str:
+                    return ""
+                # Enlever tous les caractères non numériques sauf le + au début
+                normalized = phone_str.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').replace('.', '')
+                # Si commence par +, le garder, sinon enlever
+                if normalized.startswith('+'):
+                    return normalized
+                return normalized.lstrip('+')
+            
+            telephone_normalized = normalize_phone(telephone)
+            professeur_telephone_normalized = normalize_phone(professeur.telephone)
+            
+            # Comparer les versions normalisées
+            if telephone_normalized != professeur_telephone_normalized:
+                # Essayer aussi sans le préfixe + et sans les zéros en début
+                tel_clean = telephone_normalized.lstrip('+').lstrip('0')
+                prof_clean = professeur_telephone_normalized.lstrip('+').lstrip('0')
+                if tel_clean != prof_clean:
+                    validation_errors.append("Le numéro de téléphone ne correspond pas.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            return render(request, 'school_admin/password_reset_professeur_verify.html', {
+                'matricule': matricule,
+                'form_data': {
+                    'nom': nom,
+                    'prenom': prenom,
+                    'etablissement_nom': etablissement_nom,
+                    'telephone': telephone,
+                },
+            })
+        
+        # Toutes les validations sont passées, rediriger vers la page de réinitialisation
+        return redirect('school_admin:password_reset_professeur_reset', matricule=matricule)
+    
+    return render(request, 'school_admin/password_reset_professeur_verify.html', {
+        'matricule': matricule,
+        'form_data': {},
+    })
+
+
+def password_reset_professeur_reset(request, matricule):
+    """
+    Vue pour réinitialiser le mot de passe du professeur après vérification des informations
+    """
+    from .model.professeur_model import Professeur
+    from django.contrib import messages
+    from django.utils import timezone
+    
+    try:
+        professeur = Professeur.objects.get(numero_employe__iexact=matricule, actif=True)
+    except Professeur.DoesNotExist:
+        messages.error(request, "Matricule introuvable ou compte inactif.")
+        return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le nouveau mot de passe
+        if not new_password:
+            validation_errors.append("Le nouveau mot de passe est obligatoire.")
+        elif len(new_password) < 8:
+            validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+        
+        if not confirm_password:
+            validation_errors.append("La confirmation du mot de passe est obligatoire.")
+        elif new_password and confirm_password and new_password != confirm_password:
+            validation_errors.append("Les mots de passe ne correspondent pas.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            return render(request, 'school_admin/password_reset_professeur_reset.html', {
+                'matricule': matricule,
+                'form_data': {
+                    'new_password': new_password,
+                    'confirm_password': confirm_password,
+                },
+            })
+        
+        # Toutes les validations sont passées, réinitialiser le mot de passe
+        professeur.set_password(new_password)
+        professeur.save()
+        
+        messages.success(request, "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.")
+        logger.info(f"Mot de passe réinitialisé - Professeur: {professeur.numero_employe}")
+        return redirect('school_admin:connexion_compte_user')
+    
+    return render(request, 'school_admin/password_reset_professeur_reset.html', {
+        'matricule': matricule,
+        'form_data': {},
+    })
+
+
+def password_reset_eleve_verify(request, matricule):
+    """
+    Vue pour vérifier les informations de l'élève avant la réinitialisation du mot de passe
+    Vérifie : nom, prénom, date de naissance, classe, nom du parent inscripteur
+    Tout est insensible à la casse
+    """
+    from .model.eleve_model import Eleve
+    from django.contrib import messages
+    from datetime import datetime
+    
+    # Chercher l'élève par username (le matricule est dans username)
+    eleve = None
+    try:
+        # Chercher d'abord par username (car le matricule est dans username)
+        eleve = Eleve.objects.get(username__iexact=matricule, actif=True)
+        logger.info(f"Élève trouvé par username dans password_reset_eleve_verify: {matricule}")
+    except Eleve.DoesNotExist:
+        # Si pas trouvé par username, essayer aussi par matricule_eleve (au cas où)
+        try:
+            eleve = Eleve.objects.filter(
+                matricule_eleve__isnull=False
+            ).exclude(
+                matricule_eleve=''
+            ).get(matricule_eleve__iexact=matricule, actif=True)
+            logger.info(f"Élève trouvé par matricule_eleve dans password_reset_eleve_verify: {matricule}")
+        except Eleve.DoesNotExist:
+            messages.error(request, "Matricule introuvable ou compte inactif.")
+            return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        nom = request.POST.get('nom', '').strip()
+        prenom = request.POST.get('prenom', '').strip()
+        date_naissance = request.POST.get('date_naissance', '').strip()
+        classe_nom = request.POST.get('classe_nom', '').strip()
+        parent_nom = request.POST.get('parent_nom', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le nom (insensible à la casse)
+        if not nom:
+            validation_errors.append("Le nom est obligatoire.")
+        elif nom.lower() != eleve.nom.lower():
+            validation_errors.append("Le nom ne correspond pas.")
+        
+        # Vérifier le prénom (insensible à la casse)
+        if not prenom:
+            validation_errors.append("Le prénom est obligatoire.")
+        elif prenom.lower() != eleve.prenom.lower():
+            validation_errors.append("Le prénom ne correspond pas.")
+        
+        # Vérifier la date de naissance
+        if not date_naissance:
+            validation_errors.append("La date de naissance est obligatoire.")
+        else:
+            try:
+                # L'input de type "date" envoie toujours le format YYYY-MM-DD
+                date_parsed = datetime.strptime(date_naissance, '%Y-%m-%d').date()
+                
+                if date_parsed != eleve.date_naissance:
+                    validation_errors.append("La date de naissance ne correspond pas.")
+            except ValueError:
+                validation_errors.append("Format de date invalide.")
+            except Exception as e:
+                validation_errors.append("Format de date invalide.")
+        
+        # Vérifier la classe (insensible à la casse)
+        if not classe_nom:
+            validation_errors.append("Le nom de la classe est obligatoire.")
+        elif not eleve.classe:
+            validation_errors.append("Aucune classe n'est associée à cet élève.")
+        elif classe_nom.lower() != eleve.classe.nom.lower():
+            validation_errors.append("Le nom de la classe ne correspond pas.")
+        
+        # Vérifier le nom du parent inscripteur (insensible à la casse)
+        if not parent_nom:
+            validation_errors.append("Le nom du parent inscripteur est obligatoire.")
+        else:
+            parent_inscripteur = eleve.parent_inscripteur
+            if not parent_inscripteur:
+                # Si pas de parent inscripteur via LienFamilial, utiliser les champs parent_nom et parent_prenom
+                parent_full_name = f"{eleve.parent_prenom} {eleve.parent_nom}".strip()
+                if parent_nom.lower() not in parent_full_name.lower() and parent_full_name.lower() not in parent_nom.lower():
+                    validation_errors.append("Le nom du parent inscripteur ne correspond pas.")
+            else:
+                # Utiliser le nom du parent depuis LienFamilial
+                parent_full_name = f"{parent_inscripteur.prenom} {parent_inscripteur.nom}".strip()
+                if parent_nom.lower() not in parent_full_name.lower() and parent_full_name.lower() not in parent_nom.lower():
+                    validation_errors.append("Le nom du parent inscripteur ne correspond pas.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            # S'assurer que la date est au format YYYY-MM-DD pour l'input de type "date"
+            date_formatted = date_naissance
+            if date_naissance:
+                try:
+                    # Si la date est dans un autre format, la convertir
+                    date_formats = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d']
+                    date_parsed = None
+                    for date_format in date_formats:
+                        try:
+                            date_parsed = datetime.strptime(date_naissance, date_format).date()
+                            break
+                        except ValueError:
+                            continue
+                    if date_parsed:
+                        date_formatted = date_parsed.strftime('%Y-%m-%d')
+                except:
+                    pass
+            
+            from datetime import date
+            return render(request, 'school_admin/password_reset_eleve_verify.html', {
+                'matricule': matricule,
+                'form_data': {
+                    'nom': nom,
+                    'prenom': prenom,
+                    'date_naissance': date_formatted,
+                    'classe_nom': classe_nom,
+                    'parent_nom': parent_nom,
+                },
+                'today': date.today(),
+            })
+        
+        # Toutes les validations sont passées, rediriger vers la page de réinitialisation
+        return redirect('school_admin:password_reset_eleve_reset', matricule=matricule)
+    
+    from datetime import date
+    return render(request, 'school_admin/password_reset_eleve_verify.html', {
+        'matricule': matricule,
+        'form_data': {},
+        'today': date.today(),
+    })
+
+
+def password_reset_eleve_reset(request, matricule):
+    """
+    Vue pour réinitialiser le mot de passe de l'élève après vérification des informations
+    """
+    from .model.eleve_model import Eleve
+    from django.contrib import messages
+    
+    # Chercher l'élève par username (le matricule est dans username)
+    eleve = None
+    try:
+        # Chercher d'abord par username (car le matricule est dans username)
+        eleve = Eleve.objects.get(username__iexact=matricule, actif=True)
+        logger.info(f"Élève trouvé par username dans password_reset_eleve_reset: {matricule}")
+    except Eleve.DoesNotExist:
+        # Si pas trouvé par username, essayer aussi par matricule_eleve (au cas où)
+        try:
+            eleve = Eleve.objects.filter(
+                matricule_eleve__isnull=False
+            ).exclude(
+                matricule_eleve=''
+            ).get(matricule_eleve__iexact=matricule, actif=True)
+            logger.info(f"Élève trouvé par matricule_eleve dans password_reset_eleve_reset: {matricule}")
+        except Eleve.DoesNotExist:
+            messages.error(request, "Matricule introuvable ou compte inactif.")
+            return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le nouveau mot de passe
+        if not new_password:
+            validation_errors.append("Le nouveau mot de passe est obligatoire.")
+        elif len(new_password) < 8:
+            validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+        
+        if not confirm_password:
+            validation_errors.append("La confirmation du mot de passe est obligatoire.")
+        elif new_password and confirm_password and new_password != confirm_password:
+            validation_errors.append("Les mots de passe ne correspondent pas.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            return render(request, 'school_admin/password_reset_eleve_reset.html', {
+                'matricule': matricule,
+                'form_data': {
+                    'new_password': new_password,
+                    'confirm_password': confirm_password,
+                },
+            })
+        
+        # Toutes les validations sont passées, réinitialiser le mot de passe
+        eleve.set_password(new_password)
+        eleve.mot_de_passe_eleve_modifie = True  # Marquer que le mot de passe a été modifié
+        eleve.save()
+        
+        messages.success(request, "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.")
+        # Utiliser username comme identifiant pour le log (car le matricule est dans username)
+        logger.info(f"Mot de passe réinitialisé - Élève: {eleve.username}")
+        return redirect('school_admin:connexion_compte_user')
+    
+    return render(request, 'school_admin/password_reset_eleve_reset.html', {
+        'matricule': matricule,
+        'form_data': {},
+    })
+
+
 OTP_RESEND_COOLDOWN_SECONDS = 60
 
 

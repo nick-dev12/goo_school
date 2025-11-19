@@ -33,3 +33,4 @@ from .notification_eleve_model import NotificationEleve
 from .standards_reussite_model import StandardsReussite, AppreciationMatiereStandard, AppreciationConseilStandard
 from .justification_note_model import JustificationNote
 from .professeur_otp_model import ProfesseurOtpCode
+from .rapport_mensuel_model import RapportMensuel

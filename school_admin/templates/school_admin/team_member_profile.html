@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil - {{ member.nom_complet }}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: var(--light-bg, #f8f9fa);
+        color: var(--text-primary, #1f2937);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .profile-header {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-card, 0 10px 15px -3px rgba(0, 0, 0, 0.08));
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+      }
+
+      .profile-info {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex: 1;
+      }
+
+      .profile-avatar {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--gradient-header, linear-gradient(135deg, #3b82f6, #1d4ed8));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+      }
+
+      .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .status-indicator {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+      }
+
+      .status-indicator.active {
+        background: var(--success, #10b981);
+      }
+
+      .status-indicator.inactive {
+        background: var(--gray-400, #9ca3af);
+      }
+
+      .profile-details h1 {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary, #1f2937);
+      }
+
+      .profile-details p {
+        color: var(--text-secondary, #6b7280);
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-contact {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .profile-contact span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-secondary, #6b7280);
+      }
+
+      .profile-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background: var(--gradient-header, linear-gradient(135deg, #3b82f6, #1d4ed8));
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+      }
+
+      .btn-secondary {
+        background: var(--gray-200, #e5e7eb);
+        color: var(--text-primary, #1f2937);
+      }
+
+      .btn-secondary:hover {
+        background: var(--gray-300, #d1d5db);
+      }
+
+      .btn-danger {
+        background: var(--accent, #ef4444);
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+      }
+
+      .btn-warning {
+        background: var(--warning, #fbbf24);
+        color: white;
+      }
+
+      .btn-warning:hover {
+        background: #f59e0b;
+      }
+
+      .form-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-card, 0 10px 15px -3px rgba(0, 0, 0, 0.08));
+      }
+
+      .form-section h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        color: var(--text-primary, #1f2937);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-primary, #1f2937);
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color, #e9ecef);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: border-color 0.3s ease;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: var(--primary, #3b82f6);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .alert-success {
+        background: var(--success-light, rgba(16, 185, 129, 0.1));
+        color: #059669;
+        border: 1px solid #10b981;
+      }
+
+      .alert-error {
+        background: var(--accent-light, rgba(239, 68, 68, 0.1));
+        color: #dc2626;
+        border: 1px solid #ef4444;
+      }
+
+      .alert-warning {
+        background: var(--warning-light, rgba(251, 191, 36, 0.1));
+        color: #d97706;
+        border: 1px solid #fbbf24;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary, #3b82f6);
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+        font-weight: 500;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+      }
+
+      .info-display {
+        background: var(--gray-50, #f9fafb);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+
+      .info-display strong {
+        color: var(--text-primary, #1f2937);
+      }
+
+      .info-display span {
+        color: var(--text-secondary, #6b7280);
+      }
+
+      @media (max-width: 768px) {
+        .profile-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .profile-info {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <div class="container">
+      <a href="{% url 'school_admin:management_equipes' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Retour à la liste des équipes
+      </a>
+
+      <!-- Messages de notification -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }}">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}times-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Header du profil -->
+      <div class="profile-header">
+        <div class="profile-info">
+          <div class="profile-avatar">
+            {% if member.photo %}
+            <img
+              src="{{ member.photo.url }}"
+              alt="{{ member.nom_complet }}"
+            />
+            {% else %}
+            <div>{{ member.initiales }}</div>
+            {% endif %}
+            <div class="status-indicator {% if member.is_active %}active{% else %}inactive{% endif %}"></div>
+          </div>
+          <div class="profile-details">
+            <h1>{{ member.nom_complet }}</h1>
+            <p class="profile-role">{{ member.get_fonction_display }}</p>
+            <p class="profile-department">Département {{ member.get_departement_display }}</p>
+            <div class="profile-contact">
+              <span><i class="fas fa-envelope"></i> {{ member.email }}</span>
+              <span><i class="fas fa-phone"></i> {{ member.telephone|default:"Non renseigné" }}</span>
+              <span><i class="fas fa-calendar"></i> Membre depuis {{ member.date_joined|date:"d/m/Y" }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <form method="post" action="{% url 'school_admin:toggle_team_member_status' member.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn {% if member.is_active %}btn-warning{% else %}btn-primary{% endif %}">
+              <i class="fas fa-{% if member.is_active %}ban{% else %}check{% endif %}"></i>
+              {% if member.is_active %}Désactiver{% else %}Activer{% endif %}
+            </button>
+          </form>
+          <form method="post" action="{% url 'school_admin:delete_team_member' member.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ? Cette action est irréversible.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-trash"></i> Supprimer
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Formulaire de modification -->
+      <div class="form-section">
+        <h2><i class="fas fa-edit"></i> Modifier les informations</h2>
+        
+        <form method="post" action="{% url 'school_admin:update_team_member' member.id %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nom">Nom *</label>
+              <input type="text" id="nom" name="nom" value="{{ member.nom }}" required>
+            </div>
+            <div class="form-group">
+              <label for="prenom">Prénom *</label>
+              <input type="text" id="prenom" name="prenom" value="{{ member.prenom }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input type="email" id="email" name="email" value="{{ member.email }}" required>
+            </div>
+            <div class="form-group">
+              <label for="telephone">Téléphone</label>
+              <input type="text" id="telephone" name="telephone" value="{{ member.telephone|default:'' }}">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="date_naissance">Date de naissance</label>
+              <input type="date" id="date_naissance" name="date_naissance" value="{{ member.date_naissance|date:'Y-m-d' }}">
+            </div>
+            <div class="form-group">
+              <label for="username">Nom d'utilisateur *</label>
+              <input type="text" id="username" name="username" value="{{ member.username }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fonction">Fonction *</label>
+              <select id="fonction" name="fonction" required>
+                {% for code, label in fonction_choices %}
+                <option value="{{ code }}" {% if member.fonction == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="departement">Département *</label>
+              <select id="departement" name="departement" required>
+                {% for code, label in departement_choices %}
+                <option value="{{ code }}" {% if member.departement == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="salaire">Salaire mensuel (FCFA)</label>
+              <input type="number" id="salaire" name="salaire" value="{% if member.salaire %}{{ member.salaire }}{% endif %}" step="0.01" min="0" placeholder="Ex: 500000">
+            </div>
+            <div class="form-group">
+              <label for="photo">Photo de profil</label>
+              <input type="file" id="photo" name="photo" accept="image/*">
+              {% if member.photo %}
+              <div class="info-display" style="margin-top: 0.5rem;">
+                <strong>Photo actuelle :</strong> <span>{{ member.photo.name }}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Enregistrer les modifications
+            </button>
+            <a href="{% url 'school_admin:team_member_profile' member.id %}" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Annuler
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <!-- Informations supplémentaires -->
+      <div class="form-section">
+        <h2><i class="fas fa-info-circle"></i> Informations supplémentaires</h2>
+        
+        <div class="info-display">
+          <strong>Statut du compte :</strong>
+          <span>{% if member.is_active %}Actif{% else %}Inactif{% endif %}</span>
+        </div>
+        <div class="info-display">
+          <strong>Type de compte :</strong>
+          <span>{{ member.get_type_compte_display }}</span>
+        </div>
+        <div class="info-display">
+          <strong>Salaire mensuel :</strong>
+          <span>{% if member.salaire %}{{ member.salaire|floatformat:0 }} FCFA{% else %}Non renseigné{% endif %}</span>
+        </div>
+        <div class="info-display">
+          <strong>Date de création :</strong>
+          <span>{{ member.date_joined|date:"d/m/Y à H:i" }}</span>
+        </div>
+        {% if member.last_login %}
+        <div class="info-display">
+          <strong>Dernière connexion :</strong>
+          <span>{{ member.last_login|date:"d/m/Y à H:i" }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <script>
+      // Auto-hide messages after 7 seconds
+      document.addEventListener('DOMContentLoaded', function() {
+        const messages = document.querySelectorAll('.alert');
+        messages.forEach(message => {
+          setTimeout(() => {
+            message.style.opacity = '0';
+            message.style.transition = 'opacity 0.5s';
+            setTimeout(() => message.remove(), 500);
+          }, 7000);
+        });
+      });
+    </script>
+  </body>
+</html>
+

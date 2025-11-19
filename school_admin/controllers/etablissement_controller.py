@@ -6,10 +6,14 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.contrib import messages
 from django.db.models import Q
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
 import logging
 import uuid
 import random
 import string
+import threading
 from ..model.etablissement_model import Etablissement
 
 
@@ -162,6 +166,95 @@ class EtablissementController:
         return Etablissement.objects.filter(actif=True).count()
     
     @staticmethod
+    def send_etablissement_creation_email(etablissement, data):
+        """
+        Envoie un email de bienvenue à l'établissement avec les informations de connexion
+        
+        Args:
+            etablissement: L'objet Etablissement créé
+            data: Les données du formulaire contenant les informations
+        """
+        # Préparer les données pour le template
+        type_etablissement_labels = {
+            'primary': 'École Primaire',
+            'collège': 'Collège',
+            'lycée': 'Lycée',
+            'collège_lycée': 'Collège + Lycée',
+            'mixte': 'Établissement Mixte (Primaire + Collège + Lycée)'
+        }
+        
+        type_facturation_labels = {
+            'mensuel': 'Facturation mensuelle',
+            'annuel': 'Facturation annuelle'
+        }
+        
+        # Liste des modules activés
+        modules_actives = []
+        module_labels = {
+            'module_gestion_eleves': 'Gestion des élèves',
+            'module_notes_evaluations': 'Notes et évaluations',
+            'module_emploi_temps': 'Emploi du temps',
+            'module_gestion_personnel': 'Gestion du personnel',
+            'module_surveillance': 'Surveillance et sécurité',
+            'module_communication': 'Communication parents',
+            'module_orientation': 'Orientation scolaire',
+            'module_formation': 'Formation continue',
+            'module_transport_scolaire': 'Transport scolaire',
+            'module_cantine': 'Gestion de la cantine',
+            'module_bibliotheque': 'Gestion de la bibliothèque',
+            'module_sante': 'Suivi médical',
+            'module_activites': 'Activités extra-scolaires',
+            'module_comptabilite': 'Comptabilité',
+            'module_censeurs': 'Censeurs'
+        }
+        
+        for module_key, module_label in module_labels.items():
+            if data.get(module_key):
+                modules_actives.append(module_label)
+        
+        # Construire l'URL de connexion
+        # Utiliser le premier host autorisé ou localhost en développement
+        host = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != '*' else 'localhost:8000'
+        protocol = 'https' if not settings.DEBUG else 'http'
+        login_url = f"{protocol}://{host}/school_admin/connexion/"
+        
+        # Contexte pour le template
+        context = {
+            'directeur_prenom': etablissement.directeur_prenom,
+            'directeur_nom': etablissement.directeur_nom,
+            'establishment_name': etablissement.nom,
+            'establishment_type_display': type_etablissement_labels.get(etablissement.type_etablissement, etablissement.type_etablissement),
+            'code_etablissement': etablissement.code_etablissement,
+            'establishment_address': etablissement.adresse,
+            'establishment_city': etablissement.ville,
+            'establishment_country': etablissement.pays,
+            'establishment_email': etablissement.email,
+            'establishment_phone': etablissement.telephone or '',
+            'establishment_password': data.get('establishment_password', ''),
+            'login_url': login_url,
+            'modules_actives': modules_actives,
+            'type_facturation': data.get('type_facturation', ''),
+            'type_facturation_display': type_facturation_labels.get(data.get('type_facturation', ''), data.get('type_facturation', '')),
+            'montant_par_eleve': f"{float(data.get('montant_par_eleve', 0)):,.0f}"
+        }
+        
+        # Rendre le template HTML
+        html_message = render_to_string('school_admin/emails/etablissement_creation.html', context)
+        
+        # Sujet de l'email
+        subject = f"Bienvenue sur Aria - Votre établissement {etablissement.nom} a été créé"
+        
+        # Envoyer l'email
+        send_mail(
+            subject=subject,
+            message='',  # Message texte vide car on utilise HTML
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[etablissement.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+    
+    @staticmethod
     def ajouter_etablissement(request, data):
         """
         Ajoute un nouvel établissement et crée un compte directeur associé
@@ -185,7 +278,6 @@ class EtablissementController:
                 'establishment_address': 'Adresse de l\'établissement',
                 'establishment_email': 'Email de l\'établissement',
                 'establishment_type': 'Type d\'établissement',
-                'establishment_password': 'Mot de passe provisoire',
                 'type_facturation': 'Type de facturation',
                 'montant_par_eleve': 'Montant par élève'
             }
@@ -218,12 +310,12 @@ class EtablissementController:
                 errors['establishment_email'] = "Cette adresse email d'établissement est déjà utilisée."
                 return False, "Cette adresse email d'établissement est déjà utilisée.", None, errors
             
-            # Validation du mot de passe
-            try:
-                validate_password(data['establishment_password'])
-            except ValidationError as e:
-                errors['establishment_password'] = "; ".join(e.messages)
-                return False, "Le mot de passe ne respecte pas les critères de sécurité.", None, errors
+            # Générer un mot de passe provisoire aléatoire de 8 caractères
+            # Mélange de lettres majuscules, minuscules, chiffres et symboles
+            password_chars = string.ascii_letters + string.digits + "!@#$%&*"
+            establishment_password = ''.join(random.choices(password_chars, k=8))
+            
+            logger.info(f"Mot de passe provisoire généré automatiquement (8 caractères)")
             
             # Vérification du type d'établissement
             valid_types = ['primary', 'collège', 'lycée', 'collège_lycée', 'mixte']
@@ -294,14 +386,91 @@ class EtablissementController:
                     module_censeurs=bool(data.get('module_censeurs'))
                 )
                 
-                # Définir le mot de passe pour l'établissement
-                etablissement.set_password(data['establishment_password'])
+                # Définir le mot de passe provisoire généré pour l'établissement
+                etablissement.set_password(establishment_password)
                 
+                # Sauvegarder l'établissement dans la base de données
                 etablissement.save()
                 
-              
-                
                 logger.info(f"Établissement créé: {etablissement.nom}")
+            
+            # Après le commit de la transaction, envoyer l'email en arrière-plan
+            # On récupère l'ID de l'établissement et les données nécessaires
+            # pour s'assurer qu'il est bien en base avant d'envoyer l'email
+            etablissement_id = etablissement.id
+            etablissement_email = etablissement.email
+            
+            # Copier les données nécessaires pour l'email (éviter les problèmes de closure)
+            # Utiliser le mot de passe généré automatiquement
+            email_data = {
+                'teacher_firstname': data.get('teacher_firstname', ''),
+                'teacher_lastname': data.get('teacher_lastname', ''),
+                'establishment_name': data.get('establishment_name', ''),
+                'establishment_type': data.get('establishment_type', ''),
+                'establishment_address': data.get('establishment_address', ''),
+                'establishment_city': data.get('establishment_city', ''),
+                'establishment_country': data.get('establishment_country', ''),
+                'establishment_phone': data.get('establishment_phone', ''),
+                'establishment_password': establishment_password,  # Utiliser le mot de passe généré
+                'type_facturation': data.get('type_facturation', ''),
+                'montant_par_eleve': data.get('montant_par_eleve', ''),
+                # Modules
+                'module_gestion_eleves': data.get('module_gestion_eleves'),
+                'module_notes_evaluations': data.get('module_notes_evaluations'),
+                'module_emploi_temps': data.get('module_emploi_temps'),
+                'module_gestion_personnel': data.get('module_gestion_personnel'),
+                'module_surveillance': data.get('module_surveillance'),
+                'module_communication': data.get('module_communication'),
+                'module_orientation': data.get('module_orientation'),
+                'module_formation': data.get('module_formation'),
+                'module_transport_scolaire': data.get('module_transport_scolaire'),
+                'module_cantine': data.get('module_cantine'),
+                'module_bibliotheque': data.get('module_bibliotheque'),
+                'module_sante': data.get('module_sante'),
+                'module_activites': data.get('module_activites'),
+                'module_comptabilite': data.get('module_comptabilite'),
+                'module_censeurs': data.get('module_censeurs')
+            }
+            
+            # Fonction pour envoyer l'email en arrière-plan
+            def send_email_background(etab_id, etab_email, email_data_dict):
+                """
+                Envoie l'email en arrière-plan après que l'établissement soit créé et commité
+                
+                Args:
+                    etab_id: ID de l'établissement
+                    etab_email: Email de l'établissement
+                    email_data_dict: Dictionnaire contenant les données pour l'email
+                """
+                try:
+                    # Attendre un court instant pour s'assurer que la transaction est bien commitée
+                    import time
+                    time.sleep(0.5)
+                    
+                    # Récupérer l'établissement depuis la base de données
+                    # pour s'assurer qu'il est bien commité
+                    from ..model.etablissement_model import Etablissement
+                    etablissement_obj = Etablissement.objects.get(id=etab_id)
+                    
+                    # Envoyer l'email
+                    EtablissementController.send_etablissement_creation_email(etablissement_obj, email_data_dict)
+                    logger.info(f"Email de création envoyé avec succès à {etab_email}")
+                except Etablissement.DoesNotExist:
+                    logger.error(f"Établissement avec ID {etab_id} introuvable lors de l'envoi de l'email")
+                except Exception as email_error:
+                    logger.error(f"Erreur lors de l'envoi de l'email à {etab_email}: {str(email_error)}")
+                    # Ne pas faire échouer la création si l'email échoue
+            
+            # Lancer l'envoi d'email en arrière-plan dans un thread séparé
+            # Le thread est en mode daemon pour ne pas bloquer l'arrêt de l'application
+            email_thread = threading.Thread(
+                target=send_email_background,
+                args=(etablissement_id, etablissement_email, email_data),
+                daemon=True,
+                name=f"EmailThread-{etablissement_id}"
+            )
+            email_thread.start()
+            logger.info(f"Envoi d'email en arrière-plan lancé pour l'établissement {etablissement.nom} (ID: {etablissement_id})")
             
             return True, "L'établissement a été créé avec succès.", etablissement, {}
             
@@ -337,7 +506,6 @@ class EtablissementController:
                 'establishment_email': request.POST.get('establishment_email', ''),
                 'establishment_phone': request.POST.get('establishment_phone', ''),
                 'establishment_type': request.POST.get('establishment_type', ''),
-                'establishment_password': request.POST.get('establishment_password', ''),
                 'establishment_country': request.POST.get('establishment_country', ''),
                 'establishment_city': request.POST.get('establishment_city', ''),
                 # Configuration de facturation

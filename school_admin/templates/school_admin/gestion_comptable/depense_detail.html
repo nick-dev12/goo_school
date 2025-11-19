@@ -1,0 +1,398 @@
+{% load static %}
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détail de la dépense - {{ depense.description }}</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/depense_detail.css' %}?v=1.0.1"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}?v=1.0.1"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/gestion_comptable/partials/header_comptable.html' %}
+
+    <div class="depense-page">
+      {% include 'school_admin/partials/messages.html' %}
+
+      <div class="depense-header">
+        <div class="header-info">
+          <a href="{% url 'school_admin:suivi_revenus' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Retour au suivi des revenus
+          </a>
+          <h1>
+            <i class="fas fa-file-invoice-dollar"></i>
+            Détail de la dépense
+          </h1>
+          <p>
+            Suivi complet de la dépense enregistrée auprès de
+            <strong>{{ depense.fournisseur }}</strong>
+          </p>
+        </div>
+        <div class="header-status">
+          <span class="{{ statut_class }}">{{ depense.get_statut_display }}</span>
+          <div class="status-meta">
+            <span>
+              <i class="fas fa-calendar-day"></i>
+              Dépense du {{ depense.date_depense|date:"d M Y" }}
+            </span>
+            {% if depense.date_paiement %}
+            <span>
+              <i class="fas fa-check-circle"></i>
+              Payée le {{ depense.date_paiement|date:"d M Y" }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="depense-summary">
+        <div class="summary-card highlight">
+          <div class="card-icon">
+            <i class="fas fa-coins"></i>
+          </div>
+          <div>
+            <p class="label">Montant</p>
+            <p class="value">
+              {{ depense.montant|floatformat:0 }} FCFA
+            </p>
+            <span class="sub-label">{{ depense.get_categorie_display }}</span>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon purple">
+            <i class="fas fa-building"></i>
+          </div>
+          <div>
+            <p class="label">Fournisseur</p>
+            <p class="value">{{ depense.fournisseur }}</p>
+            <span class="sub-label">
+              {% if depense.etablissement %}
+              {{ depense.etablissement.nom }}
+              {% else %}
+              Aucun établissement associé
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon teal">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <div>
+            <p class="label">Méthode</p>
+            <p class="value">{{ depense.get_methode_paiement_display }}</p>
+            <span class="sub-label">
+              {% if depense.numero_facture %}
+              Facture n° {{ depense.numero_facture }}
+              {% else %}
+              Pas de référence
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon repeat">
+            <i class="fas fa-repeat"></i>
+          </div>
+          <div>
+            <p class="label">Type de dépense</p>
+            <p class="value">{{ depense.get_type_depense_display }}</p>
+            <span class="sub-label">
+              {% if depense.type_depense == 'unique' %}
+              Paiement ponctuel
+              {% else %}
+              Dépense récurrente
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon orange">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div>
+            <p class="label">Historique fournisseur</p>
+            <p class="value">{{ total_depenses_fournisseur|floatformat:0 }} FCFA</p>
+            <span class="sub-label">Dépenses cumulées chez ce fournisseur</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="depense-layout">
+        <div class="depense-main">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2><i class="fas fa-list-alt"></i> Informations principales</h2>
+                <p>Consultez ou mettez à jour tous les champs de la dépense</p>
+              </div>
+            </div>
+
+            <form
+              method="POST"
+              action=""
+              enctype="multipart/form-data"
+              class="depense-form"
+            >
+              {% csrf_token %}
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="description">Description <span>*</span></label>
+                  <input
+                    type="text"
+                    id="description"
+                    name="description"
+                    value="{{ depense.description }}"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="montant">Montant (FCFA) <span>*</span></label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    id="montant"
+                    name="montant"
+                    value="{{ depense.montant|unlocalize }}"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="categorie">Catégorie <span>*</span></label>
+                  <select id="categorie" name="categorie" required>
+                    <option value="">Sélectionner</option>
+                    {% for value,label in categorie_choices %}
+                    <option value="{{ value }}" {% if depense.categorie == value %}selected{% endif %}>
+                      {{ label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="type_depense">Type de dépense <span>*</span></label>
+                  <select id="type_depense" name="type_depense" required>
+                    {% for value,label in type_depense_choices %}
+                    <option value="{{ value }}" {% if depense.type_depense == value %}selected{% endif %}>
+                      {{ label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="date_depense">Date de dépense <span>*</span></label>
+                  <input
+                    type="date"
+                    id="date_depense"
+                    name="date_depense"
+                    value="{{ depense.date_depense|date:'Y-m-d' }}"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="statut">Statut <span>*</span></label>
+                  <select id="statut" name="statut" required>
+                    {% for value,label in statut_choices %}
+                    <option value="{{ value }}" {% if depense.statut == value %}selected{% endif %}>
+                      {{ label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="date_paiement">Date de paiement</label>
+                  <input
+                    type="date"
+                    id="date_paiement"
+                    name="date_paiement"
+                    value="{{ depense.date_paiement|date:'Y-m-d' }}"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="fournisseur">Fournisseur <span>*</span></label>
+                  <input
+                    type="text"
+                    id="fournisseur"
+                    name="fournisseur"
+                    value="{{ depense.fournisseur }}"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="numero_facture">Référence / facture</label>
+                  <input
+                    type="text"
+                    id="numero_facture"
+                    name="numero_facture"
+                    value="{{ depense.numero_facture|default_if_none:'' }}"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="methode_paiement">Méthode de paiement</label>
+                  <select id="methode_paiement" name="methode_paiement">
+                    {% for value,label in methode_choices %}
+                    <option value="{{ value }}" {% if depense.methode_paiement == value %}selected{% endif %}>
+                      {{ label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="etablissement">Établissement lié</label>
+                  <select id="etablissement" name="etablissement">
+                    <option value="">Aucun</option>
+                    {% for etablissement in etablissements_list %}
+                    <option value="{{ etablissement.id }}" {% if depense.etablissement and depense.etablissement.id == etablissement.id %}selected{% endif %}>
+                      {{ etablissement.nom }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group full">
+                  <label for="notes">Notes internes</label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    rows="4"
+                    placeholder="Ajoutez des informations contextuelles ou des instructions internes..."
+                  >{{ depense.notes }}</textarea>
+                </div>
+
+                <div class="form-group full">
+                  <label for="piece_jointe">Pièce jointe</label>
+                  <input type="file" id="piece_jointe" name="piece_jointe" />
+                  {% if depense.piece_jointe %}
+                  <div class="piece-jointe">
+                    <a href="{{ depense.piece_jointe.url }}" target="_blank">
+                      <i class="fas fa-paperclip"></i> Consulter la pièce jointe
+                    </a>
+                    <label class="checkbox-inline">
+                      <input type="checkbox" name="supprimer_piece_jointe" value="1" />
+                      Supprimer la pièce jointe
+                    </label>
+                  </div>
+                  {% else %}
+                  <p class="form-hint">
+                    Formats acceptés : PDF, JPG, PNG, DOC. 10 Mo max.
+                  </p>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <a href="{% url 'school_admin:suivi_revenus' %}" class="btn-secondary">
+                  <i class="fas fa-arrow-left"></i> Annuler
+                </a>
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-save"></i> Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <div class="depense-sidebar">
+          <section class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-history"></i> Historique fournisseur</h3>
+            </div>
+            <div class="card-body">
+              {% if depenses_fournisseur %}
+              <ul class="timeline">
+                {% for item in depenses_fournisseur %}
+                <li>
+                  <div class="timeline-date">
+                    {{ item.date_depense|date:"d M Y" }}
+                  </div>
+                  <div class="timeline-content">
+                    <h4>{{ item.description }}</h4>
+                    <p>{{ item.montant|floatformat:0 }} FCFA • {{ item.get_categorie_display }}</p>
+                    <a href="{% url 'school_admin:depense_detail' item.id %}">
+                      Voir la dépense
+                    </a>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="empty-state">
+                Aucune autre dépense enregistrée pour ce fournisseur.
+              </p>
+              {% endif %}
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-stream"></i> Timeline</h3>
+            </div>
+            <div class="card-body">
+              <ul class="timeline timeline-vertical">
+                {% for event in timeline %}
+                <li>
+                  <div class="timeline-icon">
+                    <i class="{{ event.icon }}"></i>
+                  </div>
+                  <div class="timeline-details">
+                    <p class="timeline-label">{{ event.label }}</p>
+                    <p class="timeline-date">
+                      {{ event.date|date:"d M Y" }}{% if event.show_time %} à {{ event.date|date:"H:i" }}{% endif %}
+                    </p>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-clipboard-check"></i> Récapitulatif</h3>
+            </div>
+            <div class="card-body recaps">
+              <div>
+                <span class="label">Créée le</span>
+                <p>{{ depense.date_creation|date:"d M Y" }}</p>
+              </div>
+              <div>
+                <span class="label">Dernière mise à jour</span>
+                <p>{{ depense.updated_at|date:"d M Y H:i" }}</p>
+              </div>
+              <div>
+                <span class="label">Statut actuel</span>
+                <p>{{ depense.get_statut_display }}</p>
+              </div>
+              <div>
+                <span class="label">Méthode</span>
+                <p>{{ depense.get_methode_paiement_display }}</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

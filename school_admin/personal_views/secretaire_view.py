@@ -534,25 +534,20 @@ def inscription_eleves(request):
                     # Stocker les informations du parent dans form_data pour le reçu
                     form_data['parent_cree'] = parent
                     
-                    # Mettre à jour les données de facturation de l'établissement
-                    montant_par_eleve = etablissement.montant_par_eleve
-                    
-                    # Incrémenter le nombre d'élèves facturés
-                    etablissement.nombre_eleves_factures += 1
-                    
-                    # Ajouter le montant au total de facturation
-                    etablissement.montant_total_facturation += montant_par_eleve
+                    # La facturation de l'établissement est automatiquement mise à jour
+                    # par la méthode save() du modèle Eleve via recalculer_facturation()
                     
                     # Mettre à jour la date de dernière facturation
                     from django.utils import timezone
                     etablissement.date_derniere_facturation = timezone.now()
-                    
-                    # Sauvegarder les modifications de l'établissement
-                    etablissement.save()
+                    etablissement.save(update_fields=['date_derniere_facturation'])
                     
                     # Log des documents fournis
                     documents_fournis = eleve.documents_fournis_liste
                     documents_text = ", ".join(documents_fournis) if documents_fournis else "Aucun document"
+                    
+                    # Récupérer le montant par élève pour le message
+                    montant_par_eleve = etablissement.montant_par_eleve
                     
                     messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_par_eleve} FCFA. Documents fournis: {documents_text}")
                     return redirect('secretaire:reçu_inscription_eleve', eleve_id=eleve.id)

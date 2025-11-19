@@ -192,6 +192,16 @@ class ProfesseurController:
         is_valid = True  # Initialiser is_valid
         
         if request.method == 'POST':
+            # Fonction pour déterminer automatiquement le niveau d'enseignement selon le type d'établissement
+            def get_niveau_from_etablissement(type_etablissement):
+                """Mappe le type d'établissement vers le niveau d'enseignement"""
+                mapping = {
+                    'primary': 'primaire',
+                    'collège': 'college',
+                    'lycée': 'lycee',
+                }
+                return mapping.get(type_etablissement, 'primaire')  # Par défaut 'primaire' si non trouvé
+            
             # Récupération des données
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
@@ -200,8 +210,11 @@ class ProfesseurController:
                 'telephone': request.POST.get('telephone', '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
-                'niveau_enseignement': request.POST.get('niveau_enseignement', ''),
             }
+            
+            # Déterminer automatiquement le niveau d'enseignement
+            niveau_enseignement_auto = get_niveau_from_etablissement(etablissement.type_etablissement)
+            form_data['niveau_enseignement'] = niveau_enseignement_auto
             
             # Validation
             is_valid = True
@@ -210,7 +223,7 @@ class ProfesseurController:
             # À la place, on exige au moins une matière secondaire
             if etablissement.type_etablissement == 'primary':
                 # Champs obligatoires pour le primaire (sans matière principale, email facultatif)
-                required_fields = ['nom', 'prenom', 'telephone', 'niveau_enseignement']
+                required_fields = ['nom', 'prenom', 'telephone']
                 for field in required_fields:
                     if not form_data[field]:
                         field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -225,7 +238,7 @@ class ProfesseurController:
                 matiere_principale_obj = None
             else:
                 # Champs obligatoires pour collège/lycée (email facultatif)
-                required_fields = ['nom', 'prenom', 'telephone', 'matiere_principale', 'niveau_enseignement']
+                required_fields = ['nom', 'prenom', 'telephone', 'matiere_principale']
                 for field in required_fields:
                     if not form_data[field]:
                         field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."

@@ -47,9 +47,14 @@ class CompteUser(AbstractUser):
     type_compte = models.CharField(max_length=50, choices=TYPE_COMPTE_CHOICES, verbose_name="Type de compte", default="")
     fonction = models.CharField(max_length=200, choices=FONCTION_CHOICES, verbose_name="Fonction dans l'entreprise", default="")
     departement = models.CharField(max_length=50, choices=DEPARTEMENT_CHOICES, verbose_name="Département", default="")
+    salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Salaire", help_text="Salaire mensuel en FCFA")
     # Le champ username est hérité de AbstractUser et doit être conservé
     # Nous le rendons non-unique car nous utilisons email comme identifiant principal
     username = models.CharField(unique=True, max_length=100, verbose_name="Nom d'utilisateur", default="")
+    
+    # Réinitialisation de mot de passe
+    password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
+    password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
 
     # Sécurité
     USERNAME_FIELD = 'username'  # L'email est l'identifiant principal

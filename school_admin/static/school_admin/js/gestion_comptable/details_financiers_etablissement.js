@@ -177,6 +177,32 @@ function startAutoRefresh() {
     }, 300000); // 5 minutes
 }
 
+// Fonction pour afficher/masquer les champs de modules supplémentaires
+function toggleModuleFields() {
+    const typeFacture = document.getElementById('type_facture');
+    const modulesSection = document.querySelector('.form-group:has(.modules-checkboxes)');
+    const montantModuleInput = document.getElementById('montant_module_supplementaire');
+    const montantModuleGroup = montantModuleInput ? montantModuleInput.closest('.form-group') : null;
+    
+    if (!typeFacture) return;
+    
+    const isModuleSupplementaire = typeFacture.value === 'module_supplementaire';
+    
+    if (modulesSection) {
+        modulesSection.style.display = isModuleSupplementaire ? 'block' : 'none';
+    }
+    
+    if (montantModuleGroup) {
+        montantModuleGroup.style.display = isModuleSupplementaire ? 'block' : 'none';
+        if (isModuleSupplementaire) {
+            montantModuleInput.required = true;
+        } else {
+            montantModuleInput.required = false;
+            montantModuleInput.value = '';
+        }
+    }
+}
+
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Détails financiers établissement initialisés');
@@ -189,6 +215,9 @@ document.addEventListener('DOMContentLoaded', function() {
             switchTab(tabName);
         });
     });
+    
+    // Initialiser l'affichage des champs de modules
+    toggleModuleFields();
     
     // Démarrer l'auto-refresh si nécessaire
     // startAutoRefresh();

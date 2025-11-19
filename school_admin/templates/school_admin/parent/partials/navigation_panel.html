@@ -46,6 +46,19 @@
     </a>
 
     <a
+      href="{% url 'school_admin:profil_parent' %}"
+      class="nav-link-card {% if request.resolver_match.url_name == 'profil_parent' %}active{% endif %}"
+    >
+      <div class="nav-card-icon neo-purple">
+        <i class="fas fa-user-circle"></i>
+      </div>
+      <div class="nav-link-content">
+        <h3>Mon Profil</h3>
+        <p>Informations personnelles</p>
+      </div>
+    </a>
+
+    <a
       href="{% url 'school_admin:retour_selection_enfant' %}"
       class="nav-link-card {% if request.resolver_match.url_name == 'dashboard_enfant' %}active{% endif %}"
     >
@@ -54,7 +67,7 @@
       </div>
       <div class="nav-link-content">
         <h3>Retour sélection</h3>
-        <p>Changer d’enfant suivi</p>
+        <p>Changer d'enfant suivi</p>
       </div>
     </a>
 

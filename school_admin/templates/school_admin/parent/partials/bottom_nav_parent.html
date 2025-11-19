@@ -39,6 +39,16 @@
       </a>
     </li>
     <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'profil_parent' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:profil_parent' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-circle"></i
+        ></span>
+        <span class="label">Profil</span>
+      </a>
+    </li>
+    <li
       class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'retour_selection_enfant' or request.resolver_match.url_name == 'dashboard_enfant' %}active{% endif %}"
     >
       <a href="{% url 'school_admin:retour_selection_enfant' %}">

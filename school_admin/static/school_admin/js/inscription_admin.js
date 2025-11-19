@@ -189,6 +189,48 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Supprimer la classe has-error et le message d'erreur quand l'utilisateur commence à saisir
+    const formGroups = document.querySelectorAll('.form-group');
+    formGroups.forEach(group => {
+        const inputs = group.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function () {
+                // Supprimer la classe has-error du parent
+                const formGroup = this.closest('.form-group');
+                if (formGroup && formGroup.classList.contains('has-error')) {
+                    // Vérifier si le champ est maintenant valide
+                    if (this.value.trim() !== '') {
+                        formGroup.classList.remove('has-error');
+                        // Supprimer le message d'erreur s'il existe
+                        const errorMessage = formGroup.querySelector('.error-message');
+                        if (errorMessage) {
+                            errorMessage.remove();
+                        }
+                    }
+                }
+            });
+
+            // Pour les champs de mot de passe, vérifier aussi la correspondance
+            if (input.id === 'password' || input.id === 'confirm-password') {
+                input.addEventListener('input', function () {
+                    const passwordField = document.getElementById('password');
+                    const confirmPasswordField = document.getElementById('confirm-password');
+                    const passwordGroup = passwordField.closest('.form-group');
+                    const confirmPasswordGroup = confirmPasswordField.closest('.form-group');
+
+                    if (passwordField.value && confirmPasswordField.value) {
+                        if (passwordField.value === confirmPasswordField.value && passwordField.value.length >= 8) {
+                            passwordGroup.classList.remove('has-error');
+                            confirmPasswordGroup.classList.remove('has-error');
+                            const errorMessages = [passwordGroup, confirmPasswordGroup].map(g => g.querySelector('.error-message')).filter(m => m);
+                            errorMessages.forEach(msg => msg.remove());
+                        }
+                    }
+                });
+            }
+        });
+    });
+
     // Initialisation
     updateSteps();
 });

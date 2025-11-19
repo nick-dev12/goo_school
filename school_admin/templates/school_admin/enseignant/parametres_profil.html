@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/parametres_profil.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/parametres_profil.css' %}?v=1.0.1">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -108,7 +108,12 @@
                                 <i class="fas fa-key"></i>
                                 Ancien mot de passe
                             </label>
-                            <input type="password" id="old_password" name="old_password" class="form-input" required placeholder="Entrez votre ancien mot de passe">
+                            <div class="password-input-wrapper">
+                                <input type="password" id="old_password" name="old_password" class="form-input" required placeholder="Entrez votre ancien mot de passe">
+                                <button type="button" class="toggle-password" data-target="old_password" aria-label="Afficher/Masquer le mot de passe">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="form-group">
@@ -116,8 +121,13 @@
                                 <i class="fas fa-lock"></i>
                                 Nouveau mot de passe
                             </label>
-                            <input type="password" id="new_password" name="new_password" class="form-input" required placeholder="Entrez un nouveau mot de passe">
-                            <small class="form-hint">Minimum 6 caractères</small>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="new_password" name="new_password" class="form-input" required placeholder="Entrez un nouveau mot de passe">
+                                <button type="button" class="toggle-password" data-target="new_password" aria-label="Afficher/Masquer le mot de passe">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="form-hint">Minimum 8 caractères</small>
                         </div>
                         
                         <div class="form-group">
@@ -125,7 +135,12 @@
                                 <i class="fas fa-lock"></i>
                                 Confirmer le mot de passe
                             </label>
-                            <input type="password" id="confirm_password" name="confirm_password" class="form-input" required placeholder="Confirmez le nouveau mot de passe">
+                            <div class="password-input-wrapper">
+                                <input type="password" id="confirm_password" name="confirm_password" class="form-input" required placeholder="Confirmez le nouveau mot de passe">
+                                <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Afficher/Masquer le mot de passe">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="form-actions">
@@ -236,6 +251,85 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+
+    <script>
+        // Gestion de l'affichage/masquage des mots de passe
+        function initPasswordToggles() {
+            const togglePasswordButtons = document.querySelectorAll('.toggle-password');
+            
+            togglePasswordButtons.forEach(button => {
+                // Forcer la visibilité du bouton avec des styles inline
+                button.style.cssText = `
+                    position: absolute !important;
+                    right: 12px !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 32px !important;
+                    height: 32px !important;
+                    background: white !important;
+                    border: 1px solid #d1d5db !important;
+                    border-radius: 50% !important;
+                    cursor: pointer !important;
+                    z-index: 9999 !important;
+                    visibility: visible !important;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                `;
+                
+                // Vérifier que l'icône est présente
+                const icon = button.querySelector('i');
+                if (!icon) {
+                    console.error('Icône manquante dans le bouton toggle');
+                    return;
+                }
+                
+                // Forcer le style de l'icône
+                icon.style.cssText = `
+                    font-size: 16px !important;
+                    color: #4b5563 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                `;
+                
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const targetId = this.getAttribute('data-target');
+                    const passwordInput = document.getElementById(targetId);
+                    const iconElement = this.querySelector('i');
+                    
+                    if (passwordInput && iconElement) {
+                        if (passwordInput.type === 'password') {
+                            passwordInput.type = 'text';
+                            iconElement.classList.remove('fa-eye');
+                            iconElement.classList.add('fa-eye-slash');
+                            this.setAttribute('aria-label', 'Masquer le mot de passe');
+                        } else {
+                            passwordInput.type = 'password';
+                            iconElement.classList.remove('fa-eye-slash');
+                            iconElement.classList.add('fa-eye');
+                            this.setAttribute('aria-label', 'Afficher le mot de passe');
+                        }
+                    } else {
+                        console.error('Champ de mot de passe ou icône introuvable pour:', targetId);
+                    }
+                });
+            });
+        }
+        
+        // Initialiser immédiatement (script à la fin du body)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPasswordToggles);
+        } else {
+            initPasswordToggles();
+        }
+    </script>
 
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
 </body>

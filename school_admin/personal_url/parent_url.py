@@ -30,5 +30,8 @@ urlpatterns = [
     
     # Déconnexion
     path('parent/deconnexion/', parent_view.deconnexion_parent, name='deconnexion_parent'),
+    
+    # Profil
+    path('parent/profil/', parent_view.profil_parent, name='profil_parent'),
 ]
 

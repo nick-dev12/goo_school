@@ -116,7 +116,6 @@
           <h1>Mon Profil - {{ user.username }}</h1>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-secondary"><i class="fas fa-question-circle"></i> Aide</button>
           <a href="{% url 'school_admin:deconnexion_compte_administrateur' %}" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
         </div>
       </div>
@@ -142,23 +141,17 @@
 
             <div class="profile-stats">
               <div class="stat-item">
-                <div class="stat-value">142</div>
+                <div class="stat-value">{{ nombre_etablissements|default:0 }}</div>
                 <div class="stat-label">Établissements</div>
               </div>
+              
               <div class="stat-item">
-                <div class="stat-value">3</div>
-                <div class="stat-label">Annonces</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">8</div>
-                <div class="stat-label">Mises à jour</div>
+                <div class="stat-value">{{ nombre_eleves|default:0 }}</div>
+                <div class="stat-label">Élèves</div>
               </div>
             </div>
 
-            <div class="profile-actions">
-              <a href="{% url 'school_admin:profil_admin' %}" class="btn btn-primary" style="width: 100%;"><i class="fas fa-edit"></i> Modifier le profil</a>
-              <button class="btn btn-secondary" style="width: 100%;"><i class="fas fa-cog"></i> Paramètres avancés</button>
-            </div>
+            
           </div>
         </div>
 
@@ -168,8 +161,6 @@
           <div class="profile-tabs">
             <button class="tab active" data-tab="personal"><i class="fas fa-user"></i> Informations personnelles</button>
             <button class="tab" data-tab="security"><i class="fas fa-lock"></i> Sécurité</button>
-            <button class="tab" data-tab="preferences"><i class="fas fa-sliders-h"></i> Préférences</button>
-            <button class="tab" data-tab="notifications"><i class="fas fa-bell"></i> Notifications</button>
           </div>
 
           <!-- Personal Information Tab -->
@@ -180,43 +171,54 @@
               <h2 class="section-title"><i class="fas fa-camera"></i> Photo de profil</h2>
               <p class="section-subtitle">Téléchargez une photo qui vous ressemble pour personnaliser votre profil.</p>
 
-              <div class="avatar-upload" id="avatarUpload">
+              <div class="avatar-upload" id="avatarUpload" {% if not is_administrateur %}style="pointer-events: none; opacity: 0.6;"{% endif %}>
                 <div class="avatar-upload-icon">
                   <i class="fas fa-cloud-upload-alt"></i>
                 </div>
-                <input type="file" id="photo" name="photo" accept="image/*">
+                <input type="file" id="photo" name="photo" accept="image/*" {% if not is_administrateur %}disabled{% endif %}>
               </div>
+              {% if not is_administrateur %}
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                  <i class="fas fa-info-circle"></i> Seuls les administrateurs peuvent modifier la photo de profil.
+                </p>
+              {% endif %}
             </div>
 
             <div class="content-section">
               <h2 class="section-title"><i class="fas fa-id-card"></i> Informations personnelles</h2>
-              <p class="section-subtitle">Mettez à jour vos informations personnelles pour assurer une communication efficace.</p>
+              <p class="section-subtitle">
+                {% if is_administrateur %}
+                  Mettez à jour vos informations personnelles pour assurer une communication efficace.
+                {% else %}
+                  Consultation de vos informations personnelles. Seuls les administrateurs peuvent modifier ces informations.
+                {% endif %}
+              </p>
 
               <div class="form-grid">
                 <div class="form-group {% if field_errors.prenom %}has-error{% endif %}">
                   <label class="form-label">Prénom</label>
-                  <input type="text" name="prenom" class="form-control" value="{{ form_data.prenom|default:user.prenom }}" required />
+                  <input type="text" name="prenom" class="form-control" value="{{ form_data.prenom|default:user.prenom }}" {% if not is_administrateur %}disabled{% else %}required{% endif %} />
                   {% if field_errors.prenom %}
                     <span class="error-message">{{ field_errors.prenom }}</span>
                   {% endif %}
                 </div>
                 <div class="form-group {% if field_errors.nom %}has-error{% endif %}">
                   <label class="form-label">Nom</label>
-                  <input type="text" name="nom" class="form-control" value="{{ form_data.nom|default:user.nom }}" required />
+                  <input type="text" name="nom" class="form-control" value="{{ form_data.nom|default:user.nom }}" {% if not is_administrateur %}disabled{% else %}required{% endif %} />
                   {% if field_errors.nom %}
                     <span class="error-message">{{ field_errors.nom }}</span>
                   {% endif %}
                 </div>
                 <div class="form-group {% if field_errors.email %}has-error{% endif %}">
                   <label class="form-label">Email professionnel</label>
-                  <input type="email" name="email" class="form-control" value="{{ form_data.email|default:user.email }}" required />
+                  <input type="email" name="email" class="form-control" value="{{ form_data.email|default:user.email }}" {% if not is_administrateur %}disabled{% else %}required{% endif %} />
                   {% if field_errors.email %}
                     <span class="error-message">{{ field_errors.email }}</span>
                   {% endif %}
                 </div>
                 <div class="form-group {% if field_errors.telephone %}has-error{% endif %}">
                   <label class="form-label">Téléphone professionnel</label>
-                  <input type="text" name="telephone" class="form-control" value="{{ form_data.telephone|default:user.telephone }}" required />
+                  <input type="text" name="telephone" class="form-control" value="{{ form_data.telephone|default:user.telephone }}" {% if not is_administrateur %}disabled{% else %}required{% endif %} />
                   {% if field_errors.telephone %}
                     <span class="error-message">{{ field_errors.telephone }}</span>
                   {% endif %}
@@ -237,8 +239,14 @@
             <input type="hidden" name="fonction" value="{{ user.fonction }}">
 
             <div class="form-actions">
-              <button class="btn btn-secondary"><i class="fas fa-times"></i> Annuler</button>
-              <button type="submit" class="btn btn-primary" id="savePersonalInfo"><i class="fas fa-save"></i> Enregistrer les modifications</button>
+              {% if is_administrateur %}
+                <button class="btn btn-secondary"><i class="fas fa-times"></i> Annuler</button>
+                <button type="submit" class="btn btn-primary" id="savePersonalInfo"><i class="fas fa-save"></i> Enregistrer les modifications</button>
+              {% else %}
+                <div style="padding: 1rem; background: var(--warning-light); border-radius: var(--radius-md); color: var(--warning);">
+                  <i class="fas fa-lock"></i> Les modifications sont désactivées. Seuls les administrateurs peuvent modifier leurs informations personnelles.
+                </div>
+              {% endif %}
             </div>
           </div>
           </form>
@@ -361,10 +369,7 @@
                 {% endif %}
               </div>
 
-              <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" 
-                      onclick="disconnectAllSessions()">
-                <i class="fas fa-sign-out-alt"></i> Déconnecter de tous les autres appareils
-              </button>
+              
             </div>
 
             <div class="form-actions">

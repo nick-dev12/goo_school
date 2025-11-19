@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestion des Établissements - Goo-School</title>
+    <title>Gestion des Établissements - Aria</title>
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
@@ -22,6 +22,9 @@
     {% include 'school_admin/gestion_comptable/partials/header_comptable.html'%}
 
     <div class="dashboard-content">
+      <!-- Messages Django -->
+      {% include 'school_admin/partials/messages.html' %}
+      
       <!-- Page Header -->
       <div class="page-header">
         <div class="header-left">
@@ -31,12 +34,6 @@
         <div class="header-actions">
           <button class="btn btn-secondary" onclick="refreshData()">
             <i class="fas fa-sync-alt"></i> Actualiser
-          </button>
-          <button class="btn btn-primary" onclick="exportAllData()">
-            <i class="fas fa-download"></i> Exporter tout
-          </button>
-          <button class="btn btn-success" onclick="generateAllInvoices()">
-            <i class="fas fa-file-invoice"></i> Générer toutes les factures
           </button>
         </div>
       </div>
@@ -141,15 +138,7 @@
         <div id="etablissements-en-regle" class="tab-panel active">
           <div class="panel-header">
             <h3>Établissements en Règle</h3>
-            <div class="panel-actions">
-              <button
-                class="btn btn-success"
-                onclick="generateInvoicesForSelected()"
-              >
-                <i class="fas fa-file-invoice"></i> Générer factures
-                sélectionnées
-              </button>
-            </div>
+           
           </div>
           <div class="table-container">
             <table class="data-table">
@@ -176,12 +165,10 @@
                     </div>
                   </td>
                   <td><span class="type-badge 
-                    {% if etablissement.etablissement.type_etablissement == 'primary' %}prive
-                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}semi_prive
-                    {% else %}public{% endif %}">
-                    {% if etablissement.etablissement.type_etablissement == 'primary' %}Privé
-                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}Semi-privé
-                    {% else %}Public{% endif %}
+                    {% if etablissement.etablissement.type_etablissement == 'primary' %}primary
+                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}college
+                    {% else %}lycee{% endif %}">
+                    {{ etablissement.etablissement.get_type_etablissement_display }}
                   </span></td>
                   <td><span class="student-count">{{ etablissement.nombre_eleves }}</span></td>
                   <td><span class="amount">{{ etablissement.montant_total|floatformat:0 }} FCFA</span></td>
@@ -194,12 +181,12 @@
                   </span></td>
                   <td>
                     <span class="status-badge 
-                      {% if etablissement.statut_display == 'En règle' %}en-regle
-                      {% elif etablissement.statut_display == 'Paiement en attente' %}en-attente
-                      {% elif etablissement.statut_display == 'Paiement en retard' %}en-retard
-                      {% elif etablissement.statut_display == 'Non en règle' %}non-en-regle
-                      {% else %}en-regle{% endif %}">
-                      {{ etablissement.statut_display }}
+                      {% if etablissement.etablissement.statut_reglementation == 'en_regle' %}en-regle
+                      {% elif etablissement.etablissement.statut_reglementation == 'en_retard' %}en-retard
+                      {% elif etablissement.etablissement.statut_reglementation == 'non_en_regle' %}non-en-regle
+                      {% elif etablissement.etablissement.statut_reglementation == 'contentieux' %}contentieux
+                      {% else %}en-attente{% endif %}">
+                      {{ etablissement.etablissement.get_statut_reglementation_display }}
                     </span>
                   </td>
                   <td>
@@ -209,12 +196,6 @@
                           <i class="fas fa-eye"></i>
                         </button>
                       </a>
-                      <button class="btn-action" title="Générer facture">
-                        <i class="fas fa-file-invoice"></i>
-                      </button>
-                      <button class="btn-action" title="Envoyer facture">
-                        <i class="fas fa-paper-plane"></i>
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -272,12 +253,10 @@
                     </div>
                   </td>
                   <td><span class="type-badge 
-                    {% if etablissement.etablissement.type_etablissement == 'primary' %}prive
-                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}semi_prive
-                    {% else %}public{% endif %}">
-                    {% if etablissement.etablissement.type_etablissement == 'primary' %}Privé
-                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}Semi-privé
-                    {% else %}Public{% endif %}
+                    {% if etablissement.etablissement.type_etablissement == 'primary' %}primary
+                    {% elif etablissement.etablissement.type_etablissement == 'collège' %}college
+                    {% else %}lycee{% endif %}">
+                    {{ etablissement.etablissement.get_type_etablissement_display }}
                   </span></td>
                   <td><span class="student-count">{{ etablissement.nombre_eleves }}</span></td>
                   <td><span class="amount {% if etablissement.montant_du > 1000000 %}urgent{% endif %}">{{ etablissement.montant_du|floatformat:0 }} FCFA</span></td>
@@ -288,21 +267,22 @@
                     {{ etablissement.jours_retard }} jours
                   </span></td>
                   <td><span class="status-badge 
-                    {% if etablissement.etablissement.statut_paiement == 'en_retard' %}en-retard
-                    {% elif etablissement.etablissement.statut_paiement == 'en_attente' %}en-attente
-                    {% else %}annule{% endif %}">
-                    {{ etablissement.etablissement.get_statut_paiement_display }}
+                    {% if etablissement.etablissement.statut_reglementation == 'en_retard' %}en-retard
+                    {% elif etablissement.etablissement.statut_reglementation == 'en_regle' %}en-regle
+                    {% elif etablissement.etablissement.statut_reglementation == 'non_en_regle' %}non-en-regle
+                    {% elif etablissement.etablissement.statut_reglementation == 'contentieux' %}contentieux
+                    {% else %}en-attente{% endif %}">
+                    {{ etablissement.etablissement.get_statut_reglementation_display }}
                   </span></td>
                   <td>
                     <div class="action-buttons">
-                      <button class="btn-action" title="Voir détails">
-                        <i class="fas fa-eye"></i>
-                      </button>
+                      <a href="{% url 'school_admin:details_financiers_etablissement' etablissement.etablissement.id %}">
+                        <button class="btn-action" title="Voir détails">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </a>
                       <button class="btn-action" title="Envoyer relance">
                         <i class="fas fa-bell"></i>
-                      </button>
-                      <button class="btn-action" title="Contacter">
-                        <i class="fas fa-phone"></i>
                       </button>
                     </div>
                   </td>
@@ -384,8 +364,8 @@
                   <td><span class="amount">{{ facture.montant_total|floatformat:0 }} FCFA</span></td>
                   <td><span class="amount paid">{{ facture.montant_paye|floatformat:0 }} FCFA</span></td>
                   <td>
-                    <span class="amount remaining {% if facture.montant_restant > 0 %}urgent{% endif %}">
-                      {{ facture.reste_a_payer|floatformat:0 }} FCFA
+                    <span class="amount remaining {% if facture.reste_a_payer and facture.reste_a_payer > 0 %}urgent{% endif %}">
+                      {% if facture.reste_a_payer %}{{ facture.reste_a_payer|floatformat:0 }}{% else %}0{% endif %} FCFA
                     </span>
                     {% if facture.paiement_partiel and facture.date_echeance_reste %}
                     <br><small class="echeance-reste">Échéance: {{ facture.date_echeance_reste|date:"d M Y" }}</small>
@@ -415,9 +395,6 @@
                         </button>
                       </a>
                       {% if facture.facture.statut == 'paye' %}
-                      <button class="btn-action" title="Télécharger PDF">
-                        <i class="fas fa-download"></i>
-                      </button>
                       {% if not facture.statut_envoi %}
                       <form method="POST" action="{% url 'school_admin:envoyer_facture' facture.facture.numero_facture facture.facture.etablissement.id %}" style="display: inline;">
                         {% csrf_token %}

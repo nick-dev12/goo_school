@@ -56,6 +56,12 @@ class CompteUserController:
             # Champs obligatoires
             required_fields = ['nom', 'prenom', 'email', 'telephone', 'date_naissance',
                              'type_compte', 'departement', 'fonction', 'password', 'confirm_password']
+            
+            # Validation des champs obligatoires
+            for field in required_fields:
+                if not form_data.get(field):
+                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                    is_valid = False
 
             # Vérification de l'email (format + unicité)
             if form_data['email']:
@@ -68,14 +74,24 @@ class CompteUserController:
                 except ValidationError:
                     field_errors['email'] = "Adresse email invalide."
                     is_valid = False
-
-            # Vérification des mots de passe
-            if form_data['password'] != form_data['confirm_password']:
-                field_errors['confirm_password'] = "Les mots de passe ne correspondent pas."
+            elif not field_errors.get('email'):  # Si l'email est vide et n'a pas déjà d'erreur
+                field_errors['email'] = "L'email est obligatoire."
                 is_valid = False
 
-            if len(form_data['password']) < 8:
-                field_errors['password'] = "Le mot de passe doit contenir au moins 8 caractères."
+            # Vérification des mots de passe
+            if form_data['password'] and form_data['confirm_password']:
+                if form_data['password'] != form_data['confirm_password']:
+                    field_errors['confirm_password'] = "Les mots de passe ne correspondent pas."
+                    is_valid = False
+
+                if len(form_data['password']) < 8:
+                    field_errors['password'] = "Le mot de passe doit contenir au moins 8 caractères."
+                    is_valid = False
+            elif form_data['password'] and not form_data['confirm_password']:
+                field_errors['confirm_password'] = "Veuillez confirmer votre mot de passe."
+                is_valid = False
+            elif not form_data['password'] and form_data['confirm_password']:
+                field_errors['password'] = "Veuillez saisir un mot de passe."
                 is_valid = False
 
             # Vérification de la date de naissance
@@ -148,12 +164,9 @@ class CompteUserController:
 
             # Si invalide, on reste sur la page avec les erreurs
             if not is_valid:
-                # Convertir les clés avec tiret en underscore pour correspondre à ton template
-                # (ex: 'date-naissance' → 'date_naissance')
-                template_errors = {}
                 return {
                     'form_data': form_data,
-                    'field_errors': template_errors,
+                    'field_errors': field_errors,
                 }, None
 
         # GET request : afficher le formulaire vide

@@ -5488,6 +5488,48 @@ def apercu_annonce(request, annonce_id):
 
 
 @login_required
+def imprimer_annonce(request, annonce_id):
+    """
+    Vue pour imprimer une annonce avec un design professionnel
+    """
+    # Vérifier que l'utilisateur connecté est bien un établissement
+    if not isinstance(request.user, Etablissement):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    etablissement = request.user
+    from ..model.annonce_model import Annonce
+    from datetime import date
+    
+    # Récupérer l'annonce
+    annonce = get_object_or_404(
+        Annonce,
+        id=annonce_id,
+        etablissement=etablissement,
+        actif=True
+    )
+    
+    # Date actuelle pour l'en-tête
+    aujourdhui = date.today()
+    # Format français : "15 janvier 2025"
+    mois_fr = {
+        1: 'janvier', 2: 'février', 3: 'mars', 4: 'avril',
+        5: 'mai', 6: 'juin', 7: 'juillet', 8: 'août',
+        9: 'septembre', 10: 'octobre', 11: 'novembre', 12: 'décembre'
+    }
+    date_formatee = f"{aujourdhui.day} {mois_fr[aujourdhui.month]} {aujourdhui.year}"
+    
+    context = {
+        'annonce': annonce,
+        'etablissement': etablissement,
+        'date_formatee': date_formatee,
+        'aujourdhui': aujourdhui,
+    }
+    
+    return render(request, 'school_admin/directeur/annonces/imprimer_annonce.html', context)
+
+
+@login_required
 def publier_annonce(request, annonce_id):
     """
     Vue pour publier une annonce en brouillon
@@ -5602,6 +5644,9 @@ def profil_etablissement(request):
 
     etablissement = request.user
     success_message = None
+    
+    # Récupérer l'onglet actif depuis POST ou GET
+    active_tab = request.POST.get('active_tab') or request.GET.get('tab', 'informations')
 
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
@@ -5658,9 +5703,47 @@ def profil_etablissement(request):
             else:
                 messages.info(request, "Aucun logo n'est actuellement défini.")
 
+        elif form_type == 'update_password':
+            current_password = request.POST.get('current_password', '').strip()
+            new_password = request.POST.get('new_password', '').strip()
+            confirm_password = request.POST.get('confirm_password', '').strip()
+            
+            # Validation des champs obligatoires
+            validation_errors = []
+            
+            if not current_password:
+                validation_errors.append("Le mot de passe actuel est obligatoire.")
+            
+            if not new_password:
+                validation_errors.append("Le nouveau mot de passe est obligatoire.")
+            elif len(new_password) < 8:
+                validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+            
+            if not confirm_password:
+                validation_errors.append("La confirmation du mot de passe est obligatoire.")
+            elif new_password and confirm_password and new_password != confirm_password:
+                validation_errors.append("Les nouveaux mots de passe ne correspondent pas.")
+            
+            # Si des erreurs de validation existent, les afficher et arrêter
+            if validation_errors:
+                for error in validation_errors:
+                    messages.error(request, error)
+            # Vérifier le mot de passe actuel seulement si toutes les validations précédentes sont passées
+            elif not etablissement.check_password(current_password):
+                messages.error(request, "Le mot de passe actuel est incorrect.")
+            else:
+                # Toutes les validations sont passées, changer le mot de passe
+                etablissement.set_password(new_password)
+                etablissement.save()
+                # Maintenir la session active après changement de mot de passe
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, etablissement)
+                success_message = "Mot de passe mis à jour avec succès."
+
         if success_message:
             messages.success(request, success_message)
-        return redirect('directeur:profil_etablissement')
+        # Rediriger vers l'onglet actif
+        return redirect(f"{reverse('directeur:profil_etablissement')}?tab={active_tab}")
 
     modules_config = [
         ("Gestion des élèves", etablissement.module_gestion_eleves),
@@ -5694,6 +5777,7 @@ def profil_etablissement(request):
         'modules_config': modules_config,
         'facturation': facturation,
         'devise_etablissement': getattr(etablissement, 'devise', None),
+        'active_tab': active_tab,
     }
 
     return render(request, 'school_admin/directeur/mon_profil_etablissement.html', context)

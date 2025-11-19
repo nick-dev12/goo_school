@@ -1,0 +1,238 @@
+@page {
+    size: A4;
+    margin: 1cm 1cm;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Times New Roman', 'Times', serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+}
+
+.letter-container {
+    max-width: 21cm;
+    margin: 0 auto;
+    padding: 0;
+    background: white;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        padding: 1cm 1cm;
+        margin-bottom: 2rem;
+
+}
+
+/* Informations destinataire - Layout en deux colonnes */
+.recipient-header {
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: flex-start !important;
+    margin-bottom: 10px !important;
+}
+
+.recipient-info {
+
+    line-height: 1.4 !important;
+}
+
+.recipient-info p {
+    margin: 0;
+    font-size: 11pt;
+}
+
+.recipient-info p:first-child {
+    margin-bottom: 3px;
+}
+
+.etablissement-header {
+    width: 250px;
+    
+    max-width: 48%;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.etablissement-logo {
+    max-width: 120px;
+    max-height: 80px;
+    margin-bottom: 5px;
+    object-fit: contain;
+}
+
+.etablissement-name {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #000;
+}
+
+/* Objet centré et souligné */
+.letter-subject {
+    text-align: center;
+    margin: 1.5cm 0;
+    font-weight: bold;
+    font-size: 13pt;
+    text-decoration: underline;
+    text-underline-offset: 0.2cm;
+}
+
+/* Salutation */
+.letter-salutation {
+    margin-bottom: 0.8cm;
+    font-size: 10.5pt;
+}
+
+/* Corps du texte */
+.letter-body {
+    text-align: justify;
+    margin-bottom: 1.2cm;
+    font-size: 10.5pt;
+    line-height: 1.6;
+}
+
+.letter-body p {
+    margin-bottom: 0.6cm;
+    text-indent: 0;
+}
+
+.letter-body p:first-child {
+    margin-top: 0;
+}
+
+/* Formule de politesse */
+.letter-closing {
+    margin-top: 1.5cm;
+    margin-bottom: 1.5cm;
+    font-size: 10.5pt;
+}
+
+/* Informations expéditeur */
+.sender-info {
+    margin-top: 2.5cm;
+    font-size: 10.5pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.sender-personal {
+    text-align: left;
+    flex: 1;
+}
+
+.sender-info p {
+    margin: 0.2cm 0;
+    line-height: 1.5;
+}
+
+.sender-info strong {
+    font-weight: bold;
+}
+
+/* Date en bas à droite */
+.letter-date-footer {
+    text-align: right;
+    font-size: 10.5pt;
+    flex: 1;
+}
+
+.letter-date-footer strong {
+    font-weight: bold;
+}
+
+/* Fichier joint si présent */
+.letter-attachment {
+    margin-top: 1.5cm;
+    padding: 0.8cm;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    font-size: 11pt;
+}
+
+.letter-attachment h4 {
+    margin-bottom: 0.5cm;
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+.letter-attachment p {
+    margin: 0.3cm 0;
+}
+
+/* Styles d'impression */
+@media print {
+    body {
+        background: white;
+        size: A4;
+        margin: 1cm 1cm;
+    }
+
+    .letter-container {
+        box-shadow: none;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Styles écran pour aperçu */
+@media screen {
+
+    .print-actions {
+        text-align: center;
+        padding: 1.5rem;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .btn-print {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .btn-print:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        margin-left: 1rem;
+    }
+
+    .btn-back:hover {
+        background: #5a6268;
+    }
+}

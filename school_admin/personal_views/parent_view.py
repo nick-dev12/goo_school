@@ -700,3 +700,87 @@ def notifications_parent(request):
 
     return response
 
+
+def profil_parent(request):
+    """
+    Affiche le profil du parent avec toutes ses informations
+    Gère également la modification du mot de passe
+    """
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    parent = request.user
+    
+    # Gérer la modification du mot de passe
+    if request.method == 'POST' and request.POST.get('action') == 'change_password':
+        from django.contrib.auth import update_session_auth_hash
+        from django.contrib.auth.hashers import check_password
+        
+        current_password = request.POST.get('current_password', '').strip()
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        # Validation des champs obligatoires
+        validation_errors = []
+        
+        if not current_password:
+            validation_errors.append("Le mot de passe actuel est obligatoire.")
+        
+        if not new_password:
+            validation_errors.append("Le nouveau mot de passe est obligatoire.")
+        elif len(new_password) < 8:
+            validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+        
+        if not confirm_password:
+            validation_errors.append("La confirmation du mot de passe est obligatoire.")
+        elif new_password and confirm_password and new_password != confirm_password:
+            validation_errors.append("Les nouveaux mots de passe ne correspondent pas.")
+        
+        # Si des erreurs de validation existent, les afficher et arrêter
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+        # Vérifier le mot de passe actuel seulement si toutes les validations précédentes sont passées
+        elif not check_password(current_password, parent.password):
+            messages.error(request, "Le mot de passe actuel est incorrect.")
+        else:
+            # Toutes les validations sont passées, changer le mot de passe
+            parent.set_password(new_password)
+            parent.save()
+            # Maintenir la session active après changement de mot de passe
+            update_session_auth_hash(request, parent)
+            messages.success(request, "Mot de passe modifié avec succès.")
+            logger.info(f"Mot de passe changé - Parent: {parent.matricule_parental}")
+    
+    # Récupérer le nombre d'enfants liés
+    nombre_enfants = LienFamilial.objects.filter(
+        parent=parent,
+        actif=True,
+        statut='valide'
+    ).count()
+    
+    # Récupérer la liste des enfants pour affichage
+    liens_familiaux = LienFamilial.objects.filter(
+        parent=parent,
+        actif=True,
+        statut='valide'
+    ).select_related('eleve__classe', 'eleve__etablissement')
+    
+    enfants_list = []
+    for lien in liens_familiaux:
+        enfants_list.append({
+            'eleve': lien.eleve,
+            'type_lien': lien.get_type_lien_display(),
+            'classe': lien.eleve.classe.nom if lien.eleve.classe else 'Non assigné',
+        })
+    
+    context = {
+        'parent': parent,
+        'etablissement': parent.etablissement,
+        'nombre_enfants': nombre_enfants,
+        'enfants_list': enfants_list,
+    }
+    
+    return render(request, 'school_admin/parent/profil_parent.html', context)
+

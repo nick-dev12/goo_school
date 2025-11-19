@@ -4,14 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Facture - Goo-School</title>
+    <title>Facture - Aria</title>
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/gestion_comptable/facture_etablissement.css' %}"
+      href="{% static 'school_admin/css/gestion_comptable/facture_etablissement.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
@@ -23,29 +23,28 @@
 
       <div class="invoice-container">
         <!-- Messages Django -->
-        {% include 'school_admin/partials/messages.html' %}
+        <div class="no-print">
+          {% include 'school_admin/partials/messages.html' %}
+        </div>
         
         <!-- Invoice Actions -->
       <div class="invoice-actions">
-        <button class="btn btn-outline" onclick="goBack()">
+        <a href="{% url 'school_admin:details_financiers_etablissement' etablissement.id %}" class="btn btn-outline">
           <i class="fas fa-arrow-left"></i> Retour
-        </button>
+        </a>
         <button class="btn btn-primary" onclick="printInvoice()">
           <i class="fas fa-print"></i> Imprimer
-        </button>
-        <button class="btn btn-success" onclick="downloadPDF()">
-          <i class="fas fa-download"></i> Télécharger PDF
         </button>
         {% if not facture_info.statut_envoi %}
         <form method="POST" action="{% url 'school_admin:envoyer_facture' facture_info.numero etablissement.id %}" style="display: inline;">
           {% csrf_token %}
           <button type="submit" class="btn btn-secondary">
-            <i class="fas fa-paper-plane"></i> Marquer comme Envoyée
+            <i class="fas fa-paper-plane"></i> Envoyer la facture
           </button>
         </form>
         {% else %}
         <button class="btn btn-success" disabled>
-          <i class="fas fa-check-circle"></i> Facture Envoyée
+          <i class="fas fa-check-circle"></i> Facture envoyée
         </button>
         {% endif %}
       </div>
@@ -77,19 +76,6 @@
 
         <!-- Invoice Header -->
         <div class="invoice-header">
-          <div class="company-info">
-            <div class="company-logo">
-              <i class="fas fa-graduation-cap"></i>
-              <span>Goo-School</span>
-            </div>
-            <div class="company-details">
-              <h2>{{ company_info.nom }}</h2>
-              <p>{{ company_info.description }}</p>
-              <p><i class="fas fa-map-marker-alt"></i> {{ company_info.adresse }}</p>
-              <p><i class="fas fa-phone"></i> {{ company_info.telephone }}</p>
-              <p><i class="fas fa-envelope"></i> {{ company_info.email }}</p>
-            </div>
-          </div>
           <div class="invoice-title">
             <h1>FACTURE</h1>
             <div class="invoice-number">

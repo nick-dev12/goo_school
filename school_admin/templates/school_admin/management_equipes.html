@@ -35,9 +35,6 @@
           <h1>Management des équipes</h1>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-secondary" id="exportTeam">
-            <i class="fas fa-download"></i> Exporter équipe
-          </button>
           <a href="{% url 'school_admin:inscription_compte_user' %}">
           <button class="btn btn-primary">
             <i class="fas fa-user-plus"></i> Ajouter un membre
@@ -47,55 +44,6 @@
       </div>
 
       <!-- Statistics Overview -->
-      <div class="stats-overview">
-        <div class="stat-card">
-          <div class="stat-icon commercial">
-            <i class="fas fa-handshake"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ team_stats.commercial }}</div>
-            <div class="stat-label">Commerciaux</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon developer">
-            <i class="fas fa-code"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ team_stats.developpeur }}</div>
-            <div class="stat-label">Développeurs</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon accountant">
-            <i class="fas fa-calculator"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ team_stats.comptable }}</div>
-            <div class="stat-label">Comptables</div>
-          </div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-icon hr">
-            <i class="fas fa-user-plus"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ team_stats.ressources_humaines }}</div>
-            <div class="stat-label">Ressources humaines</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon marketing">
-            <i class="fas fa-"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ team_stats.marketing }}</div>
-            <div class="stat-label">Marketing</div>
-          </div>
-        </div>
-      </div>
-
       <!-- Main Content Layout -->
       <div class="main-layout">
         <!-- Tabs Navigation -->
@@ -104,15 +52,7 @@
             <button class="tab active" data-tab="team">
               <i class="fas fa-users"></i> Équipe
             </button>
-            <button class="tab" data-tab="roles">
-              <i class="fas fa-user-cog"></i> Rôles & Permissions
-            </button>
-            <button class="tab" data-tab="activities">
-              <i class="fas fa-chart-line"></i> Activités globales
-            </button>
-            <button class="tab" data-tab="system">
-              <i class="fas fa-server"></i> Système
-            </button>
+        
           </div>
         </div>
 
@@ -158,12 +98,12 @@
             <div
               class="member-card"
               data-role="{{ member.fonction }}"
-              data-status="actif"
+              data-status="{% if member.is_active %}actif{% else %}inactif{% endif %}"
               data-department="{{ member.departement }}"
             >
               <div class="member-header">
                 <div class="member-avatar">{{ member.initiales }}</div>
-                <div class="member-status active"></div>
+                <div class="member-status {% if member.is_active %}active{% else %}inactive{% endif %}"></div>
               </div>
               <div class="member-info">
                 <h3 class="member-name">{{ member.nom_complet }}</h3>
@@ -180,25 +120,24 @@
                   <span>{{ member.telephone|default:"Non renseigné" }}</span>
                 </div>
                 <div class="detail-item">
+                  <i class="fas fa-money-bill-wave"></i>
+                  <span>{% if member.salaire %}{{ member.salaire|floatformat:0 }} FCFA{% else %}Non renseigné{% endif %}</span>
+                </div>
+                <div class="detail-item">
                   <i class="fas fa-calendar"></i>
                   <span>Membre depuis {{ member.date_joined|date:"Y" }}</span>
                 </div>
               </div>
               <div class="member-actions">
-                {% if member.fonction == 'commercial' %}
-                <a href="{% url 'school_admin:commercial_profile' member.id %}" class="action-btn profile" title="Voir le profil">
+                <a href="{% url 'school_admin:team_member_profile' member.id %}" class="action-btn profile" title="Voir le profil">
                   <i class="fas fa-user"></i>
                 </a>
-                {% endif %}
-                <button class="action-btn edit" title="Modifier">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn message" title="Contacter">
-                  <i class="fas fa-envelope"></i>
-                </button>
-                <button class="action-btn more" title="Plus d'options">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
+                <form method="post" action="{% url 'school_admin:toggle_team_member_status' member.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="action-btn {% if member.is_active %}deactivate{% else %}activate{% endif %}" title="{% if member.is_active %}Désactiver{% else %}Activer{% endif %}">
+                    <i class="fas fa-{% if member.is_active %}ban{% else %}check{% endif %}"></i>
+                  </button>
+                </form>
               </div>
             </div>
             {% endfor %}
@@ -263,7 +202,7 @@
           </div>
         </div>
 
-        <!-- Roles Tab Content -->
+        {% comment %} <!-- Roles Tab Content -->
         <div class="tab-content" id="roles-tab">
           <div class="roles-section">
             <h2 class="section-title">Gestion des rôles et permissions</h2>
@@ -647,7 +586,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> {% endcomment %}
       </div>
     </div>
 

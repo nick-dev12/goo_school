@@ -90,6 +90,7 @@ urlpatterns = [
     path('directeur/annonces/creer/', creer_annonce, name='creer_annonce'),
     path('directeur/annonces/<int:annonce_id>/modifier/', modifier_annonce, name='modifier_annonce'),
     path('directeur/annonces/<int:annonce_id>/apercu/', apercu_annonce, name='apercu_annonce'),
+    path('directeur/annonces/<int:annonce_id>/imprimer/', imprimer_annonce, name='imprimer_annonce'),
     path('directeur/annonces/<int:annonce_id>/publier/', publier_annonce, name='publier_annonce'),
     path('directeur/annonces/<int:annonce_id>/archiver/', archiver_annonce, name='archiver_annonce'),
     path('directeur/annonces/<int:annonce_id>/supprimer/', supprimer_annonce, name='supprimer_annonce'),

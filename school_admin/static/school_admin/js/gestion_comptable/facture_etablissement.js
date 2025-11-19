@@ -21,26 +21,24 @@ function goBack() {
 
 // Print Invoice
 function printInvoice() {
-    showNotification('Préparation de l\'impression...', 'info');
-
     // Hide action buttons for printing
     const actions = document.querySelector('.invoice-actions');
     if (actions) {
         actions.style.display = 'none';
     }
 
+    // Ensure the page is ready for printing
     setTimeout(() => {
+        // Trigger print dialog
         window.print();
 
-        // Show action buttons again after printing
+        // Show action buttons again after printing (when user cancels or prints)
         setTimeout(() => {
             if (actions) {
                 actions.style.display = 'flex';
             }
         }, 1000);
-
-        showNotification('Impression lancée', 'success');
-    }, 500);
+    }, 100);
 }
 
 // Download PDF

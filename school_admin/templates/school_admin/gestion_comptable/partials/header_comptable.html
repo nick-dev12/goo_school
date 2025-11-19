@@ -31,7 +31,13 @@
         <a href="{% url 'school_admin:profil_admin' %}">
           <div class="header-profile">
             <div class="header-avatar">
-              <img src="{{ user.photo.url }}" alt="Photo de profil" />
+              {% if user.photo %}
+                <img src="{{ user.photo.url }}" alt="Photo de profil" />
+              {% else %}
+                <div class="avatar-placeholder">
+                  {{ user.prenom|slice:":1"|upper }}{{ user.nom|slice:":1"|upper }}
+                </div>
+              {% endif %}
             </div>
             <div class="header-user-info">
               <div class="header-user-name">
@@ -120,21 +126,10 @@
             <p>Suivi des impayés</p>
           </div>
         </a>
-        <a
-          href="{% url 'school_admin:calculs_automatiques' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-calculator"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Calculs</h3>
-            <p>Calculs automatiques</p>
-          </div>
-        </a>
+       
       </div>
 
-      <!-- Section 3: Rapports -->
+      {% comment %} <!-- Section 3: Rapports -->
       <div class="section-title">
         <h2>Rapports</h2>
       </div>
@@ -163,7 +158,7 @@
             <p>Bilan annuel</p>
           </div>
         </a>
-      </div>
+      </div> {% endcomment %}
 
       <!-- Section 4: Gestion des données -->
       <div class="section-title">
@@ -194,22 +189,11 @@
             <p>Gestion financière du personnel</p>
           </div>
         </a>
-        <a
-          href="{% url 'school_admin:gestion_depenses' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-credit-card"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Dépenses</h3>
-            <p>Gestion des dépenses</p>
-          </div>
-        </a>
+       
       </div>
 
       <!-- Section 5: Communication -->
-      <div class="section-title">
+      {% comment %} <div class="section-title">
         <h2>Communication</h2>
       </div>
       <div class="nav-cards-row">
@@ -222,7 +206,7 @@
             <p>Boîte de réception</p>
           </div>
         </a>
-      </div>
+      </div> {% endcomment %}
 
       <!-- Section 6: Compte -->
       <div class="section-title">

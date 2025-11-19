@@ -150,6 +150,10 @@ class Eleve(AbstractUser):
         help_text="Indique si l'élève a changé son mot de passe initial"
     )
     
+    # Réinitialisation de mot de passe
+    password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
+    password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
+    
     etablissement = models.ForeignKey(
         Etablissement,
         on_delete=models.CASCADE,
@@ -717,15 +721,24 @@ class Eleve(AbstractUser):
         return False
 
     def save(self, *args, **kwargs):
-        """Surcharge du save pour garantir un QR code cohérent."""
+        """Surcharge du save pour garantir un QR code cohérent et mettre à jour la facturation de l'établissement."""
         old_instance = None
         previous_image_path = None
+        etablissement_changed = False
+        actif_changed = False
 
+        old_etablissement = None
         if self.pk:
             try:
                 old_instance = Eleve.objects.get(pk=self.pk)
                 if old_instance.qr_code_image:
                     previous_image_path = old_instance.qr_code_image.name
+                # Vérifier si l'établissement ou le statut actif a changé
+                if old_instance.etablissement_id != self.etablissement_id:
+                    etablissement_changed = True
+                    old_etablissement = old_instance.etablissement
+                if old_instance.actif != self.actif:
+                    actif_changed = True
             except Eleve.DoesNotExist:
                 old_instance = None
 
@@ -739,3 +752,11 @@ class Eleve(AbstractUser):
         if regenerate_qr:
             self._generate_qr_code(previous_image_path)
             super().save(update_fields=['qr_code_data', 'qr_code_image', 'qr_code_generated_at'])
+        
+        # Mettre à jour la facturation de l'établissement actuel
+        if self.etablissement:
+            self.etablissement.recalculer_facturation()
+        
+        # Si l'établissement a changé, mettre à jour aussi l'ancien établissement
+        if etablissement_changed and old_etablissement:
+            old_etablissement.recalculer_facturation()

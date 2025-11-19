@@ -21,6 +21,15 @@ class Depense(models.Model):
         ('loyer', 'Loyer'),
         ('autre', 'Autre'),
     ]
+
+    TYPE_DEPENSE_CHOICES = [
+        ('unique', 'Paiement unique'),
+        ('mensuelle', 'Mensuelle'),
+        ('trimestrielle', 'Trimestrielle'),
+        ('semestrielle', 'Semestrielle'),
+        ('annuelle', 'Annuelle'),
+        ('autre', 'Autre fréquence'),
+    ]
     
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
@@ -49,6 +58,14 @@ class Depense(models.Model):
         choices=CATEGORIE_CHOICES,
         verbose_name="Catégorie",
         help_text="Catégorie de la dépense"
+    )
+
+    type_depense = models.CharField(
+        max_length=20,
+        choices=TYPE_DEPENSE_CHOICES,
+        default='unique',
+        verbose_name="Type de dépense",
+        help_text="Indique si la dépense est ponctuelle ou récurrente"
     )
     
     # Dates
@@ -79,7 +96,35 @@ class Depense(models.Model):
         help_text="Nom du fournisseur ou bénéficiaire"
     )
     
+    numero_facture = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Numéro de facture",
+        help_text="Numéro de facture ou référence"
+    )
     
+    methode_paiement = models.CharField(
+        max_length=50,
+        choices=[
+            ('virement', 'Virement bancaire'),
+            ('cheque', 'Chèque'),
+            ('especes', 'Espèces'),
+            ('carte', 'Carte bancaire'),
+            ('mobile_money', 'Mobile Money'),
+            ('autre', 'Autre'),
+        ],
+        default='virement',
+        verbose_name="Méthode de paiement",
+        help_text="Méthode utilisée pour le paiement"
+    )
+    
+    date_paiement = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Date de paiement",
+        help_text="Date à laquelle la dépense a été payée"
+    )
     
     # Documents et notes
     piece_jointe = models.FileField(

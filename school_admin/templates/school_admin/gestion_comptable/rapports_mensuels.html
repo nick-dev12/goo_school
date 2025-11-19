@@ -27,6 +27,9 @@
 
     <!-- Main Content -->
     <div class="dashboard-content">
+      <!-- Messages Django -->
+      {% include 'school_admin/partials/messages.html' %}
+      
       <!-- Page Header -->
       <div class="page-header">
         <div class="header-left">
@@ -50,7 +53,7 @@
             <i class="fas fa-calendar-alt"></i>
           </div>
           <div class="card-info">
-            <h3>12</h3>
+            <h3>{{ nombre_rapports }}</h3>
             <p>Rapports générés</p>
           </div>
         </div>
@@ -59,7 +62,7 @@
             <i class="fas fa-chart-line"></i>
           </div>
           <div class="card-info">
-            <h3>+15.2%</h3>
+            <h3>{% if croissance_mensuelle >= 0 %}+{% endif %}{{ croissance_mensuelle }}%</h3>
             <p>Croissance mensuelle</p>
           </div>
         </div>
@@ -68,7 +71,7 @@
             <i class="fas fa-euro-sign"></i>
           </div>
           <div class="card-info">
-            <h3>45,250,000</h3>
+            <h3>{{ revenus_totaux|floatformat:0 }}</h3>
             <p>Revenus totaux (FCFA)</p>
           </div>
         </div>
@@ -77,7 +80,7 @@
             <i class="fas fa-clock"></i>
           </div>
           <div class="card-info">
-            <h3>2.1s</h3>
+            <h3>{{ temps_generation_moyen }}s</h3>
             <p>Temps de génération</p>
           </div>
         </div>
@@ -88,15 +91,15 @@
         <div class="tabs">
           <button class="tab-btn active" data-tab="bilan-mensuel">
             <i class="fas fa-chart-bar"></i> Bilan mensuel
-            <span class="tab-count">8</span>
+            <span class="tab-count">{{ rapports_complets|add:rapports_resumes|add:rapports_financiers|add:rapports_operationnels }}</span>
           </button>
           <button class="tab-btn" data-tab="analyse-financiere">
             <i class="fas fa-chart-line"></i> Analyse financière
-            <span class="tab-count">4</span>
+            <span class="tab-count">{{ rapports_financiers }}</span>
           </button>
           <button class="tab-btn" data-tab="rapports-personnalises">
             <i class="fas fa-cog"></i> Rapports personnalisés
-            <span class="tab-count">3</span>
+            <span class="tab-count">{{ rapports_resumes }}</span>
           </button>
         </div>
 
@@ -112,55 +115,53 @@
                   <p>Création d'un nouveau bilan mensuel</p>
                 </div>
                 <div class="tool-content">
-                  <div class="report-form">
-                    <div class="form-group">
-                      <label>Période du rapport</label>
-                      <select class="form-select" id="reportPeriod">
-                        <option value="decembre-2023">Décembre 2023</option>
-                        <option value="novembre-2023">Novembre 2023</option>
-                        <option value="octobre-2023">Octobre 2023</option>
-                        <option value="septembre-2023">Septembre 2023</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label>Type de rapport</label>
-                      <select class="form-select" id="reportType">
-                        <option value="complet">Rapport complet</option>
-                        <option value="resume">Résumé exécutif</option>
-                        <option value="financier">
-                          Rapport financier uniquement
-                        </option>
-                        <option value="operational">
-                          Rapport opérationnel
-                        </option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label>Sections à inclure</label>
-                      <div class="checkbox-group">
-                        <label class="checkbox-item">
-                          <input type="checkbox" checked /> Résumé exécutif
-                        </label>
-                        <label class="checkbox-item">
-                          <input type="checkbox" checked /> Données financières
-                        </label>
-                        <label class="checkbox-item">
-                          <input type="checkbox" checked /> Analyse des
-                          établissements
-                        </label>
-                        <label class="checkbox-item">
-                          <input type="checkbox" checked /> Graphiques et
-                          tableaux
-                        </label>
-                        <label class="checkbox-item">
-                          <input type="checkbox" checked /> Recommandations
-                        </label>
+                  <form method="POST" action="{% url 'school_admin:rapports_mensuels' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="generer_rapport">
+                    <div class="report-form">
+                      <div class="form-group">
+                        <label>Période du rapport</label>
+                        <select class="form-select" name="mois" id="reportPeriod" required>
+                          {% for option in mois_options %}
+                          <option value="{{ option.value }}">{{ option.label }}</option>
+                          {% endfor %}
+                        </select>
+                        <input type="hidden" name="annee" value="{{ annee_actuelle }}">
                       </div>
+                      <div class="form-group">
+                        <label>Type de rapport</label>
+                        <select class="form-select" name="type_rapport" id="reportType" required>
+                          <option value="complet">Rapport complet</option>
+                          <option value="resume">Résumé exécutif</option>
+                          <option value="financier">Rapport financier uniquement</option>
+                          <option value="operational">Rapport opérationnel</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label>Sections à inclure</label>
+                        <div class="checkbox-group">
+                          <label class="checkbox-item">
+                            <input type="checkbox" name="inclure_resume_executif" checked /> Résumé exécutif
+                          </label>
+                          <label class="checkbox-item">
+                            <input type="checkbox" name="inclure_donnees_financieres" checked /> Données financières
+                          </label>
+                          <label class="checkbox-item">
+                            <input type="checkbox" name="inclure_analyse_etablissements" checked /> Analyse des établissements
+                          </label>
+                          <label class="checkbox-item">
+                            <input type="checkbox" name="inclure_graphiques" checked /> Graphiques et tableaux
+                          </label>
+                          <label class="checkbox-item">
+                            <input type="checkbox" name="inclure_recommandations" checked /> Recommandations
+                          </label>
+                        </div>
+                      </div>
+                      <button type="submit" class="btn-calculate" id="generateReport">
+                        <i class="fas fa-file-alt"></i> Générer le rapport
+                      </button>
                     </div>
-                    <button class="btn-calculate" id="generateReport">
-                      <i class="fas fa-file-alt"></i> Générer le rapport
-                    </button>
-                  </div>
+                  </form>
                 </div>
               </div>
 
@@ -238,149 +239,83 @@
                     </tr>
                   </thead>
                   <tbody>
+                    {% for rapport in rapports %}
                     <tr>
                       <td>
                         <div class="period-info">
-                          <h4>Décembre 2023</h4>
-                          <p>Rapport mensuel complet</p>
+                          <h4>{{ rapport.get_periode_display }}</h4>
+                          <p>{{ rapport.nom }}</p>
                         </div>
                       </td>
                       <td>
-                        <span class="report-type complet">Complet</span>
+                        <span class="report-type {{ rapport.type_rapport }}">
+                          {{ rapport.get_type_rapport_display }}
+                        </span>
                       </td>
                       <td>
-                        <span class="status-badge genere">Généré</span>
+                        <span class="status-badge 
+                          {% if rapport.statut == 'genere' %}genere
+                          {% elif rapport.statut == 'en_cours' %}en-cours
+                          {% else %}erreur{% endif %}">
+                          {{ rapport.get_statut_display }}
+                        </span>
                       </td>
                       <td>
-                        <span class="date">20 Déc 2023</span>
+                        <span class="date">
+                          {% if rapport.date_generation %}
+                            {{ rapport.date_generation|date:"d M Y" }}
+                          {% else %}
+                            {{ rapport.date_creation|date:"d M Y" }}
+                          {% endif %}
+                        </span>
                       </td>
                       <td>
-                        <span class="file-size">2.4 MB</span>
+                        <span class="file-size">{{ rapport.get_taille_fichier_display }}</span>
                       </td>
                       <td>
                         <div class="action-buttons">
+                          {% if rapport.statut == 'genere' %}
                           <button class="btn-action" title="Voir rapport">
                             <i class="fas fa-eye"></i>
                           </button>
-                          <button class="btn-action" title="Télécharger PDF">
+                          {% if rapport.fichier_pdf %}
+                          <a href="{{ rapport.fichier_pdf.url }}" target="_blank" class="btn-action" title="Télécharger PDF">
                             <i class="fas fa-file-pdf"></i>
-                          </button>
+                          </a>
+                          {% endif %}
                           <button class="btn-action" title="Partager">
                             <i class="fas fa-share"></i>
                           </button>
                           <button class="btn-action" title="Dupliquer">
                             <i class="fas fa-copy"></i>
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="period-info">
-                          <h4>Novembre 2023</h4>
-                          <p>Résumé exécutif</p>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="report-type resume">Résumé</span>
-                      </td>
-                      <td>
-                        <span class="status-badge genere">Généré</span>
-                      </td>
-                      <td>
-                        <span class="date">18 Nov 2023</span>
-                      </td>
-                      <td>
-                        <span class="file-size">1.2 MB</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir rapport">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Télécharger PDF">
-                            <i class="fas fa-file-pdf"></i>
-                          </button>
-                          <button class="btn-action" title="Partager">
-                            <i class="fas fa-share"></i>
-                          </button>
-                          <button class="btn-action" title="Dupliquer">
-                            <i class="fas fa-copy"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="period-info">
-                          <h4>Octobre 2023</h4>
-                          <p>Rapport financier uniquement</p>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="report-type financier">Financier</span>
-                      </td>
-                      <td>
-                        <span class="status-badge genere">Généré</span>
-                      </td>
-                      <td>
-                        <span class="date">15 Oct 2023</span>
-                      </td>
-                      <td>
-                        <span class="file-size">1.8 MB</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button class="btn-action" title="Voir rapport">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="btn-action" title="Télécharger PDF">
-                            <i class="fas fa-file-pdf"></i>
-                          </button>
-                          <button class="btn-action" title="Partager">
-                            <i class="fas fa-share"></i>
-                          </button>
-                          <button class="btn-action" title="Dupliquer">
-                            <i class="fas fa-copy"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="period-info">
-                          <h4>Septembre 2023</h4>
-                          <p>Rapport opérationnel</p>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="report-type operational"
-                          >Opérationnel</span
-                        >
-                      </td>
-                      <td>
-                        <span class="status-badge en-cours">En cours</span>
-                      </td>
-                      <td>
-                        <span class="date">En cours...</span>
-                      </td>
-                      <td>
-                        <span class="file-size">-</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
+                          {% else %}
                           <button class="btn-action" title="Voir progression">
                             <i class="fas fa-clock"></i>
                           </button>
-                          <button class="btn-action" title="Annuler">
-                            <i class="fas fa-times"></i>
-                          </button>
+                          {% endif %}
+                          <form method="POST" action="{% url 'school_admin:rapports_mensuels' %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="supprimer_rapport">
+                            <input type="hidden" name="rapport_id" value="{{ rapport.id }}">
+                            <button type="submit" class="btn-action danger" title="Supprimer">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </form>
                         </div>
                       </td>
                     </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="6" style="text-align: center; padding: 2rem;">
+                        <div style="color: var(--text-secondary);">
+                          <i class="fas fa-file-alt" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                          <p>Aucun rapport généré</p>
+                          <small>Générez votre premier rapport mensuel ci-dessus</small>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>

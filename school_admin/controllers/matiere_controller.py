@@ -5,6 +5,8 @@ from django.db import transaction
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 import logging
+import random
+import string
 
 from ..model.matiere_model import Matiere
 from ..model.etablissement_model import Etablissement
@@ -17,6 +19,26 @@ class MatiereController:
     """
     Contrôleur pour la gestion des matières
     """
+    
+    @staticmethod
+    def get_niveau_from_type_etablissement(type_etablissement):
+        """
+        Détermine le niveau de matière à partir du type d'établissement
+        
+        Args:
+            type_etablissement: Le type d'établissement (primary, collège, lycée, collège_lycée, mixte)
+            
+        Returns:
+            str: Le niveau correspondant (primaire, college, lycee, tous)
+        """
+        mapping = {
+            'primary': 'primaire',
+            'collège': 'college',
+            'lycée': 'lycee',
+            'collège_lycée': 'college',  # Par défaut pour collège+lycée
+            'mixte': 'tous',  # Pour mixte, on peut utiliser "tous" pour permettre tous les niveaux
+        }
+        return mapping.get(type_etablissement, 'tous')
     
     @staticmethod
     @login_required
@@ -95,7 +117,6 @@ class MatiereController:
             'etablissement': etablissement,
             'stats': stats,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
-            'niveau_choices': Matiere.NIVEAU_CHOICES,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
@@ -123,20 +144,25 @@ class MatiereController:
         is_valid = True
         
         if request.method == 'POST':
+            # Récupération automatique du niveau depuis le type_etablissement
+            niveau_auto = MatiereController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
+            
             # Récupération des données
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'type_matiere': request.POST.get('type_matiere', ''),
-                'niveau': request.POST.get('niveau', ''),
                 'coefficient': request.POST.get('coefficient', '1.0'),
                 'groupes_classes': request.POST.getlist('groupes_classes', []),
             }
             
+            # Ajouter le niveau récupéré automatiquement
+            form_data['niveau'] = niveau_auto
+            
             # Validation
             is_valid = True
             
-            # Champs obligatoires
-            required_fields = ['nom', 'type_matiere', 'niveau']
+            # Champs obligatoires (niveau n'est plus requis car récupéré automatiquement)
+            required_fields = ['nom', 'type_matiere']
             for field in required_fields:
                 if not form_data[field]:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -166,15 +192,34 @@ class MatiereController:
                 field_errors['coefficient'] = "Le coefficient doit être un nombre valide."
                 is_valid = False
             
+            # Validation du niveau (vérifier qu'il est valide)
+            valid_niveaux = [choice[0] for choice in Matiere.NIVEAU_CHOICES]
+            if form_data['niveau'] not in valid_niveaux:
+                logger.error(f"Niveau invalide déterminé: '{form_data['niveau']}' depuis type_etablissement: '{etablissement.type_etablissement}'. Niveaux valides: {valid_niveaux}")
+                field_errors['__all__'] = f"Erreur de niveau: Le niveau '{form_data['niveau']}' déterminé depuis le type d'établissement '{etablissement.type_etablissement}' n'est pas valide. Niveaux valides: {', '.join(valid_niveaux)}"
+                is_valid = False
             
             # Si tout est valide, créer la matière
             if is_valid:
                 try:
                     with transaction.atomic():
+                        # Générer un code unique
+                        base_code = form_data['nom'][:3].upper()
+                        code = base_code
+                        
+                        # Vérifier si le code existe déjà et générer un nouveau si nécessaire
+                        counter = 1
+                        while Matiere.objects.filter(code=code).exists():
+                            code = f"{base_code}{counter}"
+                            counter += 1
+                            if counter > 100:  # Sécurité pour éviter une boucle infinie
+                                code = f"{base_code}{random.randint(1000, 9999)}"
+                                break
+                        
                         # Créer la matière
                         matiere = Matiere(
                             nom=form_data['nom'],
-                            code=form_data['nom'][:3].upper(),
+                            code=code,
                             type_matiere=form_data['type_matiere'],
                             niveau=form_data['niveau'],
                             coefficient=float(form_data['coefficient']),
@@ -203,8 +248,20 @@ class MatiereController:
                         return redirect('matiere:liste_matieres')
                         
                 except Exception as e:
-                    logger.error(f"Erreur lors de l'ajout de la matière: {str(e)}")
-                    field_errors['__all__'] = "Une erreur est survenue lors de l'ajout de la matière."
+                    error_message = str(e)
+                    error_type = type(e).__name__
+                    logger.error(f"Erreur lors de l'ajout de la matière [{error_type}]: {error_message}")
+                    
+                    # Détecter les types d'erreurs spécifiques
+                    if 'unique constraint' in error_message.lower() or 'duplicate key' in error_message.lower() or 'UNIQUE constraint' in error_message or 'IntegrityError' in error_type:
+                        if 'code' in error_message.lower():
+                            field_errors['nom'] = "Une matière avec ce code existe déjà. Le code est généré automatiquement à partir des 3 premières lettres du nom."
+                        elif 'nom' in error_message.lower() or 'unique_together' in error_message.lower():
+                            field_errors['nom'] = "Une matière avec ce nom existe déjà dans cet établissement."
+                        else:
+                            field_errors['__all__'] = "Une erreur est survenue lors de l'ajout de la matière. Veuillez réessayer."
+                    else:
+                        field_errors['__all__'] = "Une erreur est survenue lors de l'ajout de la matière. Veuillez réessayer."
                     is_valid = False
         
         # Récupérer les classes et créer les groupes
@@ -243,7 +300,6 @@ class MatiereController:
             'classes': classes,
             'groupes_classes': groupes_liste,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
-            'niveau_choices': Matiere.NIVEAU_CHOICES,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
@@ -334,20 +390,25 @@ class MatiereController:
         is_valid = True
         
         if request.method == 'POST':
+            # Récupération automatique du niveau depuis le type_etablissement
+            niveau_auto = MatiereController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
+            
             # Récupération des données (utiliser 'groupes_classes' pour les groupes)
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'type_matiere': request.POST.get('type_matiere', ''),
-                'niveau': request.POST.get('niveau', ''),
                 'coefficient': request.POST.get('coefficient', '1.0'),
                 'groupes_classes': request.POST.getlist('groupes_classes', []),
             }
             
+            # Ajouter le niveau récupéré automatiquement
+            form_data['niveau'] = niveau_auto
+            
             # Validation
             is_valid = True
             
-            # Champs obligatoires
-            required_fields = ['nom', 'type_matiere', 'niveau']
+            # Champs obligatoires (niveau n'est plus requis car récupéré automatiquement)
+            required_fields = ['nom', 'type_matiere']
             for field in required_fields:
                 if not form_data[field]:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -376,13 +437,39 @@ class MatiereController:
                 field_errors['coefficient'] = "Le coefficient doit être un nombre valide."
                 is_valid = False
             
+            # Validation du niveau (vérifier qu'il est valide)
+            valid_niveaux = [choice[0] for choice in Matiere.NIVEAU_CHOICES]
+            if form_data['niveau'] not in valid_niveaux:
+                logger.error(f"Niveau invalide déterminé: '{form_data['niveau']}' depuis type_etablissement: '{etablissement.type_etablissement}'. Niveaux valides: {valid_niveaux}")
+                field_errors['__all__'] = f"Erreur de niveau: Le niveau '{form_data['niveau']}' déterminé depuis le type d'établissement '{etablissement.type_etablissement}' n'est pas valide. Niveaux valides: {', '.join(valid_niveaux)}"
+                is_valid = False
+            
             # Si tout est valide, modifier la matière
             if is_valid:
                 try:
                     with transaction.atomic():
+                        # Vérifier si le nom a changé
+                        nom_ancien = matiere.nom
+                        nom_nouveau = form_data['nom']
+                        
+                        # Si le nom a changé, générer un nouveau code unique
+                        if nom_ancien != nom_nouveau:
+                            base_code = nom_nouveau[:3].upper()
+                            code = base_code
+                            counter = 1
+                            
+                            # Vérifier si le code existe déjà (en excluant la matière actuelle)
+                            while Matiere.objects.filter(code=code).exclude(id=matiere.id).exists():
+                                code = f"{base_code}{counter}"
+                                counter += 1
+                                if counter > 100:  # Sécurité pour éviter une boucle infinie
+                                    code = f"{base_code}{random.randint(1000, 9999)}"
+                                    break
+                            matiere.code = code
+                        # Si le nom n'a pas changé, on garde le code actuel (pas besoin de le modifier)
+                        
                         # Modifier la matière
                         matiere.nom = form_data['nom']
-                        matiere.code = form_data['nom'][:3].upper()
                         matiere.type_matiere = form_data['type_matiere']
                         matiere.niveau = form_data['niveau']
                         matiere.coefficient = float(form_data['coefficient'])
@@ -411,8 +498,20 @@ class MatiereController:
                         return redirect('matiere:detail_matiere', matiere_id=matiere.id)
                         
                 except Exception as e:
-                    logger.error(f"Erreur lors de la modification de la matière: {str(e)}")
-                    field_errors['__all__'] = "Une erreur est survenue lors de la modification de la matière."
+                    error_message = str(e)
+                    error_type = type(e).__name__
+                    logger.error(f"Erreur lors de la modification de la matière [{error_type}]: {error_message}")
+                    
+                    # Détecter les types d'erreurs spécifiques
+                    if 'unique constraint' in error_message.lower() or 'duplicate key' in error_message.lower() or 'UNIQUE constraint' in error_message or 'IntegrityError' in error_type:
+                        if 'code' in error_message.lower():
+                            field_errors['nom'] = "Une matière avec ce code existe déjà. Le code est généré automatiquement à partir des 3 premières lettres du nom."
+                        elif 'nom' in error_message.lower() or 'unique_together' in error_message.lower():
+                            field_errors['nom'] = "Une matière avec ce nom existe déjà dans cet établissement."
+                        else:
+                            field_errors['__all__'] = "Une erreur est survenue lors de la modification de la matière. Veuillez réessayer."
+                    else:
+                        field_errors['__all__'] = "Une erreur est survenue lors de la modification de la matière. Veuillez réessayer."
                     is_valid = False
         else:
             # Pré-remplir le formulaire avec les données actuelles
@@ -447,7 +546,6 @@ class MatiereController:
             'is_valid': is_valid,
             'etablissement': etablissement,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
-            'niveau_choices': Matiere.NIVEAU_CHOICES,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/detail_matiere.html', context)

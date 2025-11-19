@@ -150,6 +150,26 @@ class ClasseController:
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
     
     @staticmethod
+    def get_niveau_from_type_etablissement(type_etablissement):
+        """
+        Détermine le niveau de classe à partir du type d'établissement
+        
+        Args:
+            type_etablissement: Le type d'établissement (primary, collège, lycée, collège_lycée, mixte)
+            
+        Returns:
+            str: Le niveau correspondant (primaire, college, lycee)
+        """
+        mapping = {
+            'primary': 'primaire',
+            'collège': 'college',
+            'lycée': 'lycee',
+            'collège_lycée': 'college',  # Par défaut pour collège+lycée
+            'mixte': 'primaire',  # Par défaut pour mixte (peut être primaire, college ou lycee)
+        }
+        return mapping.get(type_etablissement, 'primaire')
+    
+    @staticmethod
     @login_required
     def ajouter_classe(request):
         """
@@ -169,19 +189,24 @@ class ClasseController:
         field_errors = {}
         
         if request.method == 'POST':
+            # Récupération automatique du niveau depuis le type_etablissement
+            niveau_auto = ClasseController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
+            
             # Récupération des données
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
-                'niveau': request.POST.get('niveau', ''),
                 'capacite_max': request.POST.get('capacite_max', ''),
                 'description': request.POST.get('description', '').strip(),
             }
             
+            # Ajouter le niveau récupéré automatiquement
+            form_data['niveau'] = niveau_auto
+            
             # Validation
             is_valid = True
             
-            # Champs obligatoires
-            required_fields = ['nom', 'niveau', 'capacite_max']
+            # Champs obligatoires (niveau n'est plus requis car récupéré automatiquement)
+            required_fields = ['nom', 'capacite_max']
             for field in required_fields:
                 if not form_data[field]:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
@@ -200,10 +225,10 @@ class ClasseController:
                 field_errors['capacite_max'] = "La capacité doit être un nombre valide."
                 is_valid = False
             
-            # Validation du niveau
+            # Validation du niveau (vérifier qu'il est valide)
             valid_niveaux = [choice[0] for choice in Classe.NIVEAU_CHOICES]
             if form_data['niveau'] not in valid_niveaux:
-                field_errors['niveau'] = "Le niveau sélectionné n'est pas valide."
+                field_errors['__all__'] = f"Le niveau '{form_data['niveau']}' déterminé depuis le type d'établissement n'est pas valide."
                 is_valid = False
             
             # Vérification de l'unicité du nom dans l'établissement
@@ -250,7 +275,6 @@ class ClasseController:
             'field_errors': field_errors,
             'etablissement': etablissement,
             'personnel': personnel,
-            'niveau_choices': Classe.NIVEAU_CHOICES,
         }
         
         # Si c'est une requête POST avec des erreurs, afficher la liste avec le modal ouvert

@@ -93,7 +93,7 @@
                 <form method="post" action="{% url 'matiere:ajouter_matiere' %}" class="matiere-form" id="ajouterMatiereForm">
                     {% csrf_token %}
                     
-                    <!-- Messages d'erreur généraux -->
+                    <!-- Messages d'erreur -->
                     {% if field_errors %}
                         <div class="alert alert-error">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -117,46 +117,24 @@
                         {% endif %}
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="type_matiere">
-                                <i class="fas fa-tag"></i>
-                                Type *
-                            </label>
-                            <select class="form-control {% if field_errors.type_matiere %}is-invalid{% endif %}" 
-                                    id="type_matiere" 
-                                    name="type_matiere">
-                                <option value="">Sélectionnez un type</option>
-                                {% for value, label in type_choices %}
-                                    <option value="{{ value }}" {% if form_data.type_matiere == value %}selected{% endif %}>
-                                        {{ label }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            {% if field_errors.type_matiere %}
-                                <div class="invalid-feedback">{{ field_errors.type_matiere }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="niveau">
-                                <i class="fas fa-graduation-cap"></i>
-                                Niveau *
-                            </label>
-                            <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" 
-                                    id="niveau" 
-                                    name="niveau">
-                                <option value="">Sélectionnez un niveau</option>
-                                {% for value, label in niveau_choices %}
-                                    <option value="{{ value }}" {% if form_data.niveau == value %}selected{% endif %}>
-                                        {{ label }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            {% if field_errors.niveau %}
-                                <div class="invalid-feedback">{{ field_errors.niveau }}</div>
-                            {% endif %}
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="type_matiere">
+                            <i class="fas fa-tag"></i>
+                            Type *
+                        </label>
+                        <select class="form-control {% if field_errors.type_matiere %}is-invalid{% endif %}" 
+                                id="type_matiere" 
+                                name="type_matiere">
+                            <option value="">Sélectionnez un type</option>
+                            {% for value, label in type_choices %}
+                                <option value="{{ value }}" {% if form_data.type_matiere == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if field_errors.type_matiere %}
+                            <div class="invalid-feedback">{{ field_errors.type_matiere }}</div>
+                        {% endif %}
                     </div>
 
                     <div class="form-group">

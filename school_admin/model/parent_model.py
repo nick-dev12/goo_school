@@ -93,6 +93,10 @@ class Parent(AbstractUser):
         verbose_name="Date de modification"
     )
     
+    # Réinitialisation de mot de passe
+    password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
+    password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
+    
     # Configuration de l'authentification
     USERNAME_FIELD = 'matricule_parental'
     REQUIRED_FIELDS = ['nom', 'prenom', 'email']

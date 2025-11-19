@@ -5431,6 +5431,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -10531,6 +10547,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0153_parent_password_reset_code_and_more",
+        "description": "school_admin.migrations.0153_parent_password_reset_code_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0152_eleve_password_reset_code_and_more'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='parent',\n            name='password_reset_code',\n            field=models.CharField(blank=True, max_length=6, null=True, verbose_name='Code de réinitialisation'),\n        ),",
+        "detail": "school_admin.migrations.0153_parent_password_reset_code_and_more",
+        "documentation": {}
+    },
+    {
         "label": "AffectationProfesseur",
         "kind": 6,
         "importPath": "school_admin.model.affectation_model",
@@ -14135,7 +14160,7 @@
         "kind": 2,
         "importPath": "school_admin.views",
         "description": "school_admin.views",
-        "peekOfCode": "def password_reset_request(request):\n    \"\"\"\n    Vue pour demander la réinitialisation du mot de passe\n    Pour les membres de l'équipe (CompteUser), les établissements (Etablissement), \n    les professeurs (Professeur) et les élèves (Eleve)\n    Accepte soit un username (CompteUser), un email (Etablissement), un matricule (Professeur ou Eleve)\n    \"\"\"\n    from .model.compte_user import CompteUser\n    from .model.etablissement_model import Etablissement\n    from .model.professeur_model import Professeur",
+        "peekOfCode": "def password_reset_request(request):\n    \"\"\"\n    Vue pour demander la réinitialisation du mot de passe\n    Pour les membres de l'équipe (CompteUser), les établissements (Etablissement), \n    les professeurs (Professeur), les élèves (Eleve) et les parents (Parent)\n    Accepte soit un username (CompteUser), un email (Etablissement), un matricule (Professeur, Eleve ou Parent)\n    \"\"\"\n    from .model.compte_user import CompteUser\n    from .model.etablissement_model import Etablissement\n    from .model.professeur_model import Professeur",
         "detail": "school_admin.views",
         "documentation": {}
     },
@@ -14181,6 +14206,24 @@
         "importPath": "school_admin.views",
         "description": "school_admin.views",
         "peekOfCode": "def password_reset_eleve_reset(request, matricule):\n    \"\"\"\n    Vue pour réinitialiser le mot de passe de l'élève après vérification des informations\n    \"\"\"\n    from .model.eleve_model import Eleve\n    from django.contrib import messages\n    # Chercher l'élève par username (le matricule est dans username)\n    eleve = None\n    try:\n        # Chercher d'abord par username (car le matricule est dans username)",
+        "detail": "school_admin.views",
+        "documentation": {}
+    },
+    {
+        "label": "password_reset_parent_verify",
+        "kind": 2,
+        "importPath": "school_admin.views",
+        "description": "school_admin.views",
+        "peekOfCode": "def password_reset_parent_verify(request, matricule):\n    \"\"\"\n    Vue pour vérifier les informations du parent avant la réinitialisation du mot de passe\n    Vérifie : nom, prénom, téléphone, nom et prénom d'un élève lié\n    Tout est insensible à la casse\n    \"\"\"\n    from .model.parent_model import Parent\n    from django.contrib import messages\n    # Chercher le parent par username (le matricule est dans username)\n    try:",
+        "detail": "school_admin.views",
+        "documentation": {}
+    },
+    {
+        "label": "password_reset_parent_reset",
+        "kind": 2,
+        "importPath": "school_admin.views",
+        "description": "school_admin.views",
+        "peekOfCode": "def password_reset_parent_reset(request, matricule):\n    \"\"\"\n    Vue pour réinitialiser le mot de passe du parent après vérification des informations\n    \"\"\"\n    from .model.parent_model import Parent\n    from django.contrib import messages\n    # Chercher le parent par username (le matricule est dans username)\n    try:\n        parent = Parent.objects.get(username__iexact=matricule, actif=True)\n        logger.info(f\"Parent trouvé par username dans password_reset_parent_reset: {matricule}\")",
         "detail": "school_admin.views",
         "documentation": {}
     },

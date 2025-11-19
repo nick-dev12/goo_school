@@ -66,6 +66,8 @@ urlpatterns =[
     path('password-reset/professeur/reset/<str:matricule>/', views.password_reset_professeur_reset, name='password_reset_professeur_reset'),
     path('password-reset/eleve/verify/<str:matricule>/', views.password_reset_eleve_verify, name='password_reset_eleve_verify'),
     path('password-reset/eleve/reset/<str:matricule>/', views.password_reset_eleve_reset, name='password_reset_eleve_reset'),
+    path('password-reset/parent/verify/<str:matricule>/', views.password_reset_parent_verify, name='password_reset_parent_verify'),
+    path('password-reset/parent/reset/<str:matricule>/', views.password_reset_parent_reset, name='password_reset_parent_reset'),
     path(
         'connexion/professeurs/otp/',
         views.professeur_connexion_otp_request,

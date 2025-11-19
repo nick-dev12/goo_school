@@ -111,8 +111,8 @@ def password_reset_request(request):
     """
     Vue pour demander la réinitialisation du mot de passe
     Pour les membres de l'équipe (CompteUser), les établissements (Etablissement), 
-    les professeurs (Professeur) et les élèves (Eleve)
-    Accepte soit un username (CompteUser), un email (Etablissement), un matricule (Professeur ou Eleve)
+    les professeurs (Professeur), les élèves (Eleve) et les parents (Parent)
+    Accepte soit un username (CompteUser), un email (Etablissement), un matricule (Professeur, Eleve ou Parent)
     """
     from .model.compte_user import CompteUser
     from .model.etablissement_model import Etablissement
@@ -133,7 +133,7 @@ def password_reset_request(request):
                 'field_errors': {'identifier': 'Ce champ est obligatoire'}
             })
         
-        # PRIORITÉ 1 : Vérifier d'abord les professeurs et élèves (pas d'email requis)
+        # PRIORITÉ 1 : Vérifier d'abord les professeurs, élèves et parents (pas d'email requis)
         # Essayer d'abord de trouver un Professeur par numero_employe (matricule)
         try:
             professeur = Professeur.objects.get(numero_employe__iexact=identifier, actif=True)
@@ -168,6 +168,18 @@ def password_reset_request(request):
             matricule_to_use = eleve.username
             logger.info(f"Redirection vers password_reset_eleve_verify avec matricule: {matricule_to_use}")
             return redirect('school_admin:password_reset_eleve_verify', matricule=matricule_to_use)
+        
+        # Essayer de trouver un Parent par username (le matricule est dans username)
+        from .model.parent_model import Parent
+        try:
+            parent = Parent.objects.get(username__iexact=identifier, actif=True)
+            # Si c'est un parent, rediriger directement vers la page de vérification des informations
+            # AUCUN EMAIL N'EST ENVOYÉ pour les parents
+            logger.info(f"Parent trouvé par username: {identifier}")
+            matricule_to_use = parent.username
+            return redirect('school_admin:password_reset_parent_verify', matricule=matricule_to_use)
+        except Parent.DoesNotExist:
+            pass
         
         # PRIORITÉ 2 : Vérifier les CompteUser et Etablissement (email requis)
         # Ces utilisateurs nécessitent un email pour recevoir le code de réinitialisation
@@ -698,6 +710,174 @@ def password_reset_eleve_reset(request, matricule):
         return redirect('school_admin:connexion_compte_user')
     
     return render(request, 'school_admin/password_reset_eleve_reset.html', {
+        'matricule': matricule,
+        'form_data': {},
+    })
+
+
+def password_reset_parent_verify(request, matricule):
+    """
+    Vue pour vérifier les informations du parent avant la réinitialisation du mot de passe
+    Vérifie : nom, prénom, téléphone, nom et prénom d'un élève lié
+    Tout est insensible à la casse
+    """
+    from .model.parent_model import Parent
+    from django.contrib import messages
+    
+    # Chercher le parent par username (le matricule est dans username)
+    try:
+        parent = Parent.objects.get(username__iexact=matricule, actif=True)
+        logger.info(f"Parent trouvé par username dans password_reset_parent_verify: {matricule}")
+    except Parent.DoesNotExist:
+        messages.error(request, "Matricule introuvable ou compte inactif.")
+        return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        nom = request.POST.get('nom', '').strip()
+        prenom = request.POST.get('prenom', '').strip()
+        telephone = request.POST.get('telephone', '').strip()
+        eleve_nom = request.POST.get('eleve_nom', '').strip()
+        eleve_prenom = request.POST.get('eleve_prenom', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le nom (insensible à la casse)
+        if not nom:
+            validation_errors.append("Le nom est obligatoire.")
+        elif nom.lower() != parent.nom.lower():
+            validation_errors.append("Le nom ne correspond pas.")
+        
+        # Vérifier le prénom (insensible à la casse)
+        if not prenom:
+            validation_errors.append("Le prénom est obligatoire.")
+        elif prenom.lower() != parent.prenom.lower():
+            validation_errors.append("Le prénom ne correspond pas.")
+        
+        # Vérifier le téléphone (normaliser et comparer - insensible à la casse et aux formats)
+        if not telephone:
+            validation_errors.append("Le numéro de téléphone est obligatoire.")
+        else:
+            # Normaliser les deux numéros (enlever espaces, tirets, +, etc.)
+            def normalize_phone(phone_str):
+                if not phone_str:
+                    return ""
+                # Enlever tous les caractères non numériques sauf le + au début
+                normalized = phone_str.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').replace('.', '')
+                # Si commence par +, le garder, sinon enlever
+                if normalized.startswith('+'):
+                    return normalized
+                return normalized.lstrip('+')
+            
+            telephone_normalized = normalize_phone(telephone)
+            parent_telephone_normalized = normalize_phone(parent.telephone)
+            
+            # Comparer les versions normalisées
+            if telephone_normalized != parent_telephone_normalized:
+                # Essayer aussi sans le préfixe + et sans les zéros en début
+                tel_clean = telephone_normalized.lstrip('+').lstrip('0')
+                parent_clean = parent_telephone_normalized.lstrip('+').lstrip('0')
+                if tel_clean != parent_clean:
+                    validation_errors.append("Le numéro de téléphone ne correspond pas.")
+        
+        # Vérifier le nom et prénom d'un élève lié (insensible à la casse)
+        if not eleve_nom:
+            validation_errors.append("Le nom de l'élève est obligatoire.")
+        if not eleve_prenom:
+            validation_errors.append("Le prénom de l'élève est obligatoire.")
+        
+        if eleve_nom and eleve_prenom:
+            # Récupérer les élèves liés au parent
+            enfants = parent.enfants
+            if not enfants.exists():
+                validation_errors.append("Aucun élève n'est lié à ce compte parent.")
+            else:
+                # Vérifier si un élève correspond
+                eleve_trouve = False
+                for enfant in enfants:
+                    if (enfant.nom.lower() == eleve_nom.lower() and 
+                        enfant.prenom.lower() == eleve_prenom.lower()):
+                        eleve_trouve = True
+                        break
+                
+                if not eleve_trouve:
+                    validation_errors.append("Aucun élève avec ce nom et prénom n'est lié à ce compte parent.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            return render(request, 'school_admin/password_reset_parent_verify.html', {
+                'matricule': matricule,
+                'form_data': {
+                    'nom': nom,
+                    'prenom': prenom,
+                    'telephone': telephone,
+                    'eleve_nom': eleve_nom,
+                    'eleve_prenom': eleve_prenom,
+                },
+            })
+        
+        # Toutes les validations sont passées, rediriger vers la page de réinitialisation
+        return redirect('school_admin:password_reset_parent_reset', matricule=matricule)
+    
+    return render(request, 'school_admin/password_reset_parent_verify.html', {
+        'matricule': matricule,
+        'form_data': {},
+    })
+
+
+def password_reset_parent_reset(request, matricule):
+    """
+    Vue pour réinitialiser le mot de passe du parent après vérification des informations
+    """
+    from .model.parent_model import Parent
+    from django.contrib import messages
+    
+    # Chercher le parent par username (le matricule est dans username)
+    try:
+        parent = Parent.objects.get(username__iexact=matricule, actif=True)
+        logger.info(f"Parent trouvé par username dans password_reset_parent_reset: {matricule}")
+    except Parent.DoesNotExist:
+        messages.error(request, "Matricule introuvable ou compte inactif.")
+        return redirect('school_admin:password_reset_request')
+    
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        validation_errors = []
+        
+        # Vérifier le nouveau mot de passe
+        if not new_password:
+            validation_errors.append("Le nouveau mot de passe est obligatoire.")
+        elif len(new_password) < 8:
+            validation_errors.append("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+        
+        if not confirm_password:
+            validation_errors.append("La confirmation du mot de passe est obligatoire.")
+        elif new_password and confirm_password and new_password != confirm_password:
+            validation_errors.append("Les mots de passe ne correspondent pas.")
+        
+        if validation_errors:
+            for error in validation_errors:
+                messages.error(request, error)
+            return render(request, 'school_admin/password_reset_parent_reset.html', {
+                'matricule': matricule,
+                'form_data': {
+                    'new_password': new_password,
+                    'confirm_password': confirm_password,
+                },
+            })
+        
+        # Toutes les validations sont passées, réinitialiser le mot de passe
+        parent.set_password(new_password)
+        parent.mot_de_passe_modifie = True  # Marquer que le mot de passe a été modifié
+        parent.save()
+        
+        messages.success(request, "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.")
+        logger.info(f"Mot de passe réinitialisé - Parent: {parent.username}")
+        return redirect('school_admin:connexion_compte_user')
+    
+    return render(request, 'school_admin/password_reset_parent_reset.html', {
         'matricule': matricule,
         'form_data': {},
     })

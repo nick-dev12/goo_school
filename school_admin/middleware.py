@@ -1,6 +1,34 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.conf import settings
+from school_admin.authentication_backends import _user_type_context
+
+class UserTypeMiddleware:
+    """
+    Middleware qui stocke le type d'utilisateur dans le thread-local
+    pour que get_user() puisse l'utiliser.
+    Ce middleware doit s'exécuter AVANT AuthenticationMiddleware.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Récupérer le type d'utilisateur depuis la session si disponible
+        user_type = request.session.get('_auth_user_type', None)
+        if user_type:
+            _user_type_context.user_type = user_type
+        else:
+            # Nettoyer le thread-local si pas de type
+            if hasattr(_user_type_context, 'user_type'):
+                delattr(_user_type_context, 'user_type')
+        
+        response = self.get_response(request)
+        
+        # Nettoyer le thread-local après la requête
+        if hasattr(_user_type_context, 'user_type'):
+            delattr(_user_type_context, 'user_type')
+        
+        return response
 
 class AuthenticationMiddleware:
     """

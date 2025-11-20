@@ -2,12 +2,16 @@
 
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.hashers import check_password
+import threading
 from .model.compte_user import CompteUser
 from .model.etablissement_model import Etablissement
 from .model.personnel_administratif_model import PersonnelAdministratif
 from .model.eleve_model import Eleve
 from .model.professeur_model import Professeur
 from .model.parent_model import Parent
+
+# Thread-local storage pour passer le type d'utilisateur à get_user()
+_user_type_context = threading.local()
 
 
 class MultiUserBackend(BaseBackend):
@@ -110,24 +114,75 @@ class MultiUserBackend(BaseBackend):
     
     def get_user(self, user_id):
         """
-        Récupère un utilisateur par son ID en vérifiant tous les modèles.
-        STRATÉGIE: Utilise le type d'utilisateur stocké dans la session pour chercher
-        directement dans la bonne table, évitant ainsi les conflits d'ID entre tables.
+        Récupère un utilisateur par son ID en utilisant le type stocké dans la session.
+        STRATÉGIE: Utilise le type d'utilisateur stocké dans le thread-local (passé par le middleware)
+        pour chercher directement dans la bonne table, évitant ainsi les conflits d'ID entre tables.
+        Si le type n'est pas disponible, cherche dans toutes les tables dans un ordre optimisé.
         """
         import logging
-        from django.contrib.sessions.models import Session
         
         logger = logging.getLogger(__name__)
         
         print(f"\n[GET_USER] Recherche utilisateur avec ID: {user_id}")
         logger.debug(f"get_user appelé avec user_id: {user_id}")
         
-        # IMPORTANT: L'ordre de recherche est crucial car les IDs peuvent se chevaucher entre tables.
-        # On cherche d'abord les types les plus fréquents dans ce système.
-        # Ordre optimisé: Professeur > Eleve > Parent > Etablissement > CompteUser > PersonnelAdministratif
+        # Récupérer le type d'utilisateur depuis le thread-local (passé par le middleware)
+        user_type = getattr(_user_type_context, 'user_type', None)
+        
+        if user_type:
+            logger.debug(f"Type d'utilisateur trouvé dans le contexte: {user_type}")
+            # Chercher directement dans la bonne table selon le type
+            user = self._get_user_by_type(user_id, user_type, logger)
+            if user:
+                return user
+            else:
+                logger.warning(f"Utilisateur de type {user_type} avec ID {user_id} non trouvé, recherche dans toutes les tables")
+        
+        # Si le type n'est pas disponible ou si l'utilisateur n'a pas été trouvé,
+        # chercher dans toutes les tables dans un ordre optimisé
+        # IMPORTANT: Chaque section est indépendante et cherche dans SA PROPRE TABLE uniquement
         
         # ==========================================
-        # SECTION 1: PROFESSEURS (Priorité 1 - le plus fréquent)
+        # SECTION 1: ÉTABLISSEMENTS (Directeurs)
+        # ==========================================
+        try:
+            user = Etablissement.objects.get(pk=user_id)
+            print(f"[GET_USER] [OK] ETABLISSEMENT trouve: {user.nom} (ID: {user.id})")
+            logger.info(f"Établissement trouvé: {getattr(user, 'email', 'N/A')}")
+            return user
+        except Etablissement.DoesNotExist:
+            logger.debug(f"Pas d'établissement avec ID {user_id}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche dans Etablissement: {e}")
+        
+        # ==========================================
+        # SECTION 2: COMPTE UTILISATEURS (Admin, Commercial, etc.)
+        # ==========================================
+        try:
+            user = CompteUser.objects.get(pk=user_id)
+            print(f"[GET_USER] [OK] COMPTE_USER trouve: {user.email} (ID: {user.id}, Fonction: {user.fonction})")
+            logger.info(f"CompteUser trouvé: {user.email}")
+            return user
+        except CompteUser.DoesNotExist:
+            logger.debug(f"Pas de CompteUser avec ID {user_id}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche dans CompteUser: {e}")
+        
+        # ==========================================
+        # SECTION 3: PERSONNEL ADMINISTRATIF
+        # ==========================================
+        try:
+            user = PersonnelAdministratif.objects.get(pk=user_id)
+            print(f"[GET_USER] [OK] PERSONNEL trouve: {user.nom} {user.prenom} (ID: {user.id}, Fonction: {user.fonction})")
+            logger.info(f"PersonnelAdministratif trouvé: {getattr(user, 'email', 'N/A')}")
+            return user
+        except PersonnelAdministratif.DoesNotExist:
+            logger.debug(f"Pas de PersonnelAdministratif avec ID {user_id}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche dans PersonnelAdministratif: {e}")
+        
+        # ==========================================
+        # SECTION 4: PROFESSEURS
         # ==========================================
         try:
             user = Professeur.objects.get(pk=user_id)
@@ -141,7 +196,7 @@ class MultiUserBackend(BaseBackend):
             logger.error(f"Erreur lors de la recherche dans Professeur: {e}")
         
         # ==========================================
-        # SECTION 2: ÉLÈVES (Priorité 2)
+        # SECTION 5: ÉLÈVES
         # ==========================================
         try:
             user = Eleve.objects.get(pk=user_id)
@@ -154,7 +209,7 @@ class MultiUserBackend(BaseBackend):
             logger.error(f"Erreur lors de la recherche dans Eleve: {e}")
         
         # ==========================================
-        # SECTION 3: PARENTS (Priorité 3)
+        # SECTION 6: PARENTS
         # ==========================================
         try:
             user = Parent.objects.get(pk=user_id)
@@ -167,48 +222,51 @@ class MultiUserBackend(BaseBackend):
             logger.error(f"Erreur lors de la recherche dans Parent: {e}")
         
         # ==========================================
-        # SECTION 4: ÉTABLISSEMENTS (Directeurs)
-        # ==========================================
-        try:
-            user = Etablissement.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] ETABLISSEMENT trouve: {user.nom} (ID: {user.id})")
-            logger.info(f"Établissement trouvé: {getattr(user, 'email', 'N/A')}")
-            return user
-        except Etablissement.DoesNotExist:
-            logger.debug(f"Pas d'établissement avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Etablissement: {e}")
-        
-        # ==========================================
-        # SECTION 5: COMPTE UTILISATEURS (Admin, Commercial, etc.)
-        # ==========================================
-        try:
-            user = CompteUser.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] COMPTE_USER trouve: {user.email} (ID: {user.id}, Fonction: {user.fonction})")
-            logger.info(f"CompteUser trouvé: {user.email}")
-            return user
-        except CompteUser.DoesNotExist:
-            logger.debug(f"Pas de CompteUser avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans CompteUser: {e}")
-        
-        # ==========================================
-        # SECTION 6: PERSONNEL ADMINISTRATIF
-        # ==========================================
-        try:
-            user = PersonnelAdministratif.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] PERSONNEL trouve: {user.nom} {user.prenom} (ID: {user.id}, Fonction: {user.fonction})")
-            logger.info(f"PersonnelAdministratif trouvé: {getattr(user, 'email', 'N/A')}")
-            return user
-        except PersonnelAdministratif.DoesNotExist:
-            logger.debug(f"Pas de PersonnelAdministratif avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans PersonnelAdministratif: {e}")
-        
-        
-        # ==========================================
         # AUCUN UTILISATEUR TROUVÉ
         # ==========================================
         logger.warning(f"[ERREUR] Aucun utilisateur trouve avec l'ID: {user_id} dans AUCUNE table")
         print(f"[GET_USER] [ERREUR] Aucun utilisateur avec ID {user_id} dans aucune des 6 tables")
+        return None
+    
+    def _get_user_by_type(self, user_id, user_type, logger):
+        """
+        Récupère un utilisateur par son ID et son type.
+        Chaque section est indépendante et cherche dans SA PROPRE TABLE uniquement.
+        """
+        if user_type == 'etablissement':
+            try:
+                return Etablissement.objects.get(pk=user_id)
+            except Etablissement.DoesNotExist:
+                return None
+        
+        elif user_type == 'compte_user':
+            try:
+                return CompteUser.objects.get(pk=user_id)
+            except CompteUser.DoesNotExist:
+                return None
+        
+        elif user_type == 'personnel':
+            try:
+                return PersonnelAdministratif.objects.get(pk=user_id)
+            except PersonnelAdministratif.DoesNotExist:
+                return None
+        
+        elif user_type == 'professeur':
+            try:
+                return Professeur.objects.get(pk=user_id)
+            except Professeur.DoesNotExist:
+                return None
+        
+        elif user_type == 'eleve':
+            try:
+                return Eleve.objects.get(pk=user_id)
+            except Eleve.DoesNotExist:
+                return None
+        
+        elif user_type == 'parent':
+            try:
+                return Parent.objects.get(pk=user_id)
+            except Parent.DoesNotExist:
+                return None
+        
         return None

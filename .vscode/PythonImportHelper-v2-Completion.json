@@ -8080,6 +8080,14 @@
         "documentation": {}
     },
     {
+        "label": "_user_type_context",
+        "importPath": "school_admin.authentication_backends",
+        "description": "school_admin.authentication_backends",
+        "isExtraImport": true,
+        "detail": "school_admin.authentication_backends",
+        "documentation": {}
+    },
+    {
         "label": "cache_control",
         "importPath": "django.views.decorators.cache",
         "description": "django.views.decorators.cache",
@@ -8301,7 +8309,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "MIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n    'corsheaders.middleware.CorsMiddleware',  # CORS middleware (doit être avant CommonMiddleware)\n    'django.middleware.common.CommonMiddleware',\n    'django.middleware.csrf.CsrfViewMiddleware',\n    'django.contrib.auth.middleware.AuthenticationMiddleware',\n    'django.contrib.messages.middleware.MessageMiddleware',\n    'django.middleware.clickjacking.XFrameOptionsMiddleware',\n    'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé",
+        "peekOfCode": "MIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n    'corsheaders.middleware.CorsMiddleware',  # CORS middleware (doit être avant CommonMiddleware)\n    'django.middleware.common.CommonMiddleware',\n    'django.middleware.csrf.CsrfViewMiddleware',\n    'school_admin.middleware.UserTypeMiddleware',  # Doit être AVANT AuthenticationMiddleware\n    'django.contrib.auth.middleware.AuthenticationMiddleware',\n    'django.contrib.messages.middleware.MessageMiddleware',\n    'django.middleware.clickjacking.XFrameOptionsMiddleware',",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -13940,6 +13948,15 @@
         "documentation": {}
     },
     {
+        "label": "_user_type_context",
+        "kind": 5,
+        "importPath": "school_admin.authentication_backends",
+        "description": "school_admin.authentication_backends",
+        "peekOfCode": "_user_type_context = threading.local()\nclass MultiUserBackend(BaseBackend):\n    \"\"\"\n    Backend d'authentification personnalisé qui gère plusieurs types d'utilisateurs\n    de manière indépendante pour éviter les conflits d'ID.\n    STRATÉGIE ANTI-CONFLIT:\n    - Chaque type d'utilisateur est stocké dans sa propre table\n    - Un identifiant unique est créé : \"TYPE:ID\" pour éviter les collisions\n    - La méthode get_user() décode cet identifiant pour retrouver le bon utilisateur\n    \"\"\"",
+        "detail": "school_admin.authentication_backends",
+        "documentation": {}
+    },
+    {
         "label": "notifications_enseignant",
         "kind": 2,
         "importPath": "school_admin.context_processors",
@@ -14081,6 +14098,15 @@
         "description": "school_admin.generate_icons",
         "peekOfCode": "SIZES = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512]\ndef generate_icons():\n    \"\"\"Génère toutes les icônes PWA à partir du logo\"\"\"\n    # Vérifier que le logo existe\n    if not LOGO_PATH.exists():\n        print(f\"[ERREUR] Logo introuvable : {LOGO_PATH}\")\n        print(\"   Assurez-vous que le fichier logo.jpeg existe dans le bon repertoire.\")\n        return False\n    # Créer le dossier de sortie si nécessaire\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)",
         "detail": "school_admin.generate_icons",
+        "documentation": {}
+    },
+    {
+        "label": "UserTypeMiddleware",
+        "kind": 6,
+        "importPath": "school_admin.middleware",
+        "description": "school_admin.middleware",
+        "peekOfCode": "class UserTypeMiddleware:\n    \"\"\"\n    Middleware qui stocke le type d'utilisateur dans le thread-local\n    pour que get_user() puisse l'utiliser.\n    Ce middleware doit s'exécuter AVANT AuthenticationMiddleware.\n    \"\"\"\n    def __init__(self, get_response):\n        self.get_response = get_response\n    def __call__(self, request):\n        # Récupérer le type d'utilisateur depuis la session si disponible",
+        "detail": "school_admin.middleware",
         "documentation": {}
     },
     {

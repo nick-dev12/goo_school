@@ -105,7 +105,8 @@
                     type="text"
                     id="mail"
                     name="email"
-                    value="{% if form_data.username %}{{ form_data.username }}{% elif form_data.email %}{{ form_data.email }}{% endif %}"
+                    {% if form_data.username %}value="{{ form_data.username }}"{% elif form_data.email %}value="{{ form_data.email }}"{% endif %}
+                    placeholder="Email ou identifiant"
                     required
                   />
                 </div>

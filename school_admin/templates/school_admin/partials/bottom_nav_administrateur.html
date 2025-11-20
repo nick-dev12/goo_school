@@ -1,0 +1,90 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.2"
+/>
+<link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}">
+<nav
+  class="enseignant-bottom-nav bottom-nav-administrateur"
+  aria-label="Navigation principale de l'espace administrateur"
+>
+  <ul class="bottom-nav-list">
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:dashboard' %}">
+        <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
+        <span class="label">Accueil</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'etablissements' or request.resolver_match.url_name == 'ajout_etablissement' or request.resolver_match.url_name == 'detaille_etablissement' %}active{% endif %}">
+      <a href="{% url 'school_admin:etablissements' %}">
+        <span class="icon-wrapper icon-etablissement"
+          ><i class="fas fa-chalkboard"></i
+        ></span>
+        <span class="label">Établissements</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'suivi_revenus' %}active{% endif %}">
+      <a href="{% url 'school_admin:suivi_revenus' %}">
+        <span class="icon-wrapper icon-finances"
+          ><i class="fas fa-chart-line"></i
+        ></span>
+        <span class="label">Revenus</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'suivi_activites_commerciales' or request.resolver_match.url_name == 'liste_prospects' or request.resolver_match.url_name == 'detail_prospect' or request.resolver_match.url_name == 'analyse_performances' %}active{% endif %}">
+      <a href="{% url 'school_admin:suivi_activites_commerciales' %}">
+        <span class="icon-wrapper icon-commercial"
+          ><i class="fas fa-briefcase"></i
+        ></span>
+        <span class="label">Commercial</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'management_equipes' or request.resolver_match.url_name == 'add_team_member' %}active{% endif %}">
+      <a href="{% url 'school_admin:management_equipes' %}">
+        <span class="icon-wrapper icon-equipe"
+          ><i class="fas fa-users"></i
+        ></span>
+        <span class="label">Équipes</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'annonces' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:annonces' %}">
+        <span class="icon-wrapper icon-annonces"
+          ><i class="fas fa-bullhorn"></i
+        ></span>
+        <span class="label">Annonces</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'profil_admin' or request.resolver_match.url_name == 'parametres_administrateur' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:profil_admin' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-cog"></i
+        ></span>
+        <span class="label">Profil</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item menu-toggle-item">
+      <button
+        type="button"
+        class="menu-toggle-button"
+        id="administrateurNavToggle"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="navigationSection"
+      >
+        <span class="icon-wrapper icon-menu"
+          ><i class="fas fa-ellipsis-h"></i
+        ></span>
+        <span class="label">Menu</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+

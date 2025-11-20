@@ -1,0 +1,244 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse des performances commerciales - Aria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/administrateur/activites_commerciales.css' %}?v=1.0.1">
+</head>
+<body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <div class="content-container">
+        <!-- Fil d'Ariane -->
+        <div class="breadcrumb">
+            <a href="{% url 'school_admin:dashboard' %}">Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'school_admin:suivi_activites_commerciales' %}">Activités commerciales</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Analyse des performances</span>
+        </div>
+
+        <!-- En-tête de page -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line"></i>
+                    Analyse des performances commerciales
+                </h1>
+                <p class="page-subtitle">Classement et statistiques détaillées des commerciaux</p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'school_admin:suivi_activites_commerciales' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistiques globales -->
+        <div class="stats-grid">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ performances|length }}</div>
+                    <div class="stat-label">Commerciaux actifs</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_prospects_globaux }}</div>
+                    <div class="stat-label">Total prospects</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_contrats_signes }}</div>
+                    <div class="stat-label">Contrats signés</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ taux_conversion_global }}%</div>
+                    <div class="stat-label">Taux de conversion global</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau de classement -->
+        <div class="table-container">
+            <div class="table-header">
+                <h3>
+                    <i class="fas fa-trophy"></i>
+                    Classement des commerciaux
+                </h3>
+                <p>Classement basé sur un score pondéré multi-critères</p>
+                <p class="scroll-hint">
+                    <i class="fas fa-arrows-alt-h"></i>
+                    Faites défiler horizontalement pour voir toutes les colonnes
+                </p>
+            </div>
+            <table class="data-table performance-table">
+                <thead>
+                    <tr>
+                        <th class="rank-col">Rang</th>
+                        <th>Commercial</th>
+                        <th>Total prospects</th>
+                        <th>Contactés</th>
+                        <th>Intéressés</th>
+                        <th>Contrats signés</th>
+                        <th>Taux conversion</th>
+                        <th>Rendez-vous</th>
+                        <th>Comptes rendus</th>
+                        <th>Prospects ce mois</th>
+                        <th>Évolution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for perf in performances %}
+                        <tr class="{% if forloop.first %}top-performer{% endif %}">
+                            <td class="rank-cell">
+                                <div class="rank-badge rank-{{ forloop.counter }}">
+                                    {% if forloop.counter == 1 %}
+                                        <i class="fas fa-trophy"></i>
+                                    {% elif forloop.counter == 2 %}
+                                        <i class="fas fa-medal"></i>
+                                    {% elif forloop.counter == 3 %}
+                                        <i class="fas fa-award"></i>
+                                    {% else %}
+                                        {{ forloop.counter }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="table-cell-user">
+                                    <div class="user-avatar">
+                                        {% if perf.commercial.photo %}
+                                            <img src="{{ perf.commercial.photo.url }}" alt="{{ perf.commercial.nom }}">
+                                        {% else %}
+                                            <span>{{ perf.commercial.nom|first|upper }}{{ perf.commercial.prenom|first|upper }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-info">
+                                        <strong>{{ perf.commercial.nom }} {{ perf.commercial.prenom }}</strong>
+                                        <span class="user-email">{{ perf.commercial.email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                           
+                            <td>
+                                <span class="stat-number">{{ perf.nb_prospects }}</span>
+                            </td>
+                            <td>
+                                <span class="stat-number stat-info">{{ perf.prospects_contactes }}</span>
+                            </td>
+                            <td>
+                                <span class="stat-number stat-warning">{{ perf.prospects_interesses }}</span>
+                            </td>
+                            <td>
+                                <span class="stat-number stat-success highlight">{{ perf.contrats_signes }}</span>
+                            </td>
+                            <td>
+                                <div class="conversion-rate">
+                                    <span class="rate-value">{{ perf.taux_conversion }}%</span>
+                                    <div class="rate-bar">
+                                        <div class="rate-fill" style="width: {{ perf.taux_conversion }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="stat-number">{{ perf.nb_rendez_vous }}</span>
+                            </td>
+                            <td>
+                                <span class="stat-number">{{ perf.nb_comptes_rendus }}</span>
+                            </td>
+                            <td>
+                                <span class="stat-number">{{ perf.prospects_ce_mois }}</span>
+                            </td>
+                            <td>
+                                <div class="evolution-cell">
+                                    {% if perf.evolution > 0 %}
+                                        <span class="evolution positive">
+                                            <i class="fas fa-arrow-up"></i>
+                                            +{{ perf.evolution }} ({{ perf.pourcentage_evolution }}%)
+                                        </span>
+                                    {% elif perf.evolution < 0 %}
+                                        <span class="evolution negative">
+                                            <i class="fas fa-arrow-down"></i>
+                                            {{ perf.evolution }} ({{ perf.pourcentage_evolution }}%)
+                                        </span>
+                                    {% else %}
+                                        <span class="evolution neutral">
+                                            <i class="fas fa-minus"></i>
+                                            Stable
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="12" class="empty-state">
+                                <div class="empty-state-content">
+                                    <i class="fas fa-users-slash"></i>
+                                    <p>Aucun commercial trouvé</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Légende et explication du score -->
+        <div class="legend-section">
+            <div class="legend-card">
+                <h4>
+                    <i class="fas fa-info-circle"></i>
+                    Légende des rangs
+                </h4>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="legend-color rank-1"></span>
+                        <span>1er - Meilleur performeur</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color rank-2"></span>
+                        <span>2ème - Excellent</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color rank-3"></span>
+                        <span>3ème - Très bon</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color"></span>
+                        <span>Autres - En progression</span>
+                    </div>
+                </div>
+            </div>
+            
+           
+        </div>
+    </div>
+</body>
+</html>
+

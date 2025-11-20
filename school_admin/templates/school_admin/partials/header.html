@@ -2,7 +2,6 @@
 
 <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
 <link rel="stylesheet" href="{% static 'school_admin/css/dashboard.css' %}" />
-<link rel="stylesheet" href="{% static 'school_admin/css/Dashboard.css' %}" />
 
 <div class="dashboard">
   <!-- Main Content -->
@@ -59,51 +58,24 @@
         </h1>
         <p class="banner-subtitle">{% if user.directeur_prenom %}{{ user.nom }}{% else %}Aria{% endif %} - Année scolaire 2024-2025</p>
       </div>
-      <button class="nav-toggle-btn" id="openNavMenu">
-        menu
-        <i class="fas fa-th"></i>
-      </button>
     </section>
 
     <!-- Navigation Overlay -->
     <div class="navigation-overlay" id="navOverlay"></div>
 
     <!-- Navigation Cards Section (Hidden by default) -->
-    <section
-      class="section-container navigation-section"
-      id="navigationSection"
-    >
+    <section class="navigation-section " id="navigationSection" >
       <button class="close-btn" id="closeNavMenu">
         <i class="fas fa-times"></i>
       </button>
 
       <div class="nav-menu-header">
-        <h2>Menu de Navigation</h2>
-        <p>Accédez rapidement à toutes les fonctionnalités</p>
+        <h2>Menu complémentaire</h2>
+        <p>Retrouvez les accès supplémentaires non présents dans la barre principale.</p>
       </div>
 
-      <!-- Section 1: Tableau de bord -->
-      <div class="section-title">
-        <h2>Tableau de bord</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'school_admin:dashboard' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-tachometer-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Vue d'ensemble</h3>
-            <p>Activités récentes</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 2: Gestion des données -->
-      <div class="section-title">
-        <h2>Gestion des données</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'school_admin:etablissements' %}" class="nav-link-card">
+      <div class="nav-cards-row nav-cards-compact">
+        <a href="{% url 'school_admin:etablissements' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-green">
             <i class="fas fa-chalkboard"></i>
           </div>
@@ -112,7 +84,7 @@
             <p>Gestion des établissements</p>
           </div>
         </a>
-        <a href="{% url 'school_admin:suivi_revenus' %}" class="nav-link-card">
+        <a href="{% url 'school_admin:suivi_revenus' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-chart-line"></i>
           </div>
@@ -121,23 +93,16 @@
             <p>Gestion financière et comptable</p>
           </div>
         </a>
-      </div>
-
-      <!-- Section 4: Communication -->
-      <div class="section-title">
-        <h2>Communication</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-envelope"></i>
+        <a href="{% url 'school_admin:suivi_activites_commerciales' %}" class="nav-link-card nav-link-complementary">
+          <div class="nav-card-icon neo-purple">
+            <i class="fas fa-briefcase"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Messages</h3>
-            <p>Boîte de réception</p>
+            <h3>Activités commerciales</h3>
+            <p>Suivi des prospections et performances</p>
           </div>
         </a>
-        <a href="#" class="nav-link-card">
+        <a href="{% url 'school_admin:annonces' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-purple">
             <i class="fas fa-bullhorn"></i>
           </div>
@@ -146,14 +111,7 @@
             <p>Diffusion d'informations</p>
           </div>
         </a>
-      </div>
-
-      <!-- Section 5: Compte -->
-      <div class="section-title">
-        <h2>Mon profil</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card">
+        <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-light-blue">
             <i class="fas fa-user-circle"></i>
           </div>
@@ -164,7 +122,7 @@
         </a>
         <a
           href="{% url 'school_admin:management_equipes' %}"
-          class="nav-link-card"
+          class="nav-link-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-gray">
             <i class="fas fa-users"></i>
@@ -176,7 +134,7 @@
         </a>
         <a
           href="{% url 'school_admin:parametres_administrateur' %}"
-          class="nav-link-card"
+          class="nav-link-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-gray">
             <i class="fas fa-cogs"></i>
@@ -188,7 +146,7 @@
         </a>
         <a
           href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
-          class="nav-link-card logout-card"
+          class="nav-link-card logout-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-red">
             <i class="fas fa-sign-out-alt"></i>
@@ -208,4 +166,14 @@
   </main>
 </div>
 
-<script src="{% static 'school_admin/js/script.js' %}"></script>
+{% include 'school_admin/partials/bottom_nav_administrateur.html' %}
+
+<script>
+ 
+  let icon_menu = document.querySelector('.icon-menu');
+  let menu_complementary = document.getElementById('navigationSection');
+
+  icon_menu.addEventListener('click', function () {
+   console.log('click');
+  });
+</script>

@@ -1,0 +1,356 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails du prospect - {{ prospect.nom_etablissement }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/administrateur/activites_commerciales.css' %}?v=1.0.0">
+</head>
+<body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <div class="content-container">
+        <!-- Fil d'Ariane -->
+        <div class="breadcrumb">
+            <a href="{% url 'school_admin:dashboard' %}">Tableau de bord</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'school_admin:suivi_activites_commerciales' %}">Activités commerciales</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ prospect.nom_etablissement }}</span>
+        </div>
+
+        <!-- En-tête de page -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-building"></i>
+                    {{ prospect.nom_etablissement }}
+                </h1>
+                <p class="page-subtitle">Détails complets du prospect</p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'school_admin:suivi_activites_commerciales' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+
+        <!-- Informations principales -->
+        <div class="detail-grid">
+            <!-- Carte principale -->
+            <div class="detail-card main-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-info-circle"></i>
+                        Informations générales
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Nom de l'établissement</label>
+                            <div class="info-value">{{ prospect.nom_etablissement }}</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Type d'établissement</label>
+                            <div class="info-value">
+                                <span class="badge badge-info">
+                                    {{ prospect.get_type_etablissement_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Genre</label>
+                            <div class="info-value">
+                                <span class="badge badge-secondary">
+                                    {{ prospect.get_genre_etablissement_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Statut</label>
+                            <div class="info-value">
+                                <span class="badge badge-status badge-{{ prospect.statut_etablissement }}">
+                                    {{ prospect.get_statut_etablissement_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Ville</label>
+                            <div class="info-value">
+                                <i class="fas fa-map-marker-alt"></i>
+                                {{ prospect.ville_etablissement }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Pays</label>
+                            <div class="info-value">{{ prospect.get_pays_etablissement_display }}</div>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Adresse complète</label>
+                            <div class="info-value">{{ prospect.adresse_etablissement }}</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Potentiel commercial</label>
+                            <div class="info-value">
+                                <span class="badge badge-potentiel badge-{{ prospect.potentiel_etablissement }}">
+                                    {{ prospect.get_potentiel_etablissement_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Priorité</label>
+                            <div class="info-value">
+                                <span class="badge badge-priority badge-{{ prospect.priorite_etablissement }}">
+                                    {{ prospect.get_priorite_etablissement_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Source de prospection</label>
+                            <div class="info-value">
+                                {% if prospect.source_etablissement %}
+                                    {{ prospect.get_source_etablissement_display }}
+                                {% else %}
+                                    <span class="text-muted">Non renseigné</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Prochaine action</label>
+                            <div class="info-value">
+                                {% if prospect.prochaine_action_etablissement %}
+                                    {{ prospect.get_prochaine_action_etablissement_display }}
+                                {% else %}
+                                    <span class="text-muted">Non renseigné</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Date de création</label>
+                            <div class="info-value">
+                                <i class="fas fa-calendar"></i>
+                                {{ prospect.date_creation|date:"d/m/Y à H:i" }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Dernière modification</label>
+                            <div class="info-value">
+                                <i class="fas fa-clock"></i>
+                                {{ prospect.date_modification|date:"d/m/Y à H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carte commercial -->
+            <div class="detail-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-user-tie"></i>
+                        Commercial responsable
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if prospect.cree_par %}
+                        <div class="commercial-info">
+                            <div class="commercial-avatar">
+                                {% if prospect.cree_par.photo %}
+                                    <img src="{{ prospect.cree_par.photo.url }}" alt="{{ prospect.cree_par.nom }}">
+                                {% else %}
+                                    <span>{{ prospect.cree_par.nom|first|upper }}{{ prospect.cree_par.prenom|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="commercial-details">
+                                <div class="commercial-name">
+                                    {{ prospect.cree_par.nom }} {{ prospect.cree_par.prenom }}
+                                </div>
+                                <div class="commercial-email">
+                                    <i class="fas fa-envelope"></i>
+                                    {{ prospect.cree_par.email }}
+                                </div>
+                                {% if prospect.cree_par.telephone %}
+                                    <div class="commercial-phone">
+                                        <i class="fas fa-phone"></i>
+                                        {{ prospect.cree_par.telephone }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state-small">
+                            <i class="fas fa-user-slash"></i>
+                            <p>Aucun commercial assigné</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes commerciales -->
+        {% if prospect.notes_commercial %}
+            <div class="detail-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-sticky-note"></i>
+                        Notes commerciales
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="notes-content">
+                        {{ prospect.notes_commercial|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Notes rendez-vous -->
+        {% if prospect.notes_rendezvous %}
+            <div class="detail-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-calendar-check"></i>
+                        Notes de rendez-vous
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="notes-content">
+                        {{ prospect.notes_rendezvous|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Statistiques -->
+        <div class="stats-mini-grid">
+            <div class="stat-mini-card">
+                <div class="stat-mini-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="stat-mini-content">
+                    <div class="stat-mini-value">{{ nb_rendez_vous }}</div>
+                    <div class="stat-mini-label">Rendez-vous</div>
+                </div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="stat-mini-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-mini-content">
+                    <div class="stat-mini-value">{{ nb_comptes_rendus }}</div>
+                    <div class="stat-mini-label">Comptes rendus</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rendez-vous -->
+        <div class="detail-card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-calendar-alt"></i>
+                    Rendez-vous ({{ nb_rendez_vous }})
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if rendez_vous %}
+                    <div class="timeline">
+                        {% for rdv in rendez_vous %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header">
+                                        <div class="timeline-title">
+                                            <i class="fas fa-{{ rdv.type_rdv|slice:':1' }}"></i>
+                                            {{ rdv.get_type_rdv_display }}
+                                        </div>
+                                        <div class="timeline-date">
+                                            <i class="fas fa-calendar"></i>
+                                            {{ rdv.date_rdv|date:"d/m/Y" }}
+                                            <i class="fas fa-clock"></i>
+                                            {{ rdv.heure_rdv|time:"H:i" }}
+                                        </div>
+                                    </div>
+                                    {% if rdv.notes_rdv %}
+                                        <div class="timeline-notes">
+                                            {{ rdv.notes_rdv|linebreaks }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="timeline-footer">
+                                        <span class="timeline-creator">
+                                            <i class="fas fa-user"></i>
+                                            Créé par {{ rdv.cree_par.nom }} {{ rdv.cree_par.prenom }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Aucun rendez-vous programmé</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Comptes rendus -->
+        <div class="detail-card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-file-alt"></i>
+                    Comptes rendus ({{ nb_comptes_rendus }})
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if comptes_rendus %}
+                    <div class="comptes-rendus-list">
+                        {% for cr in comptes_rendus %}
+                            <div class="compte-rendu-item">
+                                <div class="cr-header">
+                                    <div class="cr-title">
+                                        <i class="fas fa-file-alt"></i>
+                                        {{ cr.titre }}
+                                    </div>
+                                    <div class="cr-date">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ cr.date_visite|date:"d/m/Y" }}
+                                    </div>
+                                </div>
+                                <div class="cr-content">
+                                    {{ cr.contenu|linebreaks }}
+                                </div>
+                                <div class="cr-footer">
+                                    <div class="cr-satisfaction">
+                                        <span class="badge badge-satisfaction badge-{{ cr.satisfaction_client }}">
+                                            <i class="fas fa-smile"></i>
+                                            {{ cr.get_satisfaction_client_display }}
+                                        </span>
+                                    </div>
+                                    <div class="cr-creator">
+                                        <i class="fas fa-user"></i>
+                                        {{ cr.cree_par.nom }} {{ cr.cree_par.prenom }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-file-alt"></i>
+                        <p>Aucun compte rendu disponible</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -88,106 +88,12 @@
       </button>
 
       <div class="nav-menu-header">
-        <h2>Menu de Navigation</h2>
-        <p>Accédez rapidement à toutes les fonctionnalités</p>
+        <h2>Menu complémentaire</h2>
+        <p>Retrouvez les accès supplémentaires non présents dans la barre principale.</p>
       </div>
 
-      <!-- Section 1: Tableau de bord -->
-      <div class="section-title">
-        <h2>Tableau de bord</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-tachometer-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Vue d'ensemble</h3>
-            <p>Activités récentes</p>
-          </div>
-        </a>
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Performance</h3>
-            <p>Statistiques et objectifs</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 2: Gestion des prospections -->
-      <div class="section-title">
-        <h2>Prospection</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a
-          href="{% url 'school_admin:commercial_liste_etablissements' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-green">
-            <i class="fas fa-building"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Mes établissements</h3>
-            <p>Liste des prospects</p>
-          </div>
-        </a>
-        <a
-          href="{% url 'school_admin:commercial_ajouter_etablissement' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-orange">
-            <i class="fas fa-plus-circle"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Nouveau prospect</h3>
-            <p>Ajouter un établissement</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 3: Rendez-vous et planning -->
-      <div class="section-title">
-        <h2>Planning</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a
-          href="{% url 'school_admin:commercial_rendez_vous' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Rendez-vous</h3>
-            <p>Gestion du calendrier</p>
-          </div>
-        </a>
-        <a
-          href="{% url 'school_admin:commercial_comptes_rendus' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-teal">
-            <i class="fas fa-clipboard-list"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Rapports</h3>
-            <p>Comptes rendus de visite</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 4: Communication -->
-      <div class="section-title">
-        <h2>Communication</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a
-          href="{% url 'school_admin:commercial_messages' %}"
-          class="nav-link-card"
-        >
+      <div class="nav-cards-row nav-cards-compact">
+        <a href="{% url 'school_admin:commercial_messages' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-blue">
             <i class="fas fa-envelope"></i>
           </div>
@@ -196,16 +102,9 @@
             <p>Boîte de réception</p>
           </div>
         </a>
-      </div>
-
-      <!-- Section 5: Compte -->
-      <div class="section-title">
-        <h2>Mon profil</h2>
-      </div>
-      <div class="nav-cards-row">
         <a
           href="{% url 'school_admin:commercial_profil' %}"
-          class="nav-link-card"
+          class="nav-link-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-light-blue">
             <i class="fas fa-user-circle"></i>
@@ -215,7 +114,7 @@
             <p>Informations personnelles</p>
           </div>
         </a>
-        <a href="#" class="nav-link-card">
+        <a href="#" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-green">
             <i class="fas fa-bullseye"></i>
           </div>
@@ -226,7 +125,7 @@
         </a>
         <a
           href="{% url 'school_admin:deconnexion_compte_commercial' %}"
-          class="nav-link-card logout-card"
+          class="nav-link-card logout-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-red">
             <i class="fas fa-sign-out-alt"></i>
@@ -245,5 +144,7 @@
     </div>
   </main>
 </div>
+
+{% include 'school_admin/commercial/partials/bottom_nav_commercial.html' %}
 
 <script src="{% static 'school_admin/js/commercial/script_commercial.js' %}"></script>

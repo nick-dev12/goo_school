@@ -5,6 +5,7 @@ from .controllers.administrateur_compte_controller import AdministrateurCompteCo
 from .personal_views.administrateur_view import *
 from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
+from .controllers.activites_commerciales_controller import ActivitesCommercialesController
 from .personal_views.directeur_view import verifier_bulletin_qr
 from .api_views import fcm_views, fcm_test_views, test_notes_notifications
 
@@ -37,6 +38,11 @@ urlpatterns =[
     # Autres routes existantes
     path('', dashboard_administrateur, name='dashboard'),
     path('etablissements/',etablissements, name='etablissements'),
+    
+    # Suivi des activités commerciales
+    path('activites-commerciales/', ActivitesCommercialesController.liste_prospects, name='suivi_activites_commerciales'),
+    path('activites-commerciales/prospect/<int:prospect_id>/', ActivitesCommercialesController.detail_prospect, name='detail_prospect'),
+    path('activites-commerciales/performances/', ActivitesCommercialesController.analyse_performances, name='analyse_performances_commerciaux'),
     path('etablissements/ajouter', ajout_etablissement, name='ajout_etablissement'),
     path('etablissements/detaille/', detaille_etablissement, name='detaille_etablissement'),
     path('etablissements/update/', administrateur_update_etablissement, name='administrateur_update_etablissement'),

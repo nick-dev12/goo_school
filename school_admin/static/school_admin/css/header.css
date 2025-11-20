@@ -371,15 +371,15 @@ a {
 .navigation-overlay {
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 40;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease;
+  overflow-y: auto;
 }
 
 .navigation-overlay.active {
@@ -387,26 +387,29 @@ a {
   visibility: visible;
 }
 
-/* Navigation Cards Section */
+/* Navigation Cards Section - COMPACT VERSION */
 .navigation-section {
   position: fixed;
-  top: 0;
+  top: -100%;
+  left: 0;
   right: 0;
   width: 100%;
   max-width: 800px;
-  height: 100%;
+  height: 90vh;
+  margin: 0 auto;
   background-color: var(--white);
   z-index: 50;
-  padding: 2rem;
+  padding: 1.75rem;
   overflow-y: auto;
-  transform: translateX(100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-lg);
-  margin: 10px auto;
+  border-radius: 0 0 16px 16px;
 }
 
 .navigation-section.active {
-  transform: translateX(-50%);
+  top: 0;
+  transform: translateY(0);
 }
 
 .navigation-section::-webkit-scrollbar {
@@ -424,18 +427,18 @@ a {
 
 .navigation-section .close-btn {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: 1.25rem;
+  right: 1.25rem;
   background: none;
   border: none;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--gray-600);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.2s;
   background-color: var(--gray-100);
@@ -447,30 +450,32 @@ a {
 }
 
 .navigation-section .close-btn i {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 .nav-menu-header {
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--gray-200);
 }
 
 .nav-menu-header h2 {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  color: var(--admin-primary);
+  margin-bottom: 0.4rem;
 }
 
 .nav-menu-header p {
   color: var(--gray-500);
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 /* Section Titles */
 .section-title {
-  margin: 101px 0 1rem;
   position: relative;
+  width: 1000px;
+  margin: 30px auto;
 }
 
 .section-title h2 {
@@ -488,6 +493,18 @@ a {
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.nav-cards-row.nav-cards-compact {
+  justify-content: center;
+  gap: 1.2rem;
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+.nav-cards-row.nav-cards-compact .nav-link-card {
+  flex: 1 1 260px;
+  max-width: 320px;
 }
 
 .nav-link-card {
@@ -706,5 +723,22 @@ a {
 
   .nav-menu-header p {
     font-size: 0.9rem;
+  }
+}
+
+/* Configuration du menu complémentaire pour administrateur */
+@media (min-width: 1350px) {
+  .navigation-section .nav-link-complementary {
+    display: flex;
+  }
+}
+
+@media (min-width: 1360px) {
+  .navigation-section {
+    display: none !important;
+  }
+  
+  .navigation-overlay {
+    display: none !important;
   }
 }

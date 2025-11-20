@@ -1,0 +1,157 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.2"
+/>
+<nav
+  class="enseignant-bottom-nav bottom-nav-comptable"
+  aria-label="Navigation principale de l'espace comptable"
+>
+  <ul class="bottom-nav-list">
+    <li
+      class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'dashboard_comptable' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:dashboard_comptable' %}">
+        <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
+        <span class="label">Accueil</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'suivi_revenus' %}active{% endif %}">
+      <a href="{% url 'school_admin:suivi_revenus' %}">
+        <span class="icon-wrapper icon-revenus"
+          ><i class="fas fa-chart-line"></i
+        ></span>
+        <span class="label">Revenus</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'paiements_retard' %}active{% endif %}">
+      <a href="{% url 'school_admin:paiements_retard' %}">
+        <span class="icon-wrapper icon-retard"
+          ><i class="fas fa-exclamation-triangle"></i
+        ></span>
+        <span class="label">Retards</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_etablissements' or request.resolver_match.url_name == 'details_financiers_etablissement' or request.resolver_match.url_name == 'traiter_paiement_facture' %}active{% endif %}">
+      <a href="{% url 'school_admin:gestion_etablissements' %}">
+        <span class="icon-wrapper icon-etablissements"
+          ><i class="fas fa-chalkboard"></i
+        ></span>
+        <span class="label">Établissements</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_depenses' or request.resolver_match.url_name == 'depense_detail' or request.resolver_match.url_name == 'modifier_depense' %}active{% endif %}">
+      <a href="{% url 'school_admin:gestion_depenses' %}">
+        <span class="icon-wrapper icon-depenses"
+          ><i class="fas fa-money-bill-wave"></i
+        ></span>
+        <span class="label">Dépenses</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'gestion_personnel_financier' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:gestion_personnel_financier' %}">
+        <span class="icon-wrapper icon-personnel"
+          ><i class="fas fa-users"></i
+        ></span>
+        <span class="label">Personnel</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'profil_admin' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:profil_admin' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-circle"></i
+        ></span>
+        <span class="label">Profil</span>
+      </a>
+    </li>
+    <li class="bottom-nav-item menu-toggle-item">
+      <button
+        type="button"
+        class="menu-toggle-button"
+        id="comptableNavToggle"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="navigationSection"
+      >
+        <span class="icon-wrapper icon-menu"
+          ><i class="fas fa-ellipsis-h"></i
+        ></span>
+        <span class="label">Menu</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggleButton = document.getElementById('comptableNavToggle');
+    const navSection = document.getElementById('navigationSection');
+    const navOverlay = document.getElementById('navOverlay');
+    const closeBtn = document.getElementById('closeNavMenu');
+
+    if (!toggleButton || !navSection || !navOverlay || !closeBtn) {
+      return;
+    }
+
+    const ensureController = () => {
+      if (window.comptableNavMenu) {
+        return window.comptableNavMenu;
+      }
+
+      const openFallback = () => {
+        navOverlay.classList.add('active');
+        navSection.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        document.dispatchEvent(new CustomEvent('comptableNavOpen'));
+      };
+
+      const closeFallback = () => {
+        navSection.classList.remove('active');
+        navOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+        document.dispatchEvent(new CustomEvent('comptableNavClose'));
+      };
+
+      closeBtn.addEventListener('click', closeFallback);
+      navOverlay.addEventListener('click', (event) => {
+        if (event.target === navOverlay) {
+          closeFallback();
+        }
+      });
+
+      window.comptableNavMenu = {
+        open: openFallback,
+        close: closeFallback,
+      };
+
+      return window.comptableNavMenu;
+    };
+
+    toggleButton.addEventListener('click', () => {
+      const controller = ensureController();
+      if (!controller) {
+        return;
+      }
+      const isOpen = navSection.classList.contains('active');
+      if (isOpen) {
+        controller.close();
+      } else {
+        controller.open();
+      }
+    });
+
+    const setExpanded = (value) => {
+      toggleButton.setAttribute('aria-expanded', value ? 'true' : 'false');
+      toggleButton.classList.toggle('menu-open', value);
+    };
+
+    ensureController();
+    document.addEventListener('comptableNavOpen', () => setExpanded(true));
+    document.addEventListener('comptableNavClose', () => setExpanded(false));
+  });
+</script>
+

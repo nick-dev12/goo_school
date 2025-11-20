@@ -77,109 +77,14 @@
       </button>
 
       <div class="nav-menu-header">
-        <h2>Menu de Navigation</h2>
-        <p>Accédez rapidement à toutes les fonctionnalités</p>
+        <h2>Menu complémentaire</h2>
+        <p>Retrouvez les accès supplémentaires non présents dans la barre principale.</p>
       </div>
 
-      <!-- Section 1: Tableau de bord -->
-      <div class="section-title">
-        <h2>Tableau de bord</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a
-          href="{% url 'school_admin:dashboard_comptable' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-tachometer-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Vue d'ensemble</h3>
-            <p>Tableau de bord comptable</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- Section 2: Gestion financière -->
-      <div class="section-title">
-        <h2>Gestion financière</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'school_admin:suivi_revenus' %}" class="nav-link-card">
-          <div class="nav-card-icon neo-green">
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Revenus</h3>
-            <p>Suivi des revenus</p>
-          </div>
-        </a>
-        <a
-          href="{% url 'school_admin:paiements_retard' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-orange">
-            <i class="fas fa-exclamation-triangle"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Paiements en retard</h3>
-            <p>Suivi des impayés</p>
-          </div>
-        </a>
-       
-      </div>
-
-      {% comment %} <!-- Section 3: Rapports -->
-      <div class="section-title">
-        <h2>Rapports</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a
-          href="{% url 'school_admin:rapports_mensuels' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-file-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Rapport mensuel</h3>
-            <p>Bilan mensuel</p>
-          </div>
-        </a>
-        <a
-          href="{% url 'school_admin:rapports_annuels' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-gray">
-            <i class="fas fa-chart-pie"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Rapport annuel</h3>
-            <p>Bilan annuel</p>
-          </div>
-        </a>
-      </div> {% endcomment %}
-
-      <!-- Section 4: Gestion des données -->
-      <div class="section-title">
-        <h2>Gestion des données</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a
-          href="{% url 'school_admin:gestion_etablissements' %}"
-          class="nav-link-card"
-        >
-          <div class="nav-card-icon neo-green">
-            <i class="fas fa-chalkboard"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Etablissements</h3>
-            <p>Gestion des établissements et factures</p>
-          </div>
-        </a>
+      <div class="nav-cards-row nav-cards-compact">
         <a
           href="{% url 'school_admin:gestion_personnel_financier' %}"
-          class="nav-link-card"
+          class="nav-link-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-light-blue">
             <i class="fas fa-users"></i>
@@ -189,31 +94,7 @@
             <p>Gestion financière du personnel</p>
           </div>
         </a>
-       
-      </div>
-
-      <!-- Section 5: Communication -->
-      {% comment %} <div class="section-title">
-        <h2>Communication</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="#" class="nav-link-card">
-          <div class="nav-card-icon neo-blue">
-            <i class="fas fa-envelope"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Messages</h3>
-            <p>Boîte de réception</p>
-          </div>
-        </a>
-      </div> {% endcomment %}
-
-      <!-- Section 6: Compte -->
-      <div class="section-title">
-        <h2>Mon profil</h2>
-      </div>
-      <div class="nav-cards-row">
-        <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card">
+        <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-light-blue">
             <i class="fas fa-user-circle"></i>
           </div>
@@ -222,10 +103,9 @@
             <p>Informations personnelles</p>
           </div>
         </a>
-
         <a
           href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
-          class="nav-link-card logout-card"
+          class="nav-link-card logout-card nav-link-complementary"
         >
           <div class="nav-card-icon neo-red">
             <i class="fas fa-sign-out-alt"></i>
@@ -244,5 +124,7 @@
     </div>
   </main>
 </div>
+
+{% include 'school_admin/comptable/partials/bottom_nav_comptable.html' %}
 
 <script src="{% static 'school_admin/js/script.js' %}"></script>

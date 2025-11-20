@@ -24,7 +24,16 @@
     />
   </head>
   <body>
-    {% include 'school_admin/gestion_comptable/partials/header_comptable.html' %}
+    <!-- Header -->
+    {% if user.is_authenticated %}
+        {% if user.fonction == 'administrateur' %}
+            {% include 'school_admin/partials/header.html' %}
+        {% else %}
+            {% include 'school_admin/gestion_comptable/partials/header_comptable.html' %}
+        {% endif %}
+    {% else %}
+        {% include 'school_admin/gestion_comptable/partials/header_comptable.html' %}
+    {% endif %}
 
     <!-- Main Content -->
     <div class="dashboard-content">

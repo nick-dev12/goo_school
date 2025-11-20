@@ -1,0 +1,242 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi des activités commerciales - Aria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/administrateur/activites_commerciales.css' %}">
+</head>
+<body>
+    {% include 'school_admin/partials/header.html' %}
+
+    <div class="content-container">
+        <!-- En-tête de page -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-briefcase"></i>
+                    Suivi des activités commerciales
+                </h1>
+                <p class="page-subtitle">Gérez et suivez toutes les prospections et performances commerciales</p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'school_admin:analyse_performances_commerciaux' %}" class="btn btn-primary">
+                    <i class="fas fa-chart-line"></i>
+                    Analyse des performances
+                </a>
+            </div>
+        </div>
+
+        <!-- Cartes statistiques -->
+        <div class="stats-grid">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_prospects }}</div>
+                    <div class="stat-label">Total prospects</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="fas fa-phone"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ prospects_contactes }}</div>
+                    <div class="stat-label">Contactés</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ prospects_interesses }}</div>
+                    <div class="stat-label">Intéressés</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ contrats_signes }}</div>
+                    <div class="stat-label">Contrats signés</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-secondary">
+                <div class="stat-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ nouveaux_prospects }}</div>
+                    <div class="stat-label">Nouveaux (30j)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres et recherche -->
+        <div class="filters-section">
+            <form method="get" class="filters-form">
+                <div class="filter-group">
+                    <label for="recherche">
+                        <i class="fas fa-search"></i>
+                        Recherche
+                    </label>
+                    <input type="text" id="recherche" name="recherche" value="{{ recherche }}" 
+                           placeholder="Nom, ville, pays..." class="form-control">
+                </div>
+
+                <div class="filter-group">
+                    <label for="statut">Statut</label>
+                    <select id="statut" name="statut" class="form-control">
+                        <option value="">Tous les statuts</option>
+                        {% for value, label in STATUT_CHOICES %}
+                            <option value="{{ value }}" {% if statut_filter == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="potentiel">Potentiel</label>
+                    <select id="potentiel" name="potentiel" class="form-control">
+                        <option value="">Tous les potentiels</option>
+                        {% for value, label in POTENTIEL_CHOICES %}
+                            <option value="{{ value }}" {% if potentiel_filter == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="commercial">Commercial</label>
+                    <select id="commercial" name="commercial" class="form-control">
+                        <option value="">Tous les commerciaux</option>
+                        {% for commercial in commerciaux %}
+                            <option value="{{ commercial.id }}" {% if commercial_filter == commercial.id|stringformat:"s" %}selected{% endif %}>
+                                {{ commercial.nom }} {{ commercial.prenom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i>
+                        Filtrer
+                    </button>
+                    <a href="{% url 'school_admin:suivi_activites_commerciales' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tableau des prospects -->
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Établissement</th>
+                        <th>Type</th>
+                        <th>Ville / Pays</th>
+                        <th>Statut</th>
+                        <th>Potentiel</th>
+                        <th>Commercial</th>
+                        <th>Date création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if prospects %}
+                        {% for prospect in prospects %}
+                            <tr>
+                                <td>
+                                    <div class="table-cell-primary">
+                                        <strong>{{ prospect.nom_etablissement }}</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">
+                                        {{ prospect.get_type_etablissement_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="table-cell-secondary">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ prospect.ville_etablissement }}, {{ prospect.get_pays_etablissement_display }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-status badge-{{ prospect.statut_etablissement }}">
+                                        {{ prospect.get_statut_etablissement_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-potentiel badge-{{ prospect.potentiel_etablissement }}">
+                                        {{ prospect.get_potentiel_etablissement_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if prospect.cree_par %}
+                                        <div class="table-cell-user">
+                                            <div class="user-avatar">
+                                                {% if prospect.cree_par.photo %}
+                                                    <img src="{{ prospect.cree_par.photo.url }}" alt="{{ prospect.cree_par.nom }}">
+                                                {% else %}
+                                                    <span>{{ prospect.cree_par.nom|first|upper }}{{ prospect.cree_par.prenom|first|upper }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <span>{{ prospect.cree_par.nom }} {{ prospect.cree_par.prenom }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">Non assigné</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="table-cell-date">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ prospect.date_creation|date:"d/m/Y" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <a href="{% url 'school_admin:detail_prospect' prospect.id %}" 
+                                           class="btn-action btn-view" title="Voir les détails">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <div class="empty-state-content">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>Aucun prospect trouvé</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+

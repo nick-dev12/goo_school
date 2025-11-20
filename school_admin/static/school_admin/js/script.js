@@ -7,29 +7,51 @@ document.addEventListener('DOMContentLoaded', function () {
     const navOverlay = document.getElementById('navOverlay');
     const navigationSection = document.getElementById('navigationSection');
 
-    // Ouvrir le menu de navigation
-    openNavBtn.addEventListener('click', function () {
-        navOverlay.classList.add('active');
-        navigationSection.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Empêcher le défilement
-    });
+    // Ouvrir le menu de navigation (seulement si le bouton existe - pour compatibilité avec les anciens templates)
+    if (openNavBtn) {
+        openNavBtn.addEventListener('click', function () {
+            navOverlay.classList.add('active');
+            navigationSection.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Empêcher le défilement
+        });
+    }
 
     // Fermer le menu de navigation
     function closeNavigation() {
-        navOverlay.classList.remove('active');
-        navigationSection.classList.remove('active');
+        if (navOverlay) navOverlay.classList.remove('active');
+        if (navigationSection) navigationSection.classList.remove('active');
         document.body.style.overflow = ''; // Réactiver le défilement
     }
 
-    closeNavBtn.addEventListener('click', closeNavigation);
-    navOverlay.addEventListener('click', closeNavigation);
+    // Ne gérer le menu que si aucun script spécifique ne le gère déjà
+    if (!window.administrateurNavMenu && !window.directeurNavMenu && !window.commercialNavMenu && !window.comptableNavMenu) {
+        if (closeNavBtn) {
+            closeNavBtn.addEventListener('click', closeNavigation);
+        }
+        if (navOverlay) {
+            navOverlay.addEventListener('click', closeNavigation);
+        }
+    }
 
     // Fermer le menu lors d'un clic sur un lien de navigation
+    // Seulement si le menu n'est pas géré par un autre script (comme bottom_nav)
     const navLinks = document.querySelectorAll('.nav-link-card');
     navLinks.forEach(link => {
         link.addEventListener('click', function () {
-            // Petite temporisation pour permettre l'effet visuel avant la redirection
-            setTimeout(closeNavigation, 100);
+            // Vérifier si le menu est géré par un script spécifique (bottom_nav)
+            // Si c'est le cas, utiliser le contrôleur spécifique pour fermer
+            if (window.administrateurNavMenu) {
+                setTimeout(() => window.administrateurNavMenu.close(), 100);
+            } else if (window.directeurNavMenu) {
+                setTimeout(() => window.directeurNavMenu.close(), 100);
+            } else if (window.commercialNavMenu) {
+                setTimeout(() => window.commercialNavMenu.close(), 100);
+            } else if (window.comptableNavMenu) {
+                setTimeout(() => window.comptableNavMenu.close(), 100);
+            } else {
+                // Petite temporisation pour permettre l'effet visuel avant la redirection
+                setTimeout(closeNavigation, 100);
+            }
         });
     });
 
@@ -46,9 +68,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 // Toggle sidebar visibility on mobile
-document.getElementById('menu-toggle').addEventListener('click', function () {
-    document.querySelector('.sidebar').classList.toggle('active');
-});
+const menuToggle = document.getElementById('menu-toggle');
+if (menuToggle) {
+    menuToggle.addEventListener('click', function () {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('active');
+        }
+    });
+}
 
 // Close sidebar when clicking outside on mobile
 document.addEventListener('click', function (event) {
@@ -56,7 +84,7 @@ document.addEventListener('click', function (event) {
         const sidebar = document.querySelector('.sidebar');
         const menuToggle = document.getElementById('menu-toggle');
 
-        if (!sidebar.contains(event.target) && event.target !== menuToggle) {
+        if (sidebar && menuToggle && !sidebar.contains(event.target) && event.target !== menuToggle) {
             sidebar.classList.remove('active');
         }
     }

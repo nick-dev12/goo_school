@@ -26,7 +26,6 @@ class Prospection(models.Model):
         ('prospect', 'Prospect'),
         ('contacte', 'Contacté'),
         ('rendez_vous', 'Rendez-vous'),
-        ('contrat_signe', 'Contrat signé'),
         ('non_interesse', 'Non intéressé'),
         ('interesse', 'Intéressé'),
         ('negociation', 'En négociation'),

@@ -685,6 +685,26 @@ body {
   background: linear-gradient(135deg, var(--gray-400), var(--gray-500));
 }
 
+/* Configuration du menu complémentaire pour les écrans moyens */
+/* À partir de 1350px : afficher uniquement les éléments complémentaires dans le menu */
+/* Les éléments complémentaires sont ceux qui ne sont pas dans les 7 premiers (nav-item-main-7) */
+@media (min-width: 1350px) {
+  .navigation-section .nav-link-complementary {
+    display: flex;
+  }
+}
+
+/* Au-delà de 1360px : masquer le menu complémentaire car tous les liens sont visibles dans la barre */
+@media (min-width: 1360px) {
+  .navigation-section {
+    display: none !important;
+  }
+  
+  .navigation-overlay {
+    display: none !important;
+  }
+}
+
 /* Responsive Styles - IMPROVED */
 @media (min-width: 992px) {
   .header-user-info {

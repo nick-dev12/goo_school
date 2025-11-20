@@ -1,7 +1,7 @@
 {% load static %}
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.1"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.2"
 />
 <nav
   class="enseignant-bottom-nav bottom-nav-directeur"
@@ -9,14 +9,14 @@
 >
   <ul class="bottom-nav-list">
     <li
-      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'dashboard_directeur' %}active{% endif %}"
+      class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'dashboard_directeur' %}active{% endif %}"
     >
       <a href="{% url 'directeur:dashboard_directeur' %}">
         <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
         <span class="label">Accueil</span>
       </a>
     </li>
-    <li class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'gestion_pedagogique' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'configuration_moyennes_generales' or request.resolver_match.url_name == 'configuration_standards_reussite' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_pedagogique' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'configuration_moyennes_generales' or request.resolver_match.url_name == 'configuration_standards_reussite' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_pedagogique' %}">
         <span class="icon-wrapper icon-pedagogie"
           ><i class="fas fa-graduation-cap"></i
@@ -24,7 +24,7 @@
         <span class="label">Pédagogie</span>
       </a>
     </li>
-    <li class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'gestion_eleves' or request.resolver_match.url_name == 'demandes_liaison_liste' or request.resolver_match.url_name == 'bulletins_notes' or request.resolver_match.url_name == 'voir_bulletin_eleve' or request.resolver_match.url_name == 'attestation_reussite_liste' or request.resolver_match.url_name == 'attestation_conduite_liste' or request.resolver_match.url_name == 'certificat_scolarite_liste' or request.resolver_match.url_name == 'certificat_radiation_liste' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_eleves' or request.resolver_match.url_name == 'demandes_liaison_liste' or request.resolver_match.url_name == 'bulletins_notes' or request.resolver_match.url_name == 'voir_bulletin_eleve' or request.resolver_match.url_name == 'attestation_reussite_liste' or request.resolver_match.url_name == 'attestation_conduite_liste' or request.resolver_match.url_name == 'certificat_scolarite_liste' or request.resolver_match.url_name == 'certificat_radiation_liste' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_eleves' %}">
         <span class="icon-wrapper icon-eleves"
           ><i class="fas fa-user-graduate"></i
@@ -32,7 +32,7 @@
         <span class="label">Élèves</span>
       </a>
     </li>
-    <li class="bottom-nav-item nav-item-primary nav-item-desktop-only {% if request.resolver_match.url_name == 'gestion_etablissement' or request.resolver_match.url_name == 'liste_salles' or request.resolver_match.url_name == 'liste_affectations' or request.resolver_match.url_name == 'liste_classes' or request.resolver_match.url_name == 'configuration_horaires' or request.resolver_match.url_name == 'liste_professeurs' or request.resolver_match.url_name == 'liste_personnel' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_etablissement' or request.resolver_match.url_name == 'liste_salles' or request.resolver_match.url_name == 'liste_affectations' or request.resolver_match.url_name == 'liste_classes' or request.resolver_match.url_name == 'configuration_horaires' or request.resolver_match.url_name == 'liste_professeurs' or request.resolver_match.url_name == 'liste_personnel' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_etablissement' %}">
         <span class="icon-wrapper icon-etablissement"
           ><i class="fas fa-school"></i
@@ -40,7 +40,7 @@
         <span class="label">Établissement</span>
       </a>
     </li>
-    <li class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'gestion_administrative' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'certificat_scolarite_liste' or request.resolver_match.url_name == 'certificat_radiation_liste' or request.resolver_match.url_name == 'attestation_reussite_liste' or request.resolver_match.url_name == 'attestation_conduite_liste' or request.resolver_match.url_name == 'fiche_inscription_liste' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_administrative' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'certificat_scolarite_liste' or request.resolver_match.url_name == 'certificat_radiation_liste' or request.resolver_match.url_name == 'attestation_reussite_liste' or request.resolver_match.url_name == 'attestation_conduite_liste' or request.resolver_match.url_name == 'fiche_inscription_liste' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_administrative' %}">
         <span class="icon-wrapper icon-administration"
           ><i class="fas fa-file-alt"></i
@@ -49,7 +49,7 @@
       </a>
     </li>
     <li
-      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'annonces_directeur' %}active{% endif %}"
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'annonces_directeur' %}active{% endif %}"
     >
       <a href="{% url 'directeur:annonces_directeur' %}">
         <span class="icon-wrapper icon-annonces"
@@ -59,7 +59,17 @@
       </a>
     </li>
     <li
-      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'gestion_examens' or request.resolver_match.url_name == 'emploi_du_temps_examens' or request.resolver_match.url_name == 'configurer_creneaux_examen' or request.resolver_match.url_name == 'modifier_session_examen' or request.resolver_match.url_name == 'supprimer_session_examen' %}active{% endif %}"
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'profil_etablissement' %}active{% endif %}"
+    >
+      <a href="{% url 'directeur:profil_etablissement' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-cog"></i
+        ></span>
+        <span class="label">Profil</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra nav-item-complementary {% if request.resolver_match.url_name == 'gestion_examens' or request.resolver_match.url_name == 'emploi_du_temps_examens' or request.resolver_match.url_name == 'configurer_creneaux_examen' or request.resolver_match.url_name == 'modifier_session_examen' or request.resolver_match.url_name == 'supprimer_session_examen' %}active{% endif %}"
     >
       <a href="{% url 'directeur:gestion_examens' %}">
         <span class="icon-wrapper icon-examens"
@@ -69,23 +79,13 @@
       </a>
     </li>
     <li
-      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'facturation_directeur' %}active{% endif %}"
+      class="bottom-nav-item nav-item-extra nav-item-complementary {% if request.resolver_match.url_name == 'facturation_directeur' %}active{% endif %}"
     >
       <a href="{% url 'directeur:facturation_directeur' %}">
         <span class="icon-wrapper icon-facturation"
           ><i class="fas fa-credit-card"></i
         ></span>
         <span class="label">Facturation</span>
-      </a>
-    </li>
-    <li
-      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'profil_etablissement' %}active{% endif %}"
-    >
-      <a href="{% url 'directeur:profil_etablissement' %}">
-        <span class="icon-wrapper icon-profil"
-          ><i class="fas fa-user-cog"></i
-        ></span>
-        <span class="label">Profil</span>
       </a>
     </li>
     <li class="bottom-nav-item menu-toggle-item">

@@ -588,10 +588,21 @@ def devoirs_eleve(request):
 def deconnexion_eleve(request):
     """
     Déconnexion de l'élève
+    Nettoie complètement la session et affiche un message de confirmation
     """
     from django.contrib.auth import logout
+    from school_admin.authentication_backends import _user_type_context
+    
+    # Nettoyer le thread-local
+    if hasattr(_user_type_context, 'user_type'):
+        delattr(_user_type_context, 'user_type')
+    
+    # Déconnecter l'utilisateur (nettoie la session avec flush())
     logout(request)
-    messages.success(request, "Vous avez été déconnecté avec succès.")
+    
+    # Ajouter un message de succès APRÈS logout()
+    messages.success(request, "Déconnexion réussie. Vous avez été déconnecté avec succès.")
+    
     return redirect('school_admin:connexion_compte_user')
 
 

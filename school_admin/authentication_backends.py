@@ -35,28 +35,142 @@ class MultiUserBackend(BaseBackend):
         'parent': 'PARE',
     }
     
+    def _detect_user_type_from_username(self, username):
+        """
+        Détecte le type d'utilisateur à partir du format de l'identifiant.
+        Cette optimisation réduit le nombre de requêtes SQL de 6 à 1 dans la plupart des cas.
+        
+        Patterns détectés :
+        - Professeurs : BP629344 (2 lettres + 6 chiffres) - stocké dans username
+        - Élèves : BP2025006, LO2025001 (2-3 lettres suivies de chiffres, format année)
+        - Parents : BPP2025001, LOP2025001 (3 lettres dont la dernière est P, suivies de chiffres)
+        - Établissements/CompteUser : email (contient @) ou username personnalisé
+        """
+        if not username:
+            return None
+        
+        username_upper = username.upper().strip()
+        
+        # Détection des professeurs (format: BP629344 - 2 lettres + 6 chiffres)
+        # Pattern: exactement 2 lettres suivies de 6 chiffres
+        if len(username_upper) == 8 and username_upper[:2].isalpha() and username_upper[2:].isdigit() and len(username_upper[2:]) == 6:
+            return 'professeur'
+        
+        # Détection des parents (format: BPP2025001, LOP2025001, etc.)
+        # Pattern: 3 lettres dont la dernière est P, suivies de chiffres
+        if len(username_upper) >= 7 and username_upper[:3].isalpha() and username_upper[3:].isdigit() and username_upper[2] == 'P':
+            return 'parent'
+        
+        # Détection des élèves (format: BP2025006, LO2025001, etc.)
+        # Pattern: 2-3 lettres suivies de chiffres (mais pas le format professeur 2+6)
+        if len(username_upper) >= 6 and username_upper[:2].isalpha() and username_upper[2:].isdigit():
+            # Exclure le format professeur (2 lettres + 6 chiffres exactement)
+            if not (len(username_upper) == 8 and len(username_upper[2:]) == 6):
+                # Exclure aussi les parents (3 lettres avec P)
+                if not (len(username_upper) >= 7 and username_upper[:3].isalpha() and username_upper[2] == 'P'):
+                    return 'eleve'
+        
+        # Détection des emails (Établissements ou CompteUser)
+        if '@' in username:
+            # Les établissements utilisent souvent des emails
+            # On vérifiera d'abord Etablissement, puis CompteUser
+            return 'email_based'  # Spécial: vérifier dans l'ordre Etablissement puis CompteUser
+        
+        return None  # Type inconnu, vérifier dans toutes les tables
+    
     def authenticate(self, request, username=None, password=None, **kwargs):
         """
-        Authentifie un utilisateur en vérifiant dans tous les modèles d'utilisateurs.
-        Chaque section est indépendante pour éviter les conflits.
+        Authentifie un utilisateur en vérifiant dans les modèles d'utilisateurs.
+        OPTIMISATION: Détecte le type d'utilisateur à partir du format de l'identifiant
+        pour réduire le nombre de requêtes SQL de 6 à 1 dans la plupart des cas.
+        
+        Avec des index sur les champs uniques, chaque requête .get() est très rapide
+        (O(log n) avec un index B-tree), même avec 1 000 000 d'utilisateurs.
         """
         if username is None or password is None:
             return None
         
+        # Détecter le type d'utilisateur à partir du format de l'identifiant
+        detected_type = self._detect_user_type_from_username(username)
+        
+        # Si le type est détecté, vérifier uniquement dans cette table (OPTIMISATION)
+        if detected_type == 'eleve':
+            try:
+                eleve = Eleve.objects.get(username=username)
+                if eleve.check_password(password) and eleve.actif:
+                    eleve._auth_user_type = 'eleve'
+                    return eleve
+            except Eleve.DoesNotExist:
+                pass
+            return None  # Si l'élève n'est pas trouvé, arrêter ici
+        
+        elif detected_type == 'parent':
+            try:
+                parent = Parent.objects.get(matricule_parental=username)
+                if parent.check_password(password) and parent.is_active:
+                    parent._auth_user_type = 'parent'
+                    return parent
+            except Parent.DoesNotExist:
+                pass
+            return None  # Si le parent n'est pas trouvé, arrêter ici
+        
+        elif detected_type == 'email_based':
+            # Pour les emails, vérifier d'abord Etablissement, puis CompteUser
+            try:
+                etablissement = Etablissement.objects.get(username=username)
+                if etablissement.check_password(password):
+                    etablissement._auth_user_type = 'etablissement'
+                    return etablissement
+            except Etablissement.DoesNotExist:
+                pass
+            
+            try:
+                user = CompteUser.objects.get(username=username)
+                if user.check_password(password):
+                    user._auth_user_type = 'compte_user'
+                    return user
+            except CompteUser.DoesNotExist:
+                pass
+            return None  # Si aucun n'est trouvé, arrêter ici
+        
+        # Si le type est détecté comme professeur, vérifier uniquement dans cette table
+        if detected_type == 'professeur':
+            try:
+                professeur = Professeur.objects.get(username=username)
+                if professeur.check_password(password) and professeur.actif:
+                    professeur._auth_user_type = 'professeur'
+                    return professeur
+            except Professeur.DoesNotExist:
+                pass
+            return None  # Si le professeur n'est pas trouvé, arrêter ici
+        
+        # Si le type n'est pas détecté, vérifier dans toutes les tables (fallback)
+        # Ordre optimisé selon la fréquence d'utilisation
+        
         # ==========================================
-        # SECTION 1: ÉTABLISSEMENTS (Directeurs)
+        # SECTION 1: PROFESSEURS (le plus fréquent)
+        # ==========================================
+        try:
+            professeur = Professeur.objects.get(username=username)
+            if professeur.check_password(password) and professeur.actif:
+                professeur._auth_user_type = 'professeur'
+                return professeur
+        except Professeur.DoesNotExist:
+            pass
+        
+        # ==========================================
+        # SECTION 2: ÉTABLISSEMENTS
         # ==========================================
         try:
             etablissement = Etablissement.objects.get(username=username)
             if etablissement.check_password(password):
-                # Stocker le type dans l'objet pour get_user()
                 etablissement._auth_user_type = 'etablissement'
                 return etablissement
         except Etablissement.DoesNotExist:
             pass
         
         # ==========================================
-        # SECTION 2: COMPTE UTILISATEURS (Admin, Commercial, etc.)
+        # SECTION 3: COMPTE UTILISATEURS
         # ==========================================
         try:
             user = CompteUser.objects.get(username=username)
@@ -67,7 +181,7 @@ class MultiUserBackend(BaseBackend):
             pass
         
         # ==========================================
-        # SECTION 3: PERSONNEL ADMINISTRATIF
+        # SECTION 4: PERSONNEL ADMINISTRATIF
         # ==========================================
         try:
             personnel = PersonnelAdministratif.objects.get(username=username)
@@ -78,18 +192,7 @@ class MultiUserBackend(BaseBackend):
             pass
         
         # ==========================================
-        # SECTION 4: PROFESSEURS
-        # ==========================================
-        try:
-            professeur = Professeur.objects.get(numero_employe=username)
-            if professeur.check_password(password) and professeur.actif:
-                professeur._auth_user_type = 'professeur'
-                return professeur
-        except Professeur.DoesNotExist:
-            pass
-        
-        # ==========================================
-        # SECTION 5: ÉLÈVES
+        # SECTION 5: ÉLÈVES (fallback si détection échoue)
         # ==========================================
         try:
             eleve = Eleve.objects.get(username=username)
@@ -100,7 +203,7 @@ class MultiUserBackend(BaseBackend):
             pass
         
         # ==========================================
-        # SECTION 6: PARENTS (matricule_parental)
+        # SECTION 6: PARENTS (fallback si détection échoue)
         # ==========================================
         try:
             parent = Parent.objects.get(matricule_parental=username)

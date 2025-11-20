@@ -19,7 +19,7 @@ body {
   border-radius: 28px;
   box-shadow: 0 18px 45px -20px rgba(17, 24, 39, 0.35);
   padding: 10px 18px 14px;
-  z-index: 0;
+  z-index: 2;
   border: 1px solid rgba(229, 231, 235, 0.8);
   position: fixed;
   overflow: hidden;
@@ -305,6 +305,7 @@ body {
   max-width: 1500px;
 }
 
+/* Configuration par défaut : masquer les éléments complémentaires et afficher le bouton menu */
 .bottom-nav-directeur .nav-item-desktop-only,
 .bottom-nav-directeur .nav-item-extra {
   display: none;
@@ -314,7 +315,8 @@ body {
   display: block;
 }
 
-@media (min-width: 1000px) {
+/* À partir de 1350px : afficher 7 icônes principales + bouton menu, le reste dans le menu complémentaire */
+@media (min-width: 1350px) {
   .bottom-nav-directeur .bottom-nav-list {
     justify-content: center;
     gap: 24px;
@@ -329,9 +331,52 @@ body {
     padding: 12px 10px;
   }
 
+  /* Afficher les 7 premiers éléments (nav-item-main-7) dans la barre de navigation */
+  /* Accueil, Pédagogie, Élèves, Établissement, Administration, Annonces, Profil */
+  /* Même s'ils ont aussi nav-item-complementary, on les affiche car ils sont dans les 7 premiers */
+  .bottom-nav-directeur .nav-item-main-7 {
+    display: block !important;
+  }
+
+  /* Cacher uniquement les éléments complémentaires qui ne sont PAS dans les 7 premiers */
+  /* C'est-à-dire ceux qui ont nav-item-complementary mais PAS nav-item-main-7 */
+  .bottom-nav-directeur .nav-item-complementary:not(.nav-item-main-7) {
+    display: none;
+  }
+
+  /* Afficher le bouton menu pour accéder aux liens complémentaires */
+  .bottom-nav-directeur .menu-toggle-item {
+    display: block;
+  }
+}
+
+/* Au-delà de 1360px : afficher TOUS les liens dans la barre et masquer le bouton menu */
+@media (min-width: 1360px) {
+  .bottom-nav-directeur .bottom-nav-list {
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: nowrap;
+  }
+
+  .bottom-nav-directeur .bottom-nav-item {
+    flex: 0 0 auto;
+  }
+
+  .bottom-nav-directeur .bottom-nav-item a {
+    padding: 12px 10px;
+  }
+
+  /* Afficher TOUS les éléments dans la barre de navigation (9 liens au total) */
+  .bottom-nav-directeur .nav-item-main-7,
+  .bottom-nav-directeur .nav-item-complementary,
   .bottom-nav-directeur .nav-item-desktop-only,
   .bottom-nav-directeur .nav-item-extra {
-    display: block;
+    display: block !important;
+  }
+
+  /* Masquer le bouton menu car tous les liens sont visibles */
+  .bottom-nav-directeur .menu-toggle-item {
+    display: none;
   }
 }
 

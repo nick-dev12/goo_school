@@ -214,11 +214,14 @@ def marquer_notification_parent(request, notification_id):
 def deconnexion_parent(request):
     """
     Déconnexion du parent
-    Nettoie la session avant de déconnecter
+    Nettoie complètement la session et affiche un message de confirmation
     """
     from django.contrib.auth import logout
+    from school_admin.authentication_backends import _user_type_context
     
-    # Nettoyer les données de session
+    # Nettoyer les données de session spécifiques au parent (avant logout)
+    # Note: logout() fera flush() de toute la session, mais on nettoie quand même
+    # pour être explicite et éviter des problèmes si logout() échoue
     if 'parent_id' in request.session:
         del request.session['parent_id']
     if 'parent_matricule' in request.session:
@@ -230,8 +233,16 @@ def deconnexion_parent(request):
     if 'mode_consultation_parent' in request.session:
         del request.session['mode_consultation_parent']
     
+    # Nettoyer le thread-local
+    if hasattr(_user_type_context, 'user_type'):
+        delattr(_user_type_context, 'user_type')
+    
+    # Déconnecter l'utilisateur (nettoie la session avec flush())
     logout(request)
-    messages.success(request, "Vous avez été déconnecté avec succès.")
+    
+    # Ajouter un message de succès APRÈS logout()
+    messages.success(request, "Déconnexion réussie. Vous avez été déconnecté avec succès.")
+    
     return redirect('school_admin:connexion_compte_user')
 
 

@@ -43,8 +43,29 @@ class AdministrateurCompteController:
     def logout_user_administrateur(request):
         """
         Déconnexion d'un compte administrateur
+        Nettoie complètement la session et affiche un message de confirmation
+        
+        IMPORTANT: Le message doit être ajouté APRÈS logout() car logout() fait flush()
+        de la session, mais Django permet d'ajouter des messages après dans la nouvelle session.
         """
+        from school_admin.authentication_backends import _user_type_context
+        
+        # Nettoyer le type d'utilisateur de la session (avant logout)
+        if '_auth_user_type' in request.session:
+            del request.session['_auth_user_type']
+        
+        # Nettoyer le thread-local
+        if hasattr(_user_type_context, 'user_type'):
+            delattr(_user_type_context, 'user_type')
+        
+        # Déconnecter l'utilisateur (nettoie la session avec flush())
         logout(request)
+        
+        # Ajouter un message de succès APRÈS logout()
+        # Django permet d'ajouter des messages après logout() dans la nouvelle session vide
+        messages.success(request, "Déconnexion réussie. Vous avez été déconnecté avec succès.")
+        
+        # Rediriger vers la page de connexion
         return redirect('school_admin:connexion_compte_user')
     
     

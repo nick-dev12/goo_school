@@ -8228,7 +8228,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\nimport os\n# ...\nSTATIC_URL = '/static/'\nSTATICFILES_DIRS = [\n    os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application\n]\n# Configuration des sessions\nSESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé\n# Age de la session en secondes",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\nimport os\n# ...\nSTATIC_URL = '/static/'\nSTATICFILES_DIRS = [\n    os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application\n]\n# Configuration des sessions - Connexion persistante \"à vie\"\n# La session ne s'expire jamais tant que l'utilisateur ne se déconnecte pas manuellement\nSESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session ne expire pas quand le navigateur est fermé",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8237,7 +8237,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "STATIC_URL = '/static/'\nSTATICFILES_DIRS = [\n    os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application\n]\n# Configuration des sessions\nSESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé\n# Age de la session en secondes\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/",
+        "peekOfCode": "STATIC_URL = '/static/'\nSTATICFILES_DIRS = [\n    os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application\n]\n# Configuration des sessions - Connexion persistante \"à vie\"\n# La session ne s'expire jamais tant que l'utilisateur ne se déconnecte pas manuellement\nSESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session ne expire pas quand le navigateur est fermé\nSESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête pour la maintenir active\n# Age de la session en secondes - 10 ans (connexion persistante)\n# La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8246,7 +8246,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "STATICFILES_DIRS = [\n    os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application\n]\n# Configuration des sessions\nSESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé\n# Age de la session en secondes\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!",
+        "peekOfCode": "STATICFILES_DIRS = [\n    os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application\n]\n# Configuration des sessions - Connexion persistante \"à vie\"\n# La session ne s'expire jamais tant que l'utilisateur ne se déconnecte pas manuellement\nSESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session ne expire pas quand le navigateur est fermé\nSESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête pour la maintenir active\n# Age de la session en secondes - 10 ans (connexion persistante)\n# La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8255,7 +8255,16 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "SESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé\n# Age de la session en secondes\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!\n# DEBUG est False en production, True en développement",
+        "peekOfCode": "SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session ne expire pas quand le navigateur est fermé\nSESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête pour la maintenir active\n# Age de la session en secondes - 10 ans (connexion persistante)\n# La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "SESSION_SAVE_EVERY_REQUEST",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "SESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête pour la maintenir active\n# Age de la session en secondes - 10 ans (connexion persistante)\n# La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST\nSESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -8264,7 +8273,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!\n# DEBUG est False en production, True en développement\n# Par défaut, True en développement local\nDEBUG = os.getenv('DEBUG', 'True').lower() == 'true'",
+        "peekOfCode": "SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\n# Utiliser une variable d'environnement en production\nSECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')\n# SECURITY WARNING: don't run with debug turned on in production!\n# DEBUG est False en production, True en développement\n# Par défaut, True en développement local\nDEBUG = os.getenv('DEBUG', 'True').lower() == 'true'",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -12404,7 +12413,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.eleve_view",
         "description": "school_admin.personal_views.eleve_view",
-        "peekOfCode": "def deconnexion_eleve(request):\n    \"\"\"\n    Déconnexion de l'élève\n    \"\"\"\n    from django.contrib.auth import logout\n    logout(request)\n    messages.success(request, \"Vous avez été déconnecté avec succès.\")\n    return redirect('school_admin:connexion_compte_user')\ndef emploi_du_temps_eleve(request):\n    \"\"\"",
+        "peekOfCode": "def deconnexion_eleve(request):\n    \"\"\"\n    Déconnexion de l'élève\n    Nettoie complètement la session et affiche un message de confirmation\n    \"\"\"\n    from django.contrib.auth import logout\n    from school_admin.authentication_backends import _user_type_context\n    # Nettoyer le thread-local\n    if hasattr(_user_type_context, 'user_type'):\n        delattr(_user_type_context, 'user_type')",
         "detail": "school_admin.personal_views.eleve_view",
         "documentation": {}
     },
@@ -13133,7 +13142,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.parent_view",
         "description": "school_admin.personal_views.parent_view",
-        "peekOfCode": "def deconnexion_parent(request):\n    \"\"\"\n    Déconnexion du parent\n    Nettoie la session avant de déconnecter\n    \"\"\"\n    from django.contrib.auth import logout\n    # Nettoyer les données de session\n    if 'parent_id' in request.session:\n        del request.session['parent_id']\n    if 'parent_matricule' in request.session:",
+        "peekOfCode": "def deconnexion_parent(request):\n    \"\"\"\n    Déconnexion du parent\n    Nettoie complètement la session et affiche un message de confirmation\n    \"\"\"\n    from django.contrib.auth import logout\n    from school_admin.authentication_backends import _user_type_context\n    # Nettoyer les données de session spécifiques au parent (avant logout)\n    # Note: logout() fera flush() de toute la session, mais on nettoie quand même\n    # pour être explicite et éviter des problèmes si logout() échoue",
         "detail": "school_admin.personal_views.parent_view",
         "documentation": {}
     },

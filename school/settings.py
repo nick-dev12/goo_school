@@ -24,10 +24,13 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application
 ]
-# Configuration des sessions
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False # La session ne expire pas quand le navigateur est fermé
-# Age de la session en secondes
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 semaines
+# Configuration des sessions - Connexion persistante "à vie"
+# La session ne s'expire jamais tant que l'utilisateur ne se déconnecte pas manuellement
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session ne expire pas quand le navigateur est fermé
+SESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête pour la maintenir active
+# Age de la session en secondes - 10 ans (connexion persistante)
+# La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)
 
 
 # Quick-start development settings - unsuitable for production

@@ -234,6 +234,13 @@ class CompteUserController:
                 logger.info(f"Résultat authentification - User: {user}, Type: {type(user).__name__ if user else 'None'}")
                 if user is not None:
                     login(request, user)
+                    
+                    # Configuration de la session persistante "à vie"
+                    # Définir une expiration très longue (10 ans) pour que la session ne s'expire jamais
+                    # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
+                    from datetime import timedelta
+                    request.session.set_expiry(timedelta(days=365 * 10))  # 10 ans
+                    
                     # Stocker le type d'utilisateur dans la session pour get_user()
                     user_type_map = {
                         'Etablissement': 'etablissement',
@@ -245,7 +252,7 @@ class CompteUserController:
                     }
                     user_type = user_type_map.get(type(user).__name__, 'unknown')
                     request.session['_auth_user_type'] = user_type
-                    logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}")
+                    logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
                     
                     # Redirection vers l'URL next si présente, sinon vers le tableau de bord approprié
                     if next_url:

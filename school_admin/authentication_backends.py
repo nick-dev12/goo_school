@@ -111,26 +111,68 @@ class MultiUserBackend(BaseBackend):
     def get_user(self, user_id):
         """
         Récupère un utilisateur par son ID en vérifiant tous les modèles.
-        STRATÉGIE: Chaque section est indépendante et cherche dans SA PROPRE TABLE.
-        
-        IMPORTANT: Pour éviter les conflits d'ID entre tables, on vérifie
-        systématiquement dans toutes les tables, mais dans un ordre optimisé
-        selon la fréquence d'utilisation.
+        STRATÉGIE: Utilise le type d'utilisateur stocké dans la session pour chercher
+        directement dans la bonne table, évitant ainsi les conflits d'ID entre tables.
         """
         import logging
+        from django.contrib.sessions.models import Session
+        
         logger = logging.getLogger(__name__)
         
         print(f"\n[GET_USER] Recherche utilisateur avec ID: {user_id}")
         logger.debug(f"get_user appelé avec user_id: {user_id}")
         
+        # IMPORTANT: L'ordre de recherche est crucial car les IDs peuvent se chevaucher entre tables.
+        # On cherche d'abord les types les plus fréquents dans ce système.
+        # Ordre optimisé: Professeur > Eleve > Parent > Etablissement > CompteUser > PersonnelAdministratif
+        
         # ==========================================
-        # SECTION 1: ÉTABLISSEMENTS (Directeurs)
-        # Priorité 1 car c'est le type le plus fréquent
+        # SECTION 1: PROFESSEURS (Priorité 1 - le plus fréquent)
+        # ==========================================
+        try:
+            user = Professeur.objects.get(pk=user_id)
+            nom_complet = user.nom_complet if hasattr(user, 'nom_complet') else f"{user.nom} {user.prenom}"
+            print(f"[GET_USER] [OK] PROFESSEUR trouve: {nom_complet} (ID: {user.id})")
+            logger.info(f"Professeur trouvé: {getattr(user, 'email', 'N/A')}")
+            return user
+        except Professeur.DoesNotExist:
+            logger.debug(f"Pas de Professeur avec ID {user_id}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche dans Professeur: {e}")
+        
+        # ==========================================
+        # SECTION 2: ÉLÈVES (Priorité 2)
+        # ==========================================
+        try:
+            user = Eleve.objects.get(pk=user_id)
+            print(f"[GET_USER] [OK] ELEVE trouve: {user.nom_complet} (ID: {user.id})")
+            logger.info(f"Eleve trouvé: {getattr(user, 'email', 'N/A')}")
+            return user
+        except Eleve.DoesNotExist:
+            logger.debug(f"Pas d'Eleve avec ID {user_id}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche dans Eleve: {e}")
+        
+        # ==========================================
+        # SECTION 3: PARENTS (Priorité 3)
+        # ==========================================
+        try:
+            user = Parent.objects.get(pk=user_id)
+            print(f"[GET_USER] [OK] PARENT trouve: {user.nom_complet} (ID: {user.id})")
+            logger.info(f"Parent trouvé: {getattr(user, 'email', 'N/A')}")
+            return user
+        except Parent.DoesNotExist:
+            logger.debug(f"Pas de Parent avec ID {user_id}")
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche dans Parent: {e}")
+        
+        # ==========================================
+        # SECTION 4: ÉTABLISSEMENTS (Directeurs)
         # ==========================================
         try:
             user = Etablissement.objects.get(pk=user_id)
             print(f"[GET_USER] [OK] ETABLISSEMENT trouve: {user.nom} (ID: {user.id})")
-            logger.info(f"Établissement trouvé: {user.email}")
+            logger.info(f"Établissement trouvé: {getattr(user, 'email', 'N/A')}")
             return user
         except Etablissement.DoesNotExist:
             logger.debug(f"Pas d'établissement avec ID {user_id}")
@@ -138,8 +180,7 @@ class MultiUserBackend(BaseBackend):
             logger.error(f"Erreur lors de la recherche dans Etablissement: {e}")
         
         # ==========================================
-        # SECTION 2: COMPTE UTILISATEURS (Admin, Commercial, etc.)
-        # Priorité 2 pour les administrateurs système
+        # SECTION 5: COMPTE UTILISATEURS (Admin, Commercial, etc.)
         # ==========================================
         try:
             user = CompteUser.objects.get(pk=user_id)
@@ -152,61 +193,18 @@ class MultiUserBackend(BaseBackend):
             logger.error(f"Erreur lors de la recherche dans CompteUser: {e}")
         
         # ==========================================
-        # SECTION 3: PERSONNEL ADMINISTRATIF
-        # Priorité 3 pour le personnel de l'établissement
+        # SECTION 6: PERSONNEL ADMINISTRATIF
         # ==========================================
         try:
             user = PersonnelAdministratif.objects.get(pk=user_id)
             print(f"[GET_USER] [OK] PERSONNEL trouve: {user.nom} {user.prenom} (ID: {user.id}, Fonction: {user.fonction})")
-            logger.info(f"PersonnelAdministratif trouvé: {user.email}")
+            logger.info(f"PersonnelAdministratif trouvé: {getattr(user, 'email', 'N/A')}")
             return user
         except PersonnelAdministratif.DoesNotExist:
             logger.debug(f"Pas de PersonnelAdministratif avec ID {user_id}")
         except Exception as e:
             logger.error(f"Erreur lors de la recherche dans PersonnelAdministratif: {e}")
         
-        # ==========================================
-        # SECTION 4: PROFESSEURS
-        # Priorité 4 pour les enseignants
-        # ==========================================
-        try:
-            user = Professeur.objects.get(pk=user_id)
-            nom_complet = user.nom_complet if hasattr(user, 'nom_complet') else f"{user.nom} {user.prenom}"
-            print(f"[GET_USER] [OK] PROFESSEUR trouve: {nom_complet} (ID: {user.id})")
-            logger.info(f"Professeur trouvé: {user.email}")
-            return user
-        except Professeur.DoesNotExist:
-            logger.debug(f"Pas de Professeur avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Professeur: {e}")
-        
-        # ==========================================
-        # SECTION 5: ÉLÈVES
-        # Priorité 5 pour les élèves
-        # ==========================================
-        try:
-            user = Eleve.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] ELEVE trouve: {user.nom_complet} (ID: {user.id})")
-            logger.info(f"Eleve trouvé: {user.email}")
-            return user
-        except Eleve.DoesNotExist:
-            logger.debug(f"Pas d'Eleve avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Eleve: {e}")
-        
-        # ==========================================
-        # SECTION 6: PARENTS
-        # Priorité 6 pour les parents
-        # ==========================================
-        try:
-            user = Parent.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] PARENT trouve: {user.nom_complet} (ID: {user.id})")
-            logger.info(f"Parent trouvé: {user.email}")
-            return user
-        except Parent.DoesNotExist:
-            logger.debug(f"Pas de Parent avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Parent: {e}")
         
         # ==========================================
         # AUCUN UTILISATEUR TROUVÉ

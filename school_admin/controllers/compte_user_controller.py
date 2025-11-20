@@ -189,8 +189,10 @@ class CompteUserController:
         
         if request.method == 'POST':
             # Récupération des données
+            email_input = request.POST.get('email', '').strip()
             form_data = {
-                'username': request.POST.get('email', '').strip(),
+                'username': email_input,
+                'email': email_input,  # Pour compatibilité avec le template
                 'password': request.POST.get('password', '').strip(),
             }
             
@@ -232,7 +234,18 @@ class CompteUserController:
                 logger.info(f"Résultat authentification - User: {user}, Type: {type(user).__name__ if user else 'None'}")
                 if user is not None:
                     login(request, user)
-                    logger.info(f"Login réussi pour {user.email}, Type: {type(user).__name__}")
+                    # Stocker le type d'utilisateur dans la session pour get_user()
+                    user_type_map = {
+                        'Etablissement': 'etablissement',
+                        'CompteUser': 'compte_user',
+                        'PersonnelAdministratif': 'personnel',
+                        'Professeur': 'professeur',
+                        'Eleve': 'eleve',
+                        'Parent': 'parent',
+                    }
+                    user_type = user_type_map.get(type(user).__name__, 'unknown')
+                    request.session['_auth_user_type'] = user_type
+                    logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}")
                     
                     # Redirection vers l'URL next si présente, sinon vers le tableau de bord approprié
                     if next_url:

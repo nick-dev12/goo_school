@@ -15,16 +15,6 @@ class EvaluationPrimaire(models.Model):
     Chaque évaluation est liée à une matière spécifique.
     """
     
-    TYPE_CHOICES = [
-        ('controle', 'Contrôle écrit'),
-        ('interrogation', 'Interrogation'),
-        ('devoir_maison', 'Devoir maison'),
-        ('projet', 'Projet'),
-        ('oral', 'Évaluation orale'),
-        ('pratique', 'Évaluation pratique'),
-        ('composition', 'Composition'),
-    ]
-    
     titre = models.CharField(
         max_length=200,
         verbose_name="Titre de l'évaluation"
@@ -33,12 +23,6 @@ class EvaluationPrimaire(models.Model):
         blank=True,
         null=True,
         verbose_name="Description"
-    )
-    type_evaluation = models.CharField(
-        max_length=20,
-        choices=TYPE_CHOICES,
-        default='controle',
-        verbose_name="Type d'évaluation"
     )
     matiere = models.ForeignKey(
         Matiere,
@@ -76,11 +60,6 @@ class EvaluationPrimaire(models.Model):
         blank=True,
         related_name='evaluations_primaire',
         verbose_name="Période scolaire"
-    )
-    duree = models.PositiveIntegerField(
-        blank=True,
-        null=True,
-        verbose_name="Durée (en minutes)"
     )
     actif = models.BooleanField(
         default=True,
@@ -137,11 +116,6 @@ class EvaluationPrimaire(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
-    
-    @property
-    def type_display(self):
-        """Retourne l'affichage du type"""
-        return dict(self.TYPE_CHOICES).get(self.type_evaluation, self.type_evaluation)
     
     @property
     def est_passe(self):

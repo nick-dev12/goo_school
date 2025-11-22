@@ -505,7 +505,7 @@ def inscription_eleves(request):
                             nom=form_data['parent_nom'],
                             prenom=form_data['parent_prenom'],
                             telephone=form_data['parent_telephone'],
-                            email=form_data['parent_email'] if form_data['parent_email'] else f"{form_data['matricule_parent']}@temp.sn",
+                            email=form_data['parent_email'] if form_data['parent_email'] else '',
                             adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
                             profession=form_data['parent_profession'] if form_data['parent_profession'] else '',
                             etablissement=etablissement,

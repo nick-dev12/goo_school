@@ -9,8 +9,8 @@
     --text-light: #64748b;
     --border-color: #e5e7eb;
     --bg-light: #f8fafc;
-    --radius-sm: 8px;
-    --radius-md: 12px;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
@@ -22,9 +22,19 @@
     --gravite-tres-grave: #dc2626;
 }
 
+/* Base typographique */
+html {
+    font-size: 16px; /* Base pour le calcul des rem */
+}
+
+body {
+    font-size: 1rem; /* 16px */
+    line-height: 1.5;
+}
+
 /* Conteneur principal */
 .content-container {
-    padding: 15px;
+    padding: 1.25rem;
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -36,45 +46,49 @@
 
 /* En-tête de page */
 .page-header {
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
 }
 
+/* H2 - Titre principal */
 .page-title {
-    font-size: 1.5rem;
+    font-size: 1.5rem; /* 24px mobile par défaut */
     font-weight: 700;
     color: var(--text-color);
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
+    gap: 0.625rem;
+    margin-bottom: 0.375rem;
+    line-height: 1.3;
 }
 
 .page-title i {
     color: var(--danger-color);
-    font-size: 1.25rem;
+    font-size: 1.5rem;
 }
 
+/* Sous-titre */
 .page-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.875rem; /* 14px mobile */
     color: var(--text-light);
-    margin-left: 35px;
+    margin-left: 2.1875rem;
+    line-height: 1.5;
 }
 
 /* Grille de statistiques */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
 }
 
 .stat-card {
     background: white;
     border-radius: var(--radius-sm);
-    padding: 16px;
+    padding: 1rem;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 0.875rem;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
 }
@@ -85,13 +99,13 @@
 }
 
 .stat-icon {
-    width: 45px;
-    height: 45px;
-    border-radius: 10px;
+    width: 2.8125rem;
+    height: 2.8125rem;
+    border-radius: 0.625rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 1.125rem;
     flex-shrink: 0;
 }
 
@@ -120,45 +134,47 @@
 }
 
 .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.5rem; /* 24px mobile par défaut */
     font-weight: 700;
     color: var(--text-color);
-    line-height: 1;
-    margin-bottom: 5px;
+    line-height: 1.2;
+    margin-bottom: 0.3125rem;
 }
 
 .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.8125rem; /* 13px mobile */
     color: var(--text-light);
     font-weight: 500;
-    margin-bottom: 2px;
+    margin-bottom: 0.125rem;
+    line-height: 1.4;
 }
 
 .stat-detail {
-    font-size: 0.7rem;
+    font-size: 0.75rem; /* 12px mobile */
     color: var(--text-light);
+    line-height: 1.5;
 }
 
 /* Onglets de périodes */
 .periodes-tabs-container {
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
 }
 
 .periodes-tabs {
     display: flex;
-    gap: 10px;
+    gap: 0.625rem;
     overflow-x: auto;
-    padding-bottom: 8px;
+    padding-bottom: 0.5rem;
 }
 
 .periode-tab {
     background: white;
     border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    min-width: 200px;
+    padding: 0.75rem 0.875rem;
+    min-width: 12.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    border: 2px solid transparent;
+    border: 0.125rem solid transparent;
     box-shadow: var(--shadow-sm);
 }
 
@@ -175,11 +191,11 @@
 .tab-icon {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .tab-icon i {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--danger-color);
 }
 
@@ -188,31 +204,34 @@
 }
 
 .tab-title {
-    font-size: 0.85rem;
+    font-size: 0.875rem; /* 14px mobile */
     font-weight: 600;
     color: var(--text-color);
-    margin-bottom: 3px;
+    margin-bottom: 0.1875rem;
+    line-height: 1.4;
 }
 
 .tab-period {
-    font-size: 0.7rem;
+    font-size: 0.75rem; /* 12px mobile */
     color: var(--text-light);
+    line-height: 1.5;
 }
 
 .tab-stats {
     display: flex;
-    gap: 6px;
-    margin-top: 6px;
+    gap: 0.375rem;
+    margin-top: 0.375rem;
     flex-wrap: wrap;
 }
 
 .tab-stat {
-    font-size: 0.65rem;
-    padding: 3px 8px;
-    border-radius: 10px;
+    font-size: 0.6875rem; /* 11px mobile */
+    padding: 0.1875rem 0.5rem;
+    border-radius: 0.625rem;
     font-weight: 600;
     background: var(--bg-light);
     color: var(--text-color);
+    line-height: 1.4;
 }
 
 .tab-stat.graves {
@@ -249,16 +268,16 @@
 .sanctions-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .sanction-card {
     background: white;
     border-radius: var(--radius-sm);
-    padding: 16px;
+    padding: 1rem;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
-    border: 1px solid var(--border-color);
+    border: 0.0625rem solid var(--border-color);
 }
 
 .sanction-card:hover {
@@ -268,12 +287,12 @@
 
 .sanction-header {
     display: flex;
-    gap: 14px;
+    gap: 0.875rem;
 }
 
 .sanction-date-box {
-    width: 60px;
-    height: 60px;
+    width: 3.75rem;
+    height: 3.75rem;
     border-radius: var(--radius-sm);
     background: linear-gradient(135deg, #f8fafc, #e5e7eb);
     display: flex;
@@ -281,29 +300,31 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid var(--border-color);
+    border: 0.0625rem solid var(--border-color);
 }
 
 .date-jour {
-    font-size: 1.25rem;
+    font-size: 1.25rem; /* 20px mobile */
     font-weight: 700;
     color: var(--text-color);
-    line-height: 1;
+    line-height: 1.2;
 }
 
 .date-mois {
-    font-size: 0.6rem;
+    font-size: 0.625rem; /* 10px mobile */
     font-weight: 600;
     color: var(--text-light);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 3px;
+    letter-spacing: 0.03125rem;
+    margin-top: 0.1875rem;
+    line-height: 1.4;
 }
 
 .date-annee {
-    font-size: 0.55rem;
+    font-size: 0.5625rem; /* 9px mobile */
     color: var(--text-light);
-    margin-top: 1px;
+    margin-top: 0.0625rem;
+    line-height: 1.4;
 }
 
 .sanction-main {
@@ -313,20 +334,21 @@
 .sanction-title-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
     flex-wrap: wrap;
 }
 
 .sanction-type-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 14px;
-    font-size: 0.75rem;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 0.875rem;
+    font-size: 0.75rem; /* 12px mobile */
     font-weight: 600;
     white-space: nowrap;
+    line-height: 1.4;
 }
 
 .badge-legere {
@@ -352,11 +374,12 @@
 .gravite-badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 0.7rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem; /* 12px mobile */
     font-weight: 600;
     white-space: nowrap;
+    line-height: 1.4;
 }
 
 .gravite-legere {
@@ -382,10 +405,11 @@
 .sanction-raison {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
+    gap: 0.375rem;
+    font-size: 0.875rem; /* 14px mobile */
     color: var(--text-color);
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
 }
 
 .sanction-raison i {
@@ -396,41 +420,42 @@
 .sanction-description {
     background: var(--bg-light);
     border-radius: var(--radius-sm);
-    padding: 10px;
-    margin-bottom: 8px;
+    padding: 0.625rem;
+    margin-bottom: 0.5rem;
 }
 
 .sanction-description i {
     color: var(--text-light);
-    margin-right: 6px;
-    font-size: 0.7rem;
+    margin-right: 0.375rem;
+    font-size: 0.75rem;
 }
 
 .sanction-description p {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: 0.8125rem; /* 13px mobile */
     color: var(--text-color);
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .sanction-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
+    gap: 0.75rem;
+    padding-top: 0.625rem;
+    border-top: 0.0625rem solid var(--border-color);
 }
 
 .meta-item {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.7rem;
+    gap: 0.3125rem;
+    font-size: 0.75rem; /* 12px mobile */
     color: var(--text-light);
+    line-height: 1.5;
 }
 
 .meta-item i {
-    font-size: 0.65rem;
+    font-size: 0.6875rem;
     color: var(--primary-color);
 }
 
@@ -445,181 +470,379 @@
 /* État vide */
 .empty-state {
     text-align: center;
-    padding: 40px 20px;
+    padding: 2.5rem 1.25rem;
     background: white;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-sm);
 }
 
 .empty-icon {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 16px;
+    width: 3.75rem;
+    height: 3.75rem;
+    margin: 0 auto 1rem;
     border-radius: 50%;
     background: var(--bg-light);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 1.5rem;
     color: var(--text-light);
 }
 
+/* H3 - Titre état vide */
 .empty-state h3 {
-    font-size: 1rem;
+    font-size: 1rem; /* 16px mobile */
     font-weight: 600;
     color: var(--text-color);
-    margin-bottom: 6px;
+    margin-bottom: 0.375rem;
+    line-height: 1.4;
 }
 
+/* Paragraphe */
 .empty-state p {
-    font-size: 0.8rem;
+    font-size: 0.875rem; /* 14px mobile */
     color: var(--text-light);
+    line-height: 1.5;
 }
 
-/* Responsive Design */
+/* Media queries pour responsive */
 @media (max-width: 768px) {
-    .content-container {
-        padding: 10px;
+    /* Mobile */
+    html {
+        font-size: 16px;
     }
 
+    .content-container {
+        padding: 0.625rem;
+    }
+
+    /* H2 - Titre principal mobile */
     .page-title {
-        font-size: 1.25rem;
+        font-size: 1.5rem; /* 24px mobile */
     }
 
     .page-title i {
-        font-size: 1rem;
+        font-size: 1.5rem;
     }
 
+    /* Sous-titre mobile */
     .page-subtitle {
         margin-left: 0;
-        font-size: 0.75rem;
+        font-size: 0.875rem; /* 14px mobile */
     }
 
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        gap: 0.5rem;
     }
 
     .stat-card {
-        padding: 12px;
-        gap: 10px;
+        padding: 0.75rem;
+        gap: 0.625rem;
     }
 
     .stat-icon {
-        width: 35px;
-        height: 35px;
-        font-size: 14px;
+        width: 2.1875rem;
+        height: 2.1875rem;
+        font-size: 0.875rem;
     }
 
     .stat-value {
-        font-size: 1.25rem;
+        font-size: 1.25rem; /* 20px mobile */
     }
 
     .stat-label {
-        font-size: 0.7rem;
+        font-size: 0.75rem; /* 12px mobile */
     }
 
     .stat-detail {
-        font-size: 0.65rem;
+        font-size: 0.6875rem; /* 11px mobile */
     }
 
     .sanctions-list {
-        gap: 10px;
+        gap: 0.625rem;
     }
 
     .sanction-card {
-        padding: 12px;
+        padding: 0.75rem;
     }
 
     .sanction-header {
         flex-direction: column;
-        gap: 10px;
+        gap: 0.625rem;
     }
 
     .sanction-date-box {
         align-self: flex-start;
-        width: 50px;
-        height: 50px;
+        width: 3.125rem;
+        height: 3.125rem;
     }
 
     .date-jour {
-        font-size: 1rem;
+        font-size: 1rem; /* 16px mobile */
     }
 
     .date-mois {
-        font-size: 0.55rem;
+        font-size: 0.5625rem; /* 9px mobile */
     }
 
     .date-annee {
-        font-size: 0.5rem;
+        font-size: 0.5rem; /* 8px mobile */
     }
 
     .sanction-type-badge {
-        font-size: 0.7rem;
-        padding: 4px 10px;
+        font-size: 0.75rem; /* 12px mobile */
+        padding: 0.25rem 0.625rem;
     }
 
     .gravite-badge {
-        font-size: 0.65rem;
-        padding: 3px 8px;
+        font-size: 0.6875rem; /* 11px mobile */
+        padding: 0.1875rem 0.5rem;
     }
 
     .sanction-raison {
-        font-size: 0.75rem;
+        font-size: 0.8125rem; /* 13px mobile */
     }
 
     .sanction-description p {
-        font-size: 0.7rem;
+        font-size: 0.75rem; /* 12px mobile */
     }
 
     .sanction-meta {
         flex-direction: column;
-        gap: 6px;
-        padding-top: 8px;
+        gap: 0.375rem;
+        padding-top: 0.5rem;
     }
 
     .meta-item {
-        font-size: 0.65rem;
+        font-size: 0.6875rem; /* 11px mobile */
     }
 
     .periodes-tabs {
-        gap: 8px;
+        gap: 0.5rem;
     }
 
     .periode-tab {
-        min-width: 160px;
-        padding: 10px;
+        min-width: 10rem;
+        padding: 0.625rem;
     }
 
     .tab-title {
-        font-size: 0.75rem;
+        font-size: 0.8125rem; /* 13px mobile */
     }
 
     .tab-period {
-        font-size: 0.65rem;
+        font-size: 0.6875rem; /* 11px mobile */
     }
 
     .tab-stat {
-        font-size: 0.6rem;
-        padding: 2px 6px;
+        font-size: 0.625rem; /* 10px mobile */
+        padding: 0.125rem 0.375rem;
     }
 
     .empty-state {
-        padding: 30px 15px;
+        padding: 1.875rem 0.9375rem;
     }
 
     .empty-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
+        width: 3.125rem;
+        height: 3.125rem;
+        font-size: 1.25rem;
     }
 
+    /* H3 mobile */
     .empty-state h3 {
-        font-size: 0.9rem;
+        font-size: 1rem; /* 16px mobile */
     }
 
     .empty-state p {
+        font-size: 0.8125rem; /* 13px mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    /* Mobile très petit */
+    .content-container {
+        padding: 0.5rem;
+    }
+
+    /* H2 mobile très petit */
+    .page-title {
+        font-size: 1.25rem; /* 20px mobile très petit */
+    }
+
+    .page-title i {
+        font-size: 1.25rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.8125rem; /* 13px mobile très petit */
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .stat-card {
+        padding: 0.625rem;
+        gap: 0.5rem;
+    }
+
+    .stat-icon {
+        width: 2rem;
+        height: 2rem;
         font-size: 0.75rem;
+    }
+
+    .stat-value {
+        font-size: 1.125rem; /* 18px mobile très petit */
+    }
+
+    .stat-label {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+    }
+
+    .stat-detail {
+        font-size: 0.625rem; /* 10px mobile très petit */
+    }
+
+    .sanction-date-box {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .date-jour {
+        font-size: 0.9375rem; /* 15px mobile très petit */
+    }
+
+    .date-mois {
+        font-size: 0.5rem; /* 8px mobile très petit */
+    }
+
+    .date-annee {
+        font-size: 0.4375rem; /* 7px mobile très petit */
+    }
+
+    .sanction-type-badge {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+        padding: 0.1875rem 0.5rem;
+    }
+
+    .gravite-badge {
+        font-size: 0.625rem; /* 10px mobile très petit */
+        padding: 0.125rem 0.4375rem;
+    }
+
+    .sanction-raison {
+        font-size: 0.75rem; /* 12px mobile très petit */
+    }
+
+    .sanction-description p {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+    }
+
+    .meta-item {
+        font-size: 0.625rem; /* 10px mobile très petit */
+    }
+
+    .periode-tab {
+        min-width: auto;
+        padding: 0.5rem;
+    }
+
+    .tab-title {
+        font-size: 0.75rem; /* 12px mobile très petit */
+    }
+
+    .tab-period {
+        font-size: 0.625rem; /* 10px mobile très petit */
+    }
+
+    .tab-stat {
+        font-size: 0.5625rem; /* 9px mobile très petit */
+        padding: 0.125rem 0.3125rem;
+    }
+
+    /* H3 mobile très petit */
+    .empty-state h3 {
+        font-size: 0.9375rem; /* 15px mobile très petit */
+    }
+
+    .empty-state p {
+        font-size: 0.75rem; /* 12px mobile très petit */
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* Tablette */
+    html {
+        font-size: 16px;
+    }
+
+    /* H2 - Titre principal tablette */
+    .page-title {
+        font-size: 1.75rem; /* 28px tablette */
+    }
+
+    /* Sous-titre tablette */
+    .page-subtitle {
+        font-size: 1rem; /* 16px tablette */
+    }
+
+    .stat-value {
+        font-size: 1.75rem; /* 28px tablette */
+    }
+
+    .stat-label {
+        font-size: 0.875rem; /* 14px tablette */
+    }
+
+    .stat-detail {
+        font-size: 0.8125rem; /* 13px tablette */
+    }
+
+    /* H3 tablette */
+    .empty-state h3 {
+        font-size: 1.125rem; /* 18px tablette */
+    }
+
+    .empty-state p {
+        font-size: 0.9375rem; /* 15px tablette */
+    }
+}
+
+@media (min-width: 1025px) {
+    /* Desktop */
+    /* H2 - Titre principal desktop */
+    .page-title {
+        font-size: 2rem; /* 32px desktop */
+    }
+
+    /* Sous-titre desktop */
+    .page-subtitle {
+        font-size: 1rem; /* 16px desktop */
+    }
+
+    .stat-value {
+        font-size: 1.75rem; /* 28px desktop */
+    }
+
+    .stat-label {
+        font-size: 0.875rem; /* 14px desktop */
+    }
+
+    .stat-detail {
+        font-size: 0.8125rem; /* 13px desktop */
+    }
+
+    /* H3 desktop */
+    .empty-state h3 {
+        font-size: 1.125rem; /* 18px desktop */
+    }
+
+    .empty-state p {
+        font-size: 0.9375rem; /* 15px desktop */
     }
 }
 

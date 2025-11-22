@@ -271,3 +271,64 @@ class ListePresence(models.Model):
         self.nombre_absents = presences.filter(statut__in=['absent', 'absent_justifie']).count()
         self.save()
 
+
+class SoumissionListePresence(models.Model):
+    """
+    Modèle pour suivre les soumissions de listes de présence
+    Permet de vérifier qu'une seule liste de présence a été soumise par matière, classe, professeur et date
+    """
+    
+    classe = models.ForeignKey(
+        Classe,
+        on_delete=models.CASCADE,
+        related_name='soumissions_listes_presences',
+        verbose_name="Classe"
+    )
+    professeur = models.ForeignKey(
+        Professeur,
+        on_delete=models.CASCADE,
+        related_name='soumissions_listes_presences',
+        verbose_name="Professeur"
+    )
+    etablissement = models.ForeignKey(
+        Etablissement,
+        on_delete=models.CASCADE,
+        related_name='soumissions_listes_presences',
+        verbose_name="Établissement"
+    )
+    matiere = models.ForeignKey(
+        'Matiere',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='soumissions_listes_presences',
+        verbose_name="Matière"
+    )
+    date = models.DateField(
+        default=timezone.now,
+        verbose_name="Date",
+        db_index=True
+    )
+    date_creation = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de création"
+    )
+    date_soumission = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de soumission"
+    )
+    
+    class Meta:
+        verbose_name = "Soumission de liste de présence"
+        verbose_name_plural = "Soumissions de listes de présence"
+        unique_together = ('classe', 'professeur', 'matiere', 'date')
+        ordering = ['-date', '-date_soumission', 'classe__nom']
+        indexes = [
+            models.Index(fields=['classe', 'matiere', 'date']),
+            models.Index(fields=['professeur', 'date']),
+            models.Index(fields=['etablissement', 'date']),
+        ]
+    
+    def __str__(self):
+        matiere_nom = self.matiere.nom if self.matiere else "Sans matière"
+        return f"Soumission {self.classe.nom} - {matiere_nom} - {self.date}"

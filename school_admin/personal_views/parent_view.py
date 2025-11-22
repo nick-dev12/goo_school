@@ -12,6 +12,7 @@ from school_admin.model.eleve_model import Eleve
 from school_admin.model.lien_familial_model import LienFamilial
 from school_admin.model.demande_liaison_model import DemandeLiaisonParent
 from school_admin.model.notification_parent_model import NotificationParent
+from school_admin.model.convocation_model import Convocation
 import logging
 
 logger = logging.getLogger(__name__)
@@ -794,4 +795,142 @@ def profil_parent(request):
     }
     
     return render(request, 'school_admin/parent/profil_parent.html', context)
+
+
+def convocations_parent(request):
+    """
+    Affiche les convocations des enfants du parent, regroupées par établissement.
+    """
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    parent = request.user
+
+    liens_valides = (
+        LienFamilial.objects.filter(
+            parent=parent,
+            statut='valide',
+            actif=True
+        )
+        .select_related('eleve__etablissement')
+    )
+
+    etablissements_map = {}
+    for lien in liens_valides:
+        eleve = lien.eleve
+        etablissement = getattr(eleve, "etablissement", None)
+
+        if not eleve or not eleve.actif or not etablissement:
+            continue
+
+        entry = etablissements_map.setdefault(
+            etablissement.id,
+            {
+                "etablissement": etablissement,
+                "eleves_ids": set(),
+                "convocations": [],
+            },
+        )
+        entry["eleves_ids"].add(eleve.id)
+
+    if not etablissements_map:
+        messages.warning(
+            request,
+            "Aucun établissement associé à vos enfants n'a été trouvé."
+        )
+        return redirect('school_admin:dashboard_parent')
+
+    etablissements_ids = list(etablissements_map.keys())
+    all_eleves_ids = set()
+    for entry in etablissements_map.values():
+        all_eleves_ids.update(entry["eleves_ids"])
+
+    selected_etablissement_id = request.GET.get('etablissement')
+    today = timezone.now().date()
+
+    # Récupérer toutes les convocations des enfants du parent
+    convocations_queryset = Convocation.objects.filter(
+        eleve_id__in=all_eleves_ids,
+        actif=True
+    ).select_related('eleve', 'etablissement').order_by('-date_convocation', '-heure_convocation')
+
+    # Répartir les convocations par établissement
+    for convocation in convocations_queryset:
+        etab_id = convocation.etablissement_id
+        if etab_id in etablissements_map:
+            etablissements_map[etab_id]["convocations"].append(convocation)
+
+    etablissements_list = sorted(
+        [
+            {
+                "id": etab_id,
+                "etablissement": data["etablissement"],
+                "convocations": sorted(
+                    data["convocations"],
+                    key=lambda c: (c.date_convocation, c.heure_convocation),
+                    reverse=True
+                ),
+                "eleves_count": len(data["eleves_ids"]),
+            }
+            for etab_id, data in etablissements_map.items()
+        ],
+        key=lambda item: item["etablissement"].nom.lower(),
+    )
+
+    etab_ids_sorted = [item["id"] for item in etablissements_list]
+    if selected_etablissement_id and selected_etablissement_id.isdigit():
+        selected_etablissement_id = int(selected_etablissement_id)
+        if selected_etablissement_id not in etab_ids_sorted:
+            selected_etablissement_id = None
+    else:
+        selected_etablissement_id = None
+
+    if selected_etablissement_id is None:
+        selected_etablissement_id = etab_ids_sorted[0] if etab_ids_sorted else None
+
+    convocations_selectionnees = []
+    if selected_etablissement_id:
+        convocations_selectionnees = next(
+            (
+                item["convocations"]
+                for item in etablissements_list
+                if item["id"] == selected_etablissement_id
+            ),
+            []
+        )
+
+    # Statistiques
+    total_convocations = sum(len(item["convocations"]) for item in etablissements_list)
+    convocations_en_attente = sum(
+        1 for conv in convocations_selectionnees
+        if conv.statut == 'en_attente'
+    )
+    convocations_a_venir = sum(
+        1 for conv in convocations_selectionnees
+        if conv.date_convocation >= today
+    )
+    convocations_passees = sum(
+        1 for conv in convocations_selectionnees
+        if conv.date_convocation < today
+    )
+    convocations_honorees = sum(
+        1 for conv in convocations_selectionnees
+        if conv.statut == 'honoree'
+    )
+
+    context = {
+        'parent': parent,
+        'etablissements': etablissements_list,
+        'convocations_selectionnees': convocations_selectionnees,
+        'total_convocations': total_convocations,
+        'convocations_en_attente': convocations_en_attente,
+        'convocations_a_venir': convocations_a_venir,
+        'convocations_passees': convocations_passees,
+        'convocations_honorees': convocations_honorees,
+        'selected_etablissement_id': selected_etablissement_id,
+        'today': today,
+    }
+
+    return render(request, 'school_admin/parent/convocations_parent.html', context)
 

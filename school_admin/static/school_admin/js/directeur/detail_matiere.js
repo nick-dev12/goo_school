@@ -77,6 +77,13 @@ function toggleEditForm() {
                     firstInput.focus();
                 }, 300);
             }
+            
+            // Initialiser les champs coefficient pour les établissements lycée
+            setTimeout(function() {
+                if (typeof window.initCoefficientFields === 'function') {
+                    window.initCoefficientFields();
+                }
+            }, 200);
         } else {
             console.log('Masquage du formulaire');
             // Masquer le formulaire

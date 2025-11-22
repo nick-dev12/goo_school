@@ -703,6 +703,34 @@ class ProfesseurController:
             messages.error(request, "Professeur non trouvé.")
             return redirect('professeur:liste_professeurs')
         
+        # Fonction pour déterminer le niveau d'enseignement en fonction du type d'établissement
+        def get_niveau_from_type_etablissement(type_etablissement):
+            """Détermine le niveau d'enseignement en fonction du type d'établissement"""
+            type_etablissement_lower = str(type_etablissement).lower()
+            
+            # Établissements primaires
+            if type_etablissement_lower in ['primary', 'primaire']:
+                return 'primaire'
+            
+            # Établissements collège
+            elif type_etablissement_lower in ['collège', 'college']:
+                return 'college'
+            
+            # Établissements lycée
+            elif type_etablissement_lower in ['lycée', 'lycee']:
+                return 'lycee'
+            
+            # Établissements collège + lycée
+            elif type_etablissement_lower in ['collège_lycée', 'lycee_college', 'college_lycee']:
+                return 'college'  # On prend le niveau le plus bas
+            
+            # Établissements mixtes (primaire + collège + lycée)
+            elif type_etablissement_lower in ['mixte']:
+                return 'primaire'  # On prend le niveau le plus bas
+            
+            # Par défaut, on retourne 'primaire'
+            return 'primaire'
+        
         form_data = {}
         field_errors = {}
         is_valid = True
@@ -715,67 +743,102 @@ class ProfesseurController:
                 'email': request.POST.get('email', '').strip(),
                 'telephone': request.POST.get('telephone', '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
-                'niveau_enseignement': request.POST.get('niveau_enseignement', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }
+            
+            # Déterminer automatiquement le niveau d'enseignement en fonction du type d'établissement
+            niveau_enseignement = get_niveau_from_type_etablissement(etablissement.type_etablissement)
             
             # Validation
             is_valid = True
             
-            # Champs obligatoires
-            required_fields = ['nom', 'prenom', 'email', 'telephone', 'matiere_principale', 'niveau_enseignement']
-            for field in required_fields:
-                if not form_data[field]:
-                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+            # Pour le primaire, on n'exige pas de matière principale
+            # À la place, on exige au moins une matière secondaire
+            if etablissement.type_etablissement == 'primary':
+                # Champs obligatoires pour le primaire (sans matière principale, email facultatif)
+                required_fields = ['nom', 'prenom', 'telephone']
+                for field in required_fields:
+                    if not form_data[field]:
+                        field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                        is_valid = False
+                
+                # Vérifier qu'au moins une matière est sélectionnée
+                if not form_data['matieres_secondaires']:
+                    field_errors['matieres_secondaires'] = "Veuillez sélectionner au moins une matière pour le primaire."
                     is_valid = False
+                
+                # Pour le primaire, la matière principale sera la première matière secondaire
+                matiere_principale_obj = None
+            else:
+                # Champs obligatoires pour collège/lycée (email facultatif)
+                required_fields = ['nom', 'prenom', 'telephone', 'matiere_principale']
+                for field in required_fields:
+                    if not form_data[field]:
+                        field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                        is_valid = False
+                
+                # Validation de la matière principale
+                matiere_principale_obj = None
+                if form_data['matiere_principale']:
+                    try:
+                        from ..model.matiere_model import Matiere
+                        matiere_principale_obj = Matiere.objects.get(id=form_data['matiere_principale'], etablissement=etablissement)
+                    except Matiere.DoesNotExist:
+                        field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
+                        is_valid = False
             
-            # Validation de la matière principale
-            matiere_principale_obj = None
-            if form_data['matiere_principale']:
-                try:
-                    from ..model.matiere_model import Matiere
-                    matiere_principale_obj = Matiere.objects.get(id=form_data['matiere_principale'], etablissement=etablissement)
-                except Matiere.DoesNotExist:
-                    field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
+            # Validation de l'email (seulement si fourni)
+            if form_data['email']:
+                if '@' not in form_data['email']:
+                    field_errors['email'] = "L'adresse email n'est pas valide."
                     is_valid = False
-            
-            # Validation de l'email
-            if form_data['email'] and '@' not in form_data['email']:
-                field_errors['email'] = "L'adresse email n'est pas valide."
-                is_valid = False
-            
-            # Vérification de l'unicité de l'email (sauf si c'est le même)
-            if form_data['email'] and form_data['email'] != professeur.email:
-                if Professeur.objects.filter(email=form_data['email']).exists():
-                    field_errors['email'] = "Cette adresse email est déjà utilisée."
-                    is_valid = False
+                # Vérification de l'unicité de l'email (sauf si c'est le même)
+                elif form_data['email'] != professeur.email:
+                    if Professeur.objects.filter(email=form_data['email']).exists():
+                        field_errors['email'] = "Cette adresse email est déjà utilisée."
+                        is_valid = False
             
             # Si tout est valide, mettre à jour le professeur
             if is_valid:
                 try:
                     with transaction.atomic():
+                        from ..model.matiere_model import Matiere
+                        
+                        # Pour le primaire, si pas de matière principale, prendre la première matière secondaire
+                        if etablissement.type_etablissement == 'primary' and not matiere_principale_obj:
+                            if form_data['matieres_secondaires']:
+                                matiere_principale_obj = Matiere.objects.get(id=form_data['matieres_secondaires'][0], etablissement=etablissement)
+                        
+                        # Gérer l'email : utiliser None si vide, sinon utiliser la valeur
+                        email_value = form_data['email'] if form_data['email'] else None
+                        
                         professeur.nom = form_data['nom']
                         professeur.prenom = form_data['prenom']
-                        professeur.email = form_data['email']
+                        professeur.email = email_value  # Peut être None si non fourni
                         professeur.telephone = form_data['telephone']
                         professeur.matiere_principale = matiere_principale_obj
-                        professeur.niveau_enseignement = form_data['niveau_enseignement']
+                        # Définir automatiquement le niveau d'enseignement
+                        professeur.niveau_enseignement = niveau_enseignement
                         
-                        # Mettre à jour le username si l'email a changé
-                        if professeur.email != professeur.username:
-                            professeur.username = professeur.email
+                        # Le username doit toujours être le matricule (numero_employe), jamais l'email
+                        # Cela garantit que l'identifiant de connexion reste le matricule
+                        professeur.username = professeur.numero_employe
                         
                         professeur.save()
                         
                         # Gérer les matières secondaires
-                        if form_data['matieres_secondaires']:
-                            from ..model.matiere_model import Matiere
-                            matieres_sec = Matiere.objects.filter(
-                                id__in=form_data['matieres_secondaires'],
-                                etablissement=etablissement
-                            )
-                            professeur.matieres_secondaires.set(matieres_sec)
+                        if etablissement.type_etablissement == 'primary':
+                            # Pour le primaire, enregistrer toutes les matières secondaires
+                            if form_data['matieres_secondaires']:
+                                matieres_secondaires_objs = Matiere.objects.filter(
+                                    id__in=form_data['matieres_secondaires'],
+                                    etablissement=etablissement
+                                )
+                                professeur.matieres_secondaires.set(matieres_secondaires_objs)
+                            else:
+                                professeur.matieres_secondaires.clear()
                         else:
+                            # Pour collège/lycée, supprimer toutes les matières secondaires
                             professeur.matieres_secondaires.clear()
                         
                         messages.success(request, f"Les informations de {professeur.nom_complet} ont été mises à jour avec succès !")
@@ -787,19 +850,37 @@ class ProfesseurController:
                     is_valid = False
         else:
             # Préremplir le formulaire avec les données actuelles
-            form_data = {
-                'nom': professeur.nom,
-                'prenom': professeur.prenom,
-                'email': professeur.email,
-                'telephone': professeur.telephone,
-                'matiere_principale': professeur.matiere_principale.id if professeur.matiere_principale else '',
-                'niveau_enseignement': professeur.niveau_enseignement,
-                'matieres_secondaires': [m.id for m in professeur.matieres_secondaires.all()],
-            }
+            if etablissement.type_etablissement == 'primary':
+                # Pour le primaire, récupérer les matières secondaires
+                # Convertir les IDs en chaînes pour la comparaison dans le template
+                matieres_secondaires_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
+                form_data = {
+                    'nom': professeur.nom,
+                    'prenom': professeur.prenom,
+                    'email': professeur.email if professeur.email else '',
+                    'telephone': professeur.telephone,
+                    'matiere_principale': '',  # Pas utilisé pour le primaire
+                    'matieres_secondaires': matieres_secondaires_ids,
+                }
+            else:
+                # Pour collège/lycée, récupérer la matière principale
+                form_data = {
+                    'nom': professeur.nom,
+                    'prenom': professeur.prenom,
+                    'email': professeur.email if professeur.email else '',
+                    'telephone': professeur.telephone,
+                    'matiere_principale': professeur.matiere_principale.id if professeur.matiere_principale else '',
+                    'matieres_secondaires': [],
+                }
         
         # Récupérer les matières de l'établissement
         from ..model.matiere_model import Matiere
         matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
+        
+        # Pour le primaire, créer une liste des IDs des matières sélectionnées pour faciliter la comparaison dans le template
+        matieres_selectionnees_ids = []
+        if etablissement.type_etablissement == 'primary':
+            matieres_selectionnees_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
         
         context = {
             'professeur': professeur,
@@ -808,7 +889,8 @@ class ProfesseurController:
             'is_valid': is_valid,
             'etablissement': etablissement,
             'matieres': matieres,
-            'niveau_choices': Professeur.NIVEAU_CHOICES,
+            'type_etablissement': etablissement.type_etablissement,
+            'matieres_selectionnees_ids': matieres_selectionnees_ids,  # Liste des IDs des matières déjà sélectionnées
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/modifier_professeur.html', context)

@@ -14,7 +14,9 @@ from ..personal_views.enseignant_primaire_view import (
     soumettre_releve_primaire,
     imprimer_releve_primaire,
     creer_evaluation_primaire,
+    modifier_evaluation_primaire,
     liste_evaluations_primaire,
+    evaluations_classe_primaire,
     calculer_moyennes_classe_primaire,
     liste_presence_primaire,
     valider_presence_primaire,
@@ -58,7 +60,9 @@ urlpatterns = [
     path('enseignant/primaire/soumettre-releve/<int:classe_id>/', soumettre_releve_primaire, name='soumettre_releve'),
     path('enseignant/primaire/imprimer-releve/<int:classe_id>/', imprimer_releve_primaire, name='imprimer_releve'),
     path('enseignant/primaire/evaluation/creer/<int:classe_id>/', creer_evaluation_primaire, name='creer_evaluation'),
+    path('enseignant/primaire/modifier-evaluation/<int:evaluation_id>/', modifier_evaluation_primaire, name='modifier_evaluation'),
     path('enseignant/primaire/evaluations/', liste_evaluations_primaire, name='liste_evaluations'),
+    path('enseignant/primaire/evaluations-classe/<int:classe_id>/', evaluations_classe_primaire, name='evaluations_classe'),
     path('enseignant/primaire/calculer-moyennes/<int:classe_id>/', calculer_moyennes_classe_primaire, name='calculer_moyennes'),
     
     # Gestion des présences

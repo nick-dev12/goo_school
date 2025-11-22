@@ -3,6 +3,62 @@
  * Fonctionnalités pour la page de gestion des matières
  */
 
+// Fonction pour afficher/masquer le champ coefficient selon la sélection du groupe
+window.toggleCoefficientField = function(checkbox) {
+    console.log('toggleCoefficientField appelée', checkbox);
+    if (!checkbox) {
+        console.error('toggleCoefficientField: checkbox est null');
+        return;
+    }
+    
+    const groupeWrapper = checkbox.closest('.groupe-with-coefficient');
+    if (!groupeWrapper) {
+        console.error('toggleCoefficientField: groupeWrapper non trouvé');
+        return;
+    }
+    
+    const coefficientField = groupeWrapper.querySelector('.coefficient-field-wrapper');
+    if (!coefficientField) {
+        console.error('toggleCoefficientField: coefficientField non trouvé');
+        return;
+    }
+    
+    const coefficientInput = coefficientField.querySelector('.coefficient-input');
+    if (!coefficientInput) {
+        console.error('toggleCoefficientField: coefficientInput non trouvé');
+        return;
+    }
+    
+    console.log('toggleCoefficientField: checkbox.checked =', checkbox.checked);
+    if (checkbox.checked) {
+        // Utiliser la classe 'show' pour afficher le champ (le CSS avec !important gère l'affichage)
+        coefficientField.classList.add('show');
+        coefficientInput.required = true;
+        console.log('toggleCoefficientField: champ coefficient affiché pour', checkbox.value);
+        console.log('toggleCoefficientField: coefficientField.classList =', coefficientField.classList.toString());
+    } else {
+        // Retirer la classe 'show' pour masquer le champ
+        coefficientField.classList.remove('show');
+        coefficientInput.required = false;
+        console.log('toggleCoefficientField: champ coefficient masqué pour', checkbox.value);
+    }
+};
+
+// Initialiser l'affichage des champs coefficient
+window.initCoefficientFields = function() {
+    console.log('initCoefficientFields appelée');
+    const checkboxes = document.querySelectorAll('.groupe-checkbox-input');
+    console.log('Nombre de checkboxes trouvées:', checkboxes.length);
+    checkboxes.forEach(function(checkbox) {
+        console.log('Initialisation checkbox:', checkbox.value, 'checked:', checkbox.checked);
+        if (typeof window.toggleCoefficientField === 'function') {
+            window.toggleCoefficientField(checkbox);
+        } else {
+            console.error('toggleCoefficientField n\'est pas définie');
+        }
+    });
+};
+
 // Toggle du formulaire d'ajout - Fonction globale
 window.toggleAddForm = function() {
     const formContainer = document.getElementById('addFormContainer');
@@ -16,6 +72,15 @@ window.toggleAddForm = function() {
             if (firstInput) {
                 setTimeout(() => firstInput.focus(), 100);
             }
+            
+            // Initialiser les champs coefficient pour les établissements lycée
+            setTimeout(function() {
+                if (typeof window.initCoefficientFields === 'function') {
+                    window.initCoefficientFields();
+                } else {
+                    console.error('initCoefficientFields n\'est pas définie');
+                }
+            }, 200);
         }
     }
 };

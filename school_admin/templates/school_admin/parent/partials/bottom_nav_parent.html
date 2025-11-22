@@ -1,8 +1,24 @@
 {% load static %}
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.0"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.3"
 />
+
+<style>
+
+  @media (max-width: 768px) {
+    .convocations-nav-item {
+      display: none;
+    }
+  }
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .convocations-nav-item {
+      display: block;
+    }
+  }
+  @media (min-width: 1025px) {
+  }
+</style>
 <nav
   class="enseignant-bottom-nav bottom-nav-parent"
   aria-label="Navigation principale de l’espace parent"
@@ -24,6 +40,16 @@
           ><i class="fas fa-bullhorn"></i
         ></span>
         <span class="label">Annonces</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item convocations-nav-item nav-item-primary {% if request.resolver_match.url_name == 'convocations_parent' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:convocations_parent' %}">
+        <span class="icon-wrapper icon-convocations"
+          ><i class="fas fa-bell"></i
+        ></span>
+        <span class="label">Convocations</span>
       </a>
     </li>
     <li class="bottom-nav-item nav-item-primary">

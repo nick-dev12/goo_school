@@ -881,13 +881,30 @@ def notes_evaluations_eleve(request):
         # Calculer ou récupérer la moyenne générale de la période
         moyenne_generale_value = None
         moyenne_generale_display = None
-        total_pondere = 0
-        total_coefficients = 0
+        total_pondere = Decimal('0')
+        total_coefficients = Decimal('0')
+        
+        # Vérifier si c'est un établissement lycée pour utiliser les coefficients par groupe
+        est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
         
         for moy in moyennes:
             if moy.moyenne and moy.matiere:
-                coef = moy.matiere.coefficient if moy.matiere.coefficient else 1
-                total_pondere += moy.moyenne * coef
+                if est_lycee:
+                    from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                    coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(moy.matiere, eleve.classe)
+                    # Convertir en Decimal pour éviter les erreurs de type
+                    coef = Decimal(str(coefficient_decimal)) if coefficient_decimal else Decimal('1')
+                else:
+                    # Convertir le coefficient en Decimal si ce n'est pas déjà le cas
+                    if hasattr(moy.matiere, 'coefficient') and moy.matiere.coefficient:
+                        coef = Decimal(str(moy.matiere.coefficient))
+                    else:
+                        coef = Decimal('1')
+                
+                # Convertir moy.moyenne en Decimal si ce n'est pas déjà le cas
+                moyenne_decimal = Decimal(str(moy.moyenne)) if not isinstance(moy.moyenne, Decimal) else moy.moyenne
+                
+                total_pondere += moyenne_decimal * coef
                 total_coefficients += coef
 
         moyenne_generale_record = MoyennePeriode.objects.filter(
@@ -901,7 +918,7 @@ def notes_evaluations_eleve(request):
         if moyenne_generale_record and moyenne_generale_record.moyenne_generale is not None:
             moyenne_generale_value = float(moyenne_generale_record.moyenne_generale)
         
-        if moyenne_generale_value is None and total_coefficients > 0:
+        if moyenne_generale_value is None and total_coefficients > Decimal('0'):
             moyenne_generale_value = float(total_pondere / total_coefficients)
         
         if moyenne_generale_value is not None:
@@ -1216,7 +1233,7 @@ def notes_evaluations_eleve(request):
                 'note': note.note,
                 'note_sur_20': round(note_sur_20, 2) if note_sur_20 else 0,
                 'bareme': note.evaluation_primaire.bareme,
-                'type': note.evaluation_primaire.type_evaluation,
+                # 'type': note.evaluation_primaire.type_evaluation,  # Champ supprimé
                 'coefficient': 1,  # Coefficient par défaut pour le primaire
                 'commentaire': note.appreciation if note.appreciation else '',
             })
@@ -1278,7 +1295,7 @@ def notes_evaluations_eleve(request):
                 'note': note.note,
                 'note_sur_20': round(float(note.note), 2),
                 'bareme': 20,
-                'type': note.evaluation.type_evaluation,
+                # 'type': note.evaluation.type_evaluation,  # Champ supprimé
                 'coefficient': matiere.coefficient if matiere.coefficient else 1,
                 'commentaire': note.appreciation if note.appreciation else '',
             })
@@ -1297,7 +1314,7 @@ def notes_evaluations_eleve(request):
                 'titre': ev.titre,
                 'matiere': ev.matiere,
                 'date': ev.date_evaluation,
-                'type': ev.type_evaluation,
+                # 'type': ev.type_evaluation,  # Champ supprimé
                 'professeur': ev.professeur,
             })
     elif eleve.classe:
@@ -1313,7 +1330,7 @@ def notes_evaluations_eleve(request):
                 'titre': ev.titre,
                 'matiere': ev.matiere,
                 'date': ev.date_evaluation,
-                'type': ev.type_evaluation,
+                # 'type': ev.type_evaluation,  # Champ supprimé
                 'professeur': ev.professeur,
             })
     
@@ -1392,7 +1409,7 @@ def notes_evaluations_eleve(request):
                     notes_par_periode[periode_nom].append({
                         'date': note.date_saisie,
                         'titre': note.evaluation_primaire.titre,
-                        'type': note.evaluation_primaire.type_evaluation,
+                        # 'type': note.evaluation_primaire.type_evaluation,  # Champ supprimé
                         'note': note.note,
                         'bareme': note.evaluation_primaire.bareme,
                         'note_sur_20': round(note_sur_20, 2) if note_sur_20 else 0,
@@ -1518,7 +1535,7 @@ def notes_evaluations_eleve(request):
                     notes_par_periode[periode_nom].append({
                         'date': note.date_saisie,
                         'titre': note.evaluation.titre,
-                        'type': note.evaluation.type_evaluation,
+                        # 'type': note.evaluation.type_evaluation,  # Champ supprimé
                         'note': note.note,
                         'bareme': 20,
                         'note_sur_20': round(float(note.note), 2),
@@ -2113,18 +2130,28 @@ def profil_eleve(request):
                 periode_scolaire=periode_active
             ).exclude(moyenne__isnull=True)
             
-            total_pondere = 0
-            total_coefficients = 0
+            total_pondere = Decimal('0')
+            total_coefficients = Decimal('0')
             nb_matieres = 0
             
             for moy in moyennes:
                 if moy.moyenne and moy.matiere:
-                    coef = moy.matiere.coefficient if moy.matiere.coefficient else 1
-                    total_pondere += moy.moyenne * coef
+                    # Convertir le coefficient en Decimal
+                    if hasattr(moy.matiere, 'coefficient') and moy.matiere.coefficient:
+                        coef = Decimal(str(moy.matiere.coefficient))
+                    else:
+                        coef = Decimal('1')
+                    
+                    # Convertir moy.moyenne en Decimal si ce n'est pas déjà le cas
+                    moyenne_decimal = Decimal(str(moy.moyenne)) if not isinstance(moy.moyenne, Decimal) else moy.moyenne
+                    
+                    total_pondere += moyenne_decimal * coef
                     total_coefficients += coef
                     nb_matieres += 1
             
-            moyenne_generale = round(total_pondere / total_coefficients, 2) if total_coefficients > 0 else None
+            moyenne_generale = float(total_pondere / total_coefficients) if total_coefficients > Decimal('0') else None
+            if moyenne_generale is not None:
+                moyenne_generale = round(moyenne_generale, 2)
         else:
             moyenne_generale = None
             nb_matieres = 0
@@ -2138,18 +2165,37 @@ def profil_eleve(request):
                 actif=True
             ).exclude(moyenne__isnull=True)
             
-            total_pondere = 0
-            total_coefficients = 0
+            total_pondere = Decimal('0')
+            total_coefficients = Decimal('0')
             nb_matieres = 0
+            
+            # Vérifier si c'est un établissement lycée pour utiliser les coefficients par groupe
+            est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
             
             for moy in moyennes:
                 if moy.moyenne and moy.matiere:
-                    coef = moy.matiere.coefficient if moy.matiere.coefficient else 1
-                    total_pondere += moy.moyenne * coef
+                    if est_lycee:
+                        from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                        coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(moy.matiere, eleve.classe)
+                        # Convertir en Decimal pour éviter les erreurs de type
+                        coef = Decimal(str(coefficient_decimal)) if coefficient_decimal else Decimal('1')
+                    else:
+                        # Convertir le coefficient en Decimal si ce n'est pas déjà le cas
+                        if hasattr(moy.matiere, 'coefficient') and moy.matiere.coefficient:
+                            coef = Decimal(str(moy.matiere.coefficient))
+                        else:
+                            coef = Decimal('1')
+                    
+                    # Convertir moy.moyenne en Decimal si ce n'est pas déjà le cas
+                    moyenne_decimal = Decimal(str(moy.moyenne)) if not isinstance(moy.moyenne, Decimal) else moy.moyenne
+                    
+                    total_pondere += moyenne_decimal * coef
                     total_coefficients += coef
                     nb_matieres += 1
             
-            moyenne_generale = round(total_pondere / total_coefficients, 2) if total_coefficients > 0 else None
+            moyenne_generale = float(total_pondere / total_coefficients) if total_coefficients > Decimal('0') else None
+            if moyenne_generale is not None:
+                moyenne_generale = round(moyenne_generale, 2)
         else:
             moyenne_generale = None
             nb_matieres = 0
@@ -2320,6 +2366,56 @@ def annonces_eleve(request):
     }
     
     return render(request, 'school_admin/eleve/annonces_eleve.html', context)
+
+
+def convocations_eleve(request):
+    """Affiche les convocations de l'élève."""
+    eleve, est_parent = get_eleve_from_request(request)
+    
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    etablissement = eleve.etablissement
+    
+    # Récupérer les convocations de l'élève
+    from ..model.convocation_model import Convocation
+    convocations = Convocation.objects.filter(
+        eleve=eleve,
+        etablissement=etablissement,
+        actif=True
+    ).order_by('-date_convocation', '-heure_convocation')
+    
+    # Séparer les convocations par statut
+    convocations_en_attente = convocations.filter(statut='en_attente')
+    convocations_vues = convocations.filter(statut='vue')
+    convocations_honorees = convocations.filter(statut='honoree')
+    convocations_non_honorees = convocations.filter(statut='non_honoree')
+    
+    # Statistiques
+    total_convocations = convocations.count()
+    convocations_a_venir = convocations.filter(
+        date_convocation__gte=timezone.now().date()
+    ).count()
+    convocations_passees = convocations.filter(
+        date_convocation__lt=timezone.now().date()
+    ).count()
+    
+    context = {
+        'eleve': eleve,
+        'est_parent': est_parent,
+        'etablissement': etablissement,
+        'convocations': convocations,
+        'convocations_en_attente': convocations_en_attente,
+        'convocations_vues': convocations_vues,
+        'convocations_honorees': convocations_honorees,
+        'convocations_non_honorees': convocations_non_honorees,
+        'total_convocations': total_convocations,
+        'convocations_a_venir': convocations_a_venir,
+        'convocations_passees': convocations_passees,
+    }
+    
+    return render(request, 'school_admin/eleve/convocations_eleve.html', context)
 
 
 def notifications_eleve(request):

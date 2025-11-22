@@ -41,6 +41,12 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
+# Constante pour les types d'établissements secondaires (lycée, collège, etc.)
+TYPES_ETABLISSEMENT_SECONDAIRE = [
+    'lycée', 'collège', 'collège_lycée', 'lycee_college', 
+    'mixte', 'lycee', 'college'
+]
+
 
 def _safe_decimal(value):
     """Convertit une valeur en Decimal sans lever d'erreur."""
@@ -336,25 +342,35 @@ def _ensure_bulletin_security_assets(moyenne_obj, *, eleve, classe, periode, eta
 
     updated_fields = ['numero_serie', 'signature_numerique', 'qr_code_data', 'qr_code_generated_at', 'updated_at']
 
+    # Générer le QR code pour tous les types d'établissements
     if qrcode:
-        qr = qrcode.QRCode(
-            version=2,
-            error_correction=ERROR_CORRECT_M or qrcode.constants.ERROR_CORRECT_M,
-            box_size=7,
-            border=2,
-        )
-        qr.add_data(qr_payload)
-        qr.make(fit=True)
-        qr_image = qr.make_image(fill_color="#111827", back_color="#ffffff")
-        buffer = BytesIO()
-        qr_image.save(buffer, format='PNG')
-        filename = f"bulletin_qr_{numero_serie}.png"
-        if moyenne_obj.qr_code_image:
-            moyenne_obj.qr_code_image.delete(save=False)
-        moyenne_obj.qr_code_image.save(filename, ContentFile(buffer.getvalue()), save=False)
-        updated_fields.append('qr_code_image')
+        try:
+            qr = qrcode.QRCode(
+                version=2,
+                error_correction=ERROR_CORRECT_M or qrcode.constants.ERROR_CORRECT_M,
+                box_size=7,
+                border=2,
+            )
+            qr.add_data(qr_payload)
+            qr.make(fit=True)
+            qr_image = qr.make_image(fill_color="#111827", back_color="#ffffff")
+            buffer = BytesIO()
+            qr_image.save(buffer, format='PNG')
+            filename = f"bulletin_qr_{numero_serie}.png"
+            if moyenne_obj.qr_code_image:
+                moyenne_obj.qr_code_image.delete(save=False)
+            moyenne_obj.qr_code_image.save(filename, ContentFile(buffer.getvalue()), save=False)
+            updated_fields.append('qr_code_image')
+        except Exception as e:
+            logger.error(f"Erreur lors de la génération du QR code pour le bulletin {numero_serie}: {str(e)}", exc_info=True)
+            # Continuer même si la génération du QR code échoue
 
-    moyenne_obj.save(update_fields=updated_fields)
+    try:
+        moyenne_obj.save(update_fields=updated_fields)
+    except Exception as e:
+        logger.error(f"Erreur lors de la sauvegarde des éléments de sécurité du bulletin {numero_serie}: {str(e)}", exc_info=True)
+        raise
+    
     return numero_serie, signature
 
 
@@ -1585,7 +1601,16 @@ def calculer_moyennes_periode(request, classe_id):
                         if poids_total > 0:
                             moyenne_matiere = (total / poids_total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     
-                    coefficient = Decimal(str(matiere.coefficient)) if matiere.coefficient else Decimal('1')
+                    # Récupérer le coefficient selon le type d'établissement
+                    # Pour les établissements lycée, utiliser le coefficient par groupe
+                    est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+                    if est_lycee:
+                        from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                        coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(matiere, classe)
+                        coefficient = Decimal(str(coefficient_decimal)) if coefficient_decimal else Decimal('1')
+                    else:
+                        # Pour les établissements primaires, utiliser le coefficient global de la matière
+                        coefficient = Decimal(str(matiere.coefficient)) if matiere.coefficient else Decimal('1')
                     
                     # Calculer l'appréciation de la matière
                     appreciation_matiere = None
@@ -1644,7 +1669,7 @@ def calculer_moyennes_periode(request, classe_id):
                 
                 # Enregistrer la moyenne générale
                 if moyenne_generale is not None:
-                    moyenne_generale_obj, _ = MoyennePeriode.objects.update_or_create(
+                    moyenne_generale_obj, created = MoyennePeriode.objects.update_or_create(
                         eleve=eleve,
                         etablissement=etablissement,
                         periode=periode,
@@ -1659,14 +1684,23 @@ def calculer_moyennes_periode(request, classe_id):
                         }
                     )
 
-                    _ensure_bulletin_security_assets(
-                        moyenne_generale_obj,
-                        eleve=eleve,
-                        classe=classe,
-                        periode=periode,
-                        etablissement=etablissement,
-                        verification_url_base=verification_base_url,
-                    )
+                    # Générer les éléments de sécurité (QR code, numéro de série, signature) pour tous les types d'établissements
+                    try:
+                        numero_serie, signature = _ensure_bulletin_security_assets(
+                            moyenne_generale_obj,
+                            eleve=eleve,
+                            classe=classe,
+                            periode=periode,
+                            etablissement=etablissement,
+                            verification_url_base=verification_base_url,
+                        )
+                        if numero_serie and signature:
+                            logger.info(f"Éléments de sécurité générés pour {eleve.nom_complet} (classe {classe.nom}, période {periode.nom_periode}): numéro série={numero_serie}")
+                        else:
+                            logger.warning(f"Échec de génération des éléments de sécurité pour {eleve.nom_complet} (classe {classe.nom}, période {periode.nom_periode})")
+                    except Exception as e:
+                        logger.error(f"Erreur lors de la génération des éléments de sécurité pour {eleve.nom_complet} (classe {classe.nom}, période {periode.nom_periode}): {str(e)}", exc_info=True)
+                        # Continuer même si la génération échoue pour ne pas bloquer le calcul des moyennes
                     
                     eleves_moyennes_generales.append({
                         'eleve_id': eleve.id,
@@ -1689,14 +1723,16 @@ def calculer_moyennes_periode(request, classe_id):
                 ).update(rang=index)
                 
                 # Mettre à jour aussi les rangs par matière (tri décroissant : la plus forte moyenne = rang 1)
+                # IMPORTANT : Comparer uniquement les élèves de la même classe
                 for matiere in matieres:
                     matiere_moyennes = list(MoyennePeriode.objects.filter(
                         etablissement=etablissement,
                         periode=periode,
                         matiere=matiere,
                         est_moyenne_generale=False,
-                        moyenne_matiere__isnull=False
-                    ).select_related('eleve'))
+                        moyenne_matiere__isnull=False,
+                        eleve__classe=classe  # Filtrer uniquement les élèves de la même classe
+                    ).select_related('eleve', 'eleve__classe'))
                     
                     # Trier par moyenne décroissante (plus forte moyenne = rang 1)
                     # reverse=False pour que les plus petites valeurs négatives (donc plus grandes moyennes) viennent en premier
@@ -1712,8 +1748,15 @@ def calculer_moyennes_periode(request, classe_id):
         messages.error(request, f"❌ Erreur lors du calcul des moyennes: {str(e)}")
 
     redirect_url = reverse('directeur:bulletins_notes')
+    params = []
     if selected_periode_id:
-        redirect_url = f"{redirect_url}?periode={selected_periode_id}"
+        params.append(f"periode={selected_periode_id}")
+    # Préserver l'ID de la classe pour restaurer l'onglet actif
+    classe_id_param = request.GET.get('classe_id')
+    if classe_id_param:
+        params.append(f"classe_id={classe_id_param}")
+    if params:
+        redirect_url = f"{redirect_url}?{'&'.join(params)}"
     return redirect(redirect_url)
 
 
@@ -1824,14 +1867,26 @@ def _build_bulletin_context(request, classe_id, eleve_id):
             est_moyenne_generale=False
         ).select_related('matiere').order_by('matiere__nom')
 
+        # Vérifier si c'est un établissement lycée pour utiliser les coefficients par groupe
+        est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+        
         matieres_table = []
         for mp in moyennes_periode:
             if mp.matiere:
+                # Pour les établissements lycée, utiliser le coefficient par groupe (actuel de la configuration)
+                # Sinon, utiliser le coefficient enregistré dans MoyennePeriode
+                if est_lycee:
+                    from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                    coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(mp.matiere, classe)
+                    coefficient_value = float(coefficient_decimal) if coefficient_decimal else (float(mp.coefficient) if mp.coefficient else 1)
+                else:
+                    coefficient_value = float(mp.coefficient) if mp.coefficient else 1
+                
                 matieres_table.append({
                     'nom': mp.matiere.nom,
                     'moyenne_classe': float(mp.moyenne_classe) if mp.moyenne_classe is not None else None,
                     'note_examen': float(mp.note_examen) if mp.note_examen is not None else None,
-                    'coefficient': float(mp.coefficient) if mp.coefficient else 1,
+                    'coefficient': coefficient_value,
                     'moyenne_eleve': float(mp.moyenne_matiere) if mp.moyenne_matiere is not None else None,
                     'rang': mp.rang,
                     'appreciation': mp.appreciation_matiere,
@@ -1983,11 +2038,20 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                                 rang = index
                                 break
 
+                # Récupérer le coefficient selon le type d'établissement
+                est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+                if est_lycee:
+                    from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                    coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(matiere, classe)
+                    coefficient_value = float(coefficient_decimal) if coefficient_decimal else 1
+                else:
+                    coefficient_value = float(matiere.coefficient) if matiere.coefficient is not None else 1
+                
                 matieres_table.append({
                     'nom': matiere.nom,
                     'moyenne_classe': float(moyenne_classe) if moyenne_classe is not None else None,
                     'note_examen': note_examen_value,
-                    'coefficient': float(matiere.coefficient) if matiere.coefficient is not None else 1,
+                    'coefficient': coefficient_value,
                     'moyenne_eleve': float(moyenne_value) if moyenne_value is not None else None,
                     'rang': rang,
                     'appreciation': appreciation,
@@ -2032,9 +2096,17 @@ def _build_bulletin_context(request, classe_id, eleve_id):
             matiere_scores_map = defaultdict(list)
             overall_totaux = defaultdict(lambda: {'sum': Decimal('0'), 'coeff': Decimal('0')})
 
+            # Récupérer le coefficient selon le type d'établissement
+            est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+            
             for item in moyennes_classe.iterator():
                 valeur = Decimal(item.moyenne)
-                coeff_decimal = Decimal(str(item.matiere.coefficient or 1))
+                if est_lycee:
+                    from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                    coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(item.matiere, classe)
+                    coeff_decimal = Decimal(str(coefficient_decimal)) if coefficient_decimal else Decimal('1')
+                else:
+                    coeff_decimal = Decimal(str(item.matiere.coefficient or 1))
                 matiere_scores_map[item.matiere_id].append((item.eleve_id, valeur))
                 overall_totaux[item.eleve_id]['sum'] += valeur * coeff_decimal
                 overall_totaux[item.eleve_id]['coeff'] += coeff_decimal
@@ -2060,7 +2132,12 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 if soumis and moyenne_obj and moyenne_obj.moyenne is not None:
                     moyenne_value = Decimal(moyenne_obj.moyenne)
                     appreciation = moyenne_obj.appreciation if hasattr(moyenne_obj, 'appreciation') else None
-                    coeff_decimal = Decimal(str(matiere.coefficient or 1))
+                    if est_lycee:
+                        from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                        coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(matiere, classe)
+                        coeff_decimal = Decimal(str(coefficient_decimal)) if coefficient_decimal else Decimal('1')
+                    else:
+                        coeff_decimal = Decimal(str(matiere.coefficient or 1))
                     somme_generale += moyenne_value * coeff_decimal
                     poids_generaux += coeff_decimal
 
@@ -2076,11 +2153,19 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                                 rang = index
                                 break
 
+                # Récupérer le coefficient selon le type d'établissement pour l'affichage
+                if est_lycee:
+                    from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                    coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(matiere, classe)
+                    coefficient_display = float(coefficient_decimal) if coefficient_decimal else (float(matiere.coefficient) if matiere.coefficient is not None else 1)
+                else:
+                    coefficient_display = float(matiere.coefficient) if matiere.coefficient is not None else 1
+                
                 matieres_table.append({
                     'nom': matiere.nom,
                     'moyenne_classe': float(moyenne_classe) if moyenne_classe is not None else None,
                     'note_examen': examens_map.get(matiere.id),
-                    'coefficient': float(matiere.coefficient) if matiere.coefficient is not None else 1,
+                    'coefficient': coefficient_display,
                     'moyenne_eleve': float(moyenne_value) if moyenne_value is not None else None,
                     'rang': rang,
                     'appreciation': appreciation,
@@ -2353,7 +2438,16 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                     if poids_total > 0:
                         moyenne_matiere = (total / poids_total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-                coefficient = Decimal(str(matiere.coefficient)) if matiere.coefficient else Decimal('1')
+                # Récupérer le coefficient selon le type d'établissement
+                # Pour les établissements lycée, utiliser le coefficient par groupe
+                est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+                if est_lycee:
+                    from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+                    coefficient_decimal = CoefficientMatiereGroupe.get_coefficient_for_classe(matiere, classe)
+                    coefficient = Decimal(str(coefficient_decimal)) if coefficient_decimal else Decimal('1')
+                else:
+                    # Pour les établissements primaires, utiliser le coefficient global de la matière
+                    coefficient = Decimal(str(matiere.coefficient)) if matiere.coefficient else Decimal('1')
 
                 # Calculer l'appréciation de la matière
                 appreciation_matiere = None
@@ -2467,14 +2561,16 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                 ).update(rang=index)
 
                 # Mettre à jour aussi les rangs par matière (tri décroissant : la plus forte moyenne = rang 1)
+                # IMPORTANT : Comparer uniquement les élèves de la même classe
                 for matiere in matieres:
                     matiere_moyennes = list(MoyennePeriode.objects.filter(
                         etablissement=etablissement,
                         periode=periode,
                         matiere=matiere,
                         est_moyenne_generale=False,
-                        moyenne_matiere__isnull=False
-                    ).select_related('eleve'))
+                        moyenne_matiere__isnull=False,
+                        eleve__classe=classe  # Filtrer uniquement les élèves de la même classe
+                    ).select_related('eleve', 'eleve__classe'))
 
                     # Trier par moyenne décroissante (plus forte moyenne = rang 1)
                     matiere_moyennes.sort(key=lambda x: (x.moyenne_matiere is None, -(x.moyenne_matiere or 0)), reverse=False)
@@ -2905,10 +3001,6 @@ def configuration_moyennes_generales(request):
     errors = []
 
     if request.method == 'POST':
-        if not est_primaire:
-            messages.warning(request, "La configuration des pondérations n'est disponible que pour les établissements primaires.")
-            return redirect('directeur:configuration_moyennes_generales')
-
         methode_input = request.POST.get('methode', '').strip()
         if methode_input not in Ponderation.METHOD_CONFIG:
             errors.append("Méthode de calcul invalide.")
@@ -3671,8 +3763,9 @@ def api_details_notes_matiere_secondaire(request):
     
     etablissement = request.user
     
-    # Vérifier que c'est un établissement secondaire
-    if etablissement.type_etablissement not in ['lycée', 'collège', 'collège_lycée']:
+    # Vérifier que c'est un établissement secondaire (inclure toutes les variantes)
+    est_secondaire = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+    if not est_secondaire:
         return JsonResponse({'success': False, 'message': 'Cette fonctionnalité est réservée aux établissements secondaires'}, status=403)
     
     # Récupérer les paramètres

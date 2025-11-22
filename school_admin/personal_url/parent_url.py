@@ -33,5 +33,8 @@ urlpatterns = [
     
     # Profil
     path('parent/profil/', parent_view.profil_parent, name='profil_parent'),
+    
+    # Convocations
+    path('parent/convocations/', parent_view.convocations_parent, name='convocations_parent'),
 ]
 

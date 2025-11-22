@@ -9,10 +9,20 @@
   --text-light: #64748b;
   --border-color: #e5e7eb;
   --bg-light: #f8fafc;
-  --radius-sm: 8px;
-  --radius-md: 12px;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Base typographique */
+html {
+  font-size: 16px; /* Base pour le calcul des rem */
+}
+
+body {
+  font-size: 1rem; /* 16px */
+  line-height: 1.5;
 }
 
 * {
@@ -23,7 +33,7 @@
 
 /* Conteneur principal */
 .content-container {
-  padding: 20px;
+  padding: 1.25rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -35,28 +45,32 @@
 
 /* En-tête de page */
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
+/* H2 - Titre principal */
 .page-title {
-  font-size: 1.5rem;
+  font-size: 1.5rem; /* 24px mobile par défaut */
   font-weight: 700;
   color: var(--text-color);
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 0.625rem;
+  margin-bottom: 0.375rem;
+  line-height: 1.3;
 }
 
 .page-title i {
   color: var(--primary-color);
-  font-size: 1.3rem;
+  font-size: 1.5rem;
 }
 
+/* Sous-titre */
 .page-subtitle {
-  font-size: 0.9rem;
+  font-size: 0.875rem; /* 14px mobile */
   color: var(--text-light);
-  margin-left: 36px;
+  margin-left: 2.25rem;
+  line-height: 1.5;
 }
 
 /* En-tête du profil */
@@ -66,9 +80,9 @@
     rgba(59, 130, 246, 0.95),
     rgba(124, 58, 237, 0.92)
   );
-  border-radius: 28px;
-  padding: 32px;
-  margin-bottom: 24px;
+  border-radius: 1.75rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
   box-shadow: var(--shadow-md);
   color: white;
 }
@@ -89,12 +103,12 @@
 }
 
 .profil-photo {
-  width: 120px;
-  height: 120px;
+  width: 7.5rem;
+  height: 7.5rem;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 0.25rem solid white;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
 }
 
 .profil-photo img {
@@ -151,15 +165,18 @@
   gap: 18px;
 }
 
+/* H1 - Nom du profil */
 .profil-nom {
-  font-size: 2rem;
+  font-size: 1.75rem; /* 28px mobile par défaut */
   font-weight: 700;
   color: white;
+  line-height: 1.3;
 }
 
 .profil-role {
-  font-size: 0.95rem;
+  font-size: 0.9375rem; /* 15px mobile */
   color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
 }
 
 .profil-meta {
@@ -219,20 +236,20 @@
 /* Statistiques rapides */
 .quick-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
+  gap: 1.125rem;
+  margin-bottom: 1.5rem;
 }
 
 .quick-stat-card {
   background: white;
-  border-radius: 22px;
-  padding: 20px;
+  border-radius: 1.375rem;
+  padding: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   box-shadow: var(--shadow-sm);
-  border: 1px solid rgba(229, 231, 235, 0.7);
+  border: 0.0625rem solid rgba(229, 231, 235, 0.7);
   transition: all 0.3s ease;
 }
 
@@ -242,13 +259,13 @@
 }
 
 .quick-stat-card .stat-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
+  width: 3.125rem;
+  height: 3.125rem;
+  border-radius: 0.625rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -277,38 +294,40 @@
 }
 
 .quick-stat-card .stat-value {
-  font-size: 1.6rem;
+  font-size: 1.5rem; /* 24px mobile par défaut */
   font-weight: 700;
   color: var(--text-color);
-  line-height: 1;
-  margin-bottom: 6px;
+  line-height: 1.2;
+  margin-bottom: 0.375rem;
 }
 
 .quick-stat-card .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.875rem; /* 14px mobile */
   color: var(--text-light);
   font-weight: 500;
-  margin-bottom: 3px;
+  margin-bottom: 0.1875rem;
+  line-height: 1.4;
 }
 
 .quick-stat-card .stat-detail {
-  font-size: 0.75rem;
+  font-size: 0.8125rem; /* 13px mobile */
   color: var(--text-light);
+  line-height: 1.5;
 }
 
 /* Sections d'informations */
 .info-sections-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(21.875rem, 1fr));
+  gap: 0.75rem;
 }
 
 .info-section {
   background: white;
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: 1.125rem;
+  padding: 1.125rem;
   box-shadow: var(--shadow-sm);
-  border: 1px solid rgba(229, 231, 235, 0.8);
+  border: 0.0625rem solid rgba(229, 231, 235, 0.8);
 }
 
 .info-section .section-header {
@@ -317,13 +336,15 @@
   border-bottom: 1px solid rgba(229, 231, 235, 0.8);
 }
 
+/* H3 - Titre de section */
 .info-section .section-title {
-  font-size: 0.95rem;
+  font-size: 1rem; /* 16px mobile par défaut */
   font-weight: 700;
   color: var(--text-color);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
+  line-height: 1.4;
 }
 
 .info-section .section-title i {
@@ -866,18 +887,20 @@
 }
 
 .info-label-mini {
-  font-size: 0.7rem;
+  font-size: 0.75rem; /* 12px mobile */
   font-weight: 600;
   color: var(--text-light);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  letter-spacing: 0.03125rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
 }
 
 .info-value-mini {
-  font-size: 0.9rem;
+  font-size: 0.875rem; /* 14px mobile */
   font-weight: 600;
   color: var(--text-color);
+  line-height: 1.5;
 }
 
 /* Empty state */
@@ -894,14 +917,16 @@
 }
 
 .empty-state p {
-  font-size: 1.1rem;
-  margin-bottom: 8px;
+  font-size: 1rem; /* 16px mobile */
+  margin-bottom: 0.5rem;
   color: var(--text-color);
+  line-height: 1.5;
 }
 
 .empty-state small {
-  font-size: 0.9rem;
+  font-size: 0.875rem; /* 14px mobile */
   color: var(--text-light);
+  line-height: 1.5;
 }
 
 /* Animations */
@@ -916,7 +941,48 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablette */
+  html {
+    font-size: 16px;
+  }
+
+  /* H2 - Titre principal tablette */
+  .page-title {
+    font-size: 1.75rem; /* 28px tablette */
+  }
+
+  /* Sous-titre tablette */
+  .page-subtitle {
+    font-size: 1rem; /* 16px tablette */
+  }
+
+  /* H1 tablette */
+  .profil-nom {
+    font-size: 2rem; /* 32px tablette */
+  }
+
+  .profil-role {
+    font-size: 1rem; /* 16px tablette */
+  }
+
+  .quick-stat-card .stat-value {
+    font-size: 1.75rem; /* 28px tablette */
+  }
+
+  .quick-stat-card .stat-label {
+    font-size: 0.9375rem; /* 15px tablette */
+  }
+
+  .quick-stat-card .stat-detail {
+    font-size: 0.875rem; /* 14px tablette */
+  }
+
+  /* H3 tablette */
+  .info-section .section-title {
+    font-size: 1.125rem; /* 18px tablette */
+  }
+
   .info-sections-grid {
     grid-template-columns: 1fr;
   }
@@ -926,22 +992,72 @@
   }
 
   .profil-header-card {
-    padding: 28px;
+    padding: 1.75rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  /* Desktop */
+  /* H2 - Titre principal desktop */
+  .page-title {
+    font-size: 2rem; /* 32px desktop */
+  }
+
+  /* Sous-titre desktop */
+  .page-subtitle {
+    font-size: 1rem; /* 16px desktop */
+  }
+
+  /* H1 desktop */
+  .profil-nom {
+    font-size: 2rem; /* 32px desktop */
+  }
+
+  .profil-role {
+    font-size: 1rem; /* 16px desktop */
+  }
+
+  .quick-stat-card .stat-value {
+    font-size: 1.75rem; /* 28px desktop */
+  }
+
+  .quick-stat-card .stat-label {
+    font-size: 0.9375rem; /* 15px desktop */
+  }
+
+  .quick-stat-card .stat-detail {
+    font-size: 0.875rem; /* 14px desktop */
+  }
+
+  /* H3 desktop */
+  .info-section .section-title {
+    font-size: 1.125rem; /* 18px desktop */
   }
 }
 
 @media (max-width: 768px) {
+  /* Mobile */
+  html {
+    font-size: 16px;
+  }
+
   .content-container {
-    padding: 10px;
+    padding: 0.625rem;
   }
 
+  /* H2 - Titre principal mobile */
   .page-title {
-    font-size: 1.3rem;
+    font-size: 1.5rem; /* 24px mobile */
   }
 
+  .page-title i {
+    font-size: 1.5rem;
+  }
+
+  /* Sous-titre mobile */
   .page-subtitle {
-    font-size: 0.85rem;
-    margin-left: 32px;
+    font-size: 0.875rem; /* 14px mobile */
+    margin-left: 0;
   }
 
   .parents-container {
@@ -969,27 +1085,40 @@
   }
 
   .profil-photo {
-    width: 110px;
-    height: 110px;
+    width: 6.875rem;
+    height: 6.875rem;
   }
 
   .quick-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 0.75rem;
   }
 
   .quick-stat-card {
-    padding: 16px;
+    padding: 1rem;
   }
 
   .quick-stat-card .stat-icon {
-    width: 45px;
-    height: 45px;
-    font-size: 18px;
+    width: 2.8125rem;
+    height: 2.8125rem;
+    font-size: 1.125rem;
   }
 
   .quick-stat-card .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.25rem; /* 20px mobile */
+  }
+
+  .quick-stat-card .stat-label {
+    font-size: 0.8125rem; /* 13px mobile */
+  }
+
+  .quick-stat-card .stat-detail {
+    font-size: 0.75rem; /* 12px mobile */
+  }
+
+  /* H3 mobile */
+  .info-section .section-title {
+    font-size: 0.9375rem; /* 15px mobile */
   }
 
   .info-sections-grid {
@@ -1021,31 +1150,46 @@
 }
 
 @media (max-width: 480px) {
+  /* Mobile très petit */
+  .content-container {
+    padding: 0.5rem;
+  }
+
+  /* H2 mobile très petit */
   .page-title {
-    font-size: 1.2rem;
-    gap: 6px;
+    font-size: 1.25rem; /* 20px mobile très petit */
+    gap: 0.375rem;
+  }
+
+  .page-title i {
+    font-size: 1.25rem;
   }
 
   .page-subtitle {
-    font-size: 0.8rem;
+    font-size: 0.8125rem; /* 13px mobile très petit */
   }
 
   .profil-header-card {
-    padding: 18px;
+    padding: 1.125rem;
   }
 
   .profil-photo {
-    width: 90px;
-    height: 90px;
-    border: 3px solid white;
+    width: 5.625rem;
+    height: 5.625rem;
+    border: 0.1875rem solid white;
   }
 
   .photo-placeholder {
     font-size: 2rem;
   }
 
+  /* H1 mobile très petit */
   .profil-nom {
-    font-size: 1.4rem;
+    font-size: 1.25rem; /* 20px mobile très petit */
+  }
+
+  .profil-role {
+    font-size: 0.8125rem; /* 13px mobile très petit */
   }
 
   .profil-meta {
@@ -1059,38 +1203,55 @@
   }
 
   .quick-stat-card {
-    padding: 14px;
-    gap: 14px;
+    padding: 0.875rem;
+    gap: 0.875rem;
   }
 
   .quick-stat-card .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
   }
 
   .quick-stat-card .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.125rem; /* 18px mobile très petit */
   }
 
   .quick-stat-card .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* 12px mobile très petit */
+  }
+
+  .quick-stat-card .stat-detail {
+    font-size: 0.6875rem; /* 11px mobile très petit */
   }
 
   .info-sections-grid {
-    gap: 8px;
+    gap: 0.5rem;
   }
 
-  /* .info-section {
-    padding: 10px;
-  } */
-
+  /* H3 mobile très petit */
   .info-section .section-title {
-    font-size: 0.85rem;
+    font-size: 0.875rem; /* 14px mobile très petit */
   }
 
   .info-section .section-title i {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
+  }
+
+  .info-label-mini {
+    font-size: 0.6875rem; /* 11px mobile très petit */
+  }
+
+  .info-value-mini {
+    font-size: 0.8125rem; /* 13px mobile très petit */
+  }
+
+  .empty-state p {
+    font-size: 0.875rem; /* 14px mobile très petit */
+  }
+
+  .empty-state small {
+    font-size: 0.8125rem; /* 13px mobile très petit */
   }
 
   /* .info-grid {

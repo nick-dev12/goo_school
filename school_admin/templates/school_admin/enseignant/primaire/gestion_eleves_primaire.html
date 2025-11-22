@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_eleves_primaire.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_eleves_primaire.css' %}?v=1.0.1">
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
@@ -125,76 +125,78 @@
 
                                 {% if classe_data.eleves %}
                                     <!-- Liste des élèves -->
-                                    <div class="presence-list">
-                                        <div class="presence-header">
-                                            <div class="col-numero">#</div>
-                                            <div class="col-nom">Nom complet</div>
-                                            <div class="col-sexe">Sexe</div>
-                                            <div class="col-absences">Absences</div>
-                                            <div class="col-sanctions">Sanctions</div>
-                                            <div class="col-actions">Actions</div>
-                                        </div>
-                                        
-                                        {% for eleve_data in classe_data.eleves %}
-                                            <div class="presence-row">
-                                                <div class="col-numero">{{ forloop.counter }}</div>
-                                                <div class="col-nom">
-                                                    <div class="eleve-avatar-small">
-                                                        {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
-                                                    </div>
-                                                    <div class="eleve-info">
-                                                        <span class="eleve-nom-complet">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</span>
-                                                        <span class="eleve-matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="col-sexe">
-                                                    <span class="badge-sexe {% if eleve_data.eleve.sexe == 'M' %}masculin{% else %}feminin{% endif %}">
-                                                        <i class="fas fa-{% if eleve_data.eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
-                                                        {{ eleve_data.eleve.get_sexe_display }}
-                                                    </span>
-                                                </div>
-                                                <div class="col-absences">
-                                                    {% if eleve_data.nombre_absences > 0 %}
-                                                        <span class="badge-absences {% if eleve_data.nombre_absences >= 5 %}danger{% elif eleve_data.nombre_absences >= 3 %}warning{% else %}info{% endif %}">
-                                                            <i class="fas fa-calendar-times"></i>
-                                                            {{ eleve_data.nombre_absences }}
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="badge-absences success">
-                                                            <i class="fas fa-check"></i>
-                                                            0
-                                                        </span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="col-sanctions">
-                                                    {% if eleve_data.nombre_sanctions > 0 %}
-                                                        <span class="badge-sanctions {% if eleve_data.nombre_sanctions >= 3 %}danger{% elif eleve_data.nombre_sanctions >= 2 %}warning{% else %}info{% endif %}">
-                                                            <i class="fas fa-exclamation-triangle"></i>
-                                                            {{ eleve_data.nombre_sanctions }}
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="badge-sanctions success">
-                                                            <i class="fas fa-check"></i>
-                                                            0
-                                                        </span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="col-actions">
-                                                    <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="action-btn-small primary" title="Voir le profil">
-                                                        <i class="fas fa-user"></i>
-                                                    </a>
-                                                    <a href="{% url 'enseignant_primaire:historique_presence' eleve_data.eleve.id %}" class="action-btn-small info" title="Historique de présence">
-                                                        <i class="fas fa-history"></i>
-                                                    </a>
-                                                    <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=notes" class="action-btn-small success" title="Notes">
-                                                        <i class="fas fa-clipboard-check"></i>
-                                                    </a>
-                                                    <button class="action-btn-small warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
-                                                        <i class="fas fa-gavel"></i>
-                                                    </button>
-                                                </div>
+                                    <div class="table-responsive">
+                                        <div class="presence-list">
+                                            <div class="presence-header">
+                                                <div class="col-numero">#</div>
+                                                <div class="col-nom">Nom complet</div>
+                                                <div class="col-sexe">Sexe</div>
+                                                <div class="col-absences">Absences</div>
+                                                <div class="col-sanctions">Sanctions</div>
+                                                <div class="col-actions">Actions</div>
                                             </div>
-                                        {% endfor %}
+                                            
+                                            {% for eleve_data in classe_data.eleves %}
+                                                <div class="presence-row">
+                                                    <div class="col-numero">{{ forloop.counter }}</div>
+                                                    <div class="col-nom">
+                                                        <div class="eleve-avatar-small">
+                                                            {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
+                                                        </div>
+                                                        <div class="eleve-info">
+                                                            <span class="eleve-nom-complet">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</span>
+                                                            <span class="eleve-matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sexe">
+                                                        <span class="badge-sexe {% if eleve_data.eleve.sexe == 'M' %}masculin{% else %}feminin{% endif %}">
+                                                            <i class="fas fa-{% if eleve_data.eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                                                            {{ eleve_data.eleve.get_sexe_display }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-absences">
+                                                        {% if eleve_data.nombre_absences > 0 %}
+                                                            <span class="badge-absences {% if eleve_data.nombre_absences >= 5 %}danger{% elif eleve_data.nombre_absences >= 3 %}warning{% else %}info{% endif %}">
+                                                                <i class="fas fa-calendar-times"></i>
+                                                                {{ eleve_data.nombre_absences }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge-absences success">
+                                                                <i class="fas fa-check"></i>
+                                                                0
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-sanctions">
+                                                        {% if eleve_data.nombre_sanctions > 0 %}
+                                                            <span class="badge-sanctions {% if eleve_data.nombre_sanctions >= 3 %}danger{% elif eleve_data.nombre_sanctions >= 2 %}warning{% else %}info{% endif %}">
+                                                                <i class="fas fa-exclamation-triangle"></i>
+                                                                {{ eleve_data.nombre_sanctions }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge-sanctions success">
+                                                                <i class="fas fa-check"></i>
+                                                                0
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-actions">
+                                                        <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="action-btn-small primary" title="Voir le profil">
+                                                            <i class="fas fa-user"></i>
+                                                        </a>
+                                                        <a href="{% url 'enseignant_primaire:historique_presence' eleve_data.eleve.id %}" class="action-btn-small info" title="Historique de présence">
+                                                            <i class="fas fa-history"></i>
+                                                        </a>
+                                                        <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=notes" class="action-btn-small success" title="Notes">
+                                                            <i class="fas fa-clipboard-check"></i>
+                                                        </a>
+                                                        <button class="action-btn-small warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
+                                                            <i class="fas fa-gavel"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
                                     </div>
                                 {% else %}
                                     <div class="empty-class-state">

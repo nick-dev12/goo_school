@@ -125,10 +125,7 @@
                             <span class="info-label">Classe :</span>
                             <span class="info-value info-uppercase info-value-wrap">{{ classe.nom }}</span>
                           </div>
-                          <div class="idcard-info-row">
-                            <span class="info-label">Contact :</span>
-                            <span class="info-value info-value-wrap">{{ eleve.telephone|default:"**********" }}</span>
-                          </div>
+                         
                         </div>
                         <div class="idcard-qr">
                           {% if eleve.qr_code_image %}
@@ -143,7 +140,7 @@
                       </div>
                       <div class="idcard-footer">
                         <span class="idcard-matricule">MAT. : {{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
-                        <span class="idcard-printed">IMPRIMÉ PAR / PRINTED BY {{ etablissement.nom|default:"LYCÉE GANALIS" }}</span>
+                        <span class="idcard-printed">IMPRIMÉ PAR / {{ etablissement.nom|default:"LYCÉE GANALIS" }}</span>
                       </div>
                     </div>
 
@@ -164,9 +161,7 @@
                         <div class="idcard-back-info">
                           <div class="idcard-establishment">
                             <span class="establishment-name">{{ etablissement.nom|upper|default:"LYCÉE GANALIS" }}</span>
-                            <span>BP : {{ etablissement.boite_postale|default:"12345 Douala – Cameroun" }}</span>
-                            <span>Tél. : {{ etablissement.telephone|default:"N/D" }}</span>
-                            <span>Email : {{ etablissement.email|default:"contact@etablissement.com" }}</span>
+                           
                           </div>
                           <div class="signature-line">
                             <span>Signature du Chef d'établissement :</span>

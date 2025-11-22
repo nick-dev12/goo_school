@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.0">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -138,18 +138,19 @@
 
                                 {% if classe_data.eleves %}
                                     <!-- Liste des élèves -->
-                                    <div class="presence-list">
-                                        <div class="presence-header">
-                                            <div class="col-numero">#</div>
-                                            <div class="col-nom">Nom complet</div>
-                                            <div class="col-sexe">Sexe</div>
-                                            <div class="col-absences">Absences</div>
-                                            <div class="col-sanctions">Sanctions</div>
-                                            <div class="col-actions">Actions</div>
-                                        </div>
-                                        
-                                        {% for eleve_data in classe_data.eleves %}
-                                            <div class="presence-row">
+                                    <div class="table-responsive">
+                                        <div class="presence-list">
+                                            <div class="presence-header">
+                                                <div class="col-numero">#</div>
+                                                <div class="col-nom">Nom complet</div>
+                                                <div class="col-sexe">Sexe</div>
+                                                <div class="col-absences">Absences</div>
+                                                <div class="col-sanctions">Sanctions</div>
+                                                <div class="col-actions">Actions</div>
+                                            </div>
+                                            
+                                            {% for eleve_data in classe_data.eleves %}
+                                                <div class="presence-row">
                                                 <div class="col-numero">{{ forloop.counter }}</div>
                                                 <div class="col-nom">
                                                     <div class="eleve-avatar-small">
@@ -208,6 +209,7 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                        </div>
                                     </div>
                                 {% else %}
                                     <div class="empty-class-state">

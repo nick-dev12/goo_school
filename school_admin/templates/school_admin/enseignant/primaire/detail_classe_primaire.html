@@ -127,7 +127,7 @@
                 </div>
                 
                 {% if eleves %}
-                    <div class="table-container">
+                    <div class="table-container table-responsive">
                         <table class="eleves-table">
                             <thead>
                                 <tr>
@@ -305,19 +305,19 @@
                                     <div class="date-jour">{{ jour_data.date|date:"d" }}</div>
                                     <div class="date-mois">{{ jour_data.date|date:"M" }}</div>
                                 </div>
-                                <div class="liste-content" style="flex: 1;">
+                                <div class="liste-content">
                                     <div class="liste-title">{{ jour_data.date|date:"l d F Y" }}</div>
-                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                                    <div class="liste-stats-container">
                                         {% for liste in jour_data.listes %}
-                                            <div style="display: flex; align-items: center; gap: 0.5rem; background: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
-                                                <span class="liste-stat present" style="margin: 0;">
+                                            <div class="liste-stats-wrapper">
+                                                <span class="liste-stat present">
                                                     <i class="fas fa-check"></i> {{ liste.nombre_presents }}
                                                 </span>
-                                                <span class="liste-stat absent" style="margin: 0;">
+                                                <span class="liste-stat absent">
                                                     <i class="fas fa-times"></i> {{ liste.nombre_absents }}
                                                 </span>
                                                 {% if liste.nombre_retards > 0 %}
-                                                    <span class="liste-stat retard" style="margin: 0;">
+                                                    <span class="liste-stat retard">
                                                         <i class="fas fa-clock"></i> {{ liste.nombre_retards }}
                                                     </span>
                                                 {% endif %}
@@ -397,9 +397,6 @@
                         {% for eval in prochaines_evaluations %}
                             <div class="evaluation-card prochaine">
                                 <div class="eval-header">
-                                    <div class="eval-type {{ eval.type_evaluation|lower }}">
-                                        {{ eval.get_type_evaluation_display }}
-                                    </div>
                                     <div class="eval-bareme">/{{ eval.bareme }}</div>
                                 </div>
                                 <div class="eval-title">{{ eval.titre }}</div>
@@ -438,9 +435,6 @@
                         {% for eval in dernieres_evaluations %}
                             <div class="evaluation-card passee">
                                 <div class="eval-header">
-                                    <div class="eval-type {{ eval.type_evaluation|lower }}">
-                                        {{ eval.get_type_evaluation_display }}
-                                    </div>
                                     <div class="eval-bareme">/{{ eval.bareme }}</div>
                                 </div>
                                 <div class="eval-title">{{ eval.titre }}</div>

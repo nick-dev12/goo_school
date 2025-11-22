@@ -9,220 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
-    <style>
-        .btn-action-mini.success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-        }
-
-        .btn-action-mini.success:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-
-        .modal-justification {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            background: rgba(17, 24, 39, 0.55);
-            backdrop-filter: blur(6px);
-            padding: 40px 16px;
-        }
-
-        .modal-justification.is-visible {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.25s ease;
-        }
-
-        .modal-justification-content {
-            background: #ffffff;
-            width: min(640px, 100%);
-            max-height: 92vh;
-            border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-            animation: slideDown 0.3s ease;
-        }
-
-        .modal-justification-header {
-            padding: 24px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-justification-header h3 {
-            font-size: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0;
-        }
-
-        .modal-justification-close {
-            background: transparent;
-            border: none;
-            color: inherit;
-            font-size: 26px;
-            cursor: pointer;
-            line-height: 1;
-            transition: transform 0.2s ease;
-        }
-
-        .modal-justification-close:hover {
-            transform: scale(1.1);
-        }
-
-        .modal-justification-body {
-            padding: 28px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .modal-justification-info {
-            background: rgba(16, 185, 129, 0.1);
-            border-left: 4px solid #10b981;
-            padding: 16px;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .modal-justification-info strong {
-            font-size: 15px;
-            color: #0f766e;
-        }
-
-        .modal-justification-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .modal-justification-form-group label {
-            font-weight: 600;
-            font-size: 14px;
-            color: #374151;
-        }
-
-        .modal-justification-form-group select {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 2px solid #e5e7eb;
-            font-size: 15px;
-            background: #ffffff;
-            color: #1f2937;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .modal-justification-form-group select:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-            outline: none;
-        }
-
-        .modal-justification-footer {
-            padding: 20px 24px;
-            background: #f9fafb;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            border-top: 1px solid #f3f4f6;
-        }
-
-        .modal-justification-footer .btn-cancel {
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            color: #4b5563;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .modal-justification-footer .btn-cancel:hover {
-            background: #e5e7eb;
-        }
-
-        .modal-justification-footer .btn-submit {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            color: #ffffff;
-            padding: 10px 22px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .modal-justification-footer .btn-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
-        }
-
-        .absences-options-template {
-            display: none;
-        }
-
-        .periodes-tabs-container {
-            margin: 16px 0 24px 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .periode-tab {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 18px;
-            border-radius: 12px;
-            border: 1px solid var(--gray-200, #e5e7eb);
-            background: var(--gray-50, #f9fafb);
-            color: var(--gray-700, #374151);
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-
-        .periode-tab:hover {
-            border-color: var(--primary, #3b82f6);
-            color: var(--primary, #3b82f6);
-            box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
-        }
-
-        .periode-tab.active {
-            background: var(--primary-light, rgba(59,130,246,0.1));
-            border-color: var(--primary, #3b82f6);
-            color: var(--primary, #3b82f6);
-            box-shadow: var(--shadow, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
-        }
-
-        .periode-tab .periode-annee {
-            font-weight: 500;
-            color: var(--gray-500, #6b7280);
-        }
-    </style>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -393,30 +181,29 @@
                                         </div>
 
                                         <!-- Barre de recherche et filtres pour tous les établissements -->
-                                        <div class="search-filter-container" id="search-filter-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                                            <div class="search-box" style="position: relative; margin-bottom: 16px;">
-                                                <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                                        <div class="search-filter-container" id="search-filter-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">
+                                            <div class="search-box">
+                                                <i class="fas fa-search"></i>
                                                 <input type="text" 
                                                        class="search-input" 
                                                        id="search-input-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
                                                        placeholder="Rechercher un élève (nom, prénom, matricule...)"
-                                                       oninput="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')"
-                                                       style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
+                                                       oninput="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                 <button class="clear-search" 
                                                         id="clear-search-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
                                                         onclick="clearPresenceSearch('{{ classe_data.classe.id }}-{{ forloop.counter }}')" 
-                                                        style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                                        style="display: none;">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
                                             
-                                            <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                                                <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                                    <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                            <div class="filters-box">
+                                                <div class="filter-group">
+                                                    <label class="filter-label">
                                                         <i class="fas fa-percentage"></i>
                                                         Taux de présence
                                                     </label>
-                                                    <select class="filter-select" id="filter-taux-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                    <select class="filter-select" id="filter-taux-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                         <option value="">Tous les taux</option>
                                                         <option value="excellent">Excellent (≥ 95%)</option>
                                                         <option value="bon">Bon (90-94%)</option>
@@ -426,12 +213,12 @@
                                                     </select>
                                                 </div>
                                                 
-                                                <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                                    <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                <div class="filter-group">
+                                                    <label class="filter-label">
                                                         <i class="fas fa-exclamation-triangle"></i>
                                                         Absences
                                                     </label>
-                                                    <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                    <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                         <option value="">Toutes</option>
                                                         <option value="0">Aucune absence</option>
                                                         <option value="1-3">1-3 absences</option>
@@ -440,12 +227,12 @@
                                                     </select>
                                                 </div>
                                                 
-                                                <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                                    <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                <div class="filter-group">
+                                                    <label class="filter-label">
                                                         <i class="fas fa-clock"></i>
                                                         Retards
                                                     </label>
-                                                    <select class="filter-select" id="filter-retards-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                    <select class="filter-select" id="filter-retards-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                         <option value="">Tous</option>
                                                         <option value="0">Aucun retard</option>
                                                         <option value="1-2">1-2 retards</option>
@@ -454,13 +241,13 @@
                                                     </select>
                                                 </div>
                                                 
-                                                <button class="btn-reset-filters" onclick="resetPresenceFilters('{{ classe_data.classe.id }}-{{ forloop.counter }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                                <button class="btn-reset-filters" onclick="resetPresenceFilters('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                     <i class="fas fa-redo"></i>
                                                     Réinitialiser
                                                 </button>
                                             </div>
                                             
-                                            <div class="filter-results" id="filter-results-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
+                                            <div class="filter-results" id="filter-results-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="display: none;">
                                                 <span id="results-count-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">0</span> résultat(s) trouvé(s)
                                             </div>
                                         </div>
@@ -595,6 +382,132 @@
                                                     {% endif %}
                                                 </tbody>
                                             </table>
+                                        </div>
+
+                                        <!-- Cartes pour mobile (≤700px) -->
+                                        <div class="presence-cards-container">
+                                            {% if mois_presences %}
+                                                {% for eleve_data in mois_presences.eleves_presences %}
+                                                    <div class="presence-student-card student-row {% if eleve_data.taux_presence is not None %}{% if eleve_data.taux_presence >= 95 %}presence-excellente{% elif eleve_data.taux_presence >= 90 %}presence-bonne{% elif eleve_data.taux_presence >= 85 %}presence-moyenne{% elif eleve_data.taux_presence >= 80 %}presence-faible{% else %}presence-critique{% endif %}{% endif %}"
+                                                         data-nom="{{ eleve_data.eleve.nom|lower }}"
+                                                         data-prenom="{{ eleve_data.eleve.prenom|lower }}"
+                                                         data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
+                                                         data-taux-presence="{{ eleve_data.taux_presence|default:'0' }}"
+                                                         data-absents="{{ eleve_data.absents|default:'0' }}"
+                                                         data-retards="{{ eleve_data.retards|default:'0' }}">
+                                                        <div class="presence-card-header">
+                                                            <div class="presence-card-info">
+                                                                <div class="presence-card-rang">
+                                                                    {% if eleve_data.taux_presence %}
+                                                                        <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                                                            {{ forloop.counter }}
+                                                                        </span>
+                                                                    {% else %}
+                                                                        <span class="rang-badge">-</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="presence-card-avatar">
+                                                                    <i class="fas fa-user"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <div class="presence-card-name">{{ eleve_data.eleve.nom_complet }}</div>
+                                                                    <div class="presence-card-matricule">{{ eleve_data.eleve.numero_eleve }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="presence-card-stats">
+                                                            <div class="presence-stat-item">
+                                                                <span class="presence-stat-label">Jours</span>
+                                                                <span class="presence-stat-value jours-count">{{ eleve_data.total_jours }}</span>
+                                                            </div>
+                                                            <div class="presence-stat-item">
+                                                                <span class="presence-stat-label">Présents</span>
+                                                                <span class="presence-stat-value presents-badge">{{ eleve_data.presents }}</span>
+                                                            </div>
+                                                            <div class="presence-stat-item">
+                                                                <span class="presence-stat-label">Absents</span>
+                                                                <span class="presence-stat-value absents-badge">{{ eleve_data.absents }}</span>
+                                                            </div>
+                                                            <div class="presence-stat-item">
+                                                                <span class="presence-stat-label">Justifiées</span>
+                                                                <span class="presence-stat-value justifies-badge">{{ eleve_data.absents_justifies }}</span>
+                                                            </div>
+                                                            <div class="presence-stat-item">
+                                                                <span class="presence-stat-label">Retards</span>
+                                                                <span class="presence-stat-value retards-badge">{{ eleve_data.retards }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="presence-card-taux">
+                                                            <div class="presence-taux-label">Taux de présence</div>
+                                                            <div class="presence-taux-value">
+                                                                {% if eleve_data.taux_presence is not None %}
+                                                                    <span class="taux-badge {% if eleve_data.taux_presence >= 95 %}excellent{% elif eleve_data.taux_presence >= 90 %}bon{% elif eleve_data.taux_presence >= 85 %}moyen{% elif eleve_data.taux_presence >= 80 %}faible{% else %}critique{% endif %}">
+                                                                        {{ eleve_data.taux_presence }}%
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="taux-non-disponible">
+                                                                        <i class="fas fa-hourglass-half"></i>
+                                                                        N/A
+                                                                    </span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="presence-card-statut">
+                                                            <div class="presence-statut-label">Statut</div>
+                                                            <div class="presence-statut-value">
+                                                                {% if eleve_data.taux_presence is not None %}
+                                                                    {% if eleve_data.taux_presence >= 95 %}
+                                                                        <span class="statut-badge excellent">Excellent</span>
+                                                                    {% elif eleve_data.taux_presence >= 90 %}
+                                                                        <span class="statut-badge bon">Bon</span>
+                                                                    {% elif eleve_data.taux_presence >= 85 %}
+                                                                        <span class="statut-badge moyen">Moyen</span>
+                                                                    {% elif eleve_data.taux_presence >= 80 %}
+                                                                        <span class="statut-badge faible">Faible</span>
+                                                                    {% else %}
+                                                                        <span class="statut-badge critique">Critique</span>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <span class="statut-non-disponible">-</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="presence-card-actions">
+                                                            <div class="actions-buttons">
+                                                                <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="Voir le profil">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </a>
+                                                                {% if eleve_data.absences_details %}
+                                                                <button type="button"
+                                                                        class="btn-action-mini success"
+                                                                        title="Justifier une absence"
+                                                                        onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }}, '{{ mois_key }}')">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </button>
+                                                                {% endif %}
+                                                                <button class="btn-action-mini warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
+                                                                    <i class="fas fa-gavel"></i>
+                                                                </button>
+                                                            </div>
+                                                            {% if eleve_data.absences_details %}
+                                                                <select id="absences-options-{{ eleve_data.eleve.id }}-{{ classe_data.classe.id }}-{{ mois_key }}"
+                                                                        class="absences-options-template"
+                                                                        hidden>
+                                                                    <option value="">Sélectionnez une absence</option>
+                                                                    {% for absence in eleve_data.absences_details %}
+                                                                        <option value="{{ absence.id }}">{{ absence.label }}</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                <div class="no-data-card">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    <p>Aucune donnée de présence pour ce mois</p>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                             {% endfor %}
@@ -933,9 +846,10 @@
                     matchesRetards = retards >= 6;
                 }
                 
-                // Afficher/masquer la ligne selon les critères
+                // Afficher/masquer la ligne/carte selon les critères
                 if (matchesSearch && matchesTaux && matchesAbsences && matchesRetards) {
-                    row.style.display = '';
+                    // Pour les cartes (div), utiliser 'block', pour les lignes (tr), utiliser ''
+                    row.style.display = row.tagName === 'DIV' ? 'block' : '';
                     visibleCount++;
                 } else {
                     row.style.display = 'none';

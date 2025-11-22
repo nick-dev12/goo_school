@@ -9,7 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/detail_eleve.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/detail_eleve.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/historique_presence.css' %}">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -147,7 +148,7 @@
                                         </span>
                                     </div>
 
-                                    <div class="notes-table-container">
+                                    <div class="table-responsive">
                                         <table class="notes-table-matiere">
                                             <thead>
                                                 <tr>
@@ -156,7 +157,6 @@
                                                         <th class="col-devoir" title="{{ eval.titre }}">
                                                             <div class="devoir-header">
                                                                 <span class="devoir-titre">Devoir #{{ forloop.counter }}</span>
-                                                                <span class="devoir-info">{{ eval.get_type_evaluation_display }}</span>
                                                                 <span class="devoir-date">{{ eval.date_evaluation|date:"d/m/Y" }}</span>
                                                             </div>
                                                         </th>
@@ -254,126 +254,140 @@
                         </div>
                     {% endif %}
 
-                    {% if matiere_selectionnee and matiere_selectionnee.id in presences_par_matiere %}
-                        {% with presences_data=presences_par_matiere|get_item:matiere_selectionnee.id mois_disponibles_mat=mois_disponibles_par_matiere|get_item:matiere_selectionnee.id %}
-                            <!-- Onglets des mois -->
-                            {% if mois_disponibles_mat %}
-                                <div class="mois-tabs-horizontal">
-                                    {% for mois_data in mois_disponibles_mat %}
-                                        <a href="?onglet=presences&mois={{ mois_data.annee_mois }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" 
-                                           class="mois-tab {% if mois_selectionne == mois_data.annee_mois %}active{% elif not mois_selectionne and forloop.first %}active{% endif %}">
+                    {% if matiere_selectionnee %}
+                        {% if presences_data %}
+                            <!-- Onglets par mois (afficher uniquement les mois avec présences) -->
+                            {% if mois_disponibles and mois_disponibles|length > 0 %}
+                                <div class="filtres-periode">
+                                    <a href="?onglet=presences&matiere={{ matiere_selectionnee.id }}" 
+                                       class="filtre-btn {% if not mois_selectionne %}active{% endif %}">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        Tous les mois
+                                    </a>
+                                    {% for mois_data in mois_disponibles %}
+                                        <a href="?onglet=presences&matiere={{ matiere_selectionnee.id }}&mois={{ mois_data.annee_mois }}" 
+                                           class="filtre-btn {% if mois_selectionne == mois_data.annee_mois %}active{% endif %}">
                                             <i class="fas fa-calendar"></i>
-                                            <span>{{ mois_data.nom }} {{ mois_data.annee }}</span>
+                                            {{ mois_data.nom }} {{ mois_data.annee }}
                                         </a>
                                     {% endfor %}
                                 </div>
+                            {% endif %}
 
-                                <!-- Statistiques du mois sélectionné -->
-                                <div class="presence-stats">
-                                    <div class="stat-card present">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-number">{{ presences_data.nombre_presents_mois }}</div>
-                                            <div class="stat-text">Présents</div>
-                                        </div>
+                            <!-- Statistiques globales (identique à historique_presence_eleve) -->
+                            <div class="stats-globales">
+                                <div class="stat-box present">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-check-circle"></i>
                                     </div>
-                                    <div class="stat-card absent">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-times-circle"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-number">{{ presences_data.nombre_absences_mois }}</div>
-                                            <div class="stat-text">Absences</div>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card retard">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-number">{{ presences_data.nombre_retards_mois }}</div>
-                                            <div class="stat-text">Retards</div>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card taux">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-chart-pie"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-number">{{ presences_data.taux_presence_mois }}%</div>
-                                            <div class="stat-text">Assiduité</div>
-                                        </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value">{{ nombre_presents|default:0 }}</div>
+                                        <div class="stat-label">Présent{{ nombre_presents|pluralize }}</div>
                                     </div>
                                 </div>
+                                <div class="stat-box absent">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-times-circle"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value">{{ nombre_absences|default:0 }}</div>
+                                        <div class="stat-label">Absence{{ nombre_absences|pluralize }} non justifiée{{ nombre_absences|pluralize }}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-box justifie">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-file-medical"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value">{{ nombre_absences_justifiees|default:0 }}</div>
+                                        <div class="stat-label">Absence{{ nombre_absences_justifiees|pluralize }} justifiée{{ nombre_absences_justifiees|pluralize }}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-box retard">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value">{{ nombre_retards|default:0 }}</div>
+                                        <div class="stat-label">Retard{{ nombre_retards|pluralize }}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-box taux">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value">{{ taux_presence|default:0 }}%</div>
+                                        <div class="stat-label">Taux de présence</div>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <!-- Historique des présences du mois -->
-                                <div class="presences-container">
-                                    <h3><i class="fas fa-history"></i> Historique du mois sélectionné</h3>
-                                    {% if presences_data.presences %}
-                                    <div class="presences-timeline">
-                                        {% for presence in presences_data.presences %}
-                                            <div class="presence-item {% if not presence.liste_presence.validee %}modifiable{% endif %}" data-presence-id="{{ presence.id }}">
-                                                <div class="presence-date">
-                                                    <div class="date-jour">{{ presence.date|date:"d" }}</div>
-                                                    <div class="date-mois">{{ presence.date|date:"M" }}</div>
+                            <!-- Historique complet (identique à historique_presence_eleve) -->
+                            <div class="historique-container">
+                                <div class="historique-header">
+                                    <h2><i class="fas fa-history"></i> Historique complet - {{ matiere_selectionnee.nom }}</h2>
+                                    <span class="total-count">{{ total_presences|default:0 }} enregistrement{{ total_presences|pluralize }}</span>
+                                </div>
+
+                                {% if presences and presences|length > 0 %}
+                                    <div class="timeline-container">
+                                        {% for presence in presences %}
+                                            <div class="timeline-item {% if presence.statut == 'present' %}present{% elif presence.statut == 'absent' %}absent{% elif presence.statut == 'retard' %}retard{% else %}justifie{% endif %}">
+                                                <div class="timeline-marker">
+                                                    <i class="fas fa-{% if presence.statut == 'present' %}check-circle{% elif presence.statut == 'absent' %}times-circle{% elif presence.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
                                                 </div>
-                                                <div class="presence-details">
-                                                    <div class="presence-status">
+                                                <div class="timeline-content">
+                                                    <div class="timeline-date">
+                                                        <strong>{{ presence.date|date:"l d F Y" }}</strong>
+                                                        <span class="date-relative">{{ presence.date|date:"d/m/Y" }}</span>
+                                                    </div>
+                                                    <div class="timeline-status">
                                                         <span class="status-badge {{ presence.statut }}">
                                                             <i class="fas fa-{% if presence.statut == 'present' %}check-circle{% elif presence.statut == 'absent' %}times-circle{% elif presence.statut == 'retard' %}clock{% else %}file-medical{% endif %}"></i>
                                                             {{ presence.get_statut_display }}
                                                         </span>
-                                                    </div>
-                                                    <div class="presence-info">
-                                                        <span class="info-text">{{ presence.date|date:"l d F Y" }}</span>
-                                                        {% if presence.remarque %}
-                                                            <span class="info-remarque">{{ presence.remarque }}</span>
+                                                        {% if presence.type_justificatif %}
+                                                            <span class="justificatif-badge">
+                                                                <i class="fas fa-file-alt"></i>
+                                                                {{ presence.get_type_justificatif_display }}
+                                                            </span>
                                                         {% endif %}
                                                     </div>
-                                                </div>
-                                                <div class="presence-actions">
-                                                    {% with liste=presence.classe.listes_presences.all|dictsort:"date" %}
-                                                        {% for lp in liste %}
-                                                            {% if lp.date == presence.date %}
-                                                                {% if not lp.validee %}
-                                                                    <button class="btn-modifier-presence" 
-                                                                            onclick="ouvrirModalModification({{ presence.id }}, '{{ presence.statut }}', '{{ presence.date|date:'d/m/Y' }}')">
-                                                                        <i class="fas fa-edit"></i>
-                                                                        Modifier
-                                                                    </button>
-                                                                {% else %}
-                                                                    <span class="badge-validee">
-                                                                        <i class="fas fa-lock"></i>
-                                                                        Validée
-                                                                    </span>
-                                                                {% endif %}
-                                                            {% endif %}
-                                                        {% endfor %}
-                                                    {% endwith %}
+                                                    {% if presence.remarque %}
+                                                        <div class="timeline-remarque">
+                                                            <i class="fas fa-comment"></i>
+                                                            {{ presence.remarque }}
+                                                        </div>
+                                                    {% endif %}
+                                                    {% if presence.date_justification %}
+                                                        <div class="timeline-info">
+                                                            <i class="fas fa-info-circle"></i>
+                                                            Justifiée le {{ presence.date_justification|date:"d/m/Y à H:i" }}
+                                                        </div>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                         {% endfor %}
                                     </div>
-                                    {% else %}
-                                        <div class="empty-state">
-                                            <i class="fas fa-calendar-times"></i>
-                                            <p>Aucune présence enregistrée pour ce mois</p>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% else %}
-                                <div class="empty-state">
-                                    <i class="fas fa-calendar-times"></i>
-                                    <p>Aucune liste de présence validée pour cette matière</p>
-                                </div>
-                            {% endif %}
-                        {% endwith %}
+                                {% else %}
+                                    <div class="empty-state">
+                                        <i class="fas fa-calendar-times"></i>
+                                        <p>{% if mois_selectionne %}Aucun enregistrement de présence pour le mois sélectionné{% else %}Aucun enregistrement de présence{% endif %}</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Aucune donnée de présence disponible pour la matière <strong>{{ matiere_selectionnee.nom }}</strong></p>
+                                <p class="empty-state-subtitle">Vérifiez que les présences ont été enregistrées pour cette matière.</p>
+                            </div>
+                        {% endif %}
                     {% else %}
                         <div class="empty-state">
                             <i class="fas fa-calendar-times"></i>
-                            <p>Aucune matière disponible</p>
+                            <p>{% if matieres_list|length > 1 %}Sélectionnez une matière pour voir les présences{% else %}Aucune matière disponible{% endif %}</p>
                         </div>
                     {% endif %}
                 </div>
@@ -641,4 +655,5 @@
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
 </body>
 </html>
+
 

@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.0.3">
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
@@ -115,6 +115,11 @@
                         </h2>
                     </div>
                     <div style="display: flex; gap: 1rem;">
+                        <a href="{% url 'enseignant_primaire:evaluations_classe' classe_selectionnee.id %}" 
+                           class="btn btn-info" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                            <i class="fas fa-clipboard-list"></i>
+                            Voir les évaluations créées
+                        </a>
                         <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&releve_complet=1" 
                            class="btn btn-success">
                             <i class="fas fa-file-alt"></i>
@@ -190,7 +195,7 @@
                     </div>
                 </div>
 
-                <div class="releve-table-container">
+                <div class="releve-table-container table-responsive">
                     <table class="releve-table">
                         <thead>
                             <tr>
@@ -315,7 +320,7 @@
                     </div>
                 </div>
 
-                <div class="releve-table-container">
+                <div class="releve-table-container table-responsive">
                     <table class="releve-table releve-complet-table">
                         <thead>
                             <tr>

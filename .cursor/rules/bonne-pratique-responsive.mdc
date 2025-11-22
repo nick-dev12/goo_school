@@ -1,0 +1,156 @@
+---
+alwaysApply: true
+---
+
+Bonnes pratiques de typographie responsive
+1. Titre principal (H1)
+- Mobile : 24–32px
+- Tablette : 28–36px
+- Objectif : attirer l’attention sans saturer l’écran.
+- Utiliser des unités relatives (em, rem, vw) pour s’adapter aux écrans.
+2. Sous-titre (H2)
+- Mobile : 18–22px
+- Tablette : 20–26px
+- Sert à structurer le contenu et guider la lecture.
+- Espacement supérieur et inférieur légèrement plus grand pour respirer.
+3. Sous-sous-titre (H3/H4)
+- Mobile : 16–18px
+- Tablette : 18–20px
+- Idéal pour les sections internes ou les détails.
+- Garder une hiérarchie claire : jamais plus grand que le sous-titre.
+4. Paragraphe (texte courant)
+- Mobile : 14–16px
+- Tablette : 16–18px
+- Taille minimale pour rester lisible sans zoom.
+- Interligne recommandé : 1.4–1.6 pour améliorer la lisibilité.
+
+🛠 Conseils techniques
+- Utiliser rem ou em plutôt que px : cela permet une meilleure adaptation aux résolutions et aux préférences utilisateur.
+- Limiter les variations de taille : trop de niveaux hiérarchiques fatiguent la lecture.
+- Adapter selon densité de pixels (DPI) : un 16px sur un écran Retina paraît plus petit que sur un écran classique.
+- Tester sur plusieurs devices : simulateurs ou vrais appareils pour vérifier la lisibilité.
+
+Exemple CSS modulable
+html { font-size: 16px; } /* base */
+h1 { font-size: 2rem; }   /* ~32px */
+h2 { font-size: 1.5rem; } /* ~24px */
+h3 { font-size: 1.25rem;} /* ~20px */
+p  { font-size: 1rem; }   /* ~16px */
+
+
+Avec media queries :
+@media (max-width: 768px) {
+  h1 { font-size: 1.75rem; } /* ~28px */
+  h2 { font-size: 1.25rem; } /* ~20px */
+  p  { font-size: 0.875rem; } /* ~14px */
+}
+
+
+
+
+
+
+Règles de mise en place du responsive pour les tableaux
+1. Conteneur responsive
+- Tous les tableaux doivent être placés dans un conteneur avec scroll horizontal activé.
+- CSS :
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* défilement fluide sur mobile */
+}
+
+
+2. Largeur et comportement des colonnes
+- Les colonnes gardent leur intégralité, mais utilisent min-width
+- Exemple :
+.table th, .table td {
+  min-width: 120px; /* largeur minimale pour lisibilité */
+  white-space: nowrap; /* évite le retour à la ligne */
+}
+
+
+
+3. Taille du texte
+- Desktop : 16px (1rem)
+- Tablette : 14–15px (0.875–0.9375rem)
+- Mobile : 13px (0.8125rem)
+- Exemple :
+
+- Exemple :
+.table td, .table th {
+  font-size: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .table td, .table th { font-size: 0.9375rem; }
+}
+
+@media (max-width: 768px) {
+  .table td, .table th { font-size: 0.8125rem; }
+}
+
+
+
+4. Alignement et lisibilité
+- Texte : aligné à gauche.
+- Chiffres (notes) : centrés pour une lecture rapide.
+- Interligne : line-height: 1.4–1.5 pour éviter l’effet “écrasé”.
+
+5. Interaction mobile
+- Ajouter un indicateur visuel de scroll (ombre ou gradient à droite) pour montrer qu’il y a plus de colonnes.
+- Exemple :
+.table-responsive {
+  position: relative;
+}
+.table-responsive::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: 30px; height: 100%;
+  background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+}
+
+
+
+6. Accessibilité
+- Utiliser des contrastes suffisants (texte sombre sur fond clair).
+- Garder des touch targets (cellules cliquables) d’au moins 44px de hauteur pour respecter les guidelines mobiles.
+
+✅ Résumé de la règle
+- Toujours conserver toutes les colonnes.
+- Scroll horizontal obligatoire sur mobile/tablette.
+- Texte réduit à 13px sur mobile, mais jamais en dessous.
+- Colonnes avec largeur minimale + nowrap pour éviter la casse.
+- Indicateur visuel de scroll pour guider l’utilisateur.
+
+👉 Avec ce ruleset, tes tableaux de notes resteront complets, lisibles et utilisables sur tous les écrans, sans jamais sacrifier de colonnes.
+Veux-tu que je te prépare un exemple concret de tableau des notes (HTML + CSS) appliquant directement ces règles, que tu pourrais coller dans ton projet pour tester immédiatement ?
+
+
+5. Interaction mobile
+- Ajouter un indicateur visuel de scroll (ombre ou gradient à droite) pour montrer qu’il y a plus de colonnes.
+- Exemple :
+.table-responsive {
+  position: relative;
+}
+.table-responsive::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: 30px; height: 100%;
+  background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+}
+
+
+
+6. Accessibilité
+
+
+
+✅ En résumé : garde une hiérarchie simple (H1 > H2 > H3 > P), ajuste légèrement les tailles entre mobile et tablette, et privilégie les unités relatives pour un rendu fluide et lisible sur tous les écrans.
+Souhaites-tu que je prépare un système typographique complet (avec interlignes, marges et ratios modulaires) que tu pourrais directement intégrer dans ton projet Django/Laravel ?
+Sources :
+

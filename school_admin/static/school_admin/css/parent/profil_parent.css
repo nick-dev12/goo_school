@@ -1,4 +1,937 @@
-/* Fichier CSS pour le profil parent */
-/* Le CSS principal est déjà inclus dans le template HTML */
-/* Ce fichier peut être utilisé pour des styles supplémentaires si nécessaire */
+/* Variables CSS */
+:root {
+    --primary: #3b82f6;
+    --secondary: #1d4ed8;
+    --accent: #8b5cf6;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --primary-light: rgba(59, 130, 246, 0.1);
+}
 
+/* Base typographique */
+html {
+    font-size: 16px; /* Base pour le calcul des rem */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    padding: 1.25rem;
+    position: relative;
+    overflow-x: hidden;
+    font-size: 1rem; /* 16px */
+    line-height: 1.6;
+    color: var(--gray-800);
+}
+
+.container {
+    max-width: 75rem; /* 1200px */
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+/* Header */
+.header {
+    background: white;
+    padding: 1.125rem 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 0.0625rem solid #e5e7eb;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.header-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    background: var(--primary);
+    border-radius: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.625rem; /* 26px mobile par défaut */
+    box-shadow: 0 0.25rem 0.75rem rgba(59, 130, 246, 0.25);
+    flex-shrink: 0;
+}
+
+/* H1 - Titre header */
+.header-info h1 {
+    font-size: 1.375rem; /* 22px mobile par défaut */
+    background: linear-gradient(135deg, var(--gray-800), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.header-info p {
+    color: var(--gray-600);
+    font-size: 0.8125rem; /* 13px mobile */
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-back {
+    padding: 0.625rem 1.25rem;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border: none;
+    border-radius: 0.625rem;
+    font-size: 0.8125rem; /* 13px mobile */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    line-height: 1.4;
+}
+
+.btn-back:hover {
+    background: var(--gray-200);
+    transform: translateY(-0.125rem);
+}
+
+/* Profil Header Card */
+.profil-header-card {
+    background: white;
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    border: 0.0625rem solid #e5e7eb;
+}
+
+.profil-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.profil-avatar {
+    width: 7.5rem;
+    height: 7.5rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 3rem; /* 48px mobile par défaut */
+    font-weight: 700;
+    box-shadow: 0 0.5rem 1.5rem rgba(59, 130, 246, 0.3);
+    flex-shrink: 0;
+}
+
+.profil-identity {
+    flex: 1;
+    min-width: 15.625rem;
+}
+
+.profil-nom {
+    font-size: 2rem; /* 32px mobile par défaut */
+    font-weight: 800;
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.3;
+}
+
+.profil-role {
+    font-size: 1rem; /* 16px mobile */
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.profil-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.75rem; /* 28px mobile par défaut */
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1.3;
+}
+
+.stat-label {
+    font-size: 0.8125rem; /* 13px mobile */
+    color: var(--gray-600);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* Informations Card */
+.info-card {
+    background: white;
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    border: 0.0625rem solid #e5e7eb;
+}
+
+.info-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 0.125rem solid var(--gray-100);
+}
+
+/* H3 - Titre section */
+.info-card-header h3 {
+    font-size: 1.25rem; /* 20px mobile par défaut */
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.4;
+}
+
+.info-card-header i {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+    gap: 1.25rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+    border: 0.0625rem solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.info-item:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-0.125rem);
+}
+
+.info-item-full {
+    grid-column: 1 / -1;
+}
+
+.info-label {
+    font-size: 0.75rem; /* 12px mobile */
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.03125rem;
+    line-height: 1.4;
+}
+
+.info-value {
+    font-size: 1rem; /* 16px mobile */
+    font-weight: 600;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    line-height: 1.5;
+}
+
+.info-value i {
+    color: var(--primary);
+    font-size: 1.125rem;
+}
+
+/* Enfants List */
+.enfants-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
+    gap: 1.25rem;
+}
+
+.enfant-item {
+    background: var(--gray-50);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    border: 0.125rem solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.enfant-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-0.25rem);
+    box-shadow: 0 0.5rem 1.5rem rgba(59, 130, 246, 0.15);
+}
+
+.enfant-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.enfant-avatar-small {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem; /* 20px mobile par défaut */
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.enfant-name {
+    font-size: 1rem; /* 16px mobile */
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.4;
+}
+
+.enfant-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.enfant-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem; /* 14px mobile */
+    color: var(--gray-600);
+    line-height: 1.5;
+}
+
+.enfant-detail-item i {
+    color: var(--primary);
+    width: 1.125rem;
+    flex-shrink: 0;
+}
+
+/* Security Form */
+.security-form {
+    max-width: 37.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem; /* 14px mobile */
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.625rem;
+    line-height: 1.4;
+}
+
+.form-label i {
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 0.125rem solid var(--gray-200);
+    border-radius: 0.625rem;
+    font-size: 0.875rem; /* 14px mobile */
+    transition: all 0.3s ease;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.1875rem rgba(59, 130, 246, 0.1);
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.75rem; /* 12px mobile */
+    color: var(--gray-500);
+    margin-top: 0.375rem;
+    line-height: 1.5;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper .form-input {
+    padding-right: 3.125rem;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease;
+    z-index: 10;
+}
+
+.toggle-password:hover {
+    color: var(--primary);
+}
+
+.toggle-password i {
+    font-size: 1.125rem;
+}
+
+.password-tips {
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border: 0.0625rem solid var(--gray-200);
+}
+
+/* H4 - Titre tips */
+.password-tips h4 {
+    font-size: 0.875rem; /* 14px mobile */
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    line-height: 1.4;
+}
+
+.password-tips h4 i {
+    color: var(--primary);
+}
+
+.password-tips ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.password-tips ul li {
+    font-size: 0.8125rem; /* 13px mobile */
+    color: var(--gray-600);
+    padding: 0.375rem 0;
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.5;
+}
+
+.password-tips ul li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    border: none;
+    border-radius: 0.625rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem; /* 14px mobile */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 0.25rem 0.75rem rgba(59, 130, 246, 0.3);
+    line-height: 1.4;
+}
+
+.btn-submit:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.375rem 1.25rem rgba(59, 130, 246, 0.4);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+/* Media queries pour responsive */
+@media (max-width: 768px) {
+    /* Mobile */
+    html {
+        font-size: 16px;
+    }
+
+    body {
+        padding: 0.75rem;
+    }
+
+    .container {
+        padding: 0;
+    }
+
+    .header {
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .header-icon {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.375rem; /* 22px mobile */
+    }
+
+    /* H1 mobile */
+    .header-info h1 {
+        font-size: 1.25rem; /* 20px mobile */
+    }
+
+    .header-info p {
+        font-size: 0.75rem; /* 12px mobile */
+    }
+
+    .btn-back {
+        font-size: 0.75rem; /* 12px mobile */
+        padding: 0.5rem 1rem;
+    }
+
+    .profil-header-card {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .profil-header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.25rem;
+    }
+
+    .profil-avatar {
+        width: 6.25rem;
+        height: 6.25rem;
+        font-size: 2.5rem; /* 40px mobile */
+    }
+
+    .profil-nom {
+        font-size: 1.75rem; /* 28px mobile */
+    }
+
+    .profil-role {
+        font-size: 0.9375rem; /* 15px mobile */
+    }
+
+    .profil-stats {
+        justify-content: center;
+        gap: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem; /* 24px mobile */
+    }
+
+    .stat-label {
+        font-size: 0.75rem; /* 12px mobile */
+    }
+
+    .info-card {
+        padding: 1.5rem 1.25rem;
+    }
+
+    /* H3 mobile */
+    .info-card-header h3 {
+        font-size: 1.125rem; /* 18px mobile */
+    }
+
+    .info-card-header i {
+        font-size: 1.25rem;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .info-item {
+        padding: 0.875rem;
+    }
+
+    .info-label {
+        font-size: 0.6875rem; /* 11px mobile */
+    }
+
+    .info-value {
+        font-size: 0.9375rem; /* 15px mobile */
+    }
+
+    .enfants-list {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .enfant-item {
+        padding: 1rem;
+    }
+
+    .enfant-avatar-small {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.125rem; /* 18px mobile */
+    }
+
+    .enfant-name {
+        font-size: 0.9375rem; /* 15px mobile */
+    }
+
+    .enfant-detail-item {
+        font-size: 0.8125rem; /* 13px mobile */
+    }
+
+    .security-form {
+        max-width: 100%;
+    }
+
+    .form-label {
+        font-size: 0.8125rem; /* 13px mobile */
+    }
+
+    .form-input {
+        font-size: 0.8125rem; /* 13px mobile */
+        padding: 0.625rem 0.875rem;
+    }
+
+    .form-hint {
+        font-size: 0.6875rem; /* 11px mobile */
+    }
+
+    .password-tips {
+        padding: 1rem;
+    }
+
+    /* H4 mobile */
+    .password-tips h4 {
+        font-size: 0.8125rem; /* 13px mobile */
+    }
+
+    .password-tips ul li {
+        font-size: 0.75rem; /* 12px mobile */
+    }
+
+    .form-actions {
+        justify-content: stretch;
+    }
+
+    .btn-submit {
+        width: 100%;
+        justify-content: center;
+        font-size: 0.8125rem; /* 13px mobile */
+        padding: 0.625rem 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Mobile très petit */
+    body {
+        padding: 0.5rem;
+    }
+
+    .header {
+        padding: 0.875rem 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .header-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+        font-size: 1.25rem; /* 20px mobile très petit */
+    }
+
+    /* H1 mobile très petit */
+    .header-info h1 {
+        font-size: 1.125rem; /* 18px mobile très petit */
+    }
+
+    .header-info p {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+    }
+
+    .btn-back {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+        padding: 0.5rem 0.875rem;
+    }
+
+    .btn-back i {
+        font-size: 0.75rem;
+    }
+
+    .profil-header-card {
+        padding: 1.25rem 1rem;
+    }
+
+    .profil-avatar {
+        width: 5rem;
+        height: 5rem;
+        font-size: 2rem; /* 32px mobile très petit */
+    }
+
+    .profil-nom {
+        font-size: 1.5rem; /* 24px mobile très petit */
+    }
+
+    .profil-role {
+        font-size: 0.875rem; /* 14px mobile très petit */
+    }
+
+    .stat-value {
+        font-size: 1.25rem; /* 20px mobile très petit */
+    }
+
+    .stat-label {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+    }
+
+    .info-card {
+        padding: 1.25rem 1rem;
+    }
+
+    /* H3 mobile très petit */
+    .info-card-header h3 {
+        font-size: 1rem; /* 16px mobile très petit */
+    }
+
+    .info-card-header i {
+        font-size: 1.125rem;
+    }
+
+    .info-item {
+        padding: 0.75rem;
+    }
+
+    .info-label {
+        font-size: 0.625rem; /* 10px mobile très petit */
+    }
+
+    .info-value {
+        font-size: 0.875rem; /* 14px mobile très petit */
+    }
+
+    .enfant-item {
+        padding: 0.875rem;
+    }
+
+    .enfant-avatar-small {
+        width: 2.25rem;
+        height: 2.25rem;
+        font-size: 1rem; /* 16px mobile très petit */
+    }
+
+    .enfant-name {
+        font-size: 0.875rem; /* 14px mobile très petit */
+    }
+
+    .enfant-detail-item {
+        font-size: 0.75rem; /* 12px mobile très petit */
+    }
+
+    .form-label {
+        font-size: 0.75rem; /* 12px mobile très petit */
+    }
+
+    .form-input {
+        font-size: 0.75rem; /* 12px mobile très petit */
+        padding: 0.5rem 0.75rem;
+    }
+
+    .form-hint {
+        font-size: 0.625rem; /* 10px mobile très petit */
+    }
+
+    .password-tips {
+        padding: 0.875rem;
+    }
+
+    /* H4 mobile très petit */
+    .password-tips h4 {
+        font-size: 0.75rem; /* 12px mobile très petit */
+    }
+
+    .password-tips ul li {
+        font-size: 0.6875rem; /* 11px mobile très petit */
+    }
+
+    .btn-submit {
+        font-size: 0.75rem; /* 12px mobile très petit */
+        padding: 0.5rem 1rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* Tablette */
+    html {
+        font-size: 16px;
+    }
+
+    /* H1 tablette */
+    .header-info h1 {
+        font-size: 1.5rem; /* 24px tablette */
+    }
+
+    .header-info p {
+        font-size: 0.875rem; /* 14px tablette */
+    }
+
+    .profil-nom {
+        font-size: 2.25rem; /* 36px tablette */
+    }
+
+    .profil-role {
+        font-size: 1.0625rem; /* 17px tablette */
+    }
+
+    .stat-value {
+        font-size: 2rem; /* 32px tablette */
+    }
+
+    .stat-label {
+        font-size: 0.875rem; /* 14px tablette */
+    }
+
+    /* H3 tablette */
+    .info-card-header h3 {
+        font-size: 1.375rem; /* 22px tablette */
+    }
+
+    .info-value {
+        font-size: 1.0625rem; /* 17px tablette */
+    }
+
+    /* H4 tablette */
+    .password-tips h4 {
+        font-size: 0.9375rem; /* 15px tablette */
+    }
+
+    .password-tips ul li {
+        font-size: 0.875rem; /* 14px tablette */
+    }
+}
+
+@media (min-width: 1025px) {
+    /* Desktop */
+    /* H1 desktop */
+    .header-info h1 {
+        font-size: 1.375rem; /* 22px desktop */
+    }
+
+    .header-info p {
+        font-size: 0.8125rem; /* 13px desktop */
+    }
+
+    .profil-nom {
+        font-size: 2rem; /* 32px desktop */
+    }
+
+    .profil-role {
+        font-size: 1rem; /* 16px desktop */
+    }
+
+    .stat-value {
+        font-size: 1.75rem; /* 28px desktop */
+    }
+
+    .stat-label {
+        font-size: 0.8125rem; /* 13px desktop */
+    }
+
+    /* H3 desktop */
+    .info-card-header h3 {
+        font-size: 1.25rem; /* 20px desktop */
+    }
+
+    .info-value {
+        font-size: 1rem; /* 16px desktop */
+    }
+
+    /* H4 desktop */
+    .password-tips h4 {
+        font-size: 0.875rem; /* 14px desktop */
+    }
+
+    .password-tips ul li {
+        font-size: 0.8125rem; /* 13px desktop */
+    }
+}

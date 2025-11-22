@@ -27,6 +27,9 @@ urlpatterns = [
     # Sanctions (uniquement pour les parents)
     path('eleve/sanctions/', eleve_view.sanctions_eleve, name='sanctions_eleve'),
     
+    # Convocations
+    path('eleve/convocations/', eleve_view.convocations_eleve, name='convocations_eleve'),
+    
     # Annonces
     path('eleve/annonces/', eleve_view.annonces_eleve, name='annonces_eleve'),
 

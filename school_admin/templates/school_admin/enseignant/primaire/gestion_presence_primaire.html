@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.0.1">
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
@@ -104,7 +105,7 @@
                                     <div class="action-buttons">
                                         <a href="{% url 'enseignant_primaire:liste_presence' classe_data.classe.id %}" class="btn-action primary" title="Faire la liste de présence">
                                             <i class="fas fa-calendar-check"></i>
-                                            <span>Liste de présence</span>
+                                            <span>Faire l'appel</span>
                                         </a>
                                         <a href="{% url 'enseignant_primaire:imprimer_tableau_presence' classe_data.classe.id %}" class="btn-action" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" target="_blank" title="Imprimer le tableau de présence hebdomadaire">
                                             <i class="fas fa-print"></i>
@@ -115,7 +116,7 @@
 
                                 {% if classe_data.eleves %}
                                     <!-- Tableau des élèves avec statistiques de présence -->
-                                    <div class="releve-table-container">
+                                    <div class="releve-table-container table-responsive">
                                         <table class="releve-table">
                                             <thead>
                                                 <tr>
@@ -221,87 +222,6 @@
             }
         }
     </script>
-    <style>
-        /* Styles spécifiques pour la page de présence */
-        .stat-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .stat-badge.presence {
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-        }
-
-        .stat-badge.absence {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-        }
-
-        .stat-badge.absence.has-absences {
-            background: rgba(239, 68, 68, 0.15);
-            color: #dc2626;
-            font-weight: 700;
-        }
-
-        .stat-badge.retard {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
-        }
-
-        .stat-badge.retard.has-retards {
-            background: rgba(245, 158, 11, 0.15);
-            color: #d97706;
-            font-weight: 700;
-        }
-
-        .stat-badge.jours {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-        }
-
-        .col-presences,
-        .col-absences,
-        .col-retards,
-        .col-jours {
-            text-align: center;
-            width: 120px;
-        }
-
-        .col-actions {
-            text-align: center;
-            width: 120px;
-        }
-
-        .btn-action-mini {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-
-        .btn-action-mini.info {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-        }
-
-        .btn-action-mini.info:hover {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-    </style>
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 </body>

@@ -1,0 +1,708 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Évaluations créées - {{ classe.nom }} - Enseignant Primaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}">
+    <style>
+        .evaluations-page-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .page-header-evaluations {
+            margin-bottom: 2rem;
+        }
+        
+        .page-header-evaluations h1 {
+            font-size: 1.75rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .page-header-evaluations .breadcrumb {
+            margin-bottom: 1rem;
+        }
+        
+        .stats-evaluations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .periodes-tabs-evaluations {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .periode-tab-eval {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px 8px 0 0;
+            background: var(--gray-100);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .periode-tab-eval:hover {
+            background: var(--gray-200);
+            color: var(--text-primary);
+        }
+        
+        .periode-tab-eval.active {
+            background: white;
+            color: var(--primary);
+            border-color: var(--border-color);
+            border-bottom-color: white;
+            position: relative;
+            top: 2px;
+        }
+        
+        .evaluations-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .evaluations-par-matiere {
+            margin-bottom: 2rem;
+        }
+        
+        .evaluations-par-matiere:last-child {
+            margin-bottom: 0;
+        }
+        
+        .matiere-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .matiere-section-header h3 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .matiere-badge-eval {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        
+        .evaluations-list {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .evaluation-item {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 1.25rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .evaluation-item:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+        
+        .evaluation-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .evaluation-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .evaluation-type-badge {
+            background: var(--secondary-light);
+            color: var(--secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .evaluation-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .evaluation-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .evaluation-detail i {
+            color: var(--primary);
+        }
+        
+        .evaluation-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-evaluation {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-evaluation-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-evaluation-primary:hover {
+            background: var(--directeur-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .empty-state-evaluations {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state-evaluations i {
+            font-size: 4rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state-evaluations h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .empty-state-evaluations p {
+            color: var(--text-secondary);
+        }
+        
+        /* Modal de modification */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9998;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .modal-container {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .modal-header h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: var(--gray-100);
+            color: var(--text-primary);
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        .form-group-modal {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group-modal label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group-modal label .required {
+            color: var(--accent);
+        }
+        
+        .form-group-modal input,
+        .form-group-modal select,
+        .form-group-modal textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group-modal input:focus,
+        .form-group-modal select:focus,
+        .form-group-modal textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        
+        .form-group-modal textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-grid-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .form-actions-modal {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-color);
+        }
+        
+        .btn-modal {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-modal-cancel {
+            background: var(--gray-200);
+            color: var(--text-primary);
+        }
+        
+        .btn-modal-cancel:hover {
+            background: var(--gray-300);
+        }
+        
+        .btn-modal-submit {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-modal-submit:hover {
+            background: var(--directeur-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .help-text-modal {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+
+    <div class="main-content-container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
+            <span class="separator">›</span>
+            <a href="{% url 'enseignant_primaire:gestion_notes' %}">Gestion des notes</a>
+            <span class="separator">›</span>
+            <span class="current">Évaluations créées - {{ classe.nom }}</span>
+        </nav>
+
+        <div class="evaluations-page-container">
+            <!-- Page Header -->
+            <div class="page-header-evaluations">
+                <h1>
+                    <i class="fas fa-clipboard-list"></i>
+                    Évaluations créées - {{ classe.nom }}
+                </h1>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="stats-evaluations">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_evaluations }}</div>
+                    <div class="stat-label">Total d'évaluations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--success);">{{ evaluations_passees }}</div>
+                    <div class="stat-label">Évaluations passées</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--warning);">{{ evaluations_a_venir }}</div>
+                    <div class="stat-label">Évaluations à venir</div>
+                </div>
+            </div>
+
+            <!-- Onglets des Périodes -->
+            <div class="periodes-tabs-evaluations">
+                {% for periode in periodes %}
+                    <a href="{% url 'enseignant_primaire:evaluations_classe' classe.id %}?periode={{ periode.id }}" 
+                       class="periode-tab-eval {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ periode.nom_periode }}</span>
+                        {% if periode.est_en_cours %}
+                            <span class="badge" style="background: var(--success); color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">En cours</span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+
+            <!-- Contenu des évaluations -->
+            <div class="evaluations-content">
+                {% if evaluations_par_matiere %}
+                    {% for matiere_id, matiere_data in evaluations_par_matiere.items %}
+                        <div class="evaluations-par-matiere">
+                            <div class="matiere-section-header">
+                                <span class="matiere-badge-eval">{{ matiere_data.matiere.code }}</span>
+                                <h3>
+                                    <i class="fas fa-book"></i>
+                                    {{ matiere_data.matiere.nom }}
+                                </h3>
+                                <span style="margin-left: auto; color: var(--text-secondary); font-size: 0.9rem;">
+                                    {{ matiere_data.evaluations|length }} évaluation{{ matiere_data.evaluations|length|pluralize }}
+                                </span>
+                            </div>
+
+                            <div class="evaluations-list">
+                                {% for evaluation in matiere_data.evaluations %}
+                                    <div class="evaluation-item">
+                                        <div class="evaluation-item-header">
+                                            <h4 class="evaluation-title">{{ evaluation.titre }}</h4>
+                                        </div>
+                                        
+                                        {% if evaluation.description %}
+                                            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+                                                {{ evaluation.description|truncatewords:30 }}
+                                            </p>
+                                        {% endif %}
+                                        
+                                        <div class="evaluation-details-grid">
+                                            <div class="evaluation-detail">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+                                            </div>
+                                            <div class="evaluation-detail">
+                                                <i class="fas fa-star"></i>
+                                                <span>Barème : {{ evaluation.bareme|floatformat:0 }} points</span>
+                                            </div>
+                                            <div class="evaluation-detail">
+                                                {% if evaluation.est_passe %}
+                                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                                    <span style="color: var(--success);">Passée</span>
+                                                {% else %}
+                                                    <i class="fas fa-calendar-check" style="color: var(--warning);"></i>
+                                                    <span style="color: var(--warning);">À venir</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="evaluation-actions">
+                                            <button type="button" 
+                                                    class="btn-evaluation" 
+                                                    style="background: var(--secondary); color: white;"
+                                                    onclick="ouvrirModalModification({{ evaluation.id }})">
+                                                <i class="fas fa-edit"></i>
+                                                Modifier
+                                            </button>
+                                            <a href="{% url 'enseignant_primaire:noter_eleves' classe.id %}?periode={{ periode_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}" 
+                                               class="btn-evaluation btn-evaluation-primary">
+                                                <i class="fas fa-clipboard-check"></i>
+                                                Noter les élèves
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state-evaluations">
+                        <i class="fas fa-clipboard-list"></i>
+                        <h3>Aucune évaluation</h3>
+                        <p>
+                            {% if periode_selectionnee %}
+                                Aucune évaluation créée pour la période <strong>{{ periode_selectionnee.nom_periode }}</strong> dans la classe <strong>{{ classe.nom }}</strong>.
+                            {% else %}
+                                Aucune évaluation créée pour la classe <strong>{{ classe.nom }}</strong>.
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'enseignant_primaire:creer_evaluation' classe.id %}?periode={{ periode_selectionnee.id }}" 
+                           class="btn btn-primary" style="margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-plus"></i>
+                            Créer une évaluation
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de modification -->
+    <div class="modal-overlay" id="modalModification">
+        <div class="modal-container" id="modalContent">
+            <!-- Le contenu sera chargé dynamiquement -->
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    <script>
+        function ouvrirModalModification(evaluationId) {
+            const modal = document.getElementById('modalModification');
+            const modalContent = document.getElementById('modalContent');
+            
+            // Afficher le modal avec un loader
+            modal.classList.add('active');
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-spinner fa-spin"></i> Chargement...</h2>
+                    <button class="modal-close" onclick="fermerModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Charger le formulaire via AJAX
+            fetch(`/enseignant/primaire/modifier-evaluation/${evaluationId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.html) {
+                    modalContent.innerHTML = data.html;
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-exclamation-triangle"></i> Erreur</h2>
+                            <button class="modal-close" onclick="fermerModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Erreur lors du chargement du formulaire.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Erreur</h2>
+                        <button class="modal-close" onclick="fermerModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Erreur lors du chargement du formulaire.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function fermerModal() {
+            const modal = document.getElementById('modalModification');
+            modal.classList.remove('active');
+        }
+        
+        // Fermer le modal en cliquant sur l'overlay
+        document.getElementById('modalModification').addEventListener('click', function(e) {
+            if (e.target === this) {
+                fermerModal();
+            }
+        });
+        
+        // Gérer la soumission du formulaire
+        document.addEventListener('submit', function(e) {
+            if (e.target.classList.contains('form-modifier-evaluation')) {
+                e.preventDefault();
+                
+                const form = e.target;
+                const formData = new FormData(form);
+                const evaluationId = formData.get('evaluation_id');
+                
+                // Désactiver le bouton de soumission
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+                
+                fetch(`/enseignant/primaire/modifier-evaluation/${evaluationId}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Afficher un message de succès
+                        alert(data.message);
+                        // Rediriger ou recharger la page
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            window.location.reload();
+                        }
+                    } else {
+                        // Afficher l'erreur
+                        alert(data.message || 'Erreur lors de la modification.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la modification de l\'évaluation.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            }
+        });
+    </script>
+
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+</body>
+</html>
+

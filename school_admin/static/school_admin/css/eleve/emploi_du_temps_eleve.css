@@ -3,12 +3,22 @@
 * Styles pour l'affichage de l'emploi du temps pour les élèves
 */
 
+/* Base typographique */
+html {
+  font-size: 16px; /* Base pour le calcul des rem */
+}
+
+body {
+  font-size: 1rem; /* 16px */
+  line-height: 1.5;
+}
+
 /* ===== CONTENEUR PRINCIPAL ===== */
 .content-container {
-  min-height: calc(100vh - 80px);
-  padding: 24px;
+  min-height: calc(100vh - 5rem);
+  padding: 1.5rem;
   background: #f8f9fa;
-  margin-top: 80px;
+  margin-top: 5rem;
 }
 
 .container {
@@ -20,10 +30,11 @@
 .breadcrumb-nav {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 0;
-  margin-bottom: 24px;
-  font-size: 14px;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem; /* 14px mobile */
+  line-height: 1.5;
 }
 
 .breadcrumb-link {
@@ -69,26 +80,30 @@
   min-width: 300px;
 }
 
+/* H1 - Titre principal */
 .page-title {
-  font-size: 28px;
+  font-size: 1.75rem; /* 28px mobile par défaut */
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  line-height: 1.3;
 }
 
 .page-title i {
   color: #4a90e2;
-  font-size: 28px;
+  font-size: 1.75rem;
 }
 
+/* Sous-titre */
 .page-subtitle {
-  font-size: 16px;
+  font-size: 1rem; /* 16px mobile */
   color: #64748b;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .page-actions {
@@ -160,18 +175,21 @@
   font-size: 64px;
 }
 
+/* H3 - Titre état vide */
 .empty-state h3 {
-  font-size: 22px;
+  font-size: 1.375rem; /* 22px mobile par défaut */
   font-weight: 700;
   color: #475569;
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
 }
 
+/* Paragraphe */
 .empty-state p {
-  font-size: 15px;
+  font-size: 0.9375rem; /* 15px mobile */
   color: #64748b;
   line-height: 1.6;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 /* ===== BADGES D'INFORMATION ===== */
@@ -240,13 +258,14 @@
 .edt-table thead th {
   background: linear-gradient(135deg, #4a90e2, #357abd);
   color: white;
-  padding: 16px;
+  padding: 1rem;
   text-align: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.875rem; /* 14px mobile */
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.0625rem;
   border-right: 1px solid rgba(255, 255, 255, 0.2);
+  line-height: 1.4;
 }
 
 .edt-table thead th:last-child {
@@ -288,11 +307,12 @@
 }
 
 .periode-horaire-simple {
-  font-size: 14px;
+  font-size: 0.875rem; /* 14px mobile */
   color: #1f2937;
   font-weight: 600;
   font-family: 'Courier New', monospace;
   text-align: center;
+  line-height: 1.4;
 }
 
 .edt-creneau-cell {
@@ -342,29 +362,32 @@
 }
 
 .edt-creneau-cell .creneau-matiere {
-  font-size: 14px;
+  font-size: 0.875rem; /* 14px mobile */
   font-weight: 700;
   color: #1e3a8a;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
   display: flex;
   align-items: center;
+  line-height: 1.4;
 }
 
 .edt-creneau-cell .creneau-professeur {
-  font-size: 12px;
+  font-size: 0.75rem; /* 12px mobile */
   color: #4b5563;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
+  line-height: 1.5;
 }
 
 .edt-creneau-cell .creneau-salle {
-  font-size: 11px;
+  font-size: 0.6875rem; /* 11px mobile */
   color: #6b7280;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
+  line-height: 1.5;
 }
 
 .pause-label {
@@ -438,14 +461,16 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* H3 - Titre légende */
 .legend-title {
-  font-size: 1.25rem;
+  font-size: 1.125rem; /* 18px mobile par défaut */
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
+  line-height: 1.4;
 }
 
 .legend-title i {
@@ -453,29 +478,41 @@
 }
 
 .legend-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0 1rem;
+  position: relative;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 400px;
+  min-width: 250px;
 }
 
 .legend-desc {
   color: #64748b;
   font-size: 0.875rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .type-badge {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.03125rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .type-cours {
@@ -527,14 +564,16 @@
   border-bottom: 3px solid #ef4444;
 }
 
+/* H2 - Titre examens */
 .examens-title {
-  font-size: 24px;
+  font-size: 1.5rem; /* 24px mobile par défaut */
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  line-height: 1.3;
 }
 
 .examens-title i {
@@ -542,9 +581,10 @@
 }
 
 .examens-subtitle {
-  font-size: 15px;
+  font-size: 0.9375rem; /* 15px mobile */
   color: #64748b;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .emploi-du-temps-examens-wrapper {
@@ -678,7 +718,36 @@
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 1024px) {
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablette */
+  html {
+    font-size: 16px;
+  }
+
+  /* H1 - Titre principal tablette */
+  .page-title {
+    font-size: 1.75rem; /* 28px tablette */
+  }
+
+  /* Sous-titre tablette */
+  .page-subtitle {
+    font-size: 1rem; /* 16px tablette */
+  }
+
+  /* H3 tablette */
+  .empty-state h3 {
+    font-size: 1.25rem; /* 20px tablette */
+  }
+
+  .legend-title {
+    font-size: 1.125rem; /* 18px tablette */
+  }
+
+  /* H2 tablette */
+  .examens-title {
+    font-size: 1.5rem; /* 24px tablette */
+  }
+
   .page-header {
     flex-direction: column;
   }
@@ -688,58 +757,284 @@
   }
   
   .legend-items {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .legend-item {
+    flex: 0 1 calc(50% - 0.375rem);
+    min-width: 0;
   }
 }
 
-@media (max-width: 768px) {
-  .content-container {
-    padding: 16px;
-  }
-  
+@media (min-width: 1025px) {
+  /* Desktop */
+  /* H1 - Titre principal desktop */
   .page-title {
-    font-size: 24px;
+    font-size: 2rem; /* 32px desktop */
+  }
+
+  /* Sous-titre desktop */
+  .page-subtitle {
+    font-size: 1rem; /* 16px desktop */
+  }
+
+  /* H3 desktop */
+  .empty-state h3 {
+    font-size: 1.375rem; /* 22px desktop */
+  }
+
+  .legend-title {
+    font-size: 1.25rem; /* 20px desktop */
+  }
+
+  /* H2 desktop */
+  .examens-title {
+    font-size: 1.75rem; /* 28px desktop */
+  }
+}
+
+/* Media queries pour responsive */
+@media (max-width: 768px) {
+  /* Mobile */
+  html {
+    font-size: 16px;
+  }
+
+  .content-container {
+    padding: 1rem;
   }
   
+  /* H1 - Titre principal mobile */
+  .page-title {
+    font-size: 1.5rem; /* 24px mobile */
+  }
+
+  .page-title i {
+    font-size: 1.5rem;
+  }
+
+  /* Sous-titre mobile */
+  .page-subtitle {
+    font-size: 0.875rem; /* 14px mobile */
+  }
+
+  /* H3 mobile */
+  .empty-state h3 {
+    font-size: 1.125rem; /* 18px mobile */
+  }
+
+  .empty-state p {
+    font-size: 0.875rem; /* 14px mobile */
+  }
+
   .edt-horaire-header {
-    min-width: 100px;
-    width: 100px;
+    min-width: 6.25rem;
+    width: 6.25rem;
   }
   
   .edt-jour-header {
-    min-width: 140px;
+    min-width: 8.75rem;
+    font-size: 0.75rem; /* 12px mobile */
   }
   
   .edt-creneau-cell .creneau-matiere {
-    font-size: 13px;
+    font-size: 0.8125rem; /* 13px mobile */
+  }
+
+  .edt-creneau-cell .creneau-professeur {
+    font-size: 0.6875rem; /* 11px mobile */
+  }
+
+  .edt-creneau-cell .creneau-salle {
+    font-size: 0.625rem; /* 10px mobile */
+  }
+
+  .periode-horaire-simple {
+    font-size: 0.75rem; /* 12px mobile */
   }
   
+  /* Masquer le tableau sur mobile et afficher la vue en liste */
+  .emploi-du-temps-section {
+    display: none;
+  }
+
+  .emploi-du-temps-mobile {
+    display: block;
+  }
+
   .legend-items {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .legend-item {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .legend-title {
+    font-size: 1rem; /* 16px mobile */
+  }
+
+  .jour-mobile-card {
+    padding: 0.625rem;
+    margin-bottom: 0.625rem;
+    border-radius: 0.5rem;
+  }
+
+  .jour-mobile-header {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem; /* 13px mobile */
+    border-radius: 0.3125rem;
+  }
+
+  .jour-mobile-header i {
+    font-size: 0.8125rem;
+  }
+
+  .creneau-mobile-item {
+    padding: 0.625rem;
+    border-radius: 0.375rem;
+  }
+
+  .creneau-mobile-horaire {
+    font-size: 0.6875rem; /* 11px mobile */
+    margin-bottom: 0.3125rem;
+  }
+
+  .creneau-mobile-matiere {
+    font-size: 0.8125rem; /* 13px mobile */
+    margin-bottom: 0.3125rem;
+  }
+
+  .creneau-mobile-matiere i {
+    font-size: 0.875rem;
+  }
+
+  .creneau-mobile-info {
+    font-size: 0.6875rem; /* 11px mobile */
+    margin-top: 0.25rem;
+  }
+
+  .pause-mobile-item {
+    padding: 0.625rem;
+    font-size: 0.75rem; /* 12px mobile */
+    border-radius: 0.375rem;
+  }
+
+  .pause-mobile-item i {
+    font-size: 0.875rem;
+  }
+
+  .pause-mobile-horaire {
+    font-size: 0.625rem; /* 10px mobile */
+  }
+
+  .legend-desc {
+    font-size: 0.8125rem; /* 13px mobile */
+  }
+
+  .type-badge {
+    font-size: 0.6875rem; /* 11px mobile */
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* H2 mobile */
+  .examens-title {
+    font-size: 1.25rem; /* 20px mobile */
+  }
+
+  .examens-subtitle {
+    font-size: 0.8125rem; /* 13px mobile */
   }
 }
 
 @media (max-width: 480px) {
+  /* Mobile très petit */
+  .content-container {
+    padding: 0.75rem;
+  }
+
+  /* H1 mobile très petit */
+  .page-title {
+    font-size: 1.25rem; /* 20px mobile très petit */
+  }
+
+  .page-title i {
+    font-size: 1.25rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.8125rem; /* 13px mobile très petit */
+  }
+
+  /* H3 mobile très petit */
+  .empty-state h3 {
+    font-size: 1rem; /* 16px mobile très petit */
+  }
+
+  .empty-state p {
+    font-size: 0.8125rem; /* 13px mobile très petit */
+  }
+
   .classe-info-badges {
     flex-direction: column;
+    gap: 0.5rem;
   }
   
   .info-badge {
     width: 100%;
     justify-content: center;
+    font-size: 0.75rem; /* 12px mobile très petit */
+    padding: 0.5rem 0.75rem;
   }
   
   .edt-horaire-header {
-    min-width: 80px;
-    width: 80px;
+    min-width: 5rem;
+    width: 5rem;
   }
   
   .edt-jour-header {
-    min-width: 120px;
+    min-width: 7.5rem;
+    font-size: 0.6875rem; /* 11px mobile très petit */
   }
   
   .periode-horaire-simple {
-    font-size: 12px;
+    font-size: 0.75rem; /* 12px mobile très petit */
+  }
+
+  .edt-creneau-cell .creneau-matiere {
+    font-size: 0.75rem; /* 12px mobile très petit */
+  }
+
+  .edt-creneau-cell .creneau-professeur {
+    font-size: 0.625rem; /* 10px mobile très petit */
+  }
+
+  .edt-creneau-cell .creneau-salle {
+    font-size: 0.5625rem; /* 9px mobile très petit */
+  }
+
+  .legend-title {
+    font-size: 0.9375rem; /* 15px mobile très petit */
+  }
+
+  .legend-desc {
+    font-size: 0.75rem; /* 12px mobile très petit */
+  }
+
+  .type-badge {
+    font-size: 0.625rem; /* 10px mobile très petit */
+    padding: 0.1875rem 0.4375rem;
+  }
+
+  /* H2 mobile très petit */
+  .examens-title {
+    font-size: 1.125rem; /* 18px mobile très petit */
+  }
+
+  .examens-subtitle {
+    font-size: 0.75rem; /* 12px mobile très petit */
   }
 }
 

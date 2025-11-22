@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/configuration_horaires.css' %}?v=1.0.0" />
 </head>
 <body>
     <!-- Header -->
@@ -37,23 +38,23 @@
 
 
         <!-- Configuration Display/Form -->
-        <div class="form-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0; color: #333;">
+        <div class="form-card">
+            <div class="form-card-header">
+                <h2>
                     <i class="fas fa-calendar-alt"></i>
                     Horaires d'Établissement
                 </h2>
                 {% if configuration.heure_debut_cours and not request.GET.mode == 'edit' %}
-                    <div style="display: flex; gap: 8px;">
-                        <a href="?mode=edit" class="btn-edit" style="padding: 6px 12px; background: #667eea; color: white; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
-                            <i class="fas fa-edit" style="font-size: 12px;"></i>
+                    <div class="form-card-header-actions">
+                        <a href="?mode=edit" class="btn-edit">
+                            <i class="fas fa-edit"></i>
                             <span>Modifier</span>
                         </a>
                         <form method="post" action="{% url 'administrateur_etablissement:configuration_horaires' %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir réinitialiser cette configuration ?');">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="supprimer">
-                            <button type="submit" class="btn-delete" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
-                                <i class="fas fa-trash" style="font-size: 12px;"></i>
+                            <button type="submit" class="btn-delete">
+                                <i class="fas fa-trash"></i>
                                 <span>Supprimer</span>
                             </button>
                         </form>
@@ -63,22 +64,22 @@
             
             {% if configuration.heure_debut_cours and not request.GET.mode == 'edit' %}
                 <!-- Mode Affichage -->
-                <div class="info-display" style="background: #f8f9fa; padding: 12px; border-radius: 6px;">
+                <div class="info-display">
                     <!-- Horaires de cours -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                        <div class="info-item" style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #667eea;">
-                            <div style="color: #666; font-size: 11px; margin-bottom: 3px;">
+                    <div class="info-grid">
+                        <div class="info-item" style="border-left-color: #667eea;">
+                            <div class="info-item-label">
                                 <i class="fas fa-sun"></i> Heure de début des cours
                             </div>
-                            <div style="font-size: 16px; font-weight: 700; color: #333;">
+                            <div class="info-item-value">
                                 {{ form_data.heure_debut_cours }}
                             </div>
                         </div>
-                        <div class="info-item" style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #764ba2;">
-                            <div style="color: #666; font-size: 11px; margin-bottom: 3px;">
+                        <div class="info-item" style="border-left-color: #764ba2;">
+                            <div class="info-item-label">
                                 <i class="fas fa-moon"></i> Heure de fin des cours
                             </div>
-                            <div style="font-size: 16px; font-weight: 700; color: #333;">
+                            <div class="info-item-value">
                                 {{ form_data.heure_fin_cours }}
                             </div>
                         </div>
@@ -88,22 +89,22 @@
                     {% if periodes %}
                         {% with pauses=periodes|dictsort:"heure_debut" %}
                             {% if pauses %}
-                                <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
-                                    <h3 style="color: #555; font-size: 13px; margin-bottom: 10px; font-weight: 600;">
+                                <div class="pauses-section">
+                                    <h3 class="pauses-title">
                                         <i class="fas fa-coffee"></i> Pauses configurées
                                     </h3>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                                    <div class="pauses-grid">
                                         {% for periode in pauses %}
                                             {% if periode.type_periode == 'pause' or periode.type_periode == 'dejeuner' %}
-                                                <div class="pause-card" style="background: white; padding: 8px; border-radius: 6px; border-left: 3px solid {% if periode.type_periode == 'dejeuner' %}#f59e0b{% else %}#10b981{% endif %};">
-                                                    <div style="color: #666; font-size: 10px; margin-bottom: 2px;">
+                                                <div class="pause-card" style="border-left-color: {% if periode.type_periode == 'dejeuner' %}#f59e0b{% else %}#10b981{% endif %};">
+                                                    <div class="pause-type">
                                                         <i class="fas fa-{% if periode.type_periode == 'dejeuner' %}utensils{% else %}pause-circle{% endif %}"></i> 
                                                         {{ periode.get_type_periode_display }}
                                                     </div>
-                                                    <div style="font-size: 13px; font-weight: 600; color: #333;">
+                                                    <div class="pause-time">
                                                         {{ periode.heure_debut|time:"H:i" }} - {{ periode.heure_fin|time:"H:i" }}
                                                     </div>
-                                                    <div style="font-size: 10px; color: #999; margin-top: 2px;">
+                                                    <div class="pause-name">
                                                         {{ periode.nom }}
                                                     </div>
                                                 </div>
@@ -120,7 +121,7 @@
                 <form method="post" action="{% url 'administrateur_etablissement:configuration_horaires' %}">
                     {% csrf_token %}
                 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="heure_debut_cours">
                             <i class="fas fa-sun"></i>
@@ -133,7 +134,7 @@
                                value="{{ form_data.heure_debut_cours }}"
                                required>
                         {% if field_errors.heure_debut_cours %}
-                            <div class="invalid-feedback" style="color: #dc3545; font-size: 14px; margin-top: 5px;">{{ field_errors.heure_debut_cours }}</div>
+                            <div class="invalid-feedback">{{ field_errors.heure_debut_cours }}</div>
                         {% endif %}
                     </div>
                     
@@ -149,17 +150,17 @@
                                value="{{ form_data.heure_fin_cours }}"
                                required>
                         {% if field_errors.heure_fin_cours %}
-                            <div class="invalid-feedback" style="color: #dc3545; font-size: 14px; margin-top: 5px;">{{ field_errors.heure_fin_cours }}</div>
+                            <div class="invalid-feedback">{{ field_errors.heure_fin_cours }}</div>
                         {% endif %}
                     </div>
                 </div>
 
-                    <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-                        <a href="{% url 'directeur:gestion_pedagogique' %}" class="btn-cancel" style="padding: 12px 24px; background: #6c757d; color: white; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                    <div class="form-actions">
+                        <a href="{% url 'directeur:gestion_pedagogique' %}" class="btn-cancel">
                             <i class="fas fa-times"></i>
                             <span>Annuler</span>
                         </a>
-                        <button type="submit" class="btn-submit" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                        <button type="submit" class="btn-submit">
                             <i class="fas fa-save"></i>
                             <span>Enregistrer</span>
                         </button>
@@ -170,42 +171,42 @@
 
         <!-- Périodes Existantes -->
         {% if periodes %}
-            <div class="periodes-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <h2 style="margin-bottom: 20px; color: #333;">
+            <div class="periodes-card">
+                <h2>
                     <i class="fas fa-list"></i>
                     Périodes Configurées ({{ periodes.count }})
                 </h2>
                 
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
+                <div class="table-responsive">
+                    <table class="periodes-table">
                         <thead>
-                            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                                <th style="padding: 12px; text-align: left;">#</th>
-                                <th style="padding: 12px; text-align: left;">Nom</th>
-                                <th style="padding: 12px; text-align: left;">Type</th>
-                                <th style="padding: 12px; text-align: center;">Horaire</th>
-                                <th style="padding: 12px; text-align: center;">Durée</th>
-                                <th style="padding: 12px; text-align: center;">Actions</th>
+                            <tr>
+                                <th>#</th>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Horaire</th>
+                                <th>Durée</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for periode in periodes %}
-                                <tr style="border-bottom: 1px solid #e5e7eb;">
-                                    <td style="padding: 12px;">{{ periode.ordre }}</td>
-                                    <td style="padding: 12px; font-weight: 600;">{{ periode.nom }}</td>
-                                    <td style="padding: 12px;">
-                                        <span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; {% if periode.type_periode == 'cours' %}background: #dbeafe; color: #1e40af;{% else %}background: #fed7aa; color: #9a3412;{% endif %}">
+                                <tr>
+                                    <td>{{ periode.ordre }}</td>
+                                    <td>{{ periode.nom }}</td>
+                                    <td>
+                                        <span class="type-badge {% if periode.type_periode == 'cours' %}type-badge-cours{% else %}type-badge-pause{% endif %}">
                                             {{ periode.get_type_periode_display }}
                                         </span>
                                     </td>
-                                    <td style="padding: 12px; text-align: center;">{{ periode.heure_debut|time:"H:i" }} - {{ periode.heure_fin|time:"H:i" }}</td>
-                                    <td style="padding: 12px; text-align: center;">{{ periode.duree_minutes }} min</td>
-                                    <td style="padding: 12px; text-align: center;">
+                                    <td>{{ periode.heure_debut|time:"H:i" }} - {{ periode.heure_fin|time:"H:i" }}</td>
+                                    <td>{{ periode.duree_minutes }} min</td>
+                                    <td>
                                         <form method="post" action="{% url 'administrateur_etablissement:gerer_periodes' %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette période ?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="supprimer_periode">
                                             <input type="hidden" name="periode_id" value="{{ periode.id }}">
-                                            <button type="submit" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">
+                                            <button type="submit" class="btn-delete-table">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>

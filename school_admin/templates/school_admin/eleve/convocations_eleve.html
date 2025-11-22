@@ -1,0 +1,776 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convocations - Acadeflex | Espace Élève</title>
+    <!-- Intégration de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Intégration de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style CSS personnalisé -->
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #7c3aed;
+            --accent: #ef4444;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --info: #8b5cf6;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --gradient-blue: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
+            --gradient-green: linear-gradient(135deg, #10b981, #059669);
+            --gradient-orange: linear-gradient(135deg, #f59e0b, #d97706);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Base typographique */
+        html {
+            font-size: 16px; /* Base pour le calcul des rem */
+        }
+
+        body {
+            font-size: 1rem; /* 16px */
+            line-height: 1.5;
+        }
+
+        .content-container {
+            padding: 1.25rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .convocations-container {
+            background: var(--white);
+            border-radius: 1rem;
+            padding: 1.875rem;
+            box-shadow: var(--shadow-card);
+        }
+
+        .page-header {
+            margin-bottom: 1.875rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        /* H2 - Titre principal */
+        .page-title {
+            font-size: 1.75rem; /* 28px mobile */
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0 0 0.625rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .page-title i {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        /* Sous-titre */
+        .page-subtitle {
+            color: var(--gray-600);
+            font-size: 0.875rem; /* 14px mobile */
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-0.125rem);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+        }
+
+        .stat-total .stat-icon {
+            background: var(--gradient-blue);
+        }
+
+        .stat-a-venir .stat-icon {
+            background: var(--gradient-orange);
+        }
+
+        .stat-passee .stat-icon {
+            background: var(--gradient-red);
+        }
+
+        .stat-honoree .stat-icon {
+            background: var(--gradient-green);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 2rem; /* 32px mobile */
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem; /* 14px mobile */
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.125rem;
+        }
+
+        .stat-detail {
+            font-size: 0.75rem; /* 12px mobile */
+            color: var(--gray-500);
+            line-height: 1.4;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.875rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            font-weight: 500;
+            font-size: 0.875rem; /* 14px mobile */
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            line-height: 1.5;
+        }
+
+        .filter-tab:hover {
+            background: var(--gray-200);
+        }
+
+        .filter-tab.active {
+            background: var(--gradient-blue);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .convocations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .convocation-card {
+            background: var(--white);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-card);
+            border-left: 0.25rem solid var(--primary);
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .convocation-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateX(0.25rem);
+        }
+
+        .convocation-card.urgent {
+            border-left-color: var(--accent);
+            background: linear-gradient(to right, rgba(239, 68, 68, 0.05), var(--white));
+        }
+
+        .convocation-card.passee {
+            border-left-color: var(--gray-400);
+            opacity: 0.8;
+        }
+
+        .convocation-card.honoree {
+            border-left-color: var(--success);
+        }
+
+        .convocation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .convocation-title {
+            flex: 1;
+            min-width: 12.5rem;
+        }
+
+        /* H3 - Sous-sous-titre */
+        .convocation-title h3 {
+            font-size: 1.125rem; /* 18px mobile */
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0 0 0.5rem 0;
+            line-height: 1.4;
+        }
+
+        .convocation-objet {
+            font-size: 1rem; /* 16px mobile */
+            color: var(--gray-700);
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .convocation-status {
+            padding: 0.375rem 1rem;
+            border-radius: 1.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03125rem;
+            line-height: 1.4;
+        }
+
+        .status-en-attente {
+            background: rgba(251, 191, 36, 0.1);
+            color: #d97706;
+        }
+
+        .status-vue {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+
+        .status-honoree {
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+        }
+
+        .status-non-honoree {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .convocation-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .convocation-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .info-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.125rem;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.03125rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.4;
+        }
+
+        .info-value {
+            font-size: 1rem; /* 16px mobile */
+            font-weight: 600;
+            color: var(--gray-900);
+            line-height: 1.5;
+        }
+
+        .convocation-motif {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 0.5rem;
+            border-left: 0.1875rem solid var(--primary);
+        }
+
+        .motif-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.03125rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .motif-text {
+            font-size: 0.875rem; /* 14px mobile */
+            color: var(--gray-700);
+            line-height: 1.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3.75rem 1.25rem;
+            color: var(--gray-500);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1.25rem;
+            color: var(--gray-300);
+        }
+
+        .empty-state h3 {
+            font-size: 1.125rem; /* 18px mobile */
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .empty-state p {
+            font-size: 0.875rem; /* 14px mobile */
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        .urgent-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--gradient-red);
+            color: var(--white);
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03125rem;
+            line-height: 1.4;
+        }
+
+        /* Media queries pour responsive */
+        @media (max-width: 768px) {
+            /* Mobile */
+            html {
+                font-size: 16px;
+            }
+
+            .content-container {
+                padding: 0.625rem; /* 10px */
+            }
+
+            .convocations-container {
+                padding: 1.25rem; /* 20px */
+                border-radius: 0.75rem;
+            }
+
+            /* H2 - Titre principal mobile */
+            .page-title {
+                font-size: 1.5rem; /* 24px mobile */
+            }
+
+            .page-title i {
+                font-size: 1.25rem;
+            }
+
+            /* Sous-titre mobile */
+            .page-subtitle {
+                font-size: 0.875rem; /* 14px mobile */
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .stat-card {
+                padding: 1.25rem; /* 20px */
+            }
+
+            .stat-icon {
+                width: 3rem; /* 48px */
+                height: 3rem;
+                font-size: 1.25rem;
+            }
+
+            .stat-value {
+                font-size: 1.75rem; /* 28px mobile */
+            }
+
+            .stat-label {
+                font-size: 0.8125rem; /* 13px mobile */
+            }
+
+            .stat-detail {
+                font-size: 0.6875rem; /* 11px mobile */
+            }
+
+            .filter-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 0.5rem;
+                gap: 0.75rem;
+            }
+
+            .filter-tab {
+                padding: 0.625rem 1rem;
+                font-size: 0.8125rem; /* 13px mobile */
+                white-space: nowrap;
+            }
+
+            .convocation-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .convocation-body {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            /* H3 mobile */
+            .convocation-title h3 {
+                font-size: 1rem; /* 16px mobile */
+            }
+
+            .convocation-card {
+                padding: 1.25rem; /* 20px */
+            }
+
+            .info-icon {
+                width: 2.5rem; /* 40px */
+                height: 2.5rem;
+                font-size: 1rem;
+            }
+
+            .info-label {
+                font-size: 0.6875rem; /* 11px mobile */
+            }
+
+            .info-value {
+                font-size: 0.875rem; /* 14px mobile */
+            }
+
+            .motif-text {
+                font-size: 0.8125rem; /* 13px mobile */
+            }
+
+            .empty-state {
+                padding: 3.75rem 1.25rem; /* 60px 20px */
+            }
+
+            .empty-state i {
+                font-size: 3rem; /* 48px */
+            }
+
+            .empty-state h3 {
+                font-size: 1rem; /* 16px mobile */
+            }
+
+            .empty-state p {
+                font-size: 0.8125rem; /* 13px mobile */
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            /* Tablette */
+            html {
+                font-size: 16px;
+            }
+
+            /* H2 - Titre principal tablette */
+            .page-title {
+                font-size: 1.75rem; /* 28px tablette */
+            }
+
+            /* Sous-titre tablette */
+            .page-subtitle {
+                font-size: 1rem; /* 16px tablette */
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            /* H3 tablette */
+            .convocation-title h3 {
+                font-size: 1.125rem; /* 18px tablette */
+            }
+
+            .stat-value {
+                font-size: 2rem; /* 32px tablette */
+            }
+
+            .stat-label {
+                font-size: 0.875rem; /* 14px tablette */
+            }
+
+            .stat-detail {
+                font-size: 0.75rem; /* 12px tablette */
+            }
+        }
+
+        @media (min-width: 1025px) {
+            /* Desktop */
+            /* H2 - Titre principal desktop */
+            .page-title {
+                font-size: 2rem; /* 32px desktop */
+            }
+
+            /* Sous-titre desktop */
+            .page-subtitle {
+                font-size: 1rem; /* 16px desktop */
+            }
+
+            /* H3 desktop */
+            .convocation-title h3 {
+                font-size: 1.25rem; /* 20px desktop */
+            }
+        }
+    </style>
+</head>
+
+<body>
+{% include 'school_admin/eleve/partials/header.html' %}
+
+<!-- Contenu principal -->
+<div class="content-container">
+    <div class="convocations-container">
+        <!-- Titre de la page -->
+        <div class="page-header">
+            <h2 class="page-title">
+                <i class="fas fa-bell"></i>
+                Convocations
+            </h2>
+            <p class="page-subtitle">Rendez-vous et convocations pour {{ eleve.nom_complet }}</p>
+        </div>
+
+        <!-- Statistiques globales -->
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_convocations }}</div>
+                    <div class="stat-label">Total convocations</div>
+                    <div class="stat-detail">Toutes les convocations</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-a-venir">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ convocations_a_venir }}</div>
+                    <div class="stat-label">À venir</div>
+                    <div class="stat-detail">Convocations futures</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-passee">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ convocations_passees }}</div>
+                    <div class="stat-label">Passées</div>
+                    <div class="stat-detail">Convocations terminées</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-honoree">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ convocations_honorees.count }}</div>
+                    <div class="stat-label">Honorées</div>
+                    <div class="stat-detail">Rendez-vous honorés</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres par statut -->
+        <div class="filter-tabs">
+            <div class="filter-tab active" data-filter="toutes" onclick="filterConvocations('toutes')">
+                <i class="fas fa-list"></i> Toutes ({{ total_convocations }})
+            </div>
+            <div class="filter-tab" data-filter="en_attente" onclick="filterConvocations('en_attente')">
+                <i class="fas fa-clock"></i> En attente ({{ convocations_en_attente.count }})
+            </div>
+            <div class="filter-tab" data-filter="vue" onclick="filterConvocations('vue')">
+                <i class="fas fa-eye"></i> Vues ({{ convocations_vues.count }})
+            </div>
+            <div class="filter-tab" data-filter="honoree" onclick="filterConvocations('honoree')">
+                <i class="fas fa-check"></i> Honorées ({{ convocations_honorees.count }})
+            </div>
+            <div class="filter-tab" data-filter="non_honoree" onclick="filterConvocations('non_honoree')">
+                <i class="fas fa-times"></i> Non honorées ({{ convocations_non_honorees.count }})
+            </div>
+        </div>
+
+        <!-- Liste des convocations -->
+        <div class="convocations-list">
+            {% for convocation in convocations %}
+                {% with est_passee=convocation.est_passee %}
+                <div class="convocation-card {% if not est_passee and convocation.statut == 'en_attente' %}urgent{% elif est_passee %}passee{% elif convocation.statut == 'honoree' %}honoree{% endif %}" 
+                     data-statut="{{ convocation.statut }}">
+                    {% if not est_passee and convocation.statut == 'en_attente' %}
+                        <span class="urgent-badge">
+                            <i class="fas fa-exclamation-triangle"></i> À venir
+                        </span>
+                    {% endif %}
+                    
+                    <div class="convocation-header">
+                        <div class="convocation-title">
+                            <h3>{{ convocation.objet }}</h3>
+                        </div>
+                        <div class="convocation-status status-{{ convocation.statut }}">
+                            {{ convocation.get_statut_display }}
+                        </div>
+                    </div>
+
+                    <div class="convocation-body">
+                        <div class="convocation-info">
+                            <div class="info-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Date</div>
+                                <div class="info-value">{{ convocation.date_convocation|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+
+                        <div class="convocation-info">
+                            <div class="info-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Heure</div>
+                                <div class="info-value">{{ convocation.heure_convocation|date:"H:i" }}</div>
+                            </div>
+                        </div>
+
+                        <div class="convocation-info">
+                            <div class="info-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Lieu</div>
+                                <div class="info-value">{{ convocation.lieu }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if convocation.motif %}
+                    <div class="convocation-motif">
+                        <div class="motif-label">
+                            <i class="fas fa-info-circle"></i> Motif
+                        </div>
+                        <div class="motif-text">{{ convocation.motif }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endwith %}
+            {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-bell-slash"></i>
+                    <h3>Aucune convocation</h3>
+                    <p>Vous n'avez aucune convocation pour le moment.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script src="{% static 'school_admin/js/eleve/header_eleve.js' %}"></script>
+<script>
+    function filterConvocations(statut) {
+        // Mettre à jour les onglets actifs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.filter === statut) {
+                tab.classList.add('active');
+            }
+        });
+
+        // Filtrer les cartes
+        document.querySelectorAll('.convocation-card').forEach(card => {
+            if (statut === 'toutes') {
+                card.style.display = 'flex';
+            } else {
+                if (card.dataset.statut === statut) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+    }
+</script>
+
+{% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+</body>
+</html>
+

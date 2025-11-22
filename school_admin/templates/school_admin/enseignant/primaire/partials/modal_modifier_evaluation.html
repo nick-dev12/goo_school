@@ -1,0 +1,120 @@
+{% load static %}
+<div class="modal-header">
+    <h2>
+        <i class="fas fa-edit"></i>
+        Modifier l'évaluation
+    </h2>
+    <button class="modal-close" onclick="fermerModal()">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+<div class="modal-body">
+    <form method="post" class="form-modifier-evaluation">
+        {% csrf_token %}
+        <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
+        
+        <div class="form-grid-modal">
+            <div class="form-group-modal">
+                <label for="matiere_modal">
+                    <i class="fas fa-book"></i>
+                    Matière <span class="required">*</span>
+                </label>
+                <select name="matiere" id="matiere_modal" required>
+                    <option value="">-- Sélectionnez une matière --</option>
+                    {% for matiere in matieres %}
+                        <option value="{{ matiere.id }}" {% if evaluation.matiere.id == matiere.id %}selected{% endif %}>
+                            {{ matiere.nom }} ({{ matiere.code }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="help-text-modal">Choisissez la matière concernée par cette évaluation.</div>
+            </div>
+
+        </div>
+
+        <div class="form-group-modal">
+            <label for="titre_modal">
+                <i class="fas fa-heading"></i>
+                Titre de l'évaluation <span class="required">*</span>
+            </label>
+            <input type="text"
+                   name="titre"
+                   id="titre_modal"
+                   value="{{ evaluation.titre }}"
+                   placeholder="Ex: Contrôle de mathématiques - Chapitre 1"
+                   required>
+            <div class="help-text-modal">Définissez un titre précis afin d'identifier rapidement cette évaluation.</div>
+        </div>
+
+        <div class="form-grid-modal">
+            <div class="form-group-modal">
+                <label for="periode_modal">
+                    <i class="fas fa-calendar-alt"></i>
+                    Période <span class="required">*</span>
+                </label>
+                <select name="periode" id="periode_modal" required>
+                    <option value="">-- Sélectionnez une période --</option>
+                    {% for periode in periodes %}
+                        <option value="{{ periode.id }}" {% if evaluation.periode_scolaire.id == periode.id %}selected{% endif %}>
+                            {{ periode.nom_periode }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="help-text-modal">Associez l'évaluation à la période scolaire en cours.</div>
+            </div>
+
+            <div class="form-group-modal">
+                <label for="date_evaluation_modal">
+                    <i class="fas fa-calendar"></i>
+                    Date de l'évaluation <span class="required">*</span>
+                </label>
+                <input type="date"
+                       name="date_evaluation"
+                       id="date_evaluation_modal"
+                       value="{{ evaluation.date_evaluation|date:'Y-m-d' }}"
+                       required>
+                <div class="help-text-modal">Choisissez la date à laquelle l'évaluation aura lieu.</div>
+            </div>
+        </div>
+
+        <div class="form-group-modal">
+            <label for="bareme_modal">
+                <i class="fas fa-calculator"></i>
+                Barème (points maximum) <span class="required">*</span>
+            </label>
+            <input type="number"
+                   name="bareme"
+                   id="bareme_modal"
+                   value="{{ evaluation.bareme }}"
+                   min="1"
+                   step="0.5"
+                   required>
+            <div class="help-text-modal">Définissez le barème qui sera utilisé pour cette évaluation.</div>
+        </div>
+
+        <div class="form-group-modal">
+            <label for="description_modal">
+                <i class="fas fa-align-left"></i>
+                Description / Consignes
+            </label>
+            <textarea name="description"
+                      id="description_modal"
+                      rows="4"
+                      placeholder="Décrivez les objectifs de l'évaluation, les chapitres concernés, etc.">{{ evaluation.description|default:'' }}</textarea>
+            <div class="help-text-modal">Facultatif : précisez les notions abordées ou les consignes particulières.</div>
+        </div>
+
+        <div class="form-actions-modal">
+            <button type="button" class="btn-modal btn-modal-cancel" onclick="fermerModal()">
+                <i class="fas fa-times"></i>
+                Annuler
+            </button>
+            <button type="submit" class="btn-modal btn-modal-submit">
+                <i class="fas fa-save"></i>
+                Enregistrer les modifications
+            </button>
+        </div>
+    </form>
+</div>
+

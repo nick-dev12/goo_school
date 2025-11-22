@@ -11,6 +11,7 @@ import string
 from ..model.matiere_model import Matiere
 from ..model.etablissement_model import Etablissement
 from ..model.classe_model import Classe
+from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
 
 logger = logging.getLogger(__name__)
 
@@ -110,13 +111,37 @@ class MatiereController:
             if count > 0:
                 stats['par_niveau'][label] = count
         
+        # Vérifier si c'est un établissement de type lycée
+        est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+        
+        # Pour chaque matière, récupérer les coefficients par groupe (si établissement lycée)
+        matieres_avec_coefficients = []
+        for matiere in matieres:
+            matiere_data = {
+                'matiere': matiere,
+                'coefficients_par_groupe': {}
+            }
+            
+            if est_lycee:
+                # Récupérer les coefficients par groupe pour cette matière
+                coeffs = CoefficientMatiereGroupe.objects.filter(
+                    matiere=matiere,
+                    etablissement=etablissement
+                )
+                for coeff in coeffs:
+                    matiere_data['coefficients_par_groupe'][coeff.nom_groupe] = coeff.coefficient
+            
+            matieres_avec_coefficients.append(matiere_data)
+        
         context = {
             'matieres': matieres,
+            'matieres_avec_coefficients': matieres_avec_coefficients,
             'classes': classes,
             'groupes_classes': groupes_liste,
             'etablissement': etablissement,
             'stats': stats,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
+            'est_lycee': est_lycee,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
@@ -147,6 +172,9 @@ class MatiereController:
             # Récupération automatique du niveau depuis le type_etablissement
             niveau_auto = MatiereController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
             
+            # Vérifier si c'est un établissement de type lycée
+            est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+            
             # Récupération des données
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
@@ -154,6 +182,19 @@ class MatiereController:
                 'coefficient': request.POST.get('coefficient', '1.0'),
                 'groupes_classes': request.POST.getlist('groupes_classes', []),
             }
+            
+            # Pour les établissements lycée, récupérer les coefficients par groupe
+            if est_lycee:
+                coefficients_par_groupe = {}
+                for groupe in form_data['groupes_classes']:
+                    coeff_key = f'coefficient_{groupe}'
+                    coeff_value = request.POST.get(coeff_key, form_data['coefficient'])
+                    if coeff_value:
+                        try:
+                            coefficients_par_groupe[groupe] = float(coeff_value)
+                        except ValueError:
+                            coefficients_par_groupe[groupe] = float(form_data['coefficient'])
+                form_data['coefficients_par_groupe'] = coefficients_par_groupe
             
             # Ajouter le niveau récupéré automatiquement
             form_data['niveau'] = niveau_auto
@@ -243,6 +284,16 @@ class MatiereController:
                             # Supprimer les doublons
                             classes_uniques = list(set(classes_a_assigner))
                             matiere.classes.set(classes_uniques)
+                            
+                            # Pour les établissements lycée, créer les coefficients par groupe
+                            if est_lycee and 'coefficients_par_groupe' in form_data:
+                                for groupe, coefficient in form_data['coefficients_par_groupe'].items():
+                                    CoefficientMatiereGroupe.objects.update_or_create(
+                                        matiere=matiere,
+                                        etablissement=etablissement,
+                                        nom_groupe=groupe,
+                                        defaults={'coefficient': coefficient}
+                                    )
                         
                         messages.success(request, f"La matière '{matiere.nom_complet}' a été ajoutée avec succès !")
                         return redirect('matiere:liste_matieres')
@@ -292,6 +343,12 @@ class MatiereController:
         # Convertir en liste triée
         groupes_liste = sorted(groupes_classes.values(), key=lambda x: (x['niveau'], x['nom']))
         
+        # Vérifier si c'est un établissement de type lycée
+        est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+        
+        # Pour les établissements lycée, récupérer les coefficients existants par groupe (vide pour nouveau formulaire)
+        coefficients_existants = {}
+        
         context = {
             'form_data': form_data,
             'field_errors': field_errors,
@@ -300,6 +357,8 @@ class MatiereController:
             'classes': classes,
             'groupes_classes': groupes_liste,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
+            'est_lycee': est_lycee,
+            'coefficients_existants': coefficients_existants,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
@@ -393,6 +452,9 @@ class MatiereController:
             # Récupération automatique du niveau depuis le type_etablissement
             niveau_auto = MatiereController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
             
+            # Vérifier si c'est un établissement de type lycée
+            est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+            
             # Récupération des données (utiliser 'groupes_classes' pour les groupes)
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
@@ -400,6 +462,19 @@ class MatiereController:
                 'coefficient': request.POST.get('coefficient', '1.0'),
                 'groupes_classes': request.POST.getlist('groupes_classes', []),
             }
+            
+            # Pour les établissements lycée, récupérer les coefficients par groupe
+            if est_lycee:
+                coefficients_par_groupe = {}
+                for groupe in form_data['groupes_classes']:
+                    coeff_key = f'coefficient_{groupe}'
+                    coeff_value = request.POST.get(coeff_key, form_data['coefficient'])
+                    if coeff_value:
+                        try:
+                            coefficients_par_groupe[groupe] = float(coeff_value)
+                        except ValueError:
+                            coefficients_par_groupe[groupe] = float(form_data['coefficient'])
+                form_data['coefficients_par_groupe'] = coefficients_par_groupe
             
             # Ajouter le niveau récupéré automatiquement
             form_data['niveau'] = niveau_auto
@@ -491,8 +566,31 @@ class MatiereController:
                             # Supprimer les doublons
                             classes_uniques = list(set(classes_a_assigner))
                             matiere.classes.set(classes_uniques)
+                            
+                            # Pour les établissements lycée, mettre à jour les coefficients par groupe
+                            if est_lycee and 'coefficients_par_groupe' in form_data:
+                                # Supprimer les anciens coefficients pour les groupes non sélectionnés
+                                CoefficientMatiereGroupe.objects.filter(
+                                    matiere=matiere,
+                                    etablissement=etablissement
+                                ).exclude(nom_groupe__in=form_data['groupes_classes']).delete()
+                                
+                                # Créer ou mettre à jour les coefficients pour les groupes sélectionnés
+                                for groupe, coefficient in form_data['coefficients_par_groupe'].items():
+                                    CoefficientMatiereGroupe.objects.update_or_create(
+                                        matiere=matiere,
+                                        etablissement=etablissement,
+                                        nom_groupe=groupe,
+                                        defaults={'coefficient': coefficient}
+                                    )
                         else:
                             matiere.classes.clear()
+                            # Supprimer tous les coefficients par groupe si aucune classe n'est assignée
+                            if est_lycee:
+                                CoefficientMatiereGroupe.objects.filter(
+                                    matiere=matiere,
+                                    etablissement=etablissement
+                                ).delete()
                         
                         messages.success(request, f"La matière '{matiere.nom_complet}' a été modifiée avec succès !")
                         return redirect('matiere:detail_matiere', matiere_id=matiere.id)
@@ -533,6 +631,19 @@ class MatiereController:
                 'groupes_classes': list(groupes_selectionnes),
             }
         
+        # Vérifier si c'est un établissement de type lycée
+        est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée','lycee_college','mixte','lycee','college']
+        
+        # Pour les établissements lycée, récupérer les coefficients existants par groupe
+        coefficients_existants = {}
+        if est_lycee:
+            coeffs = CoefficientMatiereGroupe.objects.filter(
+                matiere=matiere,
+                etablissement=etablissement
+            )
+            for coeff in coeffs:
+                coefficients_existants[coeff.nom_groupe] = coeff.coefficient
+        
         context = {
             'matiere': matiere,
             'professeurs_principaux': professeurs_principaux,
@@ -546,6 +657,8 @@ class MatiereController:
             'is_valid': is_valid,
             'etablissement': etablissement,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
+            'est_lycee': est_lycee,
+            'coefficients_existants': coefficients_existants,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/detail_matiere.html', context)

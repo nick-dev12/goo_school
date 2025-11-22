@@ -123,7 +123,8 @@
                             <div class="form-group">
                                 <label class="form-label" for="email">
                                     <i class="fas fa-envelope"></i>
-                                    Email *
+                                    Adresse email
+                                    <span class="label-optional">(Facultatif)</span>
                                 </label>
                                 <input type="email" 
                                        class="form-control {% if field_errors.email %}is-invalid{% endif %}" 
@@ -132,7 +133,7 @@
                                        value="{{ form_data.email }}"
                                        placeholder="Ex: jean.dupont@example.com">
                                 {% if field_errors.email %}
-                                    <span class="error-message">{{ field_errors.email }}</span>
+                                    <div class="invalid-feedback">{{ field_errors.email }}</div>
                                 {% endif %}
                             </div>
                             
@@ -146,9 +147,10 @@
                                        id="telephone" 
                                        name="telephone" 
                                        value="{{ form_data.telephone }}"
-                                       placeholder="Ex: +33 6 12 34 56 78">
+                                       placeholder="Ex: +237 123 456 789"
+                                       required>
                                 {% if field_errors.telephone %}
-                                    <span class="error-message">{{ field_errors.telephone }}</span>
+                                    <div class="invalid-feedback">{{ field_errors.telephone }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -163,7 +165,40 @@
                             <h3 class="section-title">Informations professionnelles</h3>
                         </div>
                         
-                        <div class="form-row">
+                        {% if type_etablissement == 'primary' %}
+                            <!-- Pour le primaire : Sélection multiple de matières -->
+                            <div class="form-group-full">
+                                <label class="form-label">
+                                    <i class="fas fa-books"></i>
+                                    Matières enseignées *
+                                    <span class="label-hint">(Sélectionnez toutes les matières que le professeur enseignera)</span>
+                                </label>
+                                <div class="matieres-checkbox-grid {% if field_errors.matieres_secondaires %}is-invalid{% endif %}">
+                                    {% for matiere in matieres %}
+                                        <label class="checkbox-card">
+                                            <input type="checkbox" 
+                                                   name="matieres_secondaires" 
+                                                   value="{{ matiere.id }}"
+                                                   {% if matiere.id|stringformat:"s" in matieres_selectionnees_ids %}checked{% endif %}>
+                                            <div class="checkbox-content">
+                                                <i class="fas fa-book"></i>
+                                                <span class="matiere-nom">{{ matiere.nom }}</span>
+                                                <span class="matiere-code">{{ matiere.code }}</span>
+                                            </div>
+                                            <div class="checkbox-check">
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                        </label>
+                                    {% empty %}
+                                        <p class="text-muted">Aucune matière disponible. Veuillez d'abord ajouter des matières.</p>
+                                    {% endfor %}
+                                </div>
+                                {% if field_errors.matieres_secondaires %}
+                                    <div class="invalid-feedback">{{ field_errors.matieres_secondaires }}</div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <!-- Pour collège/lycée : Matière principale unique -->
                             <div class="form-group">
                                 <label class="form-label" for="matiere_principale">
                                     <i class="fas fa-book"></i>
@@ -171,7 +206,8 @@
                                 </label>
                                 <select class="form-control {% if field_errors.matiere_principale %}is-invalid{% endif %}" 
                                         id="matiere_principale" 
-                                        name="matiere_principale">
+                                        name="matiere_principale"
+                                        required>
                                     <option value="">-- Sélectionnez une matière --</option>
                                     {% for matiere in matieres %}
                                         <option value="{{ matiere.id }}" 
@@ -181,51 +217,10 @@
                                     {% endfor %}
                                 </select>
                                 {% if field_errors.matiere_principale %}
-                                    <span class="error-message">{{ field_errors.matiere_principale }}</span>
+                                    <div class="invalid-feedback">{{ field_errors.matiere_principale }}</div>
                                 {% endif %}
                             </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label" for="niveau_enseignement">
-                                    <i class="fas fa-graduation-cap"></i>
-                                    Niveau d'enseignement *
-                                </label>
-                                <select class="form-control {% if field_errors.niveau_enseignement %}is-invalid{% endif %}" 
-                                        id="niveau_enseignement" 
-                                        name="niveau_enseignement">
-                                    <option value="">-- Sélectionnez un niveau --</option>
-                                    {% for value, label in niveau_choices %}
-                                        <option value="{{ value }}" 
-                                                {% if form_data.niveau_enseignement == value %}selected{% endif %}>
-                                            {{ label }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                {% if field_errors.niveau_enseignement %}
-                                    <span class="error-message">{{ field_errors.niveau_enseignement }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="matieres_secondaires">
-                                <i class="fas fa-books"></i>
-                                Matières secondaires (optionnel)
-                            </label>
-                            <select class="form-control" 
-                                    id="matieres_secondaires" 
-                                    name="matieres_secondaires" 
-                                    multiple 
-                                    size="5">
-                                {% for matiere in matieres %}
-                                    <option value="{{ matiere.id }}" 
-                                            {% if matiere.id in form_data.matieres_secondaires %}selected{% endif %}>
-                                        {{ matiere.nom }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <small class="form-text">Maintenez Ctrl (Cmd sur Mac) pour sélectionner plusieurs matières</small>
-                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Informations système (lecture seule) -->

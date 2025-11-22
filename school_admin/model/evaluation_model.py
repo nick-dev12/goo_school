@@ -13,15 +13,6 @@ class Evaluation(models.Model):
     Modèle pour gérer les évaluations créées par les professeurs
     """
     
-    TYPE_CHOICES = [
-        ('controle', 'Contrôle écrit'),
-        ('interrogation', 'Interrogation'),
-        ('devoir_maison', 'Devoir maison'),
-        ('projet', 'Projet'),
-        ('oral', 'Évaluation orale'),
-        ('pratique', 'Évaluation pratique'),
-    ]
-    
     PERIODE_CHOICES = [
         # Système trimestre (Primaire & Collège)
         ('trimestre1', '1er Trimestre'),
@@ -42,12 +33,6 @@ class Evaluation(models.Model):
         blank=True,
         null=True,
         verbose_name="Description"
-    )
-    type_evaluation = models.CharField(
-        max_length=20,
-        choices=TYPE_CHOICES,
-        default='controle',
-        verbose_name="Type d'évaluation"
     )
     classe = models.ForeignKey(
         Classe,
@@ -87,11 +72,6 @@ class Evaluation(models.Model):
         related_name='evaluations',
         verbose_name="Période scolaire"
     )
-    duree = models.PositiveIntegerField(
-        blank=True,
-        null=True,
-        verbose_name="Durée (en minutes)"
-    )
     actif = models.BooleanField(
         default=True,
         verbose_name="Actif"
@@ -112,11 +92,6 @@ class Evaluation(models.Model):
     
     def __str__(self):
         return f"{self.titre} - {self.classe.nom} ({self.date_evaluation})"
-    
-    @property
-    def type_display(self):
-        """Retourne l'affichage du type"""
-        return dict(self.TYPE_CHOICES).get(self.type_evaluation, self.type_evaluation)
     
     @property
     def est_passe(self):

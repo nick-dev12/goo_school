@@ -34,3 +34,4 @@ from .standards_reussite_model import StandardsReussite, AppreciationMatiereStan
 from .justification_note_model import JustificationNote
 from .professeur_otp_model import ProfesseurOtpCode
 from .rapport_mensuel_model import RapportMensuel
+from .coefficient_matiere_groupe_model import CoefficientMatiereGroupe

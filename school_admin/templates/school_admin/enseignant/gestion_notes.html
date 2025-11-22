@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.3">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -161,24 +161,13 @@
                                     <div class="action-buttons">
                                         <a href="{% url 'enseignant:creer_evaluation' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action primary" title="Créer une évaluation">
                                             <i class="fas fa-plus"></i>
-                                            <span>Créer évaluation</span>
+                                            <span>Créer une évaluation</span>
                                         </a>
                                         <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action success" title="Noter les élèves">
                                             <i class="fas fa-edit"></i>
-                                            <span>Noter élèves</span>
+                                            <span>Noter les élèves</span>
                                         </a>
-                                        <a href="{% url 'enseignant:justifications_notes' %}" class="btn-action info" title="Justifier une note" style="background: var(--gradient-cyan);">
-                                            <i class="fas fa-scale-balanced"></i>
-                                            <span>Justifier une note</span>
-                                        </a>
-                                        {% with session_examen=sessions_examens_par_classe|get_item:classe_data.classe.id %}
-                                        {% if session_examen %}
-                                        <a href="{% url 'enseignant:noter_examen' classe_data.classe.id %}" class="btn-action warning" title="Noter l'examen" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                                            <i class="fas fa-clipboard-check"></i>
-                                            <span>Noter Examen</span>
-                                        </a>
-                                        {% endif %}
-                                        {% endwith %}
+                                       
                                         <button onclick="ouvrirModalReleve({{ classe_data.classe.id }}, {{ periode_active.id }}{% if classe_data.matiere %}, {{ classe_data.matiere.id }}{% endif %})" class="btn-action info" title="Voir le relevé de notes">
                                             <i class="fas fa-file-alt"></i>
                                             <span>Voir relevé</span>
@@ -262,12 +251,13 @@
                                     </div>
 
                                     <!-- Tableau relevé de notes -->
-                                    <div class="releve-table-container">
-                                        <table class="releve-table">
+                                    <div class="table-responsive">
+                                        <div class="releve-table-container">
+                                            <table class="releve-table">
                                             <thead>
                                                 <tr>
                                                     <th class="col-numero">#</th>
-                                                    <th class="col-eleve">Élève</th>
+                                                    <th class="col-eleve" id="col-eleve-releve">Élève </th>
                                                     <!-- Colonnes dynamiques pour les évaluations -->
                                                     {% if classe_data.evaluations %}
                                                         {% for eval_item in classe_data.evaluations %}
@@ -290,7 +280,7 @@
                                                 {% for eleve_data in classe_data.eleves %}
                                                     <tr class="{% cycle 'row-even' 'row-odd' %}">
                                                         <td class="col-numero">{{ forloop.counter }}</td>
-                                                        <td class="col-eleve">
+                                                        <td class="col-eleve col-eleve-releve">
                                                             <div class="eleve-info">
                                                                 <div class="eleve-avatar-tiny">
                                                                     {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
@@ -374,6 +364,7 @@
                                                 {% endfor %}
                                             </tbody>
                                         </table>
+                                        </div>
                                     </div>
                                 {% else %}
                                     <div class="empty-class-state">

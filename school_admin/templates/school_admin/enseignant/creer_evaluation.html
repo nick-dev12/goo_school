@@ -109,25 +109,6 @@
                             {% endif %}
                         </div>
                         
-                        <!-- Type -->
-                        <div class="form-group {% if errors.type_evaluation %}has-error{% endif %}">
-                            <label for="type_evaluation">
-                                <i class="fas fa-tag"></i>
-                                Type d'évaluation <span class="required">*</span>
-                            </label>
-                            <select id="type_evaluation" name="type_evaluation" required>
-                                <option value="controle" {% if form_data.type_evaluation == 'controle' %}selected{% endif %}>Contrôle écrit</option>
-                                <option value="interrogation" {% if form_data.type_evaluation == 'interrogation' %}selected{% endif %}>Interrogation</option>
-                                <option value="devoir_maison" {% if form_data.type_evaluation == 'devoir_maison' %}selected{% endif %}>Devoir maison</option>
-                                <option value="projet" {% if form_data.type_evaluation == 'projet' %}selected{% endif %}>Projet</option>
-                                <option value="oral" {% if form_data.type_evaluation == 'oral' %}selected{% endif %}>Évaluation orale</option>
-                                <option value="pratique" {% if form_data.type_evaluation == 'pratique' %}selected{% endif %}>Évaluation pratique</option>
-                            </select>
-                            <div class="help-text">Le type aide à classer et filtrer vos évaluations.</div>
-                            {% if errors.type_evaluation %}
-                                <span class="error-message">{{ errors.type_evaluation }}</span>
-                            {% endif %}
-                        </div>
                     </div>
                     
                     <!-- Description -->

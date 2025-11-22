@@ -9,6 +9,187 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_evaluations.css' %}">
+    <style>
+        /* Modal de modification */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9998;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .modal-container {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .modal-header h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: var(--gray-100);
+            color: var(--text-primary);
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        .form-group-modal {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group-modal label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group-modal label .required {
+            color: var(--accent);
+        }
+        
+        .form-group-modal input,
+        .form-group-modal select,
+        .form-group-modal textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group-modal input:focus,
+        .form-group-modal select:focus,
+        .form-group-modal textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        
+        .form-group-modal textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-grid-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .form-actions-modal {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-color);
+        }
+        
+        .btn-modal {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-modal-cancel {
+            background: var(--gray-200);
+            color: var(--text-primary);
+        }
+        
+        .btn-modal-cancel:hover {
+            background: var(--gray-300);
+        }
+        
+        .btn-modal-submit {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-modal-submit:hover {
+            background: var(--directeur-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .help-text-modal {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    </style>
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -131,15 +312,12 @@
                                             <div class="evaluation-card">
                                                 <!-- Header -->
                                                 <div class="eval-header">
-                                                    <div class="eval-icon" style="background: {% if evaluation.type_evaluation == 'controle' %}#667eea{% elif evaluation.type_evaluation == 'interrogation' %}#f59e0b{% elif evaluation.type_evaluation == 'devoir_maison' %}#10b981{% elif evaluation.type_evaluation == 'projet' %}#8b5cf6{% elif evaluation.type_evaluation == 'oral' %}#3b82f6{% else %}#64748b{% endif %};">
-                                                        <i class="fas fa-{% if evaluation.type_evaluation == 'controle' %}file-alt{% elif evaluation.type_evaluation == 'interrogation' %}question-circle{% elif evaluation.type_evaluation == 'devoir_maison' %}home{% elif evaluation.type_evaluation == 'projet' %}project-diagram{% elif evaluation.type_evaluation == 'oral' %}microphone{% else %}clipboard{% endif %}"></i>
+                                                    <div class="eval-icon" style="background: #667eea;">
+                                                        <i class="fas fa-file-alt"></i>
                                                     </div>
                                                     <div class="eval-info">
                                                         <h3 class="eval-titre">{{ evaluation.titre }}</h3>
                                                         <div class="eval-badges">
-                                                            <span class="badge type-{{ evaluation.type_evaluation }}">
-                                                                {{ evaluation.type_display }}
-                                                            </span>
                                                             <span class="badge {% if evaluation.est_passe %}passe{% elif evaluation.est_a_venir %}a-venir{% else %}aujourdhui{% endif %}">
                                                                 {% if evaluation.est_passe %}
                                                                     <i class="fas fa-check"></i> Passée
@@ -175,12 +353,6 @@
                                                         <i class="fas fa-calculator"></i>
                                                         <span>{{ evaluation.bareme }} points</span>
                                                     </div>
-                                                    {% if evaluation.duree %}
-                                                        <div class="detail-item">
-                                                            <i class="fas fa-clock"></i>
-                                                            <span>{{ evaluation.duree }} min</span>
-                                                        </div>
-                                                    {% endif %}
                                                 </div>
 
                                                 {% if evaluation.description %}
@@ -195,7 +367,10 @@
                                                         <i class="fas fa-edit"></i>
                                                         <span>Noter</span>
                                                     </a>
-                                                    <button class="action-btn secondary" title="Modifier">
+                                                    <button type="button" 
+                                                            class="action-btn secondary" 
+                                                            title="Modifier"
+                                                            onclick="ouvrirModalModification({{ evaluation.id }})">
                                                         <i class="fas fa-pen"></i>
                                                         <span>Modifier</span>
                                                     </button>
@@ -238,6 +413,13 @@
         {% endif %}
     </div>
 
+    <!-- Modal de modification -->
+    <div class="modal-overlay" id="modalModification">
+        <div class="modal-container" id="modalContent">
+            <!-- Le contenu sera chargé dynamiquement -->
+        </div>
+    </div>
+
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
     <script>
         // Fonction pour changer d'onglet principal
@@ -278,6 +460,124 @@
                 }
             }
         }
+        
+        // Fonction pour ouvrir le modal de modification
+        function ouvrirModalModification(evaluationId) {
+            const modal = document.getElementById('modalModification');
+            const modalContent = document.getElementById('modalContent');
+            
+            // Afficher le modal avec un loader
+            modal.classList.add('active');
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-spinner fa-spin"></i> Chargement...</h2>
+                    <button class="modal-close" onclick="fermerModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Charger le formulaire via AJAX
+            fetch(`/enseignant/modifier-evaluation/${evaluationId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.html) {
+                    modalContent.innerHTML = data.html;
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-exclamation-triangle"></i> Erreur</h2>
+                            <button class="modal-close" onclick="fermerModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Erreur lors du chargement du formulaire.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Erreur</h2>
+                        <button class="modal-close" onclick="fermerModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Erreur lors du chargement du formulaire.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function fermerModal() {
+            const modal = document.getElementById('modalModification');
+            modal.classList.remove('active');
+        }
+        
+        // Fermer le modal en cliquant sur l'overlay
+        document.getElementById('modalModification').addEventListener('click', function(e) {
+            if (e.target === this) {
+                fermerModal();
+            }
+        });
+        
+        // Gérer la soumission du formulaire
+        document.addEventListener('submit', function(e) {
+            if (e.target.classList.contains('form-modifier-evaluation')) {
+                e.preventDefault();
+                
+                const form = e.target;
+                const formData = new FormData(form);
+                const evaluationId = formData.get('evaluation_id');
+                
+                // Désactiver le bouton de soumission
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+                
+                fetch(`/enseignant/modifier-evaluation/${evaluationId}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Afficher un message de succès
+                        alert(data.message);
+                        // Rediriger ou recharger la page
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            window.location.reload();
+                        }
+                    } else {
+                        // Afficher l'erreur
+                        alert(data.message || 'Erreur lors de la modification.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la modification de l\'évaluation.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            }
+        });
     </script>
 
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}

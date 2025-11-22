@@ -8,525 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header.css' %}">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-        }
-
-        .page-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-        }
-
-        .page-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .page-header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .breadcrumb {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .breadcrumb a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        /* Actions bar */
-        .actions-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            border: none;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #5a6268;
-            transform: translateY(-2px);
-        }
-
-        /* Sections */
-        .section {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .section-title i {
-            color: #667eea;
-        }
-
-        /* Formulaire */
-        .form-add-periode {
-            display: none;
-            background: #f8f9fa;
-            padding: 2rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            border: 2px dashed #667eea;
-        }
-
-        .form-add-periode.show {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: #555;
-        }
-
-        .form-group label span {
-            color: #dc3545;
-        }
-
-        .form-group input,
-        .form-group select {
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: 'Poppins', sans-serif;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-
-        /* Liste des périodes */
-        .periodes-list {
-            display: grid;
-            gap: 2rem;
-        }
-
-        .annee-group {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 12px;
-        }
-
-        .annee-group h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: #667eea;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .periodes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .periode-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            border-left: 4px solid #667eea;
-            transition: all 0.3s;
-        }
-
-        .periode-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-        }
-
-        .periode-card.active {
-            border-left-color: #28a745;
-            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
-        }
-
-        .periode-card.terminee {
-            border-left-color: #6c757d;
-            opacity: 0.7;
-        }
-
-        .periode-card.a-venir {
-            border-left-color: #ffc107;
-        }
-
-        .periode-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .periode-titre {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.5rem;
-        }
-
-        .periode-badge {
-            padding: 0.35rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .periode-badge.actif {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .periode-badge.inactif {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .periode-info {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .periode-info-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.95rem;
-            color: #666;
-        }
-
-        .periode-info-item i {
-            color: #667eea;
-            width: 20px;
-        }
-
-        .periode-status {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .periode-status.en-cours {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .periode-status.a-venir {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .periode-status.terminee {
-            background-color: #d6d8db;
-            color: #383d41;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: #999;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .empty-state h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #666;
-        }
-
-        .empty-state p {
-            font-size: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .periode-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .btn-action {
-            border: none;
-            border-radius: 10px;
-            padding: 0.55rem 1rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: all 0.2s ease;
-        }
-
-        .btn-action.edit {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-action.delete {
-            background: rgba(239, 68, 68, 0.1);
-            color: #b91c1c;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .btn-action:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
-        }
-
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(17, 24, 39, 0.45);
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.25s ease;
-            z-index: 2100;
-        }
-
-        .modal-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-dialog {
-            background: white;
-            border-radius: 18px;
-            width: 100%;
-            max-width: 600px;
-            overflow: hidden;
-            box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.35);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            position: relative;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.15rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            border: none;
-            background: rgba(255, 255, 255, 0.18);
-            color: white;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .modal-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .modal-footer {
-            padding: 1.25rem 1.5rem;
-            background: #f8f9fb;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.75rem;
-        }
-
-        .modal-form .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-        }
-
-        .modal-form input,
-        .modal-form select {
-            padding: 0.75rem;
-            border-radius: 10px;
-            border: 1px solid #d1d5db;
-            font-size: 0.95rem;
-        }
-
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            border: none;
-        }
-
-        .modal-actions button {
-            border-radius: 10px;
-            padding: 0.65rem 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_periodes_scolaires.css' %}?v=1.0.0">
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -564,7 +46,7 @@
 
         <!-- Formulaire d'ajout de période (caché par défaut) -->
         <div class="form-add-periode" id="formAddPeriode">
-            <h3 style="margin-bottom: 1.5rem; color: #667eea;">
+            <h3 class="form-add-periode-title">
                 <i class="fas fa-plus-circle"></i>
                 Nouvelle période scolaire
             </h3>
@@ -601,11 +83,11 @@
                         <input type="text" name="annee_scolaire" value="{{ annee_scolaire_actuelle }}" required placeholder="Ex: 2025-2026">
                     </div>
 
-                    <div class="form-group">
-                        <label style="visibility: hidden;">Spacer</label>
+                    <div class="form-group form-group-spacer">
+                        <label class="form-label-hidden">Spacer</label>
                         <div class="checkbox-group">
                             <input type="checkbox" name="est_active" id="est_active" checked>
-                            <label for="est_active" style="margin: 0;">Période active</label>
+                            <label for="est_active" class="checkbox-label">Période active</label>
                         </div>
                     </div>
                 </div>
@@ -757,9 +239,9 @@
                         <label for="edit_annee_scolaire">Année scolaire</label>
                         <input type="text" id="edit_annee_scolaire" name="annee_scolaire" required>
                     </div>
-                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                    <div class="form-group form-group-checkbox-row">
                         <input type="checkbox" id="edit_est_active" name="est_active">
-                        <label for="edit_est_active" style="margin: 0;">Période active</label>
+                        <label for="edit_est_active" class="checkbox-label">Période active</label>
                     </div>
                 </div>
                 <div class="modal-footer modal-actions">
@@ -773,7 +255,7 @@
     <!-- Modal Suppression -->
     <div class="modal-overlay" id="periodeDeleteModal" aria-hidden="true">
         <div class="modal-dialog" role="dialog" aria-labelledby="deleteModalTitle">
-            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <div class="modal-header modal-header-danger">
                 <h3 id="deleteModalTitle">
                     <i class="fas fa-triangle-exclamation"></i>
                     Supprimer la période
@@ -787,14 +269,14 @@
                 <input type="hidden" name="action" value="supprimer">
                 <input type="hidden" name="periode_id" id="delete_periode_id">
                 <div class="modal-body">
-                    <p style="color: #374151; line-height: 1.5;">
+                    <p class="modal-delete-message">
                         Vous êtes sur le point de supprimer la période
-                        <strong id="delete_periode_name" style="color: #b91c1c;"></strong>.
+                        <strong id="delete_periode_name" class="modal-delete-name"></strong>.
                         Cette action est irréversible.
                     </p>
-                    <div style="display: flex; align-items: center; gap: 0.6rem; background: rgba(239, 68, 68, 0.08); padding: 0.85rem 1rem; border-radius: 12px;">
-                        <i class="fas fa-circle-info" style="color: #dc2626;"></i>
-                        <span style="font-size: 0.9rem; color: #7f1d1d;">
+                    <div class="modal-delete-warning">
+                        <i class="fas fa-circle-info"></i>
+                        <span>
                             Assurez-vous qu'aucun bulletin ou emploi du temps ne dépend de cette période.
                         </span>
                     </div>

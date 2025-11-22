@@ -95,6 +95,7 @@ body {
 .page-header {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
   align-items: flex-start;
   margin-bottom: var(--spacing-8);
   padding: var(--spacing-6);
@@ -105,10 +106,13 @@ body {
 
 .page-title-section {
   flex: 1;
+  width: 100%;
+  max-width: 400px;
+  min-width: 300px;
 }
 
 .page-title {
-  font-size: var(--font-size-3xl);
+  font-size: 20px;
   font-weight: 700;
   color: var(--gray-900);
   margin-bottom: var(--spacing-2);
@@ -123,7 +127,7 @@ body {
 }
 
 .page-subtitle {
-  font-size: var(--font-size-lg);
+  font-size: 16px;
   color: var(--gray-600);
   font-weight: 400;
 }
@@ -132,6 +136,7 @@ body {
   display: flex;
   gap: var(--spacing-3);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Boutons */
@@ -147,12 +152,14 @@ body {
   border: none;
   cursor: pointer;
   font-size: var(--font-size-sm);
+  max-width: 300px;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: var(--white);
   box-shadow: var(--shadow-md);
+  max-width: 300px;
 }
 
 .btn-primary:hover {
@@ -390,6 +397,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
   margin-bottom: var(--spacing-6);
   padding: var(--spacing-6);
   background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
@@ -399,11 +407,16 @@ body {
 
 .class-info {
   flex: 1;
+  width: 100%;
+  max-width: 400px;
+  min-width: 300px;
+  margin: 10px auto;
 }
 
 .class-actions {
   display: flex;
   gap: 12px;
+  margin: 10px auto;
 }
 
 .btn-voir-convocations-classe {
@@ -482,10 +495,23 @@ body {
 .class-stats {
   display: flex;
   gap: var(--spacing-6);
+  width: 100%;
+  max-width: 600px;
+  min-width: 300px;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .stat-item {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 100px;
+  width: 100%;
 }
 
 .stat-label {
@@ -1198,9 +1224,7 @@ body {
     gap: var(--spacing-2);
   }
   
-  .student-cell::before {
-    content: "Élève";
-  }
+
   
   .student-avatar-small {
     width: 40px;
@@ -1303,7 +1327,6 @@ body {
   }
   
   .class-stats {
-    flex-direction: column;
     gap: var(--spacing-2);
   }
   
@@ -1384,9 +1407,7 @@ body {
     gap: var(--spacing-1);
   }
   
-  .student-cell::before {
-    content: "Élève";
-  }
+
   
   .student-avatar-small {
     width: 32px;

@@ -1,7 +1,7 @@
 {% load static %}
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.0"
+  href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.3"
 />
 <nav
   class="enseignant-bottom-nav bottom-nav-eleve"
@@ -74,6 +74,16 @@
           ><i class="fas fa-gavel"></i
         ></span>
         <span class="label">Sanctions</span>
+      </a>
+    </li>
+    <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'convocations_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:convocations_eleve' %}">
+        <span class="icon-wrapper icon-convocations"
+          ><i class="fas fa-bell"></i
+        ></span>
+        <span class="label">Convocations</span>
       </a>
     </li>
     <li

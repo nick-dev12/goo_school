@@ -1582,14 +1582,13 @@ def creer_evaluation_primaire(request, classe_id):
                 # Récupérer les données du formulaire
                 titre = request.POST.get('titre')
                 description = request.POST.get('description', '')
-                type_evaluation = request.POST.get('type_evaluation')
                 matiere_id = request.POST.get('matiere')
                 date_evaluation = request.POST.get('date_evaluation')
                 bareme = request.POST.get('bareme', 20)
                 periode_id = request.POST.get('periode')
                 
                 # Validation
-                if not all([titre, type_evaluation, matiere_id, date_evaluation, periode_id]):
+                if not all([titre, matiere_id, date_evaluation, periode_id]):
                     messages.error(request, "Tous les champs obligatoires doivent être remplis.")
                     return redirect(request.path)
                 
@@ -1605,7 +1604,6 @@ def creer_evaluation_primaire(request, classe_id):
                 evaluation = EvaluationPrimaire.objects.create(
                     titre=titre,
                     description=description,
-                    type_evaluation=type_evaluation,
                     matiere=matiere,
                     classe=classe,
                     professeur=professeur,
@@ -1809,7 +1807,6 @@ def noter_eleves_primaire(request, classe_id):
                     self.id = f"examen_{session.id}"
                     self.session_id = session.id
                     self.titre = f"{session.nom_examen}"
-                    self.type_evaluation = 'examen'
                     self.bareme = 20  # Les examens sont généralement sur 20
                     self.date_evaluation = session.date_debut
                     self.actif = True
@@ -2693,6 +2690,196 @@ def liste_evaluations_primaire(request):
     return render(request, 'school_admin/enseignant/primaire/liste_evaluations_primaire.html', context)
 
 
+def evaluations_classe_primaire(request, classe_id):
+    """
+    Affiche toutes les évaluations créées par le professeur pour une classe donnée.
+    Navigation par onglets pour les périodes.
+    """
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    classe = get_object_or_404(Classe, id=classe_id, actif=True)
+    
+    # Vérifier que le professeur est affecté à cette classe
+    affectation = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    ).first()
+    
+    if not affectation:
+        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
+        return redirect('enseignant_primaire:gestion_notes')
+    
+    # Récupérer toutes les périodes scolaires de l'établissement
+    periodes = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    # Récupérer la période sélectionnée depuis l'URL
+    periode_id = request.GET.get('periode')
+    periode_selectionnee = None
+    
+    if periode_id:
+        try:
+            periode_selectionnee = periodes.get(id=periode_id)
+        except PeriodeScolaire.DoesNotExist:
+            pass
+    
+    # Si aucune période sélectionnée, utiliser la première active
+    if not periode_selectionnee:
+        periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
+    
+    # Récupérer toutes les évaluations créées par ce professeur pour cette classe
+    evaluations_query = EvaluationPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    ).select_related('matiere', 'periode_scolaire').order_by('-date_evaluation')
+    
+    # Filtrer par période si une période est sélectionnée
+    if periode_selectionnee:
+        evaluations = evaluations_query.filter(periode_scolaire=periode_selectionnee)
+    else:
+        evaluations = evaluations_query
+    
+    # Grouper les évaluations par matière
+    evaluations_par_matiere = {}
+    for evaluation in evaluations:
+        matiere = evaluation.matiere
+        if matiere.id not in evaluations_par_matiere:
+            evaluations_par_matiere[matiere.id] = {
+                'matiere': matiere,
+                'evaluations': []
+            }
+        evaluations_par_matiere[matiere.id]['evaluations'].append(evaluation)
+    
+    # Statistiques globales
+    total_evaluations = evaluations.count()
+    evaluations_passees = evaluations.filter(date_evaluation__lt=date.today()).count()
+    evaluations_a_venir = evaluations.filter(date_evaluation__gte=date.today()).count()
+    
+    # Récupérer les matières pour le formulaire de modification
+    matieres = affectation.matieres.all()
+    
+    context = {
+        'professeur': professeur,
+        'classe': classe,
+        'affectation': affectation,
+        'periodes': periodes,
+        'periode_selectionnee': periode_selectionnee,
+        'evaluations': evaluations,
+        'evaluations_par_matiere': evaluations_par_matiere,
+        'total_evaluations': total_evaluations,
+        'evaluations_passees': evaluations_passees,
+        'evaluations_a_venir': evaluations_a_venir,
+        'matieres': matieres,
+    }
+    
+    return render(request, 'school_admin/enseignant/primaire/evaluations_classe_primaire.html', context)
+
+
+def modifier_evaluation_primaire(request, evaluation_id):
+    """
+    Modifie une évaluation existante.
+    """
+    if not isinstance(request.user, Professeur):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    evaluation = get_object_or_404(EvaluationPrimaire, id=evaluation_id, professeur=professeur, actif=True)
+    classe = evaluation.classe
+    
+    # Vérifier que le professeur est affecté à cette classe
+    affectation = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    ).first()
+    
+    if not affectation:
+        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
+        return redirect('enseignant_primaire:gestion_notes')
+    
+    # Récupérer les matières et périodes
+    matieres = affectation.matieres.all()
+    periodes = PeriodeScolaire.objects.filter(
+        etablissement=professeur.etablissement,
+        est_active=True
+    ).order_by('date_debut')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Récupérer les données du formulaire
+                titre = request.POST.get('titre')
+                description = request.POST.get('description', '')
+                matiere_id = request.POST.get('matiere')
+                date_evaluation = request.POST.get('date_evaluation')
+                bareme = request.POST.get('bareme', 20)
+                periode_id = request.POST.get('periode')
+                
+                # Validation
+                if not all([titre, matiere_id, date_evaluation, periode_id]):
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'message': 'Tous les champs obligatoires doivent être remplis.'})
+                    messages.error(request, "Tous les champs obligatoires doivent être remplis.")
+                    return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+                
+                matiere = get_object_or_404(Matiere, id=matiere_id)
+                periode = get_object_or_404(PeriodeScolaire, id=periode_id)
+                
+                # Vérifier que le professeur enseigne cette matière
+                if matiere not in matieres:
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'message': "Vous n'enseignez pas cette matière dans cette classe."})
+                    messages.error(request, "Vous n'enseignez pas cette matière dans cette classe.")
+                    return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+                
+                # Mettre à jour l'évaluation
+                evaluation.titre = titre
+                evaluation.description = description
+                evaluation.matiere = matiere
+                evaluation.date_evaluation = date_evaluation
+                evaluation.bareme = bareme
+                evaluation.periode_scolaire = periode
+                evaluation.save()
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'message': f"Évaluation '{titre}' modifiée avec succès.",
+                        'redirect_url': f"/enseignant/primaire/evaluations-classe/{classe.id}/?periode={periode.id}"
+                    })
+                
+                messages.success(request, f"Évaluation '{titre}' modifiée avec succès.")
+                return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la modification de l'évaluation: {e}")
+            error_message = f"Une erreur est survenue: {str(e)}"
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': error_message})
+            messages.error(request, error_message)
+    
+    # Pour les requêtes AJAX (chargement du formulaire)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        from django.template.loader import render_to_string
+        html = render_to_string('school_admin/enseignant/primaire/partials/modal_modifier_evaluation.html', {
+            'evaluation': evaluation,
+            'matieres': matieres,
+            'periodes': periodes,
+        }, request=request)
+        return JsonResponse({'html': html})
+    
+    # Pour les requêtes normales (redirection)
+    return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+
+
 def calculer_moyennes_classe_primaire(request, classe_id):
     """
     Calculer et enregistrer toutes les moyennes d'une classe.
@@ -3486,10 +3673,6 @@ def detail_eleve_primaire(request, eleve_id):
                         self.bareme = 20  # Les examens sont toujours sur 20
                         self.date_evaluation = session.date_debut
                         self.est_examen = True
-                        self.type_evaluation = 'examen'
-                    
-                    def get_type_evaluation_display(self):
-                        return "Examen"
                 
                 evaluations_list.append(PseudoExamen(session))
             

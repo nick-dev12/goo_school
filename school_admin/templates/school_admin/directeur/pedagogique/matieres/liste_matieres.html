@@ -137,57 +137,118 @@
                         {% endif %}
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="coefficient">
-                            <i class="fas fa-weight-hanging"></i>
-                            Coefficient
-                        </label>
-                        <input type="number" 
-                               class="form-control {% if field_errors.coefficient %}is-invalid{% endif %}" 
-                               id="coefficient" 
-                               name="coefficient" 
-                               value="{{ form_data.coefficient }}"
-                               min="0" 
-                               max="10" 
-                               step="0.1"
-                               placeholder="1.0">
-                        {% if field_errors.coefficient %}
-                            <div class="invalid-feedback">{{ field_errors.coefficient }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-users"></i>
-                            Classes concernées (Sélection par groupe)
-                        </label>
-                        <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
-                            <i class="fas fa-info-circle"></i>
-                            Cocher un groupe sélectionne toutes les classes de ce groupe
-                        </p>
-                        <div class="classes-selection">
-                            {% for groupe in groupes_classes %}
-                                <label class="class-checkbox groupe-checkbox">
-                                    <input type="checkbox" 
-                                           name="groupes_classes" 
-                                           value="{{ groupe.nom }}"
-                                           {% if groupe.nom in form_data.groupes_classes %}checked{% endif %}>
-                                    <span class="checkmark">
-                                        <i class="fas fa-check"></i>
-                                    </span>
-                                    <span class="class-name">
-                                        <strong>{{ groupe.nom }}</strong>
-                                        <small style="display: block; font-size: 11px; color: #888;">({{ groupe.count }} classe{{ groupe.count|pluralize }})</small>
-                                    </span>
-                                </label>
-                            {% empty %}
-                                <div class="no-classes">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    <p>Aucune classe disponible</p>
-                                </div>
-                            {% endfor %}
+                    {% if est_lycee %}
+                        <!-- Pour les établissements lycée : coefficient par groupe -->
+                        <!-- DEBUG: Type établissement = {{ etablissement.type_etablissement }}, est_lycee = {{ est_lycee }} -->
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-users"></i>
+                                Classes concernées et Coefficients par groupe
+                            </label>
+                            <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                <i class="fas fa-info-circle"></i>
+                                Pour les établissements de type lycée, vous devez définir un coefficient pour chaque groupe de classes sélectionné.
+                            </p>
+                            <div class="classes-selection-with-coefficient">
+                                {% for groupe in groupes_classes %}
+                                    <div class="groupe-with-coefficient" data-groupe="{{ groupe.nom }}">
+                                        <label class="class-checkbox groupe-checkbox">
+                                            <input type="checkbox" 
+                                                   name="groupes_classes" 
+                                                   value="{{ groupe.nom }}"
+                                                   class="groupe-checkbox-input"
+                                                   {% if groupe.nom in form_data.groupes_classes %}checked{% endif %}
+                                                   onchange="if(typeof window.toggleCoefficientField === 'function') { window.toggleCoefficientField(this); } else { console.error(\'toggleCoefficientField non définie\'); }">
+                                            <span class="checkmark">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                            <span class="class-name">
+                                                <strong>{{ groupe.nom }}</strong>
+                                                <small style="display: block; font-size: 11px; color: #888;">({{ groupe.count }} classe{{ groupe.count|pluralize }})</small>
+                                            </span>
+                                        </label>
+                                        <div class="coefficient-field-wrapper" style="margin-top: 10px; margin-left: 30px;">
+                                            <label class="form-label" for="coefficient_{{ groupe.nom }}" style="font-size: 12px; margin-bottom: 5px;">
+                                                <i class="fas fa-weight-hanging"></i>
+                                                Coefficient pour {{ groupe.nom }}
+                                            </label>
+                                            <input type="number" 
+                                                   class="form-control coefficient-input" 
+                                                   id="coefficient_{{ groupe.nom }}" 
+                                                   name="coefficient_{{ groupe.nom }}" 
+                                                   value="{% if coefficients_existants and groupe.nom in coefficients_existants %}{{ coefficients_existants|get_item:groupe.nom }}{% else %}{{ form_data.coefficient|default:'1.0' }}{% endif %}"
+                                                   min="0" 
+                                                   max="10" 
+                                                   step="0.1"
+                                                   placeholder="1.0"
+                                                   style="max-width: 150px;">
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="no-classes">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <p>Aucune classe disponible</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </div>
+                        
+                        <!-- Coefficient par défaut (caché mais nécessaire pour la validation) -->
+                        <input type="hidden" name="coefficient" value="{{ form_data.coefficient|default:'1.0' }}">
+                    {% else %}
+                        <!-- Pour les autres établissements : coefficient global -->
+                        <div class="form-group">
+                            <label class="form-label" for="coefficient">
+                                <i class="fas fa-weight-hanging"></i>
+                                Coefficient
+                            </label>
+                            <input type="number" 
+                                   class="form-control {% if field_errors.coefficient %}is-invalid{% endif %}" 
+                                   id="coefficient" 
+                                   name="coefficient" 
+                                   value="{{ form_data.coefficient }}"
+                                   min="0" 
+                                   max="10" 
+                                   step="0.1"
+                                   placeholder="1.0">
+                            {% if field_errors.coefficient %}
+                                <div class="invalid-feedback">{{ field_errors.coefficient }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-users"></i>
+                                Classes concernées (Sélection par groupe)
+                            </label>
+                            <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                <i class="fas fa-info-circle"></i>
+                                Cocher un groupe sélectionne toutes les classes de ce groupe
+                            </p>
+                            <div class="classes-selection">
+                                {% for groupe in groupes_classes %}
+                                    <label class="class-checkbox groupe-checkbox">
+                                        <input type="checkbox" 
+                                               name="groupes_classes" 
+                                               value="{{ groupe.nom }}"
+                                               {% if groupe.nom in form_data.groupes_classes %}checked{% endif %}>
+                                        <span class="checkmark">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                        <span class="class-name">
+                                            <strong>{{ groupe.nom }}</strong>
+                                            <small style="display: block; font-size: 11px; color: #888;">({{ groupe.count }} classe{{ groupe.count|pluralize }})</small>
+                                        </span>
+                                    </label>
+                                {% empty %}
+                                    <div class="no-classes">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <p>Aucune classe disponible</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
 
                     <div class="form-actions">
                         <button type="button" class="btn-cancel" onclick="toggleAddForm()">
@@ -222,7 +283,8 @@
 
             {% if matieres %}
                 <div class="matieres-grid">
-                    {% for matiere in matieres %}
+                    {% for matiere_data in matieres_avec_coefficients %}
+                        {% with matiere=matiere_data.matiere %}
                         <div class="matiere-card" data-matiere="{{ matiere.nom|lower }}" data-type="{{ matiere.type_matiere }}">
                             <div class="card-header">
                                 <div class="matiere-info">
@@ -248,10 +310,17 @@
                                         <i class="fas fa-graduation-cap"></i>
                                         <span>{{ matiere.niveau_display }}</span>
                                     </div>
-                                    <div class="detail-item">
-                                        <i class="fas fa-weight-hanging"></i>
-                                        <span>Coeff: {{ matiere.coefficient }}</span>
-                                    </div>
+                                    {% if est_lycee and matiere_data.coefficients_par_groupe %}
+                                        <div class="detail-item">
+                                            <i class="fas fa-weight-hanging"></i>
+                                            <span>Coeff: Variable par groupe</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="detail-item">
+                                            <i class="fas fa-weight-hanging"></i>
+                                            <span>Coeff: {{ matiere.coefficient }}</span>
+                                        </div>
+                                    {% endif %}
                                     <div class="detail-item">
                                         <i class="fas fa-users"></i>
                                         <span>{{ matiere.classes.count }} classe{{ matiere.classes.count|pluralize }}</span>
@@ -260,16 +329,41 @@
                                 
                                 {% if matiere.classes.exists %}
                                     <div class="classes-list">
-                                        {% with groupes=matiere.classes.all|group_classes %}
-                                            {% for groupe in groupes %}
-                                                <span class="class-tag" title="{{ groupe.count }} classe{{ groupe.count|pluralize }}">
-                                                    {{ groupe.nom }}
-                                                    {% if groupe.count > 1 %}
-                                                        <small style="font-size: 10px; opacity: 0.8;"> (×{{ groupe.count }})</small>
-                                                    {% endif %}
-                                                </span>
-                                            {% endfor %}
-                                        {% endwith %}
+                                        {% if est_lycee and matiere_data.coefficients_par_groupe %}
+                                            <!-- Pour les établissements lycée : afficher les groupes avec leurs coefficients -->
+                                            {% with groupes=matiere.classes.all|group_classes %}
+                                                {% for groupe in groupes %}
+                                                    <div class="groupe-coefficient-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px 10px; background: #f0f0f0; border-radius: 6px;">
+                                                        <span class="class-tag" style="flex: 1;">
+                                                            <strong>{{ groupe.nom }}</strong>
+                                                            {% if groupe.count > 1 %}
+                                                                <small style="font-size: 10px; opacity: 0.8;"> (×{{ groupe.count }})</small>
+                                                            {% endif %}
+                                                        </span>
+                                                        <span class="coefficient-badge" style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.85rem;">
+                                                            <i class="fas fa-weight-hanging"></i>
+                                                            {% if groupe.nom in matiere_data.coefficients_par_groupe %}
+                                                                {{ matiere_data.coefficients_par_groupe|get_item:groupe.nom }}
+                                                            {% else %}
+                                                                {{ matiere.coefficient }}
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                {% endfor %}
+                                            {% endwith %}
+                                        {% else %}
+                                            <!-- Pour les autres établissements : affichage normal -->
+                                            {% with groupes=matiere.classes.all|group_classes %}
+                                                {% for groupe in groupes %}
+                                                    <span class="class-tag" title="{{ groupe.count }} classe{{ groupe.count|pluralize }}">
+                                                        {{ groupe.nom }}
+                                                        {% if groupe.count > 1 %}
+                                                            <small style="font-size: 10px; opacity: 0.8;"> (×{{ groupe.count }})</small>
+                                                        {% endif %}
+                                                    </span>
+                                                {% endfor %}
+                                            {% endwith %}
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             </div>
@@ -285,6 +379,7 @@
                                 </div>
                             </div>
                         </div>
+                        {% endwith %}
                     {% endfor %}
                 </div>
             {% else %}
@@ -304,7 +399,104 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=3"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=4"></script>
+    <script>
+        // Les fonctions toggleCoefficientField et initCoefficientFields sont définies dans matieres.js
+        // Initialiser au chargement de la page si le formulaire est visible
+        document.addEventListener('DOMContentLoaded', function() {
+            // Debug : vérifier si est_lycee est défini
+            console.log('est_lycee:', {% if est_lycee %}true{% else %}false{% endif %});
+            console.log('Type établissement:', '{{ etablissement.type_etablissement }}');
+            
+            // Si le formulaire est déjà visible (erreur de validation), initialiser les champs
+            const formContainer = document.getElementById('addFormContainer');
+            if (formContainer && formContainer.style.display !== 'none') {
+                setTimeout(function() {
+                    if (typeof window.initCoefficientFields === 'function') {
+                        console.log('Initialisation des champs coefficient');
+                        window.initCoefficientFields();
+                    } else {
+                        console.error('initCoefficientFields n\'est pas définie globalement');
+                    }
+                }, 200);
+            }
+            
+            // Ajouter des écouteurs d'événements pour les checkboxes de groupes (même si le formulaire est caché)
+            {% if est_lycee %}
+            // Utiliser la délégation d'événements pour gérer les checkboxes même si elles sont dans un conteneur caché
+            document.addEventListener('change', function(e) {
+                if (e.target && e.target.classList.contains('groupe-checkbox-input')) {
+                    console.log('Événement change détecté sur checkbox:', e.target.value);
+                    if (typeof window.toggleCoefficientField === 'function') {
+                        window.toggleCoefficientField(e.target);
+                    } else {
+                        console.error('toggleCoefficientField n\'est pas définie globalement');
+                    }
+                }
+            });
+            {% endif %}
+        });
+        
+        // Validation du formulaire : s'assurer que chaque groupe sélectionné a un coefficient
+        document.getElementById('ajouterMatiereForm')?.addEventListener('submit', function(e) {
+            {% if est_lycee %}
+            const checkedGroups = document.querySelectorAll('.groupe-checkbox-input:checked');
+            let isValid = true;
+            let missingCoeffs = [];
+            
+            checkedGroups.forEach(function(checkbox) {
+                const groupeWrapper = checkbox.closest('.groupe-with-coefficient');
+                const coefficientInput = groupeWrapper.querySelector('.coefficient-input');
+                const groupeNom = checkbox.value;
+                
+                if (!coefficientInput.value || parseFloat(coefficientInput.value) <= 0) {
+                    isValid = false;
+                    missingCoeffs.push(groupeNom);
+                    coefficientInput.style.borderColor = '#dc3545';
+                } else {
+                    coefficientInput.style.borderColor = '';
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Veuillez renseigner un coefficient valide pour chaque groupe sélectionné : ' + missingCoeffs.join(', '));
+                return false;
+            }
+            {% endif %}
+        });
+    </script>
+    <style>
+        .classes-selection-with-coefficient {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .groupe-with-coefficient {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        
+        .coefficient-field-wrapper {
+            background-color: white;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            display: none !important; /* Caché par défaut */
+        }
+        
+        .coefficient-field-wrapper.show {
+            display: block !important; /* Affiché quand la classe 'show' est ajoutée */
+        }
+        
+        .coefficient-field-wrapper label {
+            font-weight: 500;
+            color: #555;
+        }
+    </style>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

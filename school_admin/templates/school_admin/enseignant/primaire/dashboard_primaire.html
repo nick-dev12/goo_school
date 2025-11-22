@@ -11,59 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant.css' %}?v=1.0.2">
-    <style>
-        .notifications-activation {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 12px;
-            padding: 18px 24px 0;
-        }
-
-        .btn-fcm {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            border: none;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.25);
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .btn-fcm:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 20px rgba(16, 185, 129, 0.35);
-        }
-
-        .fcm-success-message {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            border-radius: 10px;
-            background: rgba(16, 185, 129, 0.12);
-            color: #047857;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .fcm-success-message.show {
-            display: inline-flex;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/dashboard_primaire.css' %}?v=1.0.0">
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
@@ -208,7 +156,8 @@
                 <i class="fas fa-calendar-day"></i> {% now "l" as jour_actuel %}{{ jour_actuel|capfirst }} {% now "d F Y" %}
             </div>
 
-            <div class="timetable-grid">
+            <!-- Affichage desktop/tablette -->
+            <div class="timetable-grid timetable-desktop">
                 {% if not emploi_publie %}
                     <div class="empty-state-small">
                         <i class="fas fa-eye-slash"></i>
@@ -227,6 +176,45 @@
                                 {% if creneau.salle %}
                                     <p><i class="fas fa-door-open"></i> Salle {{ creneau.salle.nom }}</p>
                                 {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Pas de cours aujourd'hui</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Affichage mobile en cartes -->
+            <div class="timetable-cards-mobile">
+                {% if not emploi_publie %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-eye-slash"></i>
+                        <p>L'emploi du temps de vos classes n'est pas encore publié.</p>
+                    </div>
+                {% elif creneaux_aujourdhui %}
+                    {% for creneau in creneaux_aujourdhui %}
+                        <div class="timetable-card-mobile">
+                            <div class="card-mobile-header">
+                                <div class="card-time">
+                                    <span class="card-hour">{{ creneau.heure_debut|time:"H:i" }}</span>
+                                    <span class="card-duration">{{ creneau.duree_minutes|default:"60" }} min</span>
+                                </div>
+                                <a href="{% url 'enseignant_primaire:liste_presence' creneau.emploi_du_temps.classe.id %}" class="btn-appel-mobile" title="Faire l'appel">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <span>Appel</span>
+                                </a>
+                            </div>
+                            <div class="card-mobile-content">
+                                <h4 class="card-matiere">{{ creneau.matiere.nom }}</h4>
+                                <div class="card-info">
+                                    <span class="card-classe"><i class="fas fa-users"></i> {{ creneau.emploi_du_temps.classe.nom }}</span>
+                                    {% if creneau.salle %}
+                                        <span class="card-salle"><i class="fas fa-door-open"></i> {{ creneau.salle.nom }}</span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     {% endfor %}

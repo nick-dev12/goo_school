@@ -1,0 +1,191 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convocations - Espace Parent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/parent/nav_parent.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/parent/convocations_parent.css' %}?v=1.0.1">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1><i class="fas fa-bell"></i> Convocations des établissements</h1>
+                {% with etablissements|length as nb_etabs %}
+                    <p>
+                        {% if nb_etabs > 1 %}
+                            Convocations regroupées pour {{ nb_etabs }} établissements liés à vos enfants.
+                        {% else %}
+                            Convocations pour l'établissement de vos enfants.
+                        {% endif %}
+                    </p>
+                {% endwith %}
+            </div>
+            <div class="header-actions">
+                <button class="parent-nav-toggle" id="openNavMenu" aria-label="Ouvrir le menu de navigation">
+                    <span class="d-none d-sm-inline">Menu</span>
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <a href="{% url 'school_admin:dashboard_parent' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour au dashboard
+                </a>
+            </div>
+        </div>
+
+        {% include 'school_admin/parent/partials/navigation_panel.html' %}
+
+        <!-- Messages Django -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="message message-{{ message.tags|default:'info' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Navigation par établissement -->
+        {% if etablissements %}
+            <div class="tabs-container">
+                {% for entree in etablissements %}
+                    <a href="?etablissement={{ entree.id }}" class="tab-link {% if entree.id == selected_etablissement_id %}active{% endif %}">
+                        <i class="fas fa-school"></i>
+                        <span>{{ entree.etablissement.nom }}</span>
+                        <span class="badge">{{ entree.convocations|length }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Statistiques -->
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_convocations }}</h3>
+                    <p>Total des convocations</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-a-venir">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ convocations_a_venir }}</h3>
+                    <p>À venir</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-en-attente">
+                <div class="stat-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ convocations_en_attente }}</h3>
+                    <p>En attente</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-honoree">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ convocations_honorees }}</h3>
+                    <p>Honorées</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des convocations -->
+        <div class="convocations-section">
+            {% if convocations_selectionnees %}
+                <div class="convocations-list">
+                    {% for convocation in convocations_selectionnees %}
+                        <div class="convocation-card {% if convocation.date_convocation >= today %}a-venir{% else %}passee{% endif %}">
+                            <div class="convocation-header">
+                                <div class="convocation-title-section">
+                                    <h2>{{ convocation.objet }}</h2>
+                                    <span class="badge badge-{{ convocation.statut }}">
+                                        {% if convocation.statut == 'en_attente' %}
+                                            <i class="fas fa-hourglass-half"></i> En attente
+                                        {% elif convocation.statut == 'vue' %}
+                                            <i class="fas fa-eye"></i> Vue
+                                        {% elif convocation.statut == 'honoree' %}
+                                            <i class="fas fa-check-circle"></i> Honorée
+                                        {% elif convocation.statut == 'non_honoree' %}
+                                            <i class="fas fa-times-circle"></i> Non honorée
+                                        {% endif %}
+                                    </span>
+                                    {% if convocation.date_convocation >= today %}
+                                        <span class="badge badge-a-venir">
+                                            <i class="fas fa-calendar-check"></i> À venir
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="convocation-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-user-graduate"></i>
+                                        {{ convocation.eleve.nom_complet }}
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ convocation.date_convocation|date:"d/m/Y" }}
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-clock"></i>
+                                        {{ convocation.heure_convocation|time:"H:i" }}
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ convocation.lieu }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="convocation-content">
+                                <p><strong>Motif :</strong></p>
+                                <p>{{ convocation.motif|linebreaks }}</p>
+                            </div>
+
+                            <div class="convocation-footer">
+                                <span class="footer-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Créée le {{ convocation.date_creation|date:"d/m/Y à H:i" }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-bell-slash"></i>
+                    <h3>Aucune convocation</h3>
+                    <p>
+                        {% if etablissements|length == 0 %}
+                            Aucun établissement n'est associé à votre compte.
+                        {% else %}
+                            Cet établissement n'a pas encore de convocations pour vos enfants.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'school_admin:dashboard_parent' %}" class="btn-primary">
+                        <i class="fas fa-home"></i> Retour au dashboard
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
+    <script src="{% static 'school_admin/js/parent/header_parent.js' %}"></script>
+</body>
+</html>
+

@@ -49,7 +49,7 @@
                         {% if periode_active %}
                             - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}
                         {% else %}
-                            - Année scolaire {% now "Y" %}-{% now "Y"|add:1 %}
+                           
                         {% endif %}
                     </p>
                 </div>
@@ -113,6 +113,16 @@
                         <div class="nav-link-content">
                             <h3>Sanctions</h3>
                             <p>Historique disciplinaire</p>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'eleve:convocations_eleve' %}" class="nav-link-card">
+                        <div class="nav-card-icon neo-red">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="nav-link-content">
+                            <h3>Convocations</h3>
+                            <p>Rendez-vous et convocations</p>
                         </div>
                     </a>
 

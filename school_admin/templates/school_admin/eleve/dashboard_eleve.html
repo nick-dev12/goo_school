@@ -14,7 +14,7 @@
     {% include 'school_admin/partials/pwa_meta.html' %}
     <!-- Style CSS personnalisé -->
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}?v=1.0.2">
     <!-- CSS pour les notifications FCM -->
     <link rel="stylesheet" href="{% static 'school_admin/css/fcm_notifications.css' %}">
 </head>
@@ -105,57 +105,92 @@
             </div>
             <div class="schedule-table-container">
                 {% if emploi_non_publie %}
-                    <div style="padding: 2.5rem; text-align: center; color: var(--gray-500);">
-                        <i class="fas fa-eye-slash" style="font-size: 2.5rem; margin-bottom: 1rem; display: block;"></i>
-                        <p style="font-size: 1rem;">L'emploi du temps n'a pas encore été publié par l'établissement.</p>
+                    <div class="schedule-empty-state">
+                        <i class="fas fa-eye-slash"></i>
+                        <p>L'emploi du temps n'a pas encore été publié par l'établissement.</p>
                     </div>
                 {% else %}
-                <table class="schedule-table">
-                    <thead>
-                        <tr>
-                            <th>Matière</th>
-                            <th>Horaire</th>
-                            <th>Salle</th>
-                            <th>Enseignant</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                    <!-- Version desktop : Tableau -->
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>Matière</th>
+                                <th>Horaire</th>
+                                <th>Salle</th>
+                                <th>Enseignant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cours in prochains_cours %}
+                            <tr>
+                                <td>
+                                    <div class="schedule-subject">
+                                        <div class="schedule-subject-icon {{ cours.icon_color }}">
+                                            <i class="{{ cours.icon }}"></i>
+                                        </div>
+                                        {{ cours.matiere }}
+                                    </div>
+                                </td>
+                                <td class="schedule-time">
+                                    {{ cours.heure_debut }} - {{ cours.heure_fin }}
+                                </td>
+                                <td class="schedule-location">
+                                    {% if cours.salle %}
+                                        <i class="fas fa-door-open"></i>
+                                        Salle {{ cours.salle }}
+                                    {% else %}
+                                        <i class="fas fa-door-open"></i>
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td class="schedule-teacher">
+                                    {{ cours.enseignant|default:"N/A" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="schedule-empty-state">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <p>Aucun cours prévu pour aujourd'hui</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <!-- Version mobile : Mini cartes -->
+                    <div class="schedule-cards-mobile">
                         {% for cours in prochains_cours %}
-                        <tr>
-                            <td>
-                                <div class="schedule-subject">
-                                    <div class="schedule-subject-icon {{ cours.icon_color }}">
+                        <div class="schedule-mini-card">
+                            <div class="schedule-mini-card-header">
+                                <div class="schedule-mini-card-subject">
+                                    <div class="schedule-mini-card-icon {{ cours.icon_color }}">
                                         <i class="{{ cours.icon }}"></i>
                                     </div>
-                                    {{ cours.matiere }}
+                                    <div class="schedule-mini-card-subject-info">
+                                        <h4 class="schedule-mini-card-matiere">{{ cours.matiere }}</h4>
+                                        <span class="schedule-mini-card-time">{{ cours.heure_debut }} - {{ cours.heure_fin }}</span>
+                                    </div>
                                 </div>
-                            </td>
-                            <td class="schedule-time">
-                                {{ cours.heure_debut }} - {{ cours.heure_fin }}
-                            </td>
-                            <td class="schedule-location">
-                                {% if cours.salle %}
+                            </div>
+                            <div class="schedule-mini-card-body">
+                                <div class="schedule-mini-card-info-item">
                                     <i class="fas fa-door-open"></i>
-                                    Salle {{ cours.salle }}
-                                {% else %}
-                                    <i class="fas fa-door-open"></i>
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="schedule-teacher">
-                                {{ cours.enseignant|default:"N/A" }}
-                            </td>
-                        </tr>
+                                    <span>{% if cours.salle %}Salle {{ cours.salle }}{% else %}N/A{% endif %}</span>
+                                </div>
+                                <div class="schedule-mini-card-info-item">
+                                    <i class="fas fa-user"></i>
+                                    <span>{{ cours.enseignant|default:"N/A" }}</span>
+                                </div>
+                            </div>
+                        </div>
                         {% empty %}
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                                <i class="fas fa-calendar-check" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
-                                Aucun cours prévu pour aujourd'hui
-                            </td>
-                        </tr>
+                        <div class="schedule-empty-state">
+                            <i class="fas fa-calendar-check"></i>
+                            <p>Aucun cours prévu pour aujourd'hui</p>
+                        </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
                 {% endif %}
             </div>
             <div class="info-card-footer">

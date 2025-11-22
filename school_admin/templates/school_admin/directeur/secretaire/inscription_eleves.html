@@ -21,7 +21,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}"
+      href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
@@ -292,7 +292,6 @@
                   <select class="form-control {% if field_errors.statut %}is-invalid{% endif %}" id="statut" name="statut" required>
                     <option value="">Sélectionnez un type</option>
                     <option value="nouvelle" {% if form_data.statut == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
-                    <option value="transfert" {% if form_data.statut == 'transfert' %}selected{% endif %}>Transfert d'établissement</option>
                     <option value="reinscription" {% if form_data.statut == 'reinscription' %}selected{% endif %}>Réinscription</option>
                   </select>
                   {% if field_errors.statut %}
@@ -425,20 +424,6 @@
                   </select>
                   {% if field_errors.parent_lien %}
                     <div class="invalid-feedback">{{ field_errors.parent_lien }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="parent_adresse">Adresse du parent/tuteur <span class="optional-label">(optionnel)</span></label>
-                  <textarea class="form-control {% if field_errors.parent_adresse %}is-invalid{% endif %}" 
-                            id="parent_adresse" 
-                            name="parent_adresse" 
-                            rows="3"
-                            placeholder="Adresse complète du parent/tuteur (optionnel)">{{ form_data.parent_adresse }}</textarea>
-                  {% if field_errors.parent_adresse %}
-                    <div class="invalid-feedback">{{ field_errors.parent_adresse }}</div>
                   {% endif %}
                 </div>
               </div>

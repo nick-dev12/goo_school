@@ -8,148 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}">
-    <style>
-        .appel-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .appel-info {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-        
-        .appel-numero {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        
-        .appel-statut {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-        
-        .appel-actions {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .btn-nouvel-appel {
-            background: white;
-            color: #667eea;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s;
-        }
-        
-        .btn-nouvel-appel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .btn-nouvel-appel.disabled {
-            background: #e5e7eb;
-            color: #9ca3af;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        
-        .historique-appels {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .historique-titre {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .appels-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-        
-        .appel-card {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .appel-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .appel-card-numero {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-        
-        .appel-card-heure {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-        
-        .appel-card-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.9rem;
-        }
-        
-        .appel-card-stat {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        
-        .limite-atteinte-banner {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        
-        .limite-atteinte-banner i {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .limite-atteinte-banner h3 {
-            margin: 0.5rem 0;
-            font-size: 1.3rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}?v=1.0.2">
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
@@ -269,11 +128,10 @@
                 {% endif %}
 
                 <!-- Table de présence -->
-                <div class="presence-table-container">
+                <div class="presence-table-container table-responsive">
                     <table class="presence-table">
                         <thead>
                             <tr>
-                                <th class="col-numero">#</th>
                                 <th class="col-eleve">Élève</th>
                                 <th class="col-statut" colspan="4">Statut de présence</th>
                             </tr>
@@ -281,7 +139,6 @@
                         <tbody>
                             {% for item in eleves_avec_presence %}
                                 <tr class="{% cycle 'row-even' 'row-odd' %}">
-                                    <td class="col-numero">{{ forloop.counter }}</td>
                                     <td class="col-eleve">
                                         <div class="eleve-info">
                                             <div class="eleve-avatar">
@@ -289,7 +146,6 @@
                                             </div>
                                             <div class="eleve-details">
                                                 <div class="eleve-nom">{{ item.eleve.nom|upper }} {{ item.eleve.prenom }}</div>
-                                                <div class="eleve-meta">Matricule: {{ item.eleve.matricule }}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -330,18 +186,7 @@
                                                 </span>
                                                 <span class="statut-label">Retard</span>
                                             </label>
-                                            
-                                            <label class="statut-option absent-justifie {% if item.statut == 'absent_justifie' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                                <input type="radio" 
-                                                       name="presence_{{ item.eleve.id }}" 
-                                                       value="absent_justifie" 
-                                                       {% if item.statut == 'absent_justifie' %}checked{% endif %}
-                                                       {% if liste_presence.validee %}disabled{% endif %}>
-                                                <span class="statut-icon">
-                                                    <i class="fas fa-file-medical"></i>
-                                                </span>
-                                                <span class="statut-label">Absent Justifié</span>
-                                            </label>
+                                        
                                         </div>
                                     </td>
                                 </tr>

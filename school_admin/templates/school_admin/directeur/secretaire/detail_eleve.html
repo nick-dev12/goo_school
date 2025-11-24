@@ -63,7 +63,30 @@
 
       <!-- Messages -->
       {% include 'school_admin/partials/messages.html' %}
-    
+
+      <!-- Message d'information sur l'année scolaire active -->
+      {% if annee_scolaire_active %}
+      <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
+        <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
+          <i class="fas fa-calendar-check"></i>
+        </span>
+        <div>
+          <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
+            Année scolaire active : {{ annee_scolaire_active.libelle }}
+          </p>
+          <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
+            Seules les données (notes, présences, sanctions) de cette session sont affichées.
+          </p>
+        </div>
+      </div>
+      {% else %}
+      <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
+        <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
+        <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
+          Aucune année scolaire active. Toutes les données sont affichées.
+        </span>
+      </div>
+      {% endif %}
 
       <!-- Student Information Display -->
       <div class="student-profile-container">
@@ -182,115 +205,105 @@
               </div>
             </div>
 
-            <!-- Informations de contact -->
+            <!-- Informations de contact (affichée seulement si renseignée) -->
+            {% if eleve.adresse or eleve.telephone or eleve.email %}
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-address-book"></i>
-                Informations de contact
+                Informations de contact de l'élève
               </h3>
               <div class="info-grid">
+                {% if eleve.adresse %}
                 <div class="info-field full-width">
                   <label class="field-label">Adresse</label>
-                  <div class="field-value">{{ eleve.adresse|default:"Non renseignée" }}</div>
+                  <div class="field-value">{{ eleve.adresse }}</div>
                 </div>
+                {% endif %}
+                {% if eleve.telephone %}
                 <div class="info-field">
                   <label class="field-label">Téléphone</label>
-                  <div class="field-value">{{ eleve.telephone|default:"Non renseigné" }}</div>
+                  <div class="field-value">{{ eleve.telephone }}</div>
                 </div>
+                {% endif %}
+                {% if eleve.email %}
                 <div class="info-field">
                   <label class="field-label">Email</label>
-                  <div class="field-value">{{ eleve.email|default:"Non renseigné" }}</div>
+                  <div class="field-value">{{ eleve.email }}</div>
                 </div>
+                {% endif %}
               </div>
             </div>
+            {% endif %}
 
-            <!-- Responsable légal -->
+            <!-- Parent inscripteur -->
             <div class="info-section">
               <h3 class="section-title">
-                <i class="fas fa-users"></i>
-                Responsable légal
+                <i class="fas fa-user-tie"></i>
+                Parent inscripteur
               </h3>
-              {% if eleve.type_responsable == 'parents' %}
+              {% if parent_inscripteur %}
                 <div class="responsible-type">
-                  <span class="type-badge parents-badge">Parents</span>
-                </div>
-                <div class="info-grid">
-                  {% if eleve.nom_pere %}
-                    <div class="info-field">
-                      <label class="field-label">Père</label>
-                      <div class="field-value">{{ eleve.nom_pere }}</div>
-                    </div>
-                    {% if eleve.telephone_pere %}
-                      <div class="info-field">
-                        <label class="field-label">Téléphone père</label>
-                        <div class="field-value">{{ eleve.telephone_pere }}</div>
-                      </div>
-                    {% endif %}
-                    {% if eleve.email_pere %}
-                      <div class="info-field">
-                        <label class="field-label">Email père</label>
-                        <div class="field-value">{{ eleve.email_pere }}</div>
-                      </div>
-                    {% endif %}
-                  {% endif %}
-                  {% if eleve.nom_mere %}
-                    <div class="info-field">
-                      <label class="field-label">Mère</label>
-                      <div class="field-value">{{ eleve.nom_mere }}</div>
-                    </div>
-                    {% if eleve.telephone_mere %}
-                      <div class="info-field">
-                        <label class="field-label">Téléphone mère</label>
-                        <div class="field-value">{{ eleve.telephone_mere }}</div>
-                      </div>
-                    {% endif %}
-                    {% if eleve.email_mere %}
-                      <div class="info-field">
-                        <label class="field-label">Email mère</label>
-                        <div class="field-value">{{ eleve.email_mere }}</div>
-                      </div>
-                    {% endif %}
-                  {% endif %}
-                </div>
-              {% elif eleve.type_responsable == 'tuteur' %}
-                <div class="responsible-type">
-                  <span class="type-badge tuteur-badge">Tuteur légal</span>
+                  <span class="type-badge parent-inscripteur-badge">
+                    <i class="fas fa-check-circle"></i>
+                    {{ parent_inscripteur.get_type_parent_display|default:"Parent" }}
+                  </span>
                 </div>
                 <div class="info-grid">
                   <div class="info-field">
                     <label class="field-label">Nom complet</label>
-                    <div class="field-value">{{ eleve.tuteur_prenom }} {{ eleve.tuteur_nom }}</div>
+                    <div class="field-value">{{ parent_inscripteur.nom_complet }}</div>
                   </div>
-                  {% if eleve.tuteur_telephone %}
-                    <div class="info-field">
-                      <label class="field-label">Téléphone</label>
-                      <div class="field-value">{{ eleve.tuteur_telephone }}</div>
-                    </div>
+                  
+                  <div class="info-field">
+                    <label class="field-label">Matricule parental</label>
+                    <div class="field-value">{{ parent_inscripteur.matricule_parental }}</div>
+                  </div>
+                  
+                  {% if parent_inscripteur.telephone %}
+                  <div class="info-field">
+                    <label class="field-label">Téléphone</label>
+                    <div class="field-value">{{ parent_inscripteur.telephone }}</div>
+                  </div>
                   {% endif %}
-                  {% if eleve.tuteur_email %}
-                    <div class="info-field">
-                      <label class="field-label">Email</label>
-                      <div class="field-value">{{ eleve.tuteur_email }}</div>
-                    </div>
+                  
+                  {% if parent_inscripteur.email %}
+                  <div class="info-field">
+                    <label class="field-label">Email</label>
+                    <div class="field-value">{{ parent_inscripteur.email }}</div>
+                  </div>
                   {% endif %}
-                  {% if eleve.tuteur_adresse %}
-                    <div class="info-field full-width">
-                      <label class="field-label">Adresse</label>
-                      <div class="field-value">{{ eleve.tuteur_adresse }}</div>
-                    </div>
+                  
+                  {% if parent_inscripteur.adresse %}
+                  <div class="info-field full-width">
+                    <label class="field-label">Adresse</label>
+                    <div class="field-value">{{ parent_inscripteur.adresse }}</div>
+                  </div>
                   {% endif %}
-                  {% if eleve.tuteur_profession %}
-                    <div class="info-field">
-                      <label class="field-label">Profession</label>
-                      <div class="field-value">{{ eleve.tuteur_profession }}</div>
-                    </div>
+                  
+                  {% if parent_inscripteur.profession %}
+                  <div class="info-field">
+                    <label class="field-label">Profession</label>
+                    <div class="field-value">{{ parent_inscripteur.profession }}</div>
+                  </div>
                   {% endif %}
-                  {% if eleve.tuteur_lien %}
-                    <div class="info-field">
-                      <label class="field-label">Lien avec l'élève</label>
-                      <div class="field-value">{{ eleve.get_tuteur_lien_display }}</div>
-                    </div>
+                  
+                  {% if lien_inscripteur %}
+                  <div class="info-field">
+                    <label class="field-label">Lien avec l'élève</label>
+                    <div class="field-value">{{ lien_inscripteur.get_type_lien_display }}</div>
+                  </div>
                   {% endif %}
+                  
+                  <div class="info-field">
+                    <label class="field-label">Date d'inscription</label>
+                    <div class="field-value">{{ parent_inscripteur.date_creation|date:"d/m/Y à H:i" }}</div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="no-data-message">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <p>Aucun parent inscripteur trouvé dans la base de données.</p>
+                  <small>Les informations du parent peuvent être dans les champs de l'élève (ancien système).</small>
                 </div>
               {% endif %}
             </div>
@@ -1203,6 +1216,64 @@
                 </div>
               </div>
             </div>
+
+            <!-- Informations de connexion du parent -->
+            {% if parent_inscripteur %}
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-user-shield"></i>
+                Informations de connexion du parent
+              </h3>
+              <div class="info-grid">
+                <div class="info-field">
+                  <label class="field-label">Nom d'utilisateur (Parent)</label>
+                  <div class="field-value">{{ parent_inscripteur.username }}</div>
+                </div>
+                <div class="info-field highlight-field">
+                  <label class="field-label">Mot de passe provisoire (Parent)</label>
+                  <div class="field-value password-display">{{ parent_inscripteur.mot_de_passe_provisoire }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Matricule parental</label>
+                  <div class="field-value">{{ parent_inscripteur.matricule_parental }}</div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Statut du compte parent</label>
+                  <div class="field-value">
+                    <span class="status-badge status-{% if parent_inscripteur.is_active %}active{% else %}inactive{% endif %}">
+                      {% if parent_inscripteur.is_active %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                  </div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Dernière connexion</label>
+                  <div class="field-value">
+                    {% if parent_inscripteur.last_login %}
+                      {{ parent_inscripteur.last_login|date:"d/m/Y à H:i" }}
+                    {% else %}
+                      <span class="text-muted">Jamais connecté</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="info-field">
+                  <label class="field-label">Date de création du compte</label>
+                  <div class="field-value">{{ parent_inscripteur.date_creation|date:"d/m/Y à H:i" }}</div>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="info-section">
+              <h3 class="section-title">
+                <i class="fas fa-user-shield"></i>
+                Informations de connexion du parent
+              </h3>
+              <div class="no-data-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Aucun compte parent associé trouvé.</p>
+                <small>Le parent n'a pas encore de compte de connexion dans le système.</small>
+              </div>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>

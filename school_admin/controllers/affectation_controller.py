@@ -4,7 +4,7 @@ Contrôleur pour la gestion des affectations des professeurs
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 import logging
@@ -16,6 +16,7 @@ from ..model.classe_model import Classe
 from ..model.matiere_model import Matiere
 from ..model.affectation_model import AffectationProfesseur
 from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+from ..utils.session_utils import get_session_active
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class AffectationController:
     def affectation_professeurs(request):
         """
         Page principale d'affectation des professeurs aux classes
+        Affiche uniquement les affectations de l'année scolaire active
         """
         # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
         if isinstance(request.user, Etablissement):
@@ -37,6 +39,13 @@ class AffectationController:
             else:
                 messages.error(request, "Accès non autorisé.")
                 return redirect('school_admin:connexion_compte_user')
+        
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.warning(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire pour voir les affectations.")
+            # Continuer quand même pour afficher la page vide avec un message
         
         # Récupérer tous les professeurs avec leurs matières et affectations
         professeurs = Professeur.objects.filter(
@@ -68,34 +77,55 @@ class AffectationController:
             'professeurs_affectes': 0,  # À calculer
         }
         
-        # Calculer les affectations existantes
-        for professeur in professeurs:
-            if etablissement.type_etablissement == 'primary':
-                # Pour le primaire, vérifier AffectationProfesseurPrimaire
-                if AffectationProfesseurPrimaire.objects.filter(professeur=professeur, actif=True).exists():
-                    stats['professeurs_affectes'] += 1
-            else:
-                # Pour les autres, vérifier AffectationProfesseur
-                if professeur.affectations.filter(actif=True).exists():
-                    stats['professeurs_affectes'] += 1
+        # Calculer les affectations existantes pour l'année scolaire active uniquement
+        if annee_scolaire_active:
+            for professeur in professeurs:
+                if etablissement.type_etablissement == 'primary':
+                    # Pour le primaire, vérifier AffectationProfesseurPrimaire
+                    if AffectationProfesseurPrimaire.objects.filter(
+                        professeur=professeur, 
+                        actif=True,
+                        annee_scolaire=annee_scolaire_active
+                    ).exists():
+                        stats['professeurs_affectes'] += 1
+                else:
+                    # Pour les autres, vérifier AffectationProfesseur
+                    if professeur.affectations.filter(
+                        actif=True,
+                        annee_scolaire=annee_scolaire_active
+                    ).exists():
+                        stats['professeurs_affectes'] += 1
         
         # Préparer les classes disponibles pour chaque professeur
         professeurs_with_classes = []
         for professeur in professeurs:
             # Pour le primaire, utiliser AffectationProfesseurPrimaire
             if etablissement.type_etablissement == 'primary':
-                affectations_primaires = AffectationProfesseurPrimaire.objects.filter(
-                    professeur=professeur,
-                    actif=True
-                ).select_related('classe').prefetch_related('matieres')
+                if annee_scolaire_active:
+                    affectations_primaires = AffectationProfesseurPrimaire.objects.filter(
+                        professeur=professeur,
+                        actif=True,
+                        annee_scolaire=annee_scolaire_active
+                    ).select_related('classe').prefetch_related('matieres')
+                else:
+                    # Si pas d'année active, aucune affectation
+                    affectations_primaires = AffectationProfesseurPrimaire.objects.none()
                 
                 affectations_a_afficher = list(affectations_primaires)
                 affectations_actives = affectations_primaires.values_list('classe_id', flat=True).distinct()
             else:
                 # Pour les autres établissements, utiliser AffectationProfesseur standard
-                affectations_actives_query = professeur.affectations.filter(actif=True).select_related('classe', 'matiere')
+                if annee_scolaire_active:
+                    affectations_actives_query = professeur.affectations.filter(
+                        actif=True,
+                        annee_scolaire=annee_scolaire_active
+                    ).select_related('classe', 'matiere')
+                else:
+                    # Si pas d'année active, aucune affectation
+                    affectations_actives_query = professeur.affectations.none()
+                
                 affectations_a_afficher = list(affectations_actives_query)
-                affectations_actives = professeur.affectations.filter(actif=True).values_list('classe_id', flat=True).distinct()
+                affectations_actives = affectations_actives_query.values_list('classe_id', flat=True).distinct()
             
             # Pour les collèges/lycées, ne pas exclure les classes déjà affectées
             # car un professeur peut être affecté à la même classe avec plusieurs matières
@@ -105,7 +135,9 @@ class AffectationController:
                 classes_disponibles = classes  # Toutes les classes sont disponibles
             
             # Récupérer toutes les matières que le professeur peut enseigner
-            matieres_enseignables = [professeur.matiere_principale]
+            matieres_enseignables = []
+            if professeur.matiere_principale:
+                matieres_enseignables.append(professeur.matiere_principale)
             if professeur.matieres_secondaires.exists():
                 matieres_enseignables.extend(list(professeur.matieres_secondaires.all()))
             
@@ -124,6 +156,7 @@ class AffectationController:
             'professeurs_par_matiere': professeurs_par_matiere,
             'stats': stats,
             'type_etablissement': etablissement.type_etablissement,
+            'annee_scolaire_active': annee_scolaire_active,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/affectation_professeurs.html', context)
@@ -167,6 +200,13 @@ class AffectationController:
                 except Matiere.DoesNotExist:
                     messages.error(request, 'Matière non trouvée.')
                     return redirect('affectation:affectation_professeurs')
+            
+            # Récupérer l'année scolaire active
+            annee_scolaire_active = get_session_active(request, etablissement)
+            
+            if not annee_scolaire_active:
+                messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'effectuer une affectation.")
+                return redirect('affectation:affectation_professeurs')
             
             with transaction.atomic():
                 if action == 'add':
@@ -239,6 +279,7 @@ class AffectationController:
                                     professeur=professeur,
                                     classe=classe,
                                     statut=statut_primaire,
+                                    annee_scolaire=annee_scolaire_active,
                                     actif=True
                                 )
                                 
@@ -252,25 +293,55 @@ class AffectationController:
                                 return redirect('affectation:affectation_professeurs')
                     else:
                         # Pour les autres établissements, utiliser AffectationProfesseur standard
+                        # Vérifier que le professeur peut enseigner cette matière
+                        matieres_enseignables_ids = []
+                        if professeur.matiere_principale:
+                            matieres_enseignables_ids.append(professeur.matiere_principale.id)
+                        matieres_enseignables_ids.extend(
+                            list(professeur.matieres_secondaires.values_list('id', flat=True))
+                        )
+                        
+                        if matiere.id not in matieres_enseignables_ids:
+                            messages.error(
+                                request,
+                                f"Le professeur {professeur.nom} ne peut pas enseigner {matiere.nom}. "
+                                f"Cette matière n'est ni sa matière principale ni une de ses matières secondaires."
+                            )
+                            return redirect('affectation:affectation_professeurs')
+                        
+                        # Vérifier si une affectation existe déjà (actif ou non)
                         existing_affectation = AffectationProfesseur.objects.filter(
                             professeur=professeur,
                             classe=classe,
-                            matiere=matiere,
-                            actif=True
+                            matiere=matiere
                         ).first()
                         
                         if existing_affectation:
-                            messages.warning(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom}.")
+                            if existing_affectation.actif:
+                                messages.warning(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom}.")
+                            else:
+                                # Réactiver l'affectation existante
+                                existing_affectation.actif = True
+                                existing_affectation.statut = statut
+                                existing_affectation.annee_scolaire = annee_scolaire_active
+                                existing_affectation.save()
+                                statut_display = "Professeur Principal" if statut == 'principal' else "Professeur Classique"
+                                messages.success(request, f"Affectation réactivée : Professeur {professeur.nom} affecté à la classe {classe.nom} en tant que {statut_display} pour la matière {matiere.nom}")
                         else:
                             try:
                                 AffectationProfesseur.objects.create(
                                     professeur=professeur,
                                     classe=classe,
                                     matiere=matiere,
-                                    statut=statut
+                                    statut=statut,
+                                    annee_scolaire=annee_scolaire_active,
+                                    actif=True
                                 )
                                 statut_display = "Professeur Principal" if statut == 'principal' else "Professeur Classique"
                                 messages.success(request, f"Professeur {professeur.nom} affecté à la classe {classe.nom} en tant que {statut_display} pour la matière {matiere.nom}")
+                            except IntegrityError:
+                                # Si une erreur d'intégrité se produit (contrainte unique violée)
+                                messages.error(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom}. Veuillez vérifier les affectations existantes.")
                             except ValidationError as e:
                                 messages.error(request, str(e))
                                 return redirect('affectation:affectation_professeurs')
@@ -292,18 +363,30 @@ class AffectationController:
                             messages.success(request, f"Affectation du professeur {professeur.nom} à la classe {classe.nom} supprimée")
                     else:
                         # Pour les autres, supprimer l'affectation standard
-                        affectation = AffectationProfesseur.objects.filter(
-                            professeur=professeur,
-                            classe=classe,
-                            actif=True
-                        ).first()
+                        # Récupérer la matière si elle est fournie dans le POST pour une suppression plus précise
+                        matiere_id_remove = request.POST.get('matiere_id')
+                        if matiere_id_remove:
+                            affectation = AffectationProfesseur.objects.filter(
+                                professeur=professeur,
+                                classe=classe,
+                                matiere_id=matiere_id_remove,
+                                actif=True
+                            ).first()
+                        else:
+                            # Si aucune matière n'est spécifiée, prendre la première affectation trouvée
+                            affectation = AffectationProfesseur.objects.filter(
+                                professeur=professeur,
+                                classe=classe,
+                                actif=True
+                            ).first()
                         
                         if not affectation:
                             messages.warning(request, f"Cette affectation n'existe pas.")
                         else:
+                            matiere_nom = affectation.matiere.nom if affectation.matiere else "toutes les matières"
                             affectation.actif = False
                             affectation.save()
-                            messages.success(request, f"Affectation du professeur {professeur.nom} à la classe {classe.nom} supprimée")
+                            messages.success(request, f"Affectation du professeur {professeur.nom} à la classe {classe.nom} pour {matiere_nom} supprimée")
                 else:
                     messages.error(request, 'Action invalide.')
                     return redirect('affectation:affectation_professeurs')

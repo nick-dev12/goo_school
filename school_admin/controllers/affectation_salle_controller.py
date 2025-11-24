@@ -13,6 +13,7 @@ from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.classe_model import Classe
 from ..model.salle_model import Salle
 from ..model.affectation_salle_model import AffectationSalle
+from ..utils.session_utils import get_session_active
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +195,13 @@ class AffectationSalleController:
                 messages.error(request, "Accès non autorisé.")
                 return redirect('school_admin:connexion_compte_user')
             
+            # Récupérer l'année scolaire active
+            annee_scolaire_active = get_session_active(request, etablissement)
+            
+            if not annee_scolaire_active:
+                messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'effectuer une affectation.")
+                return redirect('affectation_salle:liste_affectations')
+            
             try:
                 with transaction.atomic():
                     # Récupérer les données du formulaire
@@ -228,7 +236,8 @@ class AffectationSalleController:
                         periode=periode,
                         heure_debut=heure_debut if heure_debut else None,
                         heure_fin=heure_fin if heure_fin else None,
-                        commentaire=commentaire
+                        commentaire=commentaire,
+                        annee_scolaire=annee_scolaire_active
                     )
                     
                     messages.success(request, f"Affectation créée : {affectation.nom_complet}")

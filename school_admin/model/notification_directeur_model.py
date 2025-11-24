@@ -29,6 +29,14 @@ class NotificationDirecteur(models.Model):
         related_name="notifications_directeur",
         verbose_name="Établissement",
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notifications_directeur',
+        verbose_name="Année scolaire"
+    )
 
     titre = models.CharField(
         max_length=180,

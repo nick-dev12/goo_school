@@ -44,7 +44,7 @@
       <div class="banner-content">
         <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
         <p class="banner-subtitle">
-          {{ request.user.nom }}{% if periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
+          {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
         </p>
       </div>
       <!-- Bouton d'installation PWA -->

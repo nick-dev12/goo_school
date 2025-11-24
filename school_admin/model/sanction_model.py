@@ -86,6 +86,14 @@ class Sanction(models.Model):
         related_name='sanctions',
         verbose_name="Établissement"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sanctions_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     type_sanction = models.CharField(
         max_length=30,
         choices=TYPE_SANCTION_CHOICES,

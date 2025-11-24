@@ -4,29 +4,7 @@ Commande Django pour vider toutes les tables sauf CompteUser et Etablissement
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
-
-# Import de tous les modèles depuis school_admin.model
-from school_admin.model.personnel_administratif_model import PersonnelAdministratif
-from school_admin.model.classe_model import Classe
-from school_admin.model.eleve_model import Eleve
-from school_admin.model.professeur_model import Professeur
-from school_admin.model.matiere_model import Matiere
-from school_admin.model.note_examen_model import NoteExamen
-from school_admin.model.salle_model import Salle
-from school_admin.model.affectation_model import AffectationProfesseur
-from school_admin.model.affectation_salle_model import AffectationSalle
-from school_admin.model.configuration_horaire_model import ConfigurationHoraire
-from school_admin.model.presence_model import Presence, ListePresence
-from school_admin.model.sanction_model import Sanction
-from school_admin.model.parent_model import Parent
-from school_admin.model.lien_familial_model import LienFamilial
-from school_admin.model.demande_liaison_model import DemandeLiaisonParent
-from school_admin.model.facturation_model import Facturation
-from school_admin.model.depense_model import Depense
-from school_admin.model.prospection_model import Prospection
-from school_admin.model.note_commercial_model import NoteCommercial
-from school_admin.model.rendez_vous_model import RendezVous
-from school_admin.model.compte_rendu_model import CompteRendu
+from django.apps import apps
 
 
 class Command(BaseCommand):
@@ -40,24 +18,32 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Liste des modèles à vider
+        # Obtenir tous les modèles de l'application school_admin
+        app_models = apps.get_app_config('school_admin').get_models()
+        
+        # Modèles à exclure (ne pas supprimer)
+        excluded_models = {'CompteUser', 'Etablissement'}
+        
+        # Filtrer les modèles à supprimer
         models_to_delete = [
-            PersonnelAdministratif, NoteExamen, Parent, Eleve,
-            DemandeLiaisonParent, LienFamilial, ConfigurationHoraire,
-            AffectationProfesseur, Sanction, Presence, ListePresence,
-            Professeur, AffectationSalle, Salle, Matiere, Classe,
-            Depense, Facturation, Prospection, CompteRendu, RendezVous,
-            NoteCommercial
+            model for model in app_models
+            if model.__name__ not in excluded_models
         ]
-
+        
+        # Trier les modèles par ordre alphabétique pour un affichage cohérent
+        models_to_delete.sort(key=lambda m: m.__name__)
+        
         # Demander confirmation si pas de --force
         if not options['force']:
             self.stdout.write(
                 self.style.WARNING(
-                    '\nATTENTION: Ce script va VIDER toutes les tables!\n'
+                    '\n' + '='*60 + '\n'
+                    'ATTENTION: Ce script va VIDER toutes les tables!\n'
                     'Sauf: CompteUser et Etablissement\n'
+                    '='*60 + '\n'
                 )
             )
+            self.stdout.write(f'Nombre de tables a vider: {len(models_to_delete)}\n')
             confirm = input('Continuer? (oui/non): ')
             if confirm.lower() not in ['oui', 'o', 'yes', 'y']:
                 self.stdout.write(self.style.ERROR('Operation annulee.'))
@@ -65,38 +51,73 @@ class Command(BaseCommand):
 
         # Vider les tables
         total_deleted = 0
+        models_processed = []
 
         try:
             with transaction.atomic():
                 for model in models_to_delete:
-                    count = model.objects.count()
-                    if count > 0:
-                        deleted = model.objects.all().delete()
-                        deleted_count = deleted[0]
-                        total_deleted += deleted_count
-                        self.stdout.write(
-                            self.style.SUCCESS(
-                                f'{model.__name__}: {deleted_count} entrees supprimees'
+                    try:
+                        count = model.objects.count()
+                        if count > 0:
+                            deleted = model.objects.all().delete()
+                            deleted_count = deleted[0]
+                            total_deleted += deleted_count
+                            models_processed.append({
+                                'name': model.__name__,
+                                'count': deleted_count,
+                                'status': 'deleted'
+                            })
+                            self.stdout.write(
+                                self.style.SUCCESS(
+                                    f'  {model.__name__}: {deleted_count} entrees supprimees'
+                                )
                             )
-                        )
-                    else:
+                        else:
+                            models_processed.append({
+                                'name': model.__name__,
+                                'count': 0,
+                                'status': 'empty'
+                            })
+                            self.stdout.write(
+                                f'  {model.__name__}: aucune entree (deja vide)'
+                            )
+                    except Exception as e:
+                        models_processed.append({
+                            'name': model.__name__,
+                            'count': 0,
+                            'status': f'error: {str(e)}'
+                        })
                         self.stdout.write(
-                            f'{model.__name__}: aucune entree (deja vide)'
+                            self.style.ERROR(
+                                f'  {model.__name__}: ERREUR - {str(e)}'
+                            )
                         )
 
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'\nTOTAL: {total_deleted} entrees supprimees'
+                        f'\n' + '='*60 + '\n'
+                        f'TOTAL: {total_deleted} entrees supprimees\n'
+                        f'Nombre de tables traitees: {len(models_processed)}\n'
+                        + '='*60
                     )
                 )
 
                 # Afficher les tables conservees
-                from school_admin.models import CompteUser, Etablissement
+                from school_admin.model.compte_user import CompteUser
+                from school_admin.model.etablissement_model import Etablissement
+                
                 self.stdout.write('\nTables CONSERVEES:')
-                user_count = CompteUser.objects.count()
-                etab_count = Etablissement.objects.count()
-                self.stdout.write(f'  - CompteUser: {user_count} entrees')
-                self.stdout.write(f'  - Etablissement: {etab_count} entrees')
+                try:
+                    user_count = CompteUser.objects.count()
+                    self.stdout.write(f'  - CompteUser: {user_count} entrees')
+                except Exception as e:
+                    self.stdout.write(f'  - CompteUser: ERREUR - {str(e)}')
+                
+                try:
+                    etab_count = Etablissement.objects.count()
+                    self.stdout.write(f'  - Etablissement: {etab_count} entrees')
+                except Exception as e:
+                    self.stdout.write(f'  - Etablissement: ERREUR - {str(e)}')
 
                 self.stdout.write(
                     self.style.SUCCESS('\nVidage termine avec succes!')
@@ -104,7 +125,7 @@ class Command(BaseCommand):
 
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f'\nERREUR: {str(e)}')
+                self.style.ERROR(f'\nERREUR CRITIQUE: {str(e)}')
             )
             self.stdout.write('Les modifications ont ete annulees (rollback).')
-
+            raise

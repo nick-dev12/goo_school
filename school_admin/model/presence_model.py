@@ -120,6 +120,14 @@ class Presence(models.Model):
         auto_now=True,
         verbose_name="Date de modification"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='presences',
+        verbose_name="Année scolaire"
+    )
     
     class Meta:
         verbose_name = "Présence"

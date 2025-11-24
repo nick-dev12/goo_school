@@ -36,6 +36,28 @@
                 </div>
             </div>
 
+            <!-- Message d'information si aucune année scolaire active -->
+            {% if not annee_scolaire_active %}
+            <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--warning, #fbbf24); display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24); font-size: 1.25rem;"></i>
+                <div>
+                    <strong style="color: var(--gray-800, #1f2937);">Aucune année scolaire active</strong>
+                    <p style="margin: 0.25rem 0 0 0; color: var(--gray-600, #4b5563); font-size: 0.875rem;">
+                        Veuillez créer et activer une année scolaire pour voir et gérer les affectations des professeurs.
+                        <a href="{% url 'directeur:creer_annee_scolaire_obligatoire' %}" style="color: var(--primary, #3b82f6); text-decoration: underline; margin-left: 0.5rem;">
+                            Créer une année scolaire
+                        </a>
+                    </p>
+                </div>
+            </div>
+            {% elif annee_scolaire_active %}
+            <div class="alert alert-info" style="background: var(--primary-light, rgba(59, 130, 246, 0.1)); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--primary, #3b82f6); display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6);"></i>
+                <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
+                    Affichage des affectations pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+                </span>
+            </div>
+            {% endif %}
            
             <!-- Statistics Cards -->
             <div class="stats-grid">
@@ -265,6 +287,9 @@
                                             {% csrf_token %}
                                             <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
                                             <input type="hidden" name="classe_id" value="{{ affectation.classe.id }}">
+                                            {% if type_etablissement != 'primary' and affectation.matiere %}
+                                                <input type="hidden" name="matiere_id" value="{{ affectation.matiere.id }}">
+                                            {% endif %}
                                             <input type="hidden" name="action" value="remove">
                                             <button type="submit" class="remove-affectation" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette affectation ?')">
                                                 <i class="fas fa-times"></i>
@@ -304,9 +329,13 @@
                                                     </label>
                                                     <select name="matiere_id" id="matiere{{ professeur.id }}" class="form-control-modal" required>
                                                         {% for matiere in matieres_enseignables %}
-                                                            <option value="{{ matiere.id }}" {% if forloop.first %}selected{% endif %}>
-                                                                {{ matiere.nom }}{% if forloop.first %} (Principale){% else %} (Secondaire){% endif %}
-                                                            </option>
+                                                            {% if matiere %}
+                                                                <option value="{{ matiere.id }}" {% if forloop.first %}selected{% endif %}>
+                                                                    {{ matiere.nom }}{% if forloop.first and professeur.matiere_principale and matiere.id == professeur.matiere_principale.id %} (Principale){% else %} (Secondaire){% endif %}
+                                                                </option>
+                                                            {% endif %}
+                                                        {% empty %}
+                                                            <option value="">Aucune matière disponible</option>
                                                         {% endfor %}
                                                     </select>
                                                 </div>

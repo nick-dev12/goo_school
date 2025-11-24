@@ -1,14 +1,16 @@
 # school_admin/controllers/classe_controller.py
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.http import JsonResponse
 import logging
 import random
 import string
+import json
 
 from ..model.classe_model import Classe
 from ..model.personnel_administratif_model import PersonnelAdministratif
@@ -138,6 +140,18 @@ class ClasseController:
             if count > 0:
                 stats['par_niveau'][label] = count
         
+        # Récupérer les niveaux disponibles pour cet établissement
+        niveaux_disponibles = ClasseController.get_niveaux_disponibles_from_type_etablissement(etablissement.type_etablissement)
+        niveau_defaut = ClasseController.get_niveau_defaut_from_type_etablissement(etablissement.type_etablissement)
+        
+        # Créer la liste des choix de niveaux avec leurs labels
+        niveau_choices = []
+        for niveau_code in niveaux_disponibles:
+            for choice_code, choice_label in Classe.NIVEAU_CHOICES:
+                if choice_code == niveau_code:
+                    niveau_choices.append((choice_code, choice_label))
+                    break
+        
         context = {
             'classes': classes,
             'classes_with_teachers': classes_with_teachers,
@@ -145,27 +159,55 @@ class ClasseController:
             'etablissement': etablissement,
             'personnel': personnel,
             'stats': stats,
+            'niveau_choices': niveau_choices,
+            'niveau_defaut': niveau_defaut,
+            'form_data': {},  # Données vides pour le formulaire
+            'field_errors': {},  # Pas d'erreurs par défaut
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
     
     @staticmethod
-    def get_niveau_from_type_etablissement(type_etablissement):
+    def get_niveaux_disponibles_from_type_etablissement(type_etablissement):
         """
-        Détermine le niveau de classe à partir du type d'établissement
+        Détermine les niveaux de classe disponibles à partir du type d'établissement
         
         Args:
             type_etablissement: Le type d'établissement (primary, collège, lycée, collège_lycée, mixte)
             
         Returns:
-            str: Le niveau correspondant (primaire, college, lycee)
+            list: Liste des niveaux disponibles
+        """
+        mapping = {
+            'primary': ['primaire'],
+            'collège': ['college'],
+            'lycée': ['lycee'],
+            'lycee': ['lycee'],  # Version sans accent (base de données)
+            'collège_lycée': ['college', 'lycee'],
+            'coll�ge_lyc�e': ['college', 'lycee'],  # Version avec caractères spéciaux
+            'mixte': ['maternelle', 'primaire', 'college', 'lycee'],
+        }
+        return mapping.get(type_etablissement, ['primaire'])
+    
+    @staticmethod
+    def get_niveau_defaut_from_type_etablissement(type_etablissement):
+        """
+        Détermine le niveau par défaut à partir du type d'établissement
+        
+        Args:
+            type_etablissement: Le type d'établissement
+            
+        Returns:
+            str: Le niveau par défaut
         """
         mapping = {
             'primary': 'primaire',
             'collège': 'college',
             'lycée': 'lycee',
+            'lycee': 'lycee',  # Version sans accent (base de données)
             'collège_lycée': 'college',  # Par défaut pour collège+lycée
-            'mixte': 'primaire',  # Par défaut pour mixte (peut être primaire, college ou lycee)
+            'coll�ge_lyc�e': 'college',  # Version avec caractères spéciaux
+            'mixte': 'primaire',  # Par défaut pour mixte
         }
         return mapping.get(type_etablissement, 'primaire')
     
@@ -189,18 +231,18 @@ class ClasseController:
         field_errors = {}
         
         if request.method == 'POST':
-            # Récupération automatique du niveau depuis le type_etablissement
-            niveau_auto = ClasseController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
-            
             # Récupération des données
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'capacite_max': request.POST.get('capacite_max', ''),
                 'description': request.POST.get('description', '').strip(),
+                'niveau': request.POST.get('niveau', '').strip(),
             }
             
-            # Ajouter le niveau récupéré automatiquement
-            form_data['niveau'] = niveau_auto
+            # Si aucun niveau n'est fourni, utiliser le niveau par défaut
+            if not form_data['niveau']:
+                form_data['niveau'] = ClasseController.get_niveau_defaut_from_type_etablissement(etablissement.type_etablissement)
+                logger.info(f"Niveau automatique déterminé: '{form_data['niveau']}' pour établissement type '{etablissement.type_etablissement}'")
             
             # Validation
             is_valid = True
@@ -225,10 +267,20 @@ class ClasseController:
                 field_errors['capacite_max'] = "La capacité doit être un nombre valide."
                 is_valid = False
             
-            # Validation du niveau (vérifier qu'il est valide)
+            # Validation du niveau (vérifier qu'il est valide et compatible avec l'établissement)
             valid_niveaux = [choice[0] for choice in Classe.NIVEAU_CHOICES]
+            niveaux_disponibles = ClasseController.get_niveaux_disponibles_from_type_etablissement(etablissement.type_etablissement)
+            
+            logger.info(f"Validation niveau: '{form_data['niveau']}' pour établissement type '{etablissement.type_etablissement}'")
+            logger.info(f"Niveaux disponibles: {niveaux_disponibles}")
+            
             if form_data['niveau'] not in valid_niveaux:
-                field_errors['__all__'] = f"Le niveau '{form_data['niveau']}' déterminé depuis le type d'établissement n'est pas valide."
+                field_errors['niveau'] = f"Le niveau '{form_data['niveau']}' n'est pas valide."
+                logger.error(f"Niveau invalide: '{form_data['niveau']}' pas dans {valid_niveaux}")
+                is_valid = False
+            elif form_data['niveau'] not in niveaux_disponibles:
+                field_errors['niveau'] = f"Le niveau '{form_data['niveau']}' n'est pas compatible avec le type d'établissement '{etablissement.get_type_etablissement_display()}'."
+                logger.error(f"Niveau incompatible: '{form_data['niveau']}' pas dans {niveaux_disponibles} pour type '{etablissement.type_etablissement}'")
                 is_valid = False
             
             # Vérification de l'unicité du nom dans l'établissement
@@ -270,11 +322,25 @@ class ClasseController:
                     field_errors['__all__'] = "Une erreur est survenue lors de l'ajout de la classe."
                     is_valid = False
         
+        # Récupérer les niveaux disponibles pour cet établissement
+        niveaux_disponibles = ClasseController.get_niveaux_disponibles_from_type_etablissement(etablissement.type_etablissement)
+        niveau_defaut = ClasseController.get_niveau_defaut_from_type_etablissement(etablissement.type_etablissement)
+        
+        # Créer la liste des choix de niveaux avec leurs labels
+        niveau_choices = []
+        for niveau_code in niveaux_disponibles:
+            for choice_code, choice_label in Classe.NIVEAU_CHOICES:
+                if choice_code == niveau_code:
+                    niveau_choices.append((choice_code, choice_label))
+                    break
+        
         context = {
             'form_data': form_data,
             'field_errors': field_errors,
             'etablissement': etablissement,
             'personnel': personnel,
+            'niveau_choices': niveau_choices,
+            'niveau_defaut': niveau_defaut,
         }
         
         # Si c'est une requête POST avec des erreurs, afficher la liste avec le modal ouvert
@@ -343,7 +409,7 @@ class ClasseController:
         
         # Récupérer les élèves de la classe
         from ..model.eleve_model import Eleve
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
         
         # Statistiques des élèves
         stats_eleves = {
@@ -517,5 +583,210 @@ class ClasseController:
             
         except Classe.DoesNotExist:
             messages.error(request, "Classe non trouvée.")
+        
+        return redirect('administrateur_etablissement:liste_classes')
+    
+    @staticmethod
+    def get_classe_data(request, classe_id):
+        """
+        Récupère les données d'une classe en JSON pour préremplir le formulaire
+        """
+        # Log de débogage
+        logger.info(f"get_classe_data appelée - classe_id: {classe_id}, user: {request.user}, authenticated: {request.user.is_authenticated}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Method: {request.method}")
+        
+        # Vérifier l'authentification manuellement pour les requêtes AJAX
+        if not request.user.is_authenticated:
+            logger.warning("Utilisateur non authentifié")
+            return JsonResponse({'error': 'Authentification requise. Veuillez vous connecter.'}, status=401)
+        
+        # Vérifier si c'est une requête AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+                  request.headers.get('Accept', '').find('application/json') != -1
+        
+        logger.info(f"Requête AJAX détectée: {is_ajax}")
+        
+        try:
+            # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+            if isinstance(request.user, PersonnelAdministratif):
+                etablissement = request.user.etablissement
+            elif isinstance(request.user, Etablissement):
+                etablissement = request.user
+            else:
+                logger.warning(f"Tentative d'accès non autorisé à get_classe_data par {type(request.user).__name__}")
+                return JsonResponse({'error': 'Accès non autorisé. Vous devez être un administrateur ou un directeur.'}, status=403)
+            
+            if not etablissement:
+                return JsonResponse({'error': 'Aucun établissement associé.'}, status=403)
+            
+            classe = Classe.objects.get(
+                id=classe_id,
+                etablissement=etablissement
+            )
+            
+            data = {
+                'id': classe.id,
+                'nom': classe.nom,
+                'capacite_max': classe.capacite_max,
+                'description': classe.description or '',
+            }
+            logger.info(f"Données à retourner: {data}")
+            return JsonResponse(data)
+            
+        except Classe.DoesNotExist:
+            logger.warning(f"Classe {classe_id} non trouvée pour l'établissement {etablissement.id if 'etablissement' in locals() else 'N/A'}")
+            return JsonResponse({'error': 'Classe non trouvée.'}, status=404)
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des données de la classe {classe_id}: {str(e)}", exc_info=True)
+            return JsonResponse({'error': f'Une erreur est survenue: {str(e)}'}, status=500)
+    
+    @staticmethod
+    @login_required
+    def modifier_classe(request, classe_id):
+        """
+        Modifie une classe existante
+        """
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        
+        try:
+            classe = Classe.objects.get(
+                id=classe_id,
+                etablissement=etablissement
+            )
+        except Classe.DoesNotExist:
+            messages.error(request, "Classe non trouvée.")
+            return redirect('administrateur_etablissement:liste_classes')
+        
+        if request.method == 'POST':
+            # Récupération des données
+            form_data = {
+                'nom': request.POST.get('nom', '').strip(),
+                'capacite_max': request.POST.get('capacite_max', ''),
+                'description': request.POST.get('description', '').strip(),
+            }
+            
+            # Validation
+            is_valid = True
+            field_errors = {}
+            
+            # Champs obligatoires
+            if not form_data['nom']:
+                field_errors['nom'] = "Le nom de la classe est obligatoire."
+                is_valid = False
+            
+            if not form_data['capacite_max']:
+                field_errors['capacite_max'] = "La capacité maximale est obligatoire."
+                is_valid = False
+            
+            # Validation de la capacité
+            try:
+                capacite = int(form_data['capacite_max'])
+                if capacite <= 0:
+                    field_errors['capacite_max'] = "La capacité doit être supérieure à 0."
+                    is_valid = False
+                elif capacite > 100:
+                    field_errors['capacite_max'] = "La capacité ne peut pas dépasser 100."
+                    is_valid = False
+                # Vérifier si la nouvelle capacité est inférieure au nombre d'élèves actuels
+                elif capacite < classe.nombre_eleves:
+                    field_errors['capacite_max'] = f"La capacité ne peut pas être inférieure au nombre d'élèves actuels ({classe.nombre_eleves})."
+                    is_valid = False
+            except ValueError:
+                field_errors['capacite_max'] = "La capacité doit être un nombre valide."
+                is_valid = False
+            
+            # Vérification de l'unicité du nom dans l'établissement (sauf pour la classe actuelle)
+            if form_data['nom'] and Classe.objects.filter(
+                nom=form_data['nom'],
+                etablissement=etablissement
+            ).exclude(id=classe_id).exists():
+                field_errors['nom'] = "Une classe avec ce nom existe déjà dans cet établissement."
+                is_valid = False
+            
+            # Si tout est valide, modifier la classe
+            if is_valid:
+                try:
+                    with transaction.atomic():
+                        classe.nom = form_data['nom']
+                        classe.capacite_max = int(form_data['capacite_max'])
+                        classe.description = form_data['description'] if form_data['description'] else None
+                        classe.save()
+                        
+                        messages.success(request, f"La classe {classe.nom_complet} a été modifiée avec succès !")
+                        return redirect('administrateur_etablissement:liste_classes')
+                        
+                except Exception as e:
+                    logger.error(f"Erreur lors de la modification de la classe: {str(e)}")
+                    messages.error(request, "Une erreur est survenue lors de la modification de la classe.")
+                    return redirect('administrateur_etablissement:liste_classes')
+            else:
+                # Si erreurs, retourner à la liste avec les erreurs
+                messages.error(request, "Veuillez corriger les erreurs dans le formulaire.")
+                return redirect('administrateur_etablissement:liste_classes')
+        
+        # Si ce n'est pas POST, rediriger
+        messages.error(request, "Méthode non autorisée.")
+        return redirect('administrateur_etablissement:liste_classes')
+    
+    @staticmethod
+    @login_required
+    def supprimer_classe(request, classe_id):
+        """
+        Supprime une classe (avec vérification des élèves)
+        """
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        
+        # Vérifier que c'est une requête POST (sécurité)
+        if request.method != 'POST':
+            messages.error(request, "Méthode non autorisée.")
+            return redirect('administrateur_etablissement:liste_classes')
+        
+        try:
+            classe = Classe.objects.get(
+                id=classe_id,
+                etablissement=etablissement
+            )
+        except Classe.DoesNotExist:
+            messages.error(request, "Classe non trouvée.")
+            return redirect('administrateur_etablissement:liste_classes')
+        
+        # Vérifier s'il y a des élèves dans la classe
+        if classe.nombre_eleves > 0:
+            messages.error(request, f"Impossible de supprimer la classe {classe.nom_complet} : elle contient {classe.nombre_eleves} élève(s). Veuillez d'abord transférer ou supprimer les élèves.")
+            return redirect('administrateur_etablissement:liste_classes')
+        
+        # Vérifier s'il y a des affectations actives
+        if classe.affectations.filter(actif=True).exists():
+            messages.warning(request, f"La classe {classe.nom_complet} a des enseignants affectés. Les affectations seront désactivées.")
+        
+        try:
+            with transaction.atomic():
+                # Désactiver toutes les affectations
+                classe.affectations.all().update(actif=False)
+                
+                # Supprimer la classe
+                nom_classe = classe.nom_complet
+                classe.delete()
+                
+                messages.success(request, f"La classe {nom_classe} a été supprimée avec succès.")
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la suppression de la classe: {str(e)}")
+            messages.error(request, "Une erreur est survenue lors de la suppression de la classe.")
         
         return redirect('administrateur_etablissement:liste_classes')

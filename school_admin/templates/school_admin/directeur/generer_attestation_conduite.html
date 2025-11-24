@@ -28,6 +28,11 @@
         <!-- Titre du document -->
         <div class="document-title">
             <h2>ATTESTATION DE BONNE CONDUITE</h2>
+            {% if annee_scolaire_active %}
+            <p class="document-subtitle">Année scolaire {{ annee_scolaire_active.libelle }}</p>
+            {% else %}
+            <p class="document-subtitle">Année scolaire {{ annee_scolaire }}</p>
+            {% endif %}
         </div>
 
         <!-- Corps de l'attestation -->
@@ -52,7 +57,7 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">Année scolaire :</span>
-                    <span class="info-value">{{ annee_scolaire }}</span>
+                    <span class="info-value">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</span>
                 </div>
             </div>
 
@@ -69,7 +74,7 @@
                 </p>
                 
                 <p class="text-content">
-                    a fait preuve durant l'année scolaire <strong>{{ annee_scolaire }}</strong> 
+                    a fait preuve durant l'année scolaire <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong> 
                     d'une <strong class="text-excellent">excellente conduite</strong> et d'un 
                     <strong class="text-excellent">comportement exemplaire</strong> au sein de notre établissement.
                 </p>

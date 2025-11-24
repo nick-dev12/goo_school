@@ -85,6 +85,14 @@ class JustificationNote(models.Model):
         related_name="justifications_notes",
         verbose_name="Établissement",
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='justifications_notes_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     ancienne_note = models.DecimalField(
         max_digits=5,
         decimal_places=2,

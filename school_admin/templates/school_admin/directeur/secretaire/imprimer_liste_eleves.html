@@ -39,7 +39,7 @@
             </div>
             <div class="field-right">
                 <span class="field-label">ANNÉE :</span>
-                <span class="field-line">{{ "now"|date:"Y" }}-{{ "now"|date:"Y"|add:"1" }}</span>
+                <span class="field-line">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ "now"|date:"Y" }}-{{ "now"|date:"Y"|add:"1" }}{% endif %}</span>
             </div>
         </div>
         <div class="field-row">

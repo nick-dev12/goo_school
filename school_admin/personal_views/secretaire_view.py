@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -5,17 +7,22 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, date
+from django_countries import countries
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.etablissement_model import Etablissement
 from ..model.classe_model import Classe
 from ..model.eleve_model import Eleve
+from ..model.inscription_eleve_model import InscriptionEleve
+from ..model.inscription_parent_model import InscriptionParent
 from ..model.facturation_model import Facturation
 from ..model.ponderation_model import Ponderation
+from ..utils.session_utils import get_session_active
 
 
-def _build_classes_grouped_data(etablissement):
+def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
     """
     Construit la structure regroupant les classes et les élèves avec statistiques.
+    Si annee_scolaire_active est fournie, filtre les élèves par année scolaire.
     """
     from collections import OrderedDict
     from school_admin.model.presence_model import Presence
@@ -53,7 +60,26 @@ def _build_classes_grouped_data(etablissement):
                 'nombre_classes': 0
             }
 
-        eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+        from django.db.models.functions import Lower
+        
+        # Filtrer les élèves par année scolaire active si fournie
+        if annee_scolaire_active:
+            # Récupérer les IDs des élèves inscrits pour l'année scolaire active
+            eleves_ids_inscrits = InscriptionEleve.objects.filter(
+                annee_scolaire=annee_scolaire_active,
+                classe=classe,
+                etablissement=etablissement
+            ).values_list('eleve_id', flat=True)
+            
+            # Filtrer les élèves actifs qui sont inscrits pour cette année
+            eleves_queryset = Eleve.objects.filter(
+                classe=classe,
+                actif=True,
+                id__in=eleves_ids_inscrits
+            ).order_by(Lower('nom'), Lower('prenom'))
+        else:
+            # Comportement par défaut : tous les élèves actifs
+            eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
 
         eleves_data = []
         for eleve in eleves_queryset:
@@ -111,6 +137,83 @@ def _build_classes_grouped_data(etablissement):
     }
 
     return classes_grouped, stats_generales
+
+
+def _archiver_inscription_eleve_parent(eleve, parent, etablissement, annee_scolaire, date_inscription):
+    """
+    Crée ou met à jour les enregistrements d'archivage d'inscription
+    pour l'élève et le parent, liés à l'année scolaire active.
+    """
+    if not annee_scolaire:
+        return
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Inscription élève
+        InscriptionEleve.objects.update_or_create(
+            annee_scolaire=annee_scolaire,
+            matricule_eleve=eleve.matricule_eleve,
+            defaults={
+                'eleve': eleve,
+                'nom': eleve.nom,
+                'prenom': eleve.prenom,
+                'date_naissance': eleve.date_naissance,
+                'lieu_naissance': eleve.lieu_naissance,
+                'sexe': eleve.sexe,
+                'nationalite': eleve.nationalite,
+                'adresse': eleve.adresse,
+                'telephone': eleve.telephone,
+                'email': eleve.email,
+                'numero_eleve': eleve.numero_eleve,
+                'etablissement': etablissement,
+                'classe': eleve.classe,
+                'date_inscription': date_inscription or eleve.date_inscription,
+                'statut': eleve.statut,
+                'parent_nom': eleve.parent_nom,
+                'parent_prenom': eleve.parent_prenom,
+                'parent_telephone': eleve.parent_telephone,
+                'parent_email': eleve.parent_email,
+                'parent_adresse': eleve.parent_adresse,
+                'parent_profession': eleve.parent_profession,
+                'parent_lien': eleve.parent_lien,
+                'document_acte_naissance': eleve.document_acte_naissance,
+                'document_cni': eleve.document_cni,
+                'document_passeport': eleve.document_passeport,
+                'document_bulletin_precedent': eleve.document_bulletin_precedent,
+                'document_certificat_scolarite': eleve.document_certificat_scolarite,
+                'document_livret_scolaire': eleve.document_livret_scolaire,
+                'document_certificat_medical': eleve.document_certificat_medical,
+                'document_carnet_vaccination': eleve.document_carnet_vaccination,
+                'document_assurance_maladie': eleve.document_assurance_maladie,
+                'document_justificatif_domicile': eleve.document_justificatif_domicile,
+                'document_photo_identite': eleve.document_photo_identite,
+                'document_autorisation_parentale': eleve.document_autorisation_parentale,
+            }
+        )
+
+        # Inscription parent
+        if parent:
+            type_parent = parent.type_parent if parent.type_parent in ['mere', 'pere', 'tuteur'] else 'tuteur'
+            InscriptionParent.objects.update_or_create(
+                annee_scolaire=annee_scolaire,
+                matricule_parental=parent.matricule_parental,
+                defaults={
+                    'parent': parent,
+                    'nom': parent.nom,
+                    'prenom': parent.prenom,
+                    'telephone': parent.telephone,
+                    'email': parent.email,
+                    'type_parent': type_parent,
+                    'adresse': parent.adresse,
+                    'profession': parent.profession,
+                    'etablissement': etablissement,
+                    'date_inscription': date_inscription or eleve.date_inscription,
+                }
+            )
+    except Exception as archive_error:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erreur lors de l'archivage des inscriptions pour {eleve.nom_complet}: {archive_error}", exc_info=True)
 
 
 @login_required
@@ -208,44 +311,32 @@ def inscription_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
+    annee_scolaire_active = get_session_active(request, etablissement)
+    if not annee_scolaire_active:
+        messages.error(
+            request,
+            "Aucune année scolaire active n'a été trouvée. Créez ou activez d'abord une session pour continuer l'inscription."
+        )
+        if isinstance(user, Etablissement):
+            return redirect('directeur:creer_annee_scolaire_obligatoire')
+        return redirect('secretaire:dashboard_secretaire')
+    
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
     
     form_data = {
         'statut': 'nouvelle',  # Valeur par défaut
         'date_inscription': date.today().strftime('%Y-%m-%d'),  # Date du jour par défaut
+        'nationalite': '',  # Initialiser le champ nationalité
         # Initialiser les champs parent/tuteur
         'parent_nom': '',
         'parent_prenom': '',
         'parent_telephone': '',
-        'parent_email': '',
         'parent_adresse': '',
         'parent_profession': '',
         'parent_lien': '',
     }
     field_errors = {}
-    
-    # Générer un numéro d'élève et un mot de passe provisoire pour l'affichage initial
-    import random
-    now = datetime.now()
-    year = now.year % 100
-    base_num = f"ELE-{year}-"
-    
-    # Chercher le prochain numéro disponible pour l'affichage initial
-    counter = 1
-    while counter <= 999:  # Limiter les tentatives
-        numero_eleve = f"{base_num}{counter:03d}"
-        if not Eleve.objects.filter(numero_eleve=numero_eleve).exists():
-            form_data['numero_eleve'] = numero_eleve
-            break
-        counter += 1
-    else:
-        # Fallback si tous les numéros sont pris
-        timestamp = int(now.timestamp() * 1000) % 10000
-        form_data['numero_eleve'] = f"{base_num}{timestamp:04d}"
-    
-    mot_de_passe_initial = f"{random.randint(1000, 9999)}"
-    form_data['mot_de_passe_provisoire'] = mot_de_passe_initial
     
     if request.method == 'POST':
         # Récupération des données
@@ -257,17 +348,14 @@ def inscription_eleves(request):
             'sexe': request.POST.get('sexe', ''),
             'nationalite': request.POST.get('nationalite', '').strip(),
             'adresse': request.POST.get('adresse', '').strip(),
-            'telephone': request.POST.get('telephone', '').strip(),
-            'email': request.POST.get('email', '').strip(),
             'classe': request.POST.get('classe', ''),
             'date_inscription': request.POST.get('date_inscription', ''),
             'statut': request.POST.get('statut', ''),
-            'numero_eleve': request.POST.get('numero_eleve', '').strip(),
             # Champs parent/tuteur
             'parent_nom': request.POST.get('parent_nom', '').strip(),
             'parent_prenom': request.POST.get('parent_prenom', '').strip(),
-            'parent_telephone': request.POST.get('parent_telephone', '').strip(),
-            'parent_email': request.POST.get('parent_email', '').strip(),
+            # Pour le téléphone parent, utiliser le numéro formaté (parent_telephone_full) s'il existe, sinon utiliser parent_telephone
+            'parent_telephone': request.POST.get('parent_telephone_full', '').strip() or request.POST.get('parent_telephone', '').strip(),
             'parent_adresse': request.POST.get('parent_adresse', '').strip(),
             'parent_profession': request.POST.get('parent_profession', '').strip(),
             'parent_lien': request.POST.get('parent_lien', ''),
@@ -293,6 +381,7 @@ def inscription_eleves(request):
         
         # Validation
         is_valid = True
+        inscription_date_obj = None
         
         # Champs obligatoires (adresse supprimée de la liste)
         required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'classe', 'date_inscription', 'statut']
@@ -323,6 +412,7 @@ def inscription_eleves(request):
         if form_data['date_inscription']:
             try:
                 inscription_date = datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date()
+                inscription_date_obj = inscription_date
                 if inscription_date > date.today():
                     field_errors['date_inscription'] = "La date d'inscription ne peut pas être dans le futur."
                     is_valid = False
@@ -330,42 +420,13 @@ def inscription_eleves(request):
                 field_errors['date_inscription'] = "Format de date invalide."
                 is_valid = False
         
-        # Validation de l'email
-        if form_data['email'] and '@' not in form_data['email']:
-            field_errors['email'] = "L'adresse email n'est pas valide."
-            is_valid = False
-        
-        # Validation de l'email parent/tuteur (optionnel)
-        if form_data['parent_email'] and '@' not in form_data['parent_email']:
-            field_errors['parent_email'] = "L'adresse email du parent/tuteur n'est pas valide."
-            is_valid = False
-        
-        # Génération automatique du numéro d'élève, matricule et mots de passe
+        # Génération automatique du matricule et mots de passe
         import random
-        if not form_data['numero_eleve']:
-            # Générer un numéro d'élève unique (ancien format pour compatibilité)
-            now = datetime.now()
-            year = now.year % 100
-            base_num = f"ELE-{year}-"
-            
-            # Chercher le prochain numéro disponible
-            counter = 1
-            while counter <= 999:  # Limiter les tentatives
-                numero_eleve = f"{base_num}{counter:03d}"
-                if not Eleve.objects.filter(numero_eleve=numero_eleve).exists():
-                    form_data['numero_eleve'] = numero_eleve
-                    break
-                counter += 1
-            else:
-                # Fallback avec timestamp si tous les numéros sont pris
-                timestamp = int(now.timestamp() * 1000) % 10000
-                form_data['numero_eleve'] = f"{base_num}{timestamp:04d}"
-        
         # Générer le matricule élève (nouveau format)
         matricule_eleve = Eleve.generer_matricule_eleve(etablissement)
         form_data['matricule_eleve'] = matricule_eleve
         
-        # Générer le mot de passe élève (format XXX-XXX)
+        # Générer le mot de passe élève (format XXXXXX - 6 chiffres sans tiret)
         mot_de_passe_eleve = Eleve.generer_mot_de_passe()
         form_data['mot_de_passe_provisoire'] = mot_de_passe_eleve
         
@@ -432,19 +493,16 @@ def inscription_eleves(request):
                         sexe=form_data['sexe'],
                         nationalite=form_data['nationalite'],
                         adresse=form_data['adresse'] if form_data['adresse'] else None,
-                        telephone=form_data['telephone'],
-                        email=form_data['email'],
-                        numero_eleve=form_data['numero_eleve'],
+                        numero_eleve=form_data['matricule_eleve'],  # Assigner numero_eleve avec le matricule
                         matricule_eleve=form_data['matricule_eleve'],
                         etablissement=etablissement,
                         classe=classe,
-                        date_inscription=datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date(),
+                        date_inscription=inscription_date_obj or datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date(),
                         statut=form_data['statut'],
                         # Champs parent/tuteur
                         parent_nom=form_data['parent_nom'],
                         parent_prenom=form_data['parent_prenom'],
                         parent_telephone=form_data['parent_telephone'],
-                        parent_email=form_data['parent_email'] if form_data['parent_email'] else None,
                         parent_adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else None,
                         parent_profession=form_data['parent_profession'] if form_data['parent_profession'] else None,
                         parent_lien=form_data['parent_lien'],
@@ -485,11 +543,11 @@ def inscription_eleves(request):
                     from ..model.lien_familial_model import LienFamilial
                     from django.contrib.auth.hashers import make_password
                     
-                    # Vérifier si un parent avec cet email existe déjà
+                    # Vérifier si un parent avec ce téléphone existe déjà
                     parent_existant = None
-                    if form_data['parent_email']:
+                    if form_data['parent_telephone']:
                         parent_existant = Parent.objects.filter(
-                            email=form_data['parent_email'],
+                            telephone=form_data['parent_telephone'],
                             etablissement=etablissement
                         ).first()
                     
@@ -505,7 +563,7 @@ def inscription_eleves(request):
                             nom=form_data['parent_nom'],
                             prenom=form_data['parent_prenom'],
                             telephone=form_data['parent_telephone'],
-                            email=form_data['parent_email'] if form_data['parent_email'] else '',
+                            email='',
                             adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
                             profession=form_data['parent_profession'] if form_data['parent_profession'] else '',
                             etablissement=etablissement,
@@ -534,6 +592,15 @@ def inscription_eleves(request):
                     # Stocker les informations du parent dans form_data pour le reçu
                     form_data['parent_cree'] = parent
                     
+                    # Archiver l'inscription dans les tables dédiées
+                    _archiver_inscription_eleve_parent(
+                        eleve=eleve,
+                        parent=parent,
+                        etablissement=etablissement,
+                        annee_scolaire=annee_scolaire_active,
+                        date_inscription=inscription_date_obj or eleve.date_inscription
+                    )
+                    
                     # La facturation de l'établissement est automatiquement mise à jour
                     # par la méthode save() du modèle Eleve via recalculer_facturation()
                     
@@ -556,12 +623,25 @@ def inscription_eleves(request):
                 field_errors['__all__'] = f"Une erreur est survenue lors de l'inscription: {str(e)}. Veuillez réessayer."
                 is_valid = False
     
+    # Récupérer la liste des pays pour le select
+    # Convertir en liste de tuples (code, nom) pour le template
+    try:
+        pays_list = [(code, str(nom)) for code, nom in countries]
+    except Exception as e:
+        # En cas d'erreur, utiliser une liste vide
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erreur lors de la récupération des pays: {str(e)}")
+        pays_list = []
+    
     context = {
         'user': user,
         'etablissement': etablissement,
         'classes': classes,
         'form_data': form_data,
         'field_errors': field_errors,
+        'pays_list': pays_list,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/inscription_eleves.html', context)
@@ -588,13 +668,20 @@ def liste_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    classes_grouped, stats_generales = _build_classes_grouped_data(etablissement)
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active. Les élèves affichés ne sont pas filtrés par session.")
+    
+    classes_grouped, stats_generales = _build_classes_grouped_data(etablissement, annee_scolaire_active)
 
     context = {
         'user': user,
         'etablissement': etablissement,
         'classes_grouped': classes_grouped,
         'stats_generales': stats_generales,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/liste_eleves.html', context)
@@ -619,13 +706,18 @@ def cartes_identite_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
 
-    classes_grouped, stats_generales = _build_classes_grouped_data(etablissement)
+    # Récupérer l'année scolaire active
+    from ..utils.session_utils import get_session_active
+    annee_scolaire_active = get_session_active(request, etablissement)
+
+    classes_grouped, stats_generales = _build_classes_grouped_data(etablissement, annee_scolaire_active)
 
     context = {
         'user': user,
         'etablissement': etablissement,
         'classes_grouped': classes_grouped,
         'stats_generales': stats_generales,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/directeur/secretaire/cartes_identite_eleves.html', context)
@@ -662,12 +754,18 @@ def carte_identite_eleve(request, eleve_id):
         except RuntimeError as qr_error:
             messages.warning(request, f"QR code indisponible : {qr_error}")
 
-    annee_scolaire = Ponderation.default_school_year()
+    # Récupérer l'année scolaire active
+    from ..utils.session_utils import get_session_active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    # Déterminer l'année scolaire à afficher
+    annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
     
     context = {
         'etablissement': etablissement,
         'eleve': eleve,
-        'annee_scolaire': annee_scolaire,
+        'annee_scolaire': annee_scolaire_libelle,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/carte_identite_eleve.html', context)
@@ -696,7 +794,28 @@ def cartes_identite_classe(request, classe_id):
         messages.error(request, "Classe introuvable ou non autorisée.")
         return redirect('secretaire:cartes_identite_eleves')
 
-    eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+    # Récupérer l'année scolaire active
+    from ..utils.session_utils import get_session_active
+    from ..model.inscription_eleve_model import InscriptionEleve
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'imprimer les cartes d'identité.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+    
+    # Filtrer les élèves par année scolaire active via InscriptionEleve
+    eleves_ids_inscrits = InscriptionEleve.objects.filter(
+        annee_scolaire=annee_scolaire_active,
+        classe=classe,
+        etablissement=etablissement
+    ).values_list('eleve_id', flat=True)
+    
+    from django.db.models import Lower
+    eleves_queryset = Eleve.objects.filter(
+        id__in=eleves_ids_inscrits,
+        classe=classe,
+        actif=True
+    ).order_by(Lower('nom'), Lower('prenom'))
     eleves = list(eleves_queryset)
 
     erreurs_qr = []
@@ -713,13 +832,15 @@ def cartes_identite_classe(request, classe_id):
             "Certaines cartes n'ont pas pu être générées : " + "; ".join(erreurs_qr)
         )
 
-    annee_scolaire = Ponderation.default_school_year()
+    # Déterminer l'année scolaire à afficher
+    annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
 
     context = {
         'etablissement': etablissement,
         'classe': classe,
         'eleves': eleves,
-        'annee_scolaire': annee_scolaire,
+        'annee_scolaire': annee_scolaire_libelle,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(
@@ -873,6 +994,12 @@ def detail_eleve(request, eleve_id):
         except RuntimeError as qr_error:
             messages.warning(request, f"QR code indisponible : {qr_error}")
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active. Les données affichées ne sont pas filtrées par session.")
+    
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
     
@@ -883,7 +1010,10 @@ def detail_eleve(request, eleve_id):
     from school_admin.model.evaluation_model import Note, Evaluation
     from school_admin.model.sanction_model import Sanction
     
+    # Filtrer les présences par année scolaire active si disponible
     presences = Presence.objects.filter(eleve=eleve).select_related('classe', 'professeur').order_by('-date')
+    if annee_scolaire_active:
+        presences = presences.filter(annee_scolaire=annee_scolaire_active)
     
     # Grouper les présences par mois
     presences_par_mois = defaultdict(list)
@@ -921,10 +1051,18 @@ def detail_eleve(request, eleve_id):
         from school_admin.model.note_primaire_model import MoyenneMatierePrimaire
         from school_admin.model.periode_model import PeriodeScolaire
         
-        periodes = PeriodeScolaire.objects.filter(
-            etablissement=etablissement,
-            est_active=True
-        ).order_by('date_debut')
+        # Filtrer les périodes par année scolaire active si disponible
+        if annee_scolaire_active:
+            periodes = PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                est_active=True,
+                annee_scolaire_fk=annee_scolaire_active
+            ).order_by('date_debut')
+        else:
+            periodes = PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                est_active=True
+            ).order_by('date_debut')
         
         notes_par_trimestre = defaultdict(lambda: defaultdict(list))
         
@@ -944,10 +1082,14 @@ def detail_eleve(request, eleve_id):
                 trimestre = 'trimestre1'
             
             # Récupérer toutes les moyennes de l'élève pour cette période
-            moyennes = MoyenneMatierePrimaire.objects.filter(
+            moyennes_qs = MoyenneMatierePrimaire.objects.filter(
                 eleve=eleve,
                 periode_scolaire=periode
-            ).select_related('matiere')
+            )
+            # Filtrer par année scolaire active si disponible
+            if annee_scolaire_active:
+                moyennes_qs = moyennes_qs.filter(annee_scolaire=annee_scolaire_active)
+            moyennes = moyennes_qs.select_related('matiere')
             
             for moyenne_obj in moyennes:
                 if moyenne_obj.moyenne is not None:
@@ -959,12 +1101,16 @@ def detail_eleve(request, eleve_id):
                     notes_retenues_detail = []
                     
                     # Récupérer les notes de devoirs/interrogations retenues
-                    notes_primaires = NotePrimaire.objects.filter(
+                    notes_primaires_qs = NotePrimaire.objects.filter(
                         eleve=eleve,
                         evaluation_primaire__matiere=moyenne_obj.matiere,
                         evaluation_primaire__periode_scolaire=periode,
                         retenue=True
-                    ).select_related('evaluation_primaire')
+                    )
+                    # Filtrer par année scolaire active si disponible
+                    if annee_scolaire_active:
+                        notes_primaires_qs = notes_primaires_qs.filter(annee_scolaire=annee_scolaire_active)
+                    notes_primaires = notes_primaires_qs.select_related('evaluation_primaire')
                     
                     for note in notes_primaires:
                         eval_type = "Devoir" if note.evaluation_primaire.bareme == 20 else "Interrogation"
@@ -978,11 +1124,15 @@ def detail_eleve(request, eleve_id):
                     
                     # Récupérer la note d'examen (basée sur session, pas créneau)
                     from ..model.session_examen_model import SessionExamen
-                    note_examen_obj = NoteExamen.objects.filter(
+                    note_examen_qs = NoteExamen.objects.filter(
                         eleve=eleve,
                         matiere=moyenne_obj.matiere,
                         session_examen__periode=periode
-                    ).select_related('session_examen').first()
+                    )
+                    # Filtrer par année scolaire active si disponible
+                    if annee_scolaire_active:
+                        note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+                    note_examen_obj = note_examen_qs.select_related('session_examen').first()
                     
                     note_examen_valeur = None
                     nom_examen = None
@@ -1002,7 +1152,11 @@ def detail_eleve(request, eleve_id):
                     })
     else:
         # Pour les autres établissements, utiliser le système standard
-        notes = Note.objects.filter(eleve=eleve).select_related('evaluation', 'evaluation__professeur').order_by('-evaluation__date_evaluation')
+        notes_qs = Note.objects.filter(eleve=eleve).select_related('evaluation', 'evaluation__professeur')
+        # Filtrer par année scolaire active si disponible
+        if annee_scolaire_active:
+            notes_qs = notes_qs.filter(annee_scolaire=annee_scolaire_active)
+        notes = notes_qs.order_by('-evaluation__date_evaluation')
         
         # Grouper les notes par trimestre et matière
         notes_par_trimestre = defaultdict(lambda: defaultdict(list))
@@ -1058,11 +1212,18 @@ def detail_eleve(request, eleve_id):
         ).select_related('matiere').values_list('matiere', flat=True)
         matieres_classe = list(Matiere.objects.filter(id__in=matieres_aff, actif=True).order_by('nom'))
         
-        # Récupérer toutes les périodes actives
-        periodes_actives = list(PeriodeScolaire.objects.filter(
-            etablissement=etablissement,
-            est_active=True
-        ).order_by('date_debut'))
+        # Récupérer toutes les périodes actives filtrées par année scolaire active
+        if annee_scolaire_active:
+            periodes_actives = list(PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                est_active=True,
+                annee_scolaire_fk=annee_scolaire_active
+            ).order_by('date_debut'))
+        else:
+            periodes_actives = list(PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                est_active=True
+            ).order_by('date_debut'))
         
         # La période active par défaut
         periode_active_notes = PeriodeScolaire.get_periode_active(etablissement) or (
@@ -1072,13 +1233,17 @@ def detail_eleve(request, eleve_id):
         if matieres_classe and periodes_actives:
             # Récupérer toutes les moyennes pour cet élève pour toutes les périodes
             for periode in periodes_actives:
-                moyennes = Moyenne.objects.filter(
+                moyennes_qs = Moyenne.objects.filter(
                     eleve=eleve,
                     classe=eleve.classe,
                     matiere__in=matieres_classe,
                     periode=str(periode.id),
                     actif=True
-                ).select_related('matiere')
+                )
+                # Filtrer par année scolaire active si disponible
+                if annee_scolaire_active:
+                    moyennes_qs = moyennes_qs.filter(annee_scolaire=annee_scolaire_active)
+                moyennes = moyennes_qs.select_related('matiere')
                 
                 # Créer un dictionnaire avec les moyennes indexées par matière.id pour chaque période
                 for m in moyennes:
@@ -1156,13 +1321,17 @@ def detail_eleve(request, eleve_id):
                             ).first()
                             
                             if matiere_obj:
-                                releve = ReleveNotes.objects.filter(
+                                releve_qs = ReleveNotes.objects.filter(
                                     classe=eleve.classe,
                                     matiere=matiere_obj,
                                     periode_scolaire=premier_note['evaluation'].periode_scolaire,
                                     soumis=True,
                                     actif=True
-                                ).first()
+                                )
+                                # Filtrer par année scolaire active si disponible
+                                if annee_scolaire_active:
+                                    releve_qs = releve_qs.filter(annee_scolaire=annee_scolaire_active)
+                                releve = releve_qs.first()
                                 
                                 releve_soumis = releve is not None
                         except Exception as e:
@@ -1188,8 +1357,11 @@ def detail_eleve(request, eleve_id):
                 }
                 releves_soumis_par_trimestre[trimestre] = releves_soumis_matieres
     
-    # Récupérer les sanctions de l'élève
-    sanctions_eleve = Sanction.objects.filter(eleve=eleve).select_related('professeur', 'classe').order_by('-date_sanction', '-date_creation')
+    # Récupérer les sanctions de l'élève filtrées par année scolaire active
+    sanctions_eleve_qs = Sanction.objects.filter(eleve=eleve).select_related('professeur', 'classe')
+    if annee_scolaire_active:
+        sanctions_eleve_qs = sanctions_eleve_qs.filter(annee_scolaire=annee_scolaire_active)
+    sanctions_eleve = sanctions_eleve_qs.order_by('-date_sanction', '-date_creation')
     
     # Statistiques des sanctions par gravité
     stats_sanctions = {
@@ -1198,6 +1370,26 @@ def detail_eleve(request, eleve_id):
         'moyennes': sanctions_eleve.filter(gravite='moyenne').count(),
         'graves': sanctions_eleve.filter(gravite__in=['grave', 'tres_grave']).count(),
     }
+    
+    # Récupérer les informations du parent inscripteur
+    from ..model.parent_model import Parent
+    from ..model.lien_familial_model import LienFamilial
+    
+    parent_inscripteur = None
+    lien_inscripteur = None
+    
+    try:
+        # Chercher le lien familial avec le parent inscripteur
+        lien_inscripteur = LienFamilial.objects.filter(
+            eleve=eleve,
+            statut='valide'
+        ).select_related('parent').first()
+        
+        if lien_inscripteur:
+            parent_inscripteur = lien_inscripteur.parent
+    except Exception as e:
+        print(f"[DEBUG] Erreur lors de la récupération du parent inscripteur : {e}")
+        parent_inscripteur = None
     
     form_data = {}
     field_errors = {}
@@ -1420,6 +1612,10 @@ def detail_eleve(request, eleve_id):
         'moyennes_par_periode': dict(moyennes_par_periode),
         'photo_form_errors': photo_form_errors,
         'photo_modal_open': photo_modal_open,
+        # Informations du parent inscripteur
+        'parent_inscripteur': parent_inscripteur,
+        'lien_inscripteur': lien_inscripteur,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/detail_eleve.html', context)
@@ -1604,7 +1800,8 @@ def detail_classe(request, classe_id):
         return redirect('secretaire:gestion_classes')
     
     # Récupérer les élèves de la classe
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+    from django.db.models import Lower
+    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
     
     # Statistiques de la classe
     stats_classe = {
@@ -1663,8 +1860,29 @@ def imprimer_liste_eleves(request, classe_id):
         messages.error(request, "Classe non trouvée.")
         return redirect('secretaire:gestion_classes')
     
-    # Récupérer les élèves de la classe
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('prenom', 'nom')
+    # Récupérer l'année scolaire active
+    from ..utils.session_utils import get_session_active
+    from ..model.inscription_eleve_model import InscriptionEleve
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'imprimer la liste des élèves.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+    
+    # Filtrer les élèves par année scolaire active via InscriptionEleve
+    eleves_ids_inscrits = InscriptionEleve.objects.filter(
+        annee_scolaire=annee_scolaire_active,
+        classe=classe,
+        etablissement=etablissement
+    ).values_list('eleve_id', flat=True)
+    
+    # Récupérer les élèves de la classe filtrés par année scolaire active
+    from django.db.models import Lower
+    eleves = Eleve.objects.filter(
+        id__in=eleves_ids_inscrits,
+        classe=classe,
+        actif=True
+    ).order_by(Lower('nom'), Lower('prenom'))
     
     # Informations de l'établissement
     etablissement_info = {
@@ -1696,6 +1914,7 @@ def imprimer_liste_eleves(request, classe_id):
         'classe': classe,
         'classe_info': classe_info,
         'eleves': eleves,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/imprimer_liste_eleves.html', context)
@@ -2044,6 +2263,13 @@ def soumettre_sanction_directeur(request):
     from ..model.sanction_model import Sanction
     from django.shortcuts import get_object_or_404
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une sanction.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+    
     # Récupérer les données du formulaire
     eleve_id = request.POST.get('eleve_id')
     classe_id = request.POST.get('classe_id')
@@ -2066,7 +2292,7 @@ def soumettre_sanction_directeur(request):
         # Convertir la date
         date_sanction = datetime.strptime(date_sanction_str, '%Y-%m-%d').date()
         
-        # Créer la sanction
+        # Créer la sanction avec l'année scolaire active
         sanction = Sanction.objects.create(
             eleve=eleve,
             classe=classe,
@@ -2078,7 +2304,8 @@ def soumettre_sanction_directeur(request):
             description=description,
             date_sanction=date_sanction,
             attribue_par_type='directeur',
-            attribue_par_nom=f"{etablissement.directeur_prenom} {etablissement.directeur_nom}"
+            attribue_par_nom=f"{etablissement.directeur_prenom} {etablissement.directeur_nom}",
+            annee_scolaire=annee_scolaire_active
         )
         
         messages.success(request, f"Sanction enregistrée avec succès pour {eleve.nom_complet}.")

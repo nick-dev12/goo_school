@@ -148,61 +148,42 @@ class Parent(AbstractUser):
     def generer_matricule_parent(etablissement):
         """
         Génère un matricule parental unique
-        Format : [XX]P[ANNEE]-[NUMERO]
-        Exemple : BPP2025-001
+        Format : [XX]P[4 NUMERO_ALEATOIRE]-[3 NUMERO_ALEATOIRE]
+        Exemple : BPP1254-857 (initiales établissement + P + 4 chiffres aléatoires + tiret + 3 chiffres aléatoires)
+        Tous les chiffres sont aléatoires
         """
-        from datetime import datetime
+        import random
         
         # Extraire les initiales de l'établissement (2 premiers mots)
         mots = etablissement.nom.split()[:2]
         initiales = ''.join([mot[0].upper() for mot in mots if mot])
         
-        # Année en cours
-        annee = datetime.now().year
+        # Générer un numéro aléatoire de 4 chiffres (1000-9999)
+        numero_aleatoire_4 = random.randint(1000, 9999)
         
-        # Préfixe de base (sans tiret pour la recherche)
-        prefix_search = f"{initiales}P{annee}"
+        # Générer un numéro aléatoire de 3 chiffres (100-999)
+        numero_aleatoire_3 = random.randint(100, 999)
         
-        # Rechercher le dernier matricule utilisé pour ce préfixe
-        derniers_parents = Parent.objects.filter(
-            etablissement=etablissement,
-            matricule_parental__startswith=prefix_search
-        ).exclude(
-            matricule_parental__isnull=True
-        ).order_by('-matricule_parental')[:1]
-        
-        if derniers_parents.exists():
-            # Extraire le numéro du dernier matricule
-            dernier_matricule = derniers_parents[0].matricule_parental
-            try:
-                # Extraire les 3 derniers chiffres (après le tiret si présent)
-                if '-' in dernier_matricule:
-                    dernier_numero = int(dernier_matricule.split('-')[-1])
-                else:
-                    dernier_numero = int(dernier_matricule[-3:])
-                count = dernier_numero + 1
-            except (ValueError, IndexError):
-                # Si impossible d'extraire, commencer à 1
-                count = 1
-        else:
-            count = 1
-        
-        # Générer le matricule avec le tiret : BPP2025-001
-        matricule = f"{prefix_search}-{count:03d}"
+        # Générer le matricule avec le tiret : BPP1254-857
+        matricule = f"{initiales}P{numero_aleatoire_4}-{numero_aleatoire_3:03d}"
         
         # Boucle de sécurité pour éviter les doublons
         max_tentatives = 1000
         tentatives = 0
         while Parent.objects.filter(matricule_parental=matricule).exists() or \
               Parent.objects.filter(username=matricule).exists():
-            count += 1
-            matricule = f"{prefix_search}-{count:03d}"
+            # Générer de nouveaux numéros aléatoires
+            numero_aleatoire_4 = random.randint(1000, 9999)
+            numero_aleatoire_3 = random.randint(100, 999)
+            matricule = f"{initiales}P{numero_aleatoire_4}-{numero_aleatoire_3:03d}"
             tentatives += 1
             if tentatives >= max_tentatives:
                 # Fallback avec timestamp si trop de tentatives
                 import time
-                timestamp = int(time.time() * 1000) % 10000
-                matricule = f"{prefix_search}-{timestamp:04d}"
+                timestamp = int(time.time() * 1000) % 1000000
+                numero_4 = timestamp % 10000
+                numero_3 = (timestamp // 10000) % 1000
+                matricule = f"{initiales}P{numero_4:04d}-{numero_3:03d}"
                 break
         
         return matricule
@@ -210,12 +191,10 @@ class Parent(AbstractUser):
     @staticmethod
     def generer_mot_de_passe():
         """
-        Génère un mot de passe provisoire de 6 chiffres séparés par un tiret
-        Format : XXX-XXX
-        Exemple : 487-293
+        Génère un mot de passe provisoire de 6 chiffres sans tiret
+        Format : XXXXXX
+        Exemple : 654565
         """
         import random
-        partie1 = ''.join([str(random.randint(0, 9)) for _ in range(3)])
-        partie2 = ''.join([str(random.randint(0, 9)) for _ in range(3)])
-        return f"{partie1}-{partie2}"
+        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 

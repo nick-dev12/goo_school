@@ -19,7 +19,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_clean.css' %}"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.0.1"
     />
   </head>
   <body>
@@ -251,6 +251,7 @@
       </div>
     </div>
 
+
     <!-- Modal d'ajout de classe -->
     <div class="modal-overlay {% if show_modal %}active{% endif %}" id="addClasseModal">
       <div class="modal-container">
@@ -287,6 +288,27 @@
             {% if field_errors.nom %}
               <div class="invalid-feedback">{{ field_errors.nom }}</div>
             {% endif %}
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="niveau">Niveau *</label>
+            <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" 
+                    id="niveau" 
+                    name="niveau" 
+                    required>
+              {% for niveau_code, niveau_label in niveau_choices %}
+                <option value="{{ niveau_code }}" 
+                        {% if form_data.niveau == niveau_code or niveau_code == niveau_defaut and not form_data.niveau %}selected{% endif %}>
+                  {{ niveau_label }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if field_errors.niveau %}
+              <div class="invalid-feedback">{{ field_errors.niveau }}</div>
+            {% endif %}
+            <small class="form-text text-muted">
+              Niveaux disponibles selon le type d'établissement : {{ etablissement.get_type_etablissement_display }}
+            </small>
           </div>
           
           <div class="form-group">
@@ -409,6 +431,7 @@
           });
         });
       });
+
     </script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

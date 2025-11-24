@@ -24,6 +24,14 @@ class CreneauExamen(models.Model):
         related_name='creneaux',
         verbose_name="Session d'examen"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='creneaux_examens_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     
     # Matière concernée par ce créneau
     matiere = models.ForeignKey(

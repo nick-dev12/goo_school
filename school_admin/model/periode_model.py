@@ -54,6 +54,14 @@ class PeriodeScolaire(models.Model):
         verbose_name="Année scolaire",
         help_text="Ex: 2025-2026"
     )
+    annee_scolaire_fk = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='periodes_scolaires_annee_scolaire',
+        verbose_name="Année scolaire (référence)"
+    )
     
     est_active = models.BooleanField(
         default=True,

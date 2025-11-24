@@ -184,3 +184,7 @@ urlpatterns += directeur_urls
 # Inclure les URLs des parents
 from .personal_url.parent_url import urlpatterns as parent_urls
 urlpatterns += parent_urls
+
+# Inclure les URLs de session
+from .personal_url.session_url import urlpatterns as session_urls
+urlpatterns += session_urls

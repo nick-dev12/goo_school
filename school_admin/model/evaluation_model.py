@@ -72,6 +72,14 @@ class Evaluation(models.Model):
         related_name='evaluations',
         verbose_name="Période scolaire"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='evaluations',
+        verbose_name="Année scolaire"
+    )
     actif = models.BooleanField(
         default=True,
         verbose_name="Actif"
@@ -181,6 +189,14 @@ class Note(models.Model):
     date_saisie = models.DateTimeField(
         auto_now=True,
         verbose_name="Date de saisie"
+    )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notes',
+        verbose_name="Année scolaire"
     )
     
     class Meta:

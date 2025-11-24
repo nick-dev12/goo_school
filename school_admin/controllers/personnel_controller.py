@@ -251,9 +251,10 @@ class PersonnelController:
         
         # Récupérer les professeurs de l'établissement
         from ..model.professeur_model import Professeur
+        from django.db.models.functions import Lower
         professeurs = Professeur.objects.filter(
             etablissement=etablissement
-        ).select_related('matiere_principale').order_by('-date_creation')
+        ).select_related('matiere_principale').order_by(Lower('nom'), Lower('prenom'))
         
         # Récupérer les matières avec le nombre de professeurs
         from ..model.matiere_model import Matiere

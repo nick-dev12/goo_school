@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',  # Django CORS Headers
+    'django_countries',  # Django Countries pour la gestion des pays
     'school_admin',
 ]
 
@@ -79,6 +80,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé
+    'school_admin.middleware.SessionActiveMiddleware',  # Middleware pour la gestion des sessions actives
 ]
 
 ROOT_URLCONF = 'school.urls'
@@ -219,7 +221,13 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file'] if not DEBUG else ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',
+            'level': 'INFO' if not DEBUG else 'WARNING',  # WARNING au lieu de DEBUG pour réduire les logs
+            'propagate': False,
+        },
+        # Filtrer les messages DEBUG du système d'autoreload de Django
+        'django.utils.autoreload': {
+            'handlers': [],
+            'level': 'WARNING',  # Ignorer tous les messages DEBUG d'autoreload
             'propagate': False,
         },
         'school_admin': {

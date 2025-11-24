@@ -33,6 +33,14 @@ class MoyennePeriode(models.Model):
         related_name='moyennes_periodes',
         verbose_name="Période scolaire"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moyennes_periodes_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     
     matiere = models.ForeignKey(
         'school_admin.Matiere',

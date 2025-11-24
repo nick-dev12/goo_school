@@ -39,6 +39,11 @@
                 <!-- Titre du document -->
                 <div class="document-title">
                     <h2>CONVOCATION</h2>
+                    {% if annee_scolaire_active %}
+                    <p class="document-subtitle">Année scolaire {{ annee_scolaire_active.libelle }}</p>
+                    {% else %}
+                    <p class="document-subtitle">Année scolaire {{ annee_scolaire|default:"Non spécifiée" }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Corps de la convocation -->

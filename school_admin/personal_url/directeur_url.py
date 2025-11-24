@@ -29,6 +29,15 @@ urlpatterns = [
     path('periodes-scolaires/', gestion_periodes_scolaires, name='gestion_periodes_scolaires'),
     path('profil/etablissement/', profil_etablissement, name='profil_etablissement'),
     
+    # Gestion des années scolaires
+    path('annees-scolaires/', liste_annees_scolaires, name='liste_annees_scolaires'),
+    path('annees-scolaires/creer/', creer_annee_scolaire, name='creer_annee_scolaire'),
+    path('annees-scolaires/creer-obligatoire/', creer_annee_scolaire_obligatoire, name='creer_annee_scolaire_obligatoire'),
+    path('annees-scolaires/<int:annee_id>/activer/', activer_annee_scolaire, name='activer_annee_scolaire'),
+    path('annees-scolaires/<int:annee_id>/desactiver/', desactiver_annee_scolaire, name='desactiver_annee_scolaire'),
+    path('annees-scolaires/<int:annee_id>/modifier/', modifier_annee_scolaire, name='modifier_annee_scolaire'),
+    path('annees-scolaires/<int:annee_id>/', detail_annee_scolaire, name='detail_annee_scolaire'),
+    
     # API pour les détails des notes
     path('api/details-notes-matiere/', api_details_notes_matiere, name='api_details_notes_matiere'),
     path('api/details-notes-matiere-secondaire/', api_details_notes_matiere_secondaire, name='api_details_notes_matiere_secondaire'),

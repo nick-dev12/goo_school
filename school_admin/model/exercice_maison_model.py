@@ -53,6 +53,14 @@ class ExerciceMaison(models.Model):
         related_name="exercices_maison",
         verbose_name="Période scolaire",
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='exercices_maison_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
 
     titre = models.CharField(
         max_length=255,

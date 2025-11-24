@@ -1,0 +1,14 @@
+<div class="session-selector">
+    <form method="post" action="{% url 'session:changer_session' %}">
+        {% csrf_token %}
+        <select name="annee_scolaire_id" onchange="this.form.submit()" style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--gray-300, #d1d5db);">
+            <option value="">Session active</option>
+            {% for session in sessions_disponibles %}
+                <option value="{{ session.id }}" {% if session.id == session_consultee.id %}selected{% endif %}>
+                    {{ session.libelle }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+

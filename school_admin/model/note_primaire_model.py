@@ -25,6 +25,14 @@ class NotePrimaire(models.Model):
         related_name='notes_primaire',
         verbose_name="Évaluation"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notes_primaire_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     STATUT_BROUILLON = "brouillon"
     STATUT_PUBLIEE = "publiee"
     STATUT_MODIFIEE = "modifiee"
@@ -187,6 +195,14 @@ class MoyenneMatierePrimaire(models.Model):
         on_delete=models.CASCADE,
         related_name='moyennes_matieres_primaire',
         verbose_name="Période scolaire"
+    )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moyennes_matieres_primaire_annee_scolaire',
+        verbose_name="Année scolaire"
     )
     moyenne = models.DecimalField(
         max_digits=5,

@@ -380,6 +380,18 @@ def demande_liaison_enfant(request):
         else:
             statut_demande = 'echec'
         
+        # Récupérer l'année scolaire active de l'établissement de l'élève
+        from school_admin.utils.session_utils import get_session_active
+        annee_scolaire_active = None
+        if eleve.etablissement:
+            # Créer une requête factice pour récupérer l'année scolaire active
+            # On utilise l'établissement de l'élève
+            from school_admin.model.annee_scolaire_model import AnneeScolaire
+            annee_scolaire_active = AnneeScolaire.objects.filter(
+                etablissement=eleve.etablissement,
+                est_active=True
+            ).first()
+        
         # Mettre à jour la demande existante ou créer une nouvelle
         if demande_existante and demande_existante.statut in ['echec', 'en_attente']:
             # Mise à jour de la demande existante au lieu de créer un doublon
@@ -394,6 +406,8 @@ def demande_liaison_enfant(request):
             demande.raison_echec = raison_echec
             demande.eleve_valide = eleve
             demande.date_demande = timezone.now()  # Mise à jour de la date
+            if annee_scolaire_active:
+                demande.annee_scolaire = annee_scolaire_active
             demande.save()
             print(f"[DEMANDE LIAISON] Mise à jour de la demande existante ID: {demande.id}")
         else:
@@ -410,7 +424,8 @@ def demande_liaison_enfant(request):
                 statut='en_attente',  # Toujours en_attente au départ
                 nombre_tentatives=nombre_total_tentatives,
                 raison_echec=raison_echec,
-                eleve_valide=eleve
+                eleve_valide=eleve,
+                annee_scolaire=annee_scolaire_active
             )
             print(f"[DEMANDE LIAISON] Nouvelle demande créée ID: {demande.id}")
         

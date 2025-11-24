@@ -51,7 +51,7 @@
           <div class="document-info-header">
             <div class="info-item-header">
               <span class="info-label-header">Année scolaire :</span>
-              <span class="info-value-header">{{ periode.annee_scolaire }}</span>
+              <span class="info-value-header">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ periode.annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
             </div>
             <div class="info-item-header">
               <span class="info-label-header">Période :</span>

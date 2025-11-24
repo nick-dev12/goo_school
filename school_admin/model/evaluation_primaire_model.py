@@ -61,6 +61,14 @@ class EvaluationPrimaire(models.Model):
         related_name='evaluations_primaire',
         verbose_name="Période scolaire"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='evaluations_primaire',
+        verbose_name="Année scolaire"
+    )
     actif = models.BooleanField(
         default=True,
         verbose_name="Actif"

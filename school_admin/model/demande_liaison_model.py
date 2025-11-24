@@ -32,6 +32,14 @@ class DemandeLiaisonParent(models.Model):
         related_name='demandes_liaison',
         verbose_name="Parent demandeur"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='demandes_liaison',
+        verbose_name="Année scolaire"
+    )
     
     # Informations pour identifier l'élève
     matricule_eleve = models.CharField(

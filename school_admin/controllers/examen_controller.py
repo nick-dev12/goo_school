@@ -31,6 +31,14 @@ def gestion_examens(request):
         return redirect('school_admin:connexion_compte_user')
     
     etablissement = request.user
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de gérer les examens.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
     
     # Traitement de l'ajout d'une nouvelle session d'examen
     if request.method == 'POST':
@@ -79,14 +87,15 @@ def gestion_examens(request):
                     messages.error(request, "Aucune classe trouvée pour les groupes sélectionnés.")
                     return redirect('directeur:gestion_examens')
                 
-                # Création de la session d'examen
+                # Création de la session d'examen avec l'année scolaire active
                 session = SessionExamen.objects.create(
                     nom_examen=nom_examen,
                     etablissement=etablissement,
                     periode=periode,
                     date_debut=date_debut,
                     date_fin=date_fin,
-                    description=description
+                    description=description,
+                    annee_scolaire=annee_scolaire_active
                 )
                 
                 # Ajout des classes et matières à la session
@@ -100,11 +109,17 @@ def gestion_examens(request):
             messages.error(request, f"Erreur lors de la création de la session d'examen : {str(e)}")
             return redirect('directeur:gestion_examens')
     
-    # Récupérer toutes les périodes scolaires de l'établissement
+    # Récupérer toutes les périodes scolaires de l'établissement filtrées par année scolaire active
     periodes = PeriodeScolaire.objects.filter(
         etablissement=etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    
+    # Filtrer par année scolaire active si disponible
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    
+    periodes = periodes.order_by('date_debut')
     
     # Récupérer toutes les classes de l'établissement et les grouper par niveau
     classes = Classe.objects.filter(
@@ -136,11 +151,17 @@ def gestion_examens(request):
         actif=True
     ).order_by('nom')
     
-    # Récupérer les sessions d'examens
+    # Récupérer les sessions d'examens filtrées par année scolaire active
     sessions = SessionExamen.objects.filter(
         etablissement=etablissement,
         actif=True
-    ).select_related('periode').prefetch_related('classes', 'matieres').order_by('-date_creation')
+    )
+    
+    # Filtrer par année scolaire active si disponible
+    if annee_scolaire_active:
+        sessions = sessions.filter(annee_scolaire=annee_scolaire_active)
+    
+    sessions = sessions.select_related('periode').prefetch_related('classes', 'matieres').order_by('-date_creation')
     
     # Grouper les sessions par période
     sessions_par_periode = {}
@@ -159,6 +180,7 @@ def gestion_examens(request):
         'groupes_classes': groupes_classes,
         'matieres': matieres,
         'sessions_par_periode': sessions_par_periode,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/gestion_examens.html', context)
@@ -175,6 +197,14 @@ def emploi_du_temps_examens(request):
         return redirect('school_admin:connexion_compte_user')
     
     etablissement = request.user
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de gérer l'emploi du temps des examens.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
     
     # Traitement de l'ajout d'un nouveau créneau d'examen
     if request.method == 'POST':
@@ -212,7 +242,7 @@ def emploi_du_temps_examens(request):
                 if salle_id:
                     salle = get_object_or_404(Salle, id=salle_id, etablissement=etablissement)
                 
-                # Création du créneau d'examen
+                # Création du créneau d'examen avec l'année scolaire active
                 creneau = CreneauExamen.objects.create(
                     session_examen=session_examen,
                     matiere=matiere,
@@ -221,7 +251,8 @@ def emploi_du_temps_examens(request):
                     heure_fin=heure_fin,
                     surveillant=surveillant,
                     salle=salle,
-                    consignes_specifiques=consignes_specifiques
+                    consignes_specifiques=consignes_specifiques,
+                    annee_scolaire=annee_scolaire_active
                 )
                 
                 messages.success(request, f"C Créneau d'examen créé avec succès : {creneau}")
@@ -231,17 +262,29 @@ def emploi_du_temps_examens(request):
             messages.error(request, f"Erreur lors de la création du créneau d'examen : {str(e)}")
             return redirect('directeur:emploi_du_temps_examens')
     
-    # Récupérer les sessions d'examens
+    # Récupérer les sessions d'examens filtrées par année scolaire active
     sessions_examens = SessionExamen.objects.filter(
         etablissement=etablissement,
         actif=True
-    ).select_related('periode').prefetch_related('classes', 'matieres').order_by('-date_creation')
+    )
     
-    # Récupérer les créneaux d'examens
+    # Filtrer par année scolaire active si disponible
+    if annee_scolaire_active:
+        sessions_examens = sessions_examens.filter(annee_scolaire=annee_scolaire_active)
+    
+    sessions_examens = sessions_examens.select_related('periode').prefetch_related('classes', 'matieres').order_by('-date_creation')
+    
+    # Récupérer les créneaux d'examens filtrés par année scolaire active
     creneaux = CreneauExamen.objects.filter(
         session_examen__etablissement=etablissement,
         actif=True
-    ).select_related('session_examen', 'session_examen__periode', 'matiere', 'surveillant', 'salle').order_by('date_examen', 'heure_debut')
+    )
+    
+    # Filtrer par année scolaire active si disponible
+    if annee_scolaire_active:
+        creneaux = creneaux.filter(annee_scolaire=annee_scolaire_active)
+    
+    creneaux = creneaux.select_related('session_examen', 'session_examen__periode', 'matiere', 'surveillant', 'salle').order_by('date_examen', 'heure_debut')
     
     # Organiser les créneaux en grille horaire (comme un emploi du temps classique)
     # Étape 1: Trouver toutes les heures uniques et les dates
@@ -354,6 +397,7 @@ def emploi_du_temps_examens(request):
         'matieres': matieres,
         'professeurs': professeurs,
         'salles': salles,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/emploi_du_temps_examens.html', context)
@@ -371,6 +415,14 @@ def configurer_creneaux_examen(request, session_id):
     
     etablissement = request.user
     session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de configurer les créneaux.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
     
     # Traitement de l'ajout d'un créneau
     if request.method == 'POST':
@@ -423,7 +475,7 @@ def configurer_creneaux_examen(request, session_id):
                 if salle_id:
                     salle = get_object_or_404(Salle, id=salle_id, etablissement=etablissement)
                 
-                # Créer le créneau
+                # Créer le créneau avec l'année scolaire active
                 creneau = CreneauExamen.objects.create(
                     session_examen=session,
                     matiere=matiere,
@@ -432,7 +484,8 @@ def configurer_creneaux_examen(request, session_id):
                     heure_fin=heure_fin,
                     surveillant=surveillant,
                     salle=salle,
-                    consignes_specifiques=consignes_specifiques
+                    consignes_specifiques=consignes_specifiques,
+                    annee_scolaire=annee_scolaire_active
                 )
                 
                 messages.success(request, f"Créneau créé avec succès : {matiere.nom} le {date_examen.strftime('%d/%m/%Y')} de {heure_debut.strftime('%H:%M')} à {heure_fin.strftime('%H:%M')}.")
@@ -483,6 +536,7 @@ def configurer_creneaux_examen(request, session_id):
         'professeurs': professeurs,
         'salles': salles,
         'jours_disponibles': jours_disponibles,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/configurer_creneaux_examen.html', context)

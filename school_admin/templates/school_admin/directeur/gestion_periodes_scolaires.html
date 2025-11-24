@@ -38,6 +38,10 @@
                 <i class="fas fa-arrow-left"></i>
                 Retour
             </a>
+            <button type="button" class="btn btn-primary" id="btnCreerAnneeScolaire" style="background: var(--info, #8b5cf6);">
+                <i class="fas fa-calendar-plus"></i>
+                Créer une année scolaire
+            </button>
             <button type="button" class="btn btn-primary" id="btnAjouterPeriode">
                 <i class="fas fa-plus"></i>
                 Ajouter une période
@@ -53,6 +57,25 @@
             <form method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="ajouter">
+                {% if annee_scolaire_active %}
+                <div class="active-year-info" style="background: var(--primary-light, rgba(59, 130, 246, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--primary, #3b82f6);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6);"></i>
+                        <span style="font-weight: 500; color: var(--gray-800, #1f2937);">
+                            Cette période sera associée à l'année scolaire active : <strong>{{ annee_scolaire_active.libelle }}</strong>
+                        </span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="active-year-info" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--warning, #fbbf24);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
+                        <span style="font-weight: 500; color: var(--gray-800, #1f2937);">
+                            Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une période.
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Nom de la période <span>*</span></label>
@@ -78,11 +101,6 @@
                         <input type="date" name="date_fin" required>
                     </div>
 
-                    <div class="form-group">
-                        <label>Année scolaire <span>*</span></label>
-                        <input type="text" name="annee_scolaire" value="{{ annee_scolaire_actuelle }}" required placeholder="Ex: 2025-2026">
-                    </div>
-
                     <div class="form-group form-group-spacer">
                         <label class="form-label-hidden">Spacer</label>
                         <div class="checkbox-group">
@@ -104,6 +122,59 @@
                 </div>
             </form>
         </div>
+
+        <!-- Liste des années scolaires -->
+        {% if annees_scolaires %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-alt"></i>
+                Années scolaires enregistrées
+            </h2>
+            <div class="annees-scolaires-list">
+                {% for annee in annees_scolaires %}
+                <div class="annee-scolaire-card {% if annee.est_active %}active{% endif %}">
+                    <div class="annee-scolaire-header">
+                        <div class="annee-scolaire-libelle">
+                            <i class="fas fa-calendar-check"></i>
+                            <strong>{{ annee.libelle }}</strong>
+                        </div>
+                        <div class="annee-scolaire-badges">
+                            {% if annee.est_active %}
+                                <span class="badge badge-active">Session Active</span>
+                            {% endif %}
+                            {% if annee.est_ouverte %}
+                                <span class="badge badge-ouverte">Session Ouverte</span>
+                            {% endif %}
+                            {% if annee.est_en_cours %}
+                                <span class="badge badge-en-cours">En cours</span>
+                            {% elif annee.est_future %}
+                                <span class="badge badge-future">À venir</span>
+                            {% else %}
+                                <span class="badge badge-terminee">Terminée</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="annee-scolaire-info">
+                        <div class="info-item">
+                            <i class="fas fa-calendar-day"></i>
+                            <span>Du {{ annee.date_debut|date:"d/m/Y" }} au {{ annee.date_fin|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Durée : {{ annee.duree_jours }} jours</span>
+                        </div>
+                    </div>
+                    <div class="annee-scolaire-actions">
+                        <a href="{% url 'directeur:detail_annee_scolaire' annee.id %}" class="btn-details">
+                            <i class="fas fa-eye"></i>
+                            Voir les détails
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Liste des périodes -->
         <div class="section">
@@ -235,10 +306,6 @@
                         <label for="edit_date_fin">Date de fin</label>
                         <input type="date" id="edit_date_fin" name="date_fin" required>
                     </div>
-                    <div class="form-group">
-                        <label for="edit_annee_scolaire">Année scolaire</label>
-                        <input type="text" id="edit_annee_scolaire" name="annee_scolaire" required>
-                    </div>
                     <div class="form-group form-group-checkbox-row">
                         <input type="checkbox" id="edit_est_active" name="est_active">
                         <label for="edit_est_active" class="checkbox-label">Période active</label>
@@ -247,6 +314,85 @@
                 <div class="modal-footer modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closePeriodeModal('periodeEditModal')">Annuler</button>
                     <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Création Année Scolaire -->
+    <div class="modal-overlay fullscreen-modal" id="anneeScolaireModal" aria-hidden="true">
+        <div class="modal-dialog fullscreen-dialog" role="dialog" aria-labelledby="anneeScolaireModalTitle">
+            <div class="modal-header">
+                <h3 id="anneeScolaireModalTitle">
+                    <i class="fas fa-calendar-plus"></i>
+                    Créer une Année Scolaire
+                </h3>
+                <button type="button" class="modal-close" onclick="closeAnneeScolaireModal()" aria-label="Fermer la fenêtre">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form class="modal-form" method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}" id="formAnneeScolaire">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="creer_annee_scolaire">
+                <input type="hidden" name="libelle" id="hidden_libelle">
+                <input type="hidden" name="annee_debut" id="hidden_annee_debut">
+                <input type="hidden" name="annee_fin" id="hidden_annee_fin">
+                <div class="modal-body">
+                    <div class="form-preview-info">
+                        <div class="preview-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div class="preview-content">
+                                <span class="preview-label">Année scolaire</span>
+                                <span class="preview-value" id="preview_libelle">-</span>
+                            </div>
+                        </div>
+                        <div class="preview-item">
+                            <i class="fas fa-calendar-check"></i>
+                            <div class="preview-content">
+                                <span class="preview-label">Période</span>
+                                <span class="preview-value" id="preview_periode">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid-elegant">
+                        <div class="form-group-elegant">
+                            <label for="date_debut" class="label-elegant">
+                                <i class="fas fa-calendar-day"></i>
+                                Date de début <span class="required-star">*</span>
+                            </label>
+                            <input type="date" id="date_debut" name="date_debut" required class="input-elegant">
+                            <small class="form-hint">Date de début de l'année scolaire (généralement en septembre)</small>
+                        </div>
+                        
+                        <div class="form-group-elegant">
+                            <label for="date_fin" class="label-elegant">
+                                <i class="fas fa-calendar-check"></i>
+                                Date de fin <span class="required-star">*</span>
+                            </label>
+                            <input type="date" id="date_fin" name="date_fin" required class="input-elegant">
+                            <small class="form-hint">Date de fin de l'année scolaire (généralement en juin)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-elegant checkbox-elegant">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="est_ouverte" name="est_ouverte" class="checkbox-input">
+                            <label for="est_ouverte" class="checkbox-label-elegant">
+                                <i class="fas fa-unlock"></i>
+                                <span>Ouvrir la session immédiatement</span>
+                                <small>Permet l'accès à cette année scolaire avant la date de début</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAnneeScolaireModal()">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Créer l'année scolaire
+                    </button>
                 </div>
             </form>
         </div>
@@ -289,7 +435,599 @@
         </div>
     </div>
 
+    <style>
+        .fullscreen-modal {
+            z-index: 10000;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        .fullscreen-dialog {
+            width: 95%;
+            max-width: 800px;
+            max-height: 90vh;
+            height: auto;
+            margin: 2vh auto;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        .fullscreen-dialog .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200, #e5e7eb);
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            flex-shrink: 0;
+        }
+        .fullscreen-dialog .modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .fullscreen-dialog .modal-header .modal-close {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            font-size: 1rem;
+        }
+        .fullscreen-dialog .modal-header .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .fullscreen-dialog .modal-body {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--gray-50, #f9fafb);
+            min-height: 0;
+            max-height: calc(90vh - 140px);
+        }
+        .fullscreen-dialog .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-200, #e5e7eb);
+            background: white;
+            flex-shrink: 0;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        .fullscreen-dialog .modal-footer .btn {
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            min-width: 120px;
+        }
+        
+        /* Formulaire élégant */
+        .form-preview-info {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+        .preview-item i {
+            font-size: 1.5rem;
+            color: var(--info, #8b5cf6);
+            background: rgba(139, 92, 246, 0.1);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .preview-content {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .preview-label {
+            font-size: 0.75rem;
+            color: var(--gray-600, #4b5563);
+            margin-bottom: 0.125rem;
+        }
+        .preview-value {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--gray-800, #1f2937);
+            word-break: break-word;
+        }
+        
+        .form-grid-elegant {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group-elegant {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .label-elegant {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-weight: 600;
+            color: var(--gray-700, #374151);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .label-elegant i {
+            color: var(--info, #8b5cf6);
+            font-size: 0.875rem;
+        }
+        .required-star {
+            color: #ef4444;
+            font-size: 0.875rem;
+        }
+        
+        .input-elegant {
+            padding: 0.625rem 0.875rem;
+            border: 2px solid var(--gray-300, #d1d5db);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .input-elegant:focus {
+            outline: none;
+            border-color: var(--info, #8b5cf6);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        
+        .form-hint {
+            margin-top: 0.375rem;
+            font-size: 0.75rem;
+            color: var(--gray-500, #6b7280);
+            line-height: 1.4;
+        }
+        
+        .checkbox-elegant {
+            margin-top: 0.75rem;
+        }
+        .checkbox-wrapper {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .checkbox-label-elegant {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-label-elegant i {
+            color: var(--info, #8b5cf6);
+            margin-top: 0.125rem;
+            font-size: 0.875rem;
+        }
+        .checkbox-label-elegant span {
+            font-weight: 500;
+            color: var(--gray-800, #1f2937);
+            display: block;
+            margin-bottom: 0.125rem;
+            font-size: 0.875rem;
+        }
+        .checkbox-label-elegant small {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--gray-500, #6b7280);
+            line-height: 1.4;
+        }
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin-top: 0.125rem;
+            flex-shrink: 0;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .fullscreen-dialog {
+                width: 100%;
+                max-width: 100%;
+                max-height: 100vh;
+                height: 100vh;
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .fullscreen-dialog .modal-header {
+                padding: 0.875rem 1rem;
+                flex-shrink: 0;
+            }
+            
+            .fullscreen-dialog .modal-header h3 {
+                font-size: 1.125rem;
+            }
+            
+            .fullscreen-dialog .modal-body {
+                padding: 1rem;
+                max-height: calc(100vh - 140px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .fullscreen-dialog .modal-footer {
+                padding: 0.875rem 1rem;
+                flex-direction: column-reverse;
+                position: sticky;
+                bottom: 0;
+                background: white;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            }
+            
+            .fullscreen-dialog .modal-footer .btn {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
+                min-width: auto;
+            }
+            
+            .form-preview-info {
+                flex-direction: column;
+                gap: 0.75rem;
+                padding: 0.875rem;
+            }
+            
+            .preview-item {
+                gap: 0.625rem;
+            }
+            
+            .preview-item i {
+                width: 36px;
+                height: 36px;
+                font-size: 1.25rem;
+            }
+            
+            .preview-label {
+                font-size: 0.6875rem;
+            }
+            
+            .preview-value {
+                font-size: 0.875rem;
+            }
+            
+            .form-grid-elegant {
+                grid-template-columns: 1fr;
+                gap: 0.875rem;
+            }
+            
+            .label-elegant {
+                font-size: 0.8125rem;
+                margin-bottom: 0.375rem;
+            }
+            
+            .input-elegant {
+                padding: 0.625rem 0.75rem;
+                font-size: 0.875rem;
+            }
+            
+            .form-hint {
+                font-size: 0.6875rem;
+            }
+            
+            .checkbox-wrapper {
+                padding: 0.875rem;
+            }
+            
+            .checkbox-label-elegant span {
+                font-size: 0.8125rem;
+            }
+            
+            .checkbox-label-elegant small {
+                font-size: 0.6875rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .fullscreen-dialog .modal-header h3 {
+                font-size: 1rem;
+            }
+            
+            .preview-item i {
+                width: 32px;
+                height: 32px;
+                font-size: 1.125rem;
+            }
+            
+            .preview-value {
+                font-size: 0.8125rem;
+            }
+        }
+        
+        /* Styles pour les années scolaires */
+        .annees-scolaires-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .annee-scolaire-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 2px solid var(--gray-200, #e5e7eb);
+            transition: all 0.3s ease;
+        }
+        
+        .annee-scolaire-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .annee-scolaire-card.active {
+            border-color: var(--success, #10b981);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+        }
+        
+        .annee-scolaire-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .annee-scolaire-libelle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.125rem;
+            color: var(--gray-800, #1f2937);
+        }
+        
+        .annee-scolaire-libelle i {
+            color: var(--info, #8b5cf6);
+            font-size: 1.25rem;
+        }
+        
+        .annee-scolaire-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success, #10b981);
+        }
+        
+        .badge-ouverte {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--info, #8b5cf6);
+        }
+        
+        .badge-en-cours {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary, #3b82f6);
+        }
+        
+        .badge-future {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--warning, #fbbf24);
+        }
+        
+        .badge-terminee {
+            background: var(--gray-200, #e5e7eb);
+            color: var(--gray-600, #4b5563);
+        }
+        
+        .annee-scolaire-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--gray-600, #4b5563);
+        }
+        
+        .info-item i {
+            color: var(--gray-400, #9ca3af);
+            width: 16px;
+        }
+        
+        .annee-scolaire-actions {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-200, #e5e7eb);
+        }
+        
+        .btn-details {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary, #3b82f6);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-details:hover {
+            background: var(--primary, #2563eb);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-details i {
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .annees-scolaires-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .annee-scolaire-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .annee-scolaire-libelle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+
     <script>
+        // Gestion du modal année scolaire
+        const btnCreerAnneeScolaire = document.getElementById('btnCreerAnneeScolaire');
+        const anneeScolaireModal = document.getElementById('anneeScolaireModal');
+        
+        // Fonction pour calculer et mettre à jour les valeurs automatiques
+        function updateAnneeScolaireValues() {
+            const dateDebut = document.getElementById('date_debut').value;
+            const dateFin = document.getElementById('date_fin').value;
+            
+            if (dateDebut && dateFin) {
+                const debut = new Date(dateDebut);
+                const fin = new Date(dateFin);
+                
+                const anneeDebut = debut.getFullYear();
+                const anneeFin = fin.getFullYear();
+                const libelle = anneeDebut + '-' + anneeFin;
+                
+                // Mettre à jour les champs cachés
+                document.getElementById('hidden_libelle').value = libelle;
+                document.getElementById('hidden_annee_debut').value = anneeDebut;
+                document.getElementById('hidden_annee_fin').value = anneeFin;
+                
+                // Mettre à jour l'affichage de prévisualisation
+                document.getElementById('preview_libelle').textContent = libelle;
+                document.getElementById('preview_periode').textContent = 
+                    debut.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) + 
+                    ' - ' + 
+                    fin.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+            } else {
+                document.getElementById('preview_libelle').textContent = '-';
+                document.getElementById('preview_periode').textContent = '-';
+            }
+        }
+        
+        if (btnCreerAnneeScolaire) {
+            btnCreerAnneeScolaire.addEventListener('click', () => {
+                if (anneeScolaireModal) {
+                    anneeScolaireModal.classList.add('show');
+                    anneeScolaireModal.setAttribute('aria-hidden', 'false');
+                    // Auto-remplir avec des valeurs suggérées
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = now.getMonth() + 1;
+                    let anneeDebut = year;
+                    if (month >= 9) {
+                        anneeDebut = year + 1;
+                    }
+                    document.getElementById('date_debut').value = anneeDebut + '-09-01';
+                    document.getElementById('date_fin').value = (anneeDebut + 1) + '-06-30';
+                    // Calculer les valeurs automatiques
+                    updateAnneeScolaireValues();
+                }
+            });
+        }
+        
+        // Écouter les changements de dates pour mettre à jour automatiquement
+        const dateDebutInput = document.getElementById('date_debut');
+        const dateFinInput = document.getElementById('date_fin');
+        
+        if (dateDebutInput) {
+            dateDebutInput.addEventListener('change', updateAnneeScolaireValues);
+        }
+        if (dateFinInput) {
+            dateFinInput.addEventListener('change', updateAnneeScolaireValues);
+        }
+        
+        // Valider le formulaire avant soumission
+        const formAnneeScolaire = document.getElementById('formAnneeScolaire');
+        if (formAnneeScolaire) {
+            formAnneeScolaire.addEventListener('submit', function(e) {
+                updateAnneeScolaireValues();
+                const dateDebut = document.getElementById('date_debut').value;
+                const dateFin = document.getElementById('date_fin').value;
+                
+                if (!dateDebut || !dateFin) {
+                    e.preventDefault();
+                    alert('Veuillez remplir les dates de début et de fin.');
+                    return false;
+                }
+                
+                const debut = new Date(dateDebut);
+                const fin = new Date(dateFin);
+                
+                if (fin <= debut) {
+                    e.preventDefault();
+                    alert('La date de fin doit être après la date de début.');
+                    return false;
+                }
+            });
+        }
+        
+        function closeAnneeScolaireModal() {
+            if (anneeScolaireModal) {
+                anneeScolaireModal.classList.remove('show');
+                anneeScolaireModal.setAttribute('aria-hidden', 'true');
+                anneeScolaireModal.querySelector('form').reset();
+            }
+        }
+        
+        window.closeAnneeScolaireModal = closeAnneeScolaireModal;
+        
+        // Fermer avec Escape
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeAnneeScolaireModal();
+            }
+        });
+        
+        // Fermer en cliquant sur l'overlay
+        if (anneeScolaireModal) {
+            anneeScolaireModal.addEventListener('click', (event) => {
+                if (event.target === anneeScolaireModal) {
+                    closeAnneeScolaireModal();
+                }
+            });
+        }
+        
         // Gestion de l'affichage/masquage du formulaire
         const btnAjouterPeriode = document.getElementById('btnAjouterPeriode');
         const btnAnnuler = document.getElementById('btnAnnuler');
@@ -319,7 +1057,6 @@
             document.getElementById('edit_type_periode').value = button.dataset.type || 'trimestre';
             document.getElementById('edit_date_debut').value = button.dataset.debut || '';
             document.getElementById('edit_date_fin').value = button.dataset.fin || '';
-            document.getElementById('edit_annee_scolaire').value = button.dataset.annee || '';
             document.getElementById('edit_est_active').checked = button.dataset.active === 'true';
             editModal.classList.add('show');
             editModal.setAttribute('aria-hidden', 'false');

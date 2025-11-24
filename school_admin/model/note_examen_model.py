@@ -60,6 +60,14 @@ class NoteExamen(models.Model):
         related_name='notes_examens',
         verbose_name="Classe"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notes_examens_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     
     note = models.DecimalField(
         max_digits=5,

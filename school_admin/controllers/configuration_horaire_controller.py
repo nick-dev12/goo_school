@@ -12,6 +12,7 @@ from django.shortcuts import redirect, render
 from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
 from ..model.etablissement_model import Etablissement
 from ..model.personnel_administratif_model import PersonnelAdministratif
+from ..utils.session_utils import get_session_active
 
 logger = logging.getLogger(__name__)
 
@@ -48,15 +49,32 @@ class ConfigurationHoraireController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
-        # Récupérer ou créer la configuration horaire
-        configuration, created = ConfigurationHoraire.objects.get_or_create(
-            etablissement=etablissement,
-            defaults={
-                'heure_debut_cours': '08:00',
-                'heure_fin_cours': '16:00',
-                'actif': True
-            }
-        )
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de configurer les horaires.")
+            return redirect('directeur:creer_annee_scolaire_obligatoire')
+        
+        # Récupérer ou créer la configuration horaire (OneToOneField avec etablissement)
+        # Il ne peut y avoir qu'une seule configuration par établissement
+        try:
+            configuration = ConfigurationHoraire.objects.get(etablissement=etablissement)
+            created = False
+            # Mettre à jour l'année scolaire active si nécessaire
+            if configuration.annee_scolaire != annee_scolaire_active:
+                configuration.annee_scolaire = annee_scolaire_active
+                configuration.save(update_fields=['annee_scolaire'])
+        except ConfigurationHoraire.DoesNotExist:
+            # Créer une nouvelle configuration avec l'année scolaire active
+            configuration = ConfigurationHoraire.objects.create(
+                etablissement=etablissement,
+                heure_debut_cours='08:00',
+                heure_fin_cours='16:00',
+                actif=True,
+                annee_scolaire=annee_scolaire_active
+            )
+            created = True
         
         if created:
             messages.success(request, "Configuration horaire créée avec les valeurs par défaut.")
@@ -173,6 +191,7 @@ class ConfigurationHoraireController:
             'form_data': form_data,
             'field_errors': field_errors,
             'periodes': periodes,
+            'annee_scolaire_active': annee_scolaire_active,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/configuration_horaires.html', context)
@@ -194,11 +213,21 @@ class ConfigurationHoraireController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
-        # Récupérer la configuration horaire
-        configuration = ConfigurationHoraire.objects.filter(etablissement=etablissement).first()
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de gérer les périodes.")
+            return redirect('directeur:creer_annee_scolaire_obligatoire')
+        
+        # Récupérer la configuration horaire pour l'année scolaire active
+        configuration = ConfigurationHoraire.objects.filter(
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire_active
+        ).first()
         
         if not configuration:
-            messages.error(request, "Veuillez d'abord configurer les horaires de base.")
+            messages.error(request, "Veuillez d'abord configurer les horaires de base pour l'année scolaire active.")
             return redirect('administrateur_etablissement:configuration_horaires')
         
         if request.method == 'POST':
@@ -244,7 +273,8 @@ class ConfigurationHoraireController:
                             heure_debut=heure_debut_obj,
                             heure_fin=heure_fin_obj,
                             ordre=dernier_ordre + 1,
-                            actif=True
+                            actif=True,
+                            annee_scolaire=annee_scolaire_active
                         )
                         
                         messages.success(request, f"Période '{periode.nom}' ajoutée avec succès !")
@@ -291,6 +321,9 @@ class ConfigurationHoraireController:
                     periode.type_periode = type_periode
                     periode.heure_debut = heure_debut_obj
                     periode.heure_fin = heure_fin_obj
+                    # Conserver l'année scolaire active
+                    if periode.annee_scolaire != annee_scolaire_active:
+                        periode.annee_scolaire = annee_scolaire_active
                     periode.save()
                     messages.success(request, f"Période « {periode.nom} » mise à jour avec succès.")
                 except PeriodeEtablissement.DoesNotExist:
@@ -319,9 +352,10 @@ class ConfigurationHoraireController:
                 
                 return redirect('administrateur_etablissement:gerer_periodes')
         
-        # Récupérer les périodes existantes
+        # Récupérer les périodes existantes pour l'année scolaire active
         periodes = PeriodeEtablissement.objects.filter(
             configuration_horaire=configuration,
+            annee_scolaire=annee_scolaire_active,
             actif=True
         ).order_by('ordre')
         
@@ -330,6 +364,7 @@ class ConfigurationHoraireController:
             'personnel': personnel,
             'configuration': configuration,
             'periodes': periodes,
+            'annee_scolaire_active': annee_scolaire_active,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/gerer_periodes.html', context)

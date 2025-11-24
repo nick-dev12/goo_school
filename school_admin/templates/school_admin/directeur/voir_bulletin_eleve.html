@@ -52,7 +52,7 @@
           </div>
           <div class="institution-right">
             <div class="institution-meta">
-              <p><strong>Année scolaire :</strong> {{ periode.annee_scolaire }}</p>
+              <p><strong>Année scolaire :</strong> {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ periode.annee_scolaire|default:"Non spécifiée" }}{% endif %}</p>
               <p><strong>Période :</strong> {{ periode.nom_periode }}</p>
               <p><strong>Date d'édition :</strong> {{ date_generation|date:"d/m/Y" }}</p>
               <p><strong>Effectif :</strong> {{ classe_effectif }} élève{{ classe_effectif|pluralize }}</p>

@@ -19,8 +19,10 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.1"
+        href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.2"
     />
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
 </head>
 <body>
     <!-- Header -->
@@ -149,11 +151,13 @@
                                        id="telephone" 
                                        name="telephone" 
                                        value="{{ form_data.telephone }}"
-                                       placeholder="Ex: +237 123 456 789"
+                                       placeholder=""
                                        required>
+                                <input type="hidden" name="telephone_full" id="telephone_full">
                                 {% if field_errors.telephone %}
                                     <div class="invalid-feedback">{{ field_errors.telephone }}</div>
                                 {% endif %}
+                                <small class="form-text" id="phone-error" style="color: #dc3545; display: none;"></small>
                             </div>
                         </div>
                     </div>
@@ -280,7 +284,118 @@
     </div>
 
     <!-- Scripts -->
+    <!-- intl-tel-input JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    
     <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}"></script>
+    
+    <!-- Script d'initialisation intl-tel-input -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.querySelector("#telephone");
+            const phoneFullInput = document.querySelector("#telephone_full");
+            const phoneError = document.querySelector("#phone-error");
+            const form = document.querySelector("#ajouterProfesseurForm");
+            
+            // Initialisation de intl-tel-input
+            const iti = window.intlTelInput(phoneInput, {
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js",
+                separateDialCode: true,
+                initialCountry: "auto",
+                preferredCountries: ["sn", "ci", "cm", "fr"],
+                geoIpLookup: function(callback) {
+                    fetch("https://ipapi.co/json")
+                        .then(function(res) {
+                            return res.json();
+                        })
+                        .then(function(data) {
+                            callback(data.country_code);
+                        })
+                        .catch(function() {
+                            callback("sn");
+                        });
+                },
+                nationalMode: false,
+                autoFormat: true,
+                autoPlaceholder: "aggressive"
+            });
+            
+            // Validation en temps réel
+            phoneInput.addEventListener('blur', function() {
+                if (phoneInput.value.trim()) {
+                    if (iti.isValidNumber()) {
+                        phoneError.style.display = 'none';
+                        phoneError.textContent = '';
+                        phoneInput.classList.remove('is-invalid');
+                        phoneFullInput.value = iti.getNumber();
+                    } else {
+                        const errorCode = iti.getValidationError();
+                        let errorMessage = 'Numéro de téléphone invalide.';
+                        
+                        switch(errorCode) {
+                            case window.intlTelInputUtils.validationError.TOO_SHORT:
+                                errorMessage = 'Le numéro de téléphone est trop court.';
+                                break;
+                            case window.intlTelInputUtils.validationError.TOO_LONG:
+                                errorMessage = 'Le numéro de téléphone est trop long.';
+                                break;
+                            case window.intlTelInputUtils.validationError.INVALID_COUNTRY_CODE:
+                                errorMessage = 'Code pays invalide.';
+                                break;
+                            case window.intlTelInputUtils.validationError.INVALID_LENGTH:
+                                errorMessage = 'Longueur du numéro invalide.';
+                                break;
+                            case window.intlTelInputUtils.validationError.NOT_A_NUMBER:
+                                errorMessage = 'Ceci n\'est pas un numéro de téléphone valide.';
+                                break;
+                        }
+                        
+                        phoneError.textContent = errorMessage;
+                        phoneError.style.display = 'block';
+                        phoneInput.classList.add('is-invalid');
+                        phoneFullInput.value = '';
+                    }
+                }
+            });
+            
+            // Réinitialiser l'erreur quand l'utilisateur tape
+            phoneInput.addEventListener('input', function() {
+                phoneError.style.display = 'none';
+                phoneInput.classList.remove('is-invalid');
+            });
+            
+            // Récupérer le numéro formaté avant la soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                if (phoneInput.value.trim()) {
+                    if (iti.isValidNumber()) {
+                        // Remplir le champ hidden avec le numéro au format E.164
+                        phoneFullInput.value = iti.getNumber();
+                        // Optionnel : remplir aussi le champ visible avec le numéro formaté
+                        phoneInput.value = iti.getNumber();
+                    } else {
+                        // Empêcher la soumission si le numéro n'est pas valide
+                        e.preventDefault();
+                        phoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
+                        phoneError.style.display = 'block';
+                        phoneInput.classList.add('is-invalid');
+                        phoneInput.focus();
+                        return false;
+                    }
+                }
+            });
+            
+            // Si une valeur existe déjà, la formater
+            if (phoneInput.value) {
+                try {
+                    iti.setNumber(phoneInput.value);
+                    phoneFullInput.value = iti.getNumber();
+                } catch (e) {
+                    console.log('Erreur lors du formatage du numéro existant:', e);
+                }
+            }
+        });
+    </script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

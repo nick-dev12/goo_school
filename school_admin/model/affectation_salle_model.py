@@ -41,6 +41,14 @@ class AffectationSalle(models.Model):
         related_name='affectations_classes',
         verbose_name="Salle"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='affectations_salles',
+        verbose_name="Année scolaire"
+    )
     
     # Informations d'affectation
     jour_semaine = models.CharField(

@@ -13,8 +13,12 @@ urlpatterns = [
     # URLs pour la gestion des classes
     path('classes/', ClasseController.liste_classes, name='liste_classes'),
     path('classes/ajouter/', ClasseController.ajouter_classe, name='ajouter_classe'),
-    path('classes/<int:classe_id>/', ClasseController.detail_classe, name='detail_classe'),
+    # URLs spécifiques avant l'URL générique detail_classe pour éviter les conflits
+    path('classes/<int:classe_id>/data/', ClasseController.get_classe_data, name='get_classe_data'),
+    path('classes/<int:classe_id>/modifier/', ClasseController.modifier_classe, name='modifier_classe'),
+    path('classes/<int:classe_id>/supprimer/', ClasseController.supprimer_classe, name='supprimer_classe'),
     path('classes/<int:classe_id>/toggle/', ClasseController.toggle_actif, name='toggle_actif'),
+    path('classes/<int:classe_id>/', ClasseController.detail_classe, name='detail_classe'),
     
     # URLs pour la gestion des emplois du temps
     path('emplois-du-temps/', EmploiDuTempsController.liste_emplois_du_temps, name='liste_emplois_du_temps'),

@@ -17,6 +17,14 @@ class ConfigurationHoraire(models.Model):
         related_name='configuration_horaire',
         verbose_name="Établissement"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='configurations_horaires',
+        verbose_name="Année scolaire"
+    )
     
     # Horaires globaux
     heure_debut_cours = models.TimeField(
@@ -68,6 +76,14 @@ class PeriodeEtablissement(models.Model):
         on_delete=models.CASCADE,
         related_name='periodes',
         verbose_name="Configuration horaire"
+    )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='periodes_etablissement',
+        verbose_name="Année scolaire"
     )
     
     # Informations de la période

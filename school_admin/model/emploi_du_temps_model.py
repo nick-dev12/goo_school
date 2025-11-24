@@ -39,6 +39,14 @@ class EmploiDuTemps(models.Model):
         verbose_name="Année scolaire",
         help_text="Ex: 2023-2024"
     )
+    annee_scolaire_fk = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='emplois_du_temps',
+        verbose_name="Année scolaire (référence)"
+    )
     
     # Statut
     est_actif = models.BooleanField(

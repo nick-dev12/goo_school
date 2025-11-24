@@ -38,6 +38,14 @@ class SessionExamen(models.Model):
         related_name='sessions_examens',
         verbose_name="Période scolaire"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sessions_examens_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     
     # Les classes concernées (relation many-to-many)
     classes = models.ManyToManyField(

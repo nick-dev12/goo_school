@@ -117,12 +117,39 @@ class AuthenticationMiddleware:
                 elif fonction == 'administrateur':
                     return redirect('school_admin:dashboard')
             
-            # Si c'est un Etablissement, rediriger vers le dashboard directeur
+            # Si c'est un Etablissement, vérifier qu'une année scolaire active existe
             elif isinstance(request.user, Etablissement):
+                from .model.annee_scolaire_model import AnneeScolaire
+                from .utils.session_utils import get_session_active
+                
+                etablissement = request.user
+                annee_active = get_session_active(request, etablissement)
+                
+                # Si aucune année active n'existe, rediriger vers la création obligatoire
+                if not annee_active:
+                    return redirect('directeur:creer_annee_scolaire_obligatoire')
+                
+                # Définir la session active dans la session utilisateur
+                request.session['annee_scolaire_consultee_id'] = annee_active.id
+                request.session['school_year_id'] = annee_active.id
+                
                 return redirect('directeur:dashboard_directeur')
             
-            # Si c'est un Professeur, rediriger vers le dashboard enseignant
+            # Si c'est un Professeur, récupérer l'année scolaire active et rediriger vers le dashboard enseignant
             elif isinstance(request.user, Professeur):
+                professeur = request.user
+                if hasattr(professeur, 'etablissement') and professeur.etablissement:
+                    from .model.annee_scolaire_model import AnneeScolaire
+                    from .utils.session_utils import get_session_active
+                    
+                    etablissement = professeur.etablissement
+                    annee_active = get_session_active(request, etablissement)
+                    
+                    # Si une année active existe, définir automatiquement la session
+                    if annee_active:
+                        request.session['annee_scolaire_consultee_id'] = annee_active.id
+                        request.session['school_year_id'] = annee_active.id
+                
                 return redirect('enseignant:dashboard_enseignant')
             
             # Si c'est un PersonnelAdministratif, rediriger vers le dashboard personnel
@@ -132,6 +159,76 @@ class AuthenticationMiddleware:
             # Si c'est un Eleve, rediriger vers le dashboard élève
             elif isinstance(request.user, Eleve):
                 return redirect('eleve:dashboard_eleve')
+        
+        response = self.get_response(request)
+        return response
+
+
+class SessionActiveMiddleware:
+    """
+    Middleware pour gérer la redirection automatique vers une nouvelle session ouverte
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # URLs à exclure de la vérification de session
+        creation_obligatoire_path = reverse('directeur:creer_annee_scolaire_obligatoire')
+        excluded_paths = [
+            '/admin/',
+            '/static/',
+            '/media/',
+            '/connexion/',
+            '/inscription/',
+            '/password-reset/',
+            '/session/info/',
+            '/session/changer/',
+            creation_obligatoire_path,
+        ]
+        
+        # Vérifier si le chemin est exclu
+        is_excluded = any(request.path.startswith(path) for path in excluded_paths)
+        if request.path.endswith('/activer/'):
+            is_excluded = True
+        
+        # Ne vérifier que pour les utilisateurs authentifiés et non exclus
+        if request.user.is_authenticated and not is_excluded:
+            try:
+                from .utils.session_utils import get_session_active, set_session_consultee
+                from .model.etablissement_model import Etablissement
+                
+                # Récupérer l'établissement selon le type d'utilisateur
+                etablissement = None
+                if isinstance(request.user, Etablissement):
+                    etablissement = request.user
+                elif hasattr(request.user, 'etablissement'):
+                    etablissement = request.user.etablissement
+                
+                if etablissement:
+                    # Vérifier si une année scolaire active existe
+                    annee_active = get_session_active(request, etablissement)
+                    
+                    # Si c'est un directeur et qu'aucune année active n'existe
+                    # ET qu'il n'est pas déjà sur la page de création obligatoire
+                    if isinstance(request.user, Etablissement) and not annee_active:
+                        if request.path != creation_obligatoire_path:
+                            from django.shortcuts import redirect
+                            return redirect('directeur:creer_annee_scolaire_obligatoire')
+                    
+                    # Si une année active existe, définir automatiquement la session
+                    # Pour les directeurs ET les professeurs
+                    if annee_active:
+                        if not request.session.get('annee_scolaire_consultee_id') or \
+                           request.session.get('annee_scolaire_consultee_id') != annee_active.id:
+                            request.session['annee_scolaire_consultee_id'] = annee_active.id
+                            request.session['school_year_id'] = annee_active.id
+                            set_session_consultee(request, annee_active)
+            
+            except Exception as e:
+                # En cas d'erreur, continuer normalement
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erreur dans SessionActiveMiddleware: {e}", exc_info=True)
         
         response = self.get_response(request)
         return response

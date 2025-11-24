@@ -24,6 +24,14 @@ class Convocation(models.Model):
         verbose_name="Établissement",
         help_text="Établissement émetteur de la convocation"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='convocations_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     
     # Informations de la convocation
     objet = models.CharField(

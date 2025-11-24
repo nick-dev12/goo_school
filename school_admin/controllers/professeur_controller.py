@@ -199,15 +199,26 @@ class ProfesseurController:
                     'primary': 'primaire',
                     'collège': 'college',
                     'lycée': 'lycee',
+                    'lycee': 'lycee',  # Version sans accent (base de données)
+                    'collège_lycée': 'college',  # Par défaut pour collège+lycée
+                    'coll�ge_lyc�e': 'college',  # Version avec caractères spéciaux
+                    'mixte': 'primaire',  # Par défaut pour mixte
                 }
-                return mapping.get(type_etablissement, 'primaire')  # Par défaut 'primaire' si non trouvé
+                niveau = mapping.get(type_etablissement, 'primaire')
+                logger.info(f"Niveau professeur déterminé: '{niveau}' pour établissement type '{type_etablissement}'")
+                return niveau
             
             # Récupération des données
+            # Pour le téléphone, utiliser le numéro formaté (telephone_full) s'il existe, sinon utiliser telephone
+            telephone_value = request.POST.get('telephone_full', '').strip()
+            if not telephone_value:
+                telephone_value = request.POST.get('telephone', '').strip()
+            
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
-                'telephone': request.POST.get('telephone', '').strip(),
+                'telephone': telephone_value,
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }
@@ -706,30 +717,26 @@ class ProfesseurController:
         # Fonction pour déterminer le niveau d'enseignement en fonction du type d'établissement
         def get_niveau_from_type_etablissement(type_etablissement):
             """Détermine le niveau d'enseignement en fonction du type d'établissement"""
-            type_etablissement_lower = str(type_etablissement).lower()
+            type_etablissement_str = str(type_etablissement)
             
-            # Établissements primaires
-            if type_etablissement_lower in ['primary', 'primaire']:
-                return 'primaire'
+            # Mapping direct pour éviter les problèmes d'encodage
+            mapping = {
+                'primary': 'primaire',
+                'primaire': 'primaire',
+                'collège': 'college',
+                'college': 'college',
+                'lycée': 'lycee',
+                'lycee': 'lycee',
+                'collège_lycée': 'lycee',  # Par défaut pour collège+lycée
+                'college_lycee': 'lycee',
+                'lycee_college': 'lycee',
+                'collège_lycée': 'lycee',  # Version avec caractères spéciaux
+                'mixte': 'primaire',  # Par défaut pour mixte
+            }
             
-            # Établissements collège
-            elif type_etablissement_lower in ['collège', 'college']:
-                return 'college'
-            
-            # Établissements lycée
-            elif type_etablissement_lower in ['lycée', 'lycee']:
-                return 'lycee'
-            
-            # Établissements collège + lycée
-            elif type_etablissement_lower in ['collège_lycée', 'lycee_college', 'college_lycee']:
-                return 'college'  # On prend le niveau le plus bas
-            
-            # Établissements mixtes (primaire + collège + lycée)
-            elif type_etablissement_lower in ['mixte']:
-                return 'primaire'  # On prend le niveau le plus bas
-            
-            # Par défaut, on retourne 'primaire'
-            return 'primaire'
+            niveau = mapping.get(type_etablissement_str, 'primaire')
+            logger.info(f"Niveau professeur (modification) déterminé: '{niveau}' pour établissement type '{type_etablissement_str}'")
+            return niveau
         
         form_data = {}
         field_errors = {}
@@ -737,11 +744,16 @@ class ProfesseurController:
         
         if request.method == 'POST':
             # Récupération des données
+            # Pour le téléphone, utiliser le numéro formaté (telephone_full) s'il existe, sinon utiliser telephone
+            telephone_value = request.POST.get('telephone_full', '').strip()
+            if not telephone_value:
+                telephone_value = request.POST.get('telephone', '').strip()
+            
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
-                'telephone': request.POST.get('telephone', '').strip(),
+                'telephone': telephone_value,
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }

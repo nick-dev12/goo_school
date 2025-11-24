@@ -31,7 +31,7 @@
       <div class="receipt-header">
         <div class="ministry-info">
           <div class="ministry-name">MINISTÈRE DE L'ÉDUCATION NATIONALE</div>
-          <div class="regional-directorate">DIRECTION RÉGIONALE DE {{ etablissement_info.ville|upper }}</div>
+          <div class="regional-directorate">DIRECTION DE {{ etablissement_info.ville|upper }}</div>
           <div class="school-name">{{ etablissement_info.nom|upper }}</div>
           <div class="school-address">{{ etablissement_info.adresse }} - {{ etablissement_info.ville }}</div>
           <div class="school-contact">
@@ -39,7 +39,6 @@
           </div>
         </div>
         <div class="receipt-info">
-          <div class="academic-year">Année Scolaire 2024-2025</div>
           <div class="receipt-title">REÇU D'INSCRIPTION N°</div>
           <div class="receipt-number">{{ eleve.matricule_eleve|default:eleve_info.numero_eleve }}</div>
           <div class="receipt-date">Édition du {{ "now"|date:"d/m/Y H:i:s" }}</div>

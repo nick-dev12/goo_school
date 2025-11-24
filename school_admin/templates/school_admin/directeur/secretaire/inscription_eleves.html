@@ -1,34 +1,19 @@
-
-
 <!DOCTYPE html>
 {% load static %}
 <html lang="fr">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Inscription des Élèves - {{ etablissement.nom }}</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_secretaire.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=1.0.1"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/partials/messages.css' %}"
-    />
-  </head>
-  <body>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_secretaire.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
+</head>
+<body>
     <!-- Header -->
     {% if user.is_authenticated %}
         {% if user.directeur_prenom %}
@@ -41,546 +26,701 @@
     {% endif %}
 
     <!-- Main Content Container -->
-    <div class="container">
-      <!-- Page Header -->
-      <div class="page-header">
-        <div class="page-title-section">
-          <h1 class="page-title">
-            <i class="fas fa-user-graduate"></i>
-            Inscription des Élèves
-          </h1>
-          <p class="page-subtitle">
-            Enregistrer de nouveaux élèves dans {{ etablissement.nom }}
-          </p>
-        </div>
-        <div class="page-actions">
-          <a href="{% url 'secretaire:dashboard_secretaire' %}" class="btn-secondary">
-            <i class="fas fa-arrow-left"></i>
-            <span>Retour au tableau de bord</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Messages Django -->
-      {% include 'school_admin/partials/messages.html' %}
-
-      <!-- Indicateur d'étapes -->
-      <div class="form-steps-indicator">
-        <div class="step-indicator active">
-          <div class="step-number">1</div>
-          <span>Informations personnelles</span>
-        </div>
-        <div class="step-separator"></div>
-        <div class="step-indicator active">
-          <div class="step-number">2</div>
-          <span>Informations scolaires</span>
-        </div>
-        <div class="step-separator"></div>
-        <div class="step-indicator active">
-          <div class="step-number">3</div>
-          <span>Parents/Tuteur</span>
-        </div>
-        <div class="step-separator"></div>
-        <div class="step-indicator active">
-          <div class="step-number">4</div>
-          <span>Documents</span>
-        </div>
-      </div>
-
-      <!-- Formulaire d'inscription -->
-      <div class="inscription-container">
-        <div class="inscription-form-card">
-          <div class="form-header">
-            <h2 class="form-title">
-              <i class="fas fa-user-plus"></i>
-              Informations de l'élève
-            </h2>
-            <p class="form-subtitle">Remplissez les informations requises pour inscrire un nouvel élève</p>
-          </div>
-
-          <form method="post" action="{% url 'secretaire:inscription_eleves' %}" class="inscription-form" id="inscriptionForm">
-            {% csrf_token %}
-            
-            <!-- Affichage des erreurs globales -->
-            {% for key, error in field_errors.items %}
-                {% if key == '__all__' %}
-                <div class="alert alert-danger" style="margin-bottom: 20px; padding: 15px; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 8px;">
-                    <i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 10px;"></i>
-                    <strong>Erreur d'inscription :</strong> {{ error }}
+    <div class="main-content-wrapper">
+        <!-- Page Header -->
+        <div class="page-header-modern">
+            <div class="header-background-gradient"></div>
+            <div class="header-content">
+                <div class="header-icon-circle">
+                    <i class="fas fa-user-graduate"></i>
                 </div>
-                {% endif %}
-            {% endfor %}
-            
-            <!-- Étape 1: Informations personnelles -->
-            <div class="form-section" data-step="1">
-              <h3 class="section-title">
-                <i class="fas fa-user"></i>
-                Informations personnelles
-              </h3>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="nom">Nom de famille *</label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
-                         id="nom" 
-                         name="nom" 
-                         value="{{ form_data.nom }}"
-                         placeholder="Ex: Dupont"
-                         required>
-                  {% if field_errors.nom %}
-                    <div class="invalid-feedback">{{ field_errors.nom }}</div>
-                  {% endif %}
+                <div class="header-text">
+                    <h1 class="page-title-modern">Inscription des Élèves</h1>
+                    <p class="page-subtitle-modern">{{ etablissement.nom }}</p>
                 </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="prenom">Prénom *</label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.prenom %}is-invalid{% endif %}" 
-                         id="prenom" 
-                         name="prenom" 
-                         value="{{ form_data.prenom }}"
-                         placeholder="Ex: Marie"
-                         required>
-                  {% if field_errors.prenom %}
-                    <div class="invalid-feedback">{{ field_errors.prenom }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="date_naissance">Date de naissance *</label>
-                  <input type="date" 
-                         class="form-control {% if field_errors.date_naissance %}is-invalid{% endif %}" 
-                         id="date_naissance" 
-                         name="date_naissance" 
-                         value="{{ form_data.date_naissance }}"
-                         required>
-                  {% if field_errors.date_naissance %}
-                    <div class="invalid-feedback">{{ field_errors.date_naissance }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="lieu_naissance">Lieu de naissance *</label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.lieu_naissance %}is-invalid{% endif %}" 
-                         id="lieu_naissance" 
-                         name="lieu_naissance" 
-                         value="{{ form_data.lieu_naissance }}"
-                         placeholder="Ex: Paris"
-                         required>
-                  {% if field_errors.lieu_naissance %}
-                    <div class="invalid-feedback">{{ field_errors.lieu_naissance }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="sexe">Sexe *</label>
-                  <select class="form-control {% if field_errors.sexe %}is-invalid{% endif %}" id="sexe" name="sexe" required>
-                    <option value="">Sélectionnez le sexe</option>
-                    <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
-                    <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
-                  </select>
-                  {% if field_errors.sexe %}
-                    <div class="invalid-feedback">{{ field_errors.sexe }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="nationalite">Nationalité *</label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.nationalite %}is-invalid{% endif %}" 
-                         id="nationalite" 
-                         name="nationalite" 
-                         value="{{ form_data.nationalite }}"
-                         placeholder="Ex: Française"
-                         required>
-                  {% if field_errors.nationalite %}
-                    <div class="invalid-feedback">{{ field_errors.nationalite }}</div>
-                   {% endif %}
-                 </div>
-               </div>
-
-               <!-- Informations de contact (optionnelles) -->
-               <div class="form-row">
-                 <div class="form-group">
-                   <label class="form-label" for="adresse">Adresse de résidence <span class="optional-label">(optionnel)</span></label>
-                   <textarea class="form-control {% if field_errors.adresse %}is-invalid{% endif %}" 
-                             id="adresse" 
-                             name="adresse" 
-                             rows="3"
-                             placeholder="Adresse complète de résidence (optionnel)">{{ form_data.adresse }}</textarea>
-                   {% if field_errors.adresse %}
-                     <div class="invalid-feedback">{{ field_errors.adresse }}</div>
-                   {% endif %}
-                 </div>
-               </div>
-
-               <div class="form-row">
-                 <div class="form-group">
-                   <label class="form-label" for="telephone">Téléphone de l'élève <span class="optional-label">(optionnel)</span></label>
-                   <input type="tel" 
-                          class="form-control {% if field_errors.telephone %}is-invalid{% endif %}" 
-                          id="telephone" 
-                          name="telephone" 
-                          value="{{ form_data.telephone }}"
-                          placeholder="Numéro de téléphone de l'élève (optionnel)">
-                   {% if field_errors.telephone %}
-                     <div class="invalid-feedback">{{ field_errors.telephone }}</div>
-                   {% endif %}
-                 </div>
-                 
-                 <div class="form-group">
-                   <label class="form-label" for="email">Email de l'élève <span class="optional-label">(optionnel)</span></label>
-                   <input type="email" 
-                          class="form-control {% if field_errors.email %}is-invalid{% endif %}" 
-                          id="email" 
-                          name="email" 
-                          value="{{ form_data.email }}"
-                          placeholder="Adresse email de l'élève (optionnel)">
-                   {% if field_errors.email %}
-                     <div class="invalid-feedback">{{ field_errors.email }}</div>
-                   {% endif %}
-                 </div>
-               </div>
-             </div>
-
-            <!-- Étape 2: Informations scolaires -->
-            <div class="form-section" data-step="2">
-              <h3 class="section-title">
-                <i class="fas fa-graduation-cap"></i>
-                Informations scolaires
-              </h3>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="classe">Classe d'affectation *</label>
-                  <select class="form-control {% if field_errors.classe %}is-invalid{% endif %}" id="classe" name="classe" required>
-                    <option value="">Sélectionnez une classe</option>
-                    {% for classe in classes %}
-                      <option value="{{ classe.id }}" {% if form_data.classe == classe.id|stringformat:"s" %}selected{% endif %}>
-                        {{ classe.nom }} ({{ classe.get_niveau_display }})
-                      </option>
-                    {% endfor %}
-                  </select>
-                  {% if field_errors.classe %}
-                    <div class="invalid-feedback">{{ field_errors.classe }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="date_inscription">Date d'inscription *</label>
-                  <input type="date" 
-                         class="form-control {% if field_errors.date_inscription %}is-invalid{% endif %}" 
-                         id="date_inscription" 
-                         name="date_inscription" 
-                         value="{{ form_data.date_inscription }}"
-                         required>
-                  {% if field_errors.date_inscription %}
-                    <div class="invalid-feedback">{{ field_errors.date_inscription }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="statut">Type d'inscription *</label>
-                  <select class="form-control {% if field_errors.statut %}is-invalid{% endif %}" id="statut" name="statut" required>
-                    <option value="">Sélectionnez un type</option>
-                    <option value="nouvelle" {% if form_data.statut == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
-                    <option value="reinscription" {% if form_data.statut == 'reinscription' %}selected{% endif %}>Réinscription</option>
-                  </select>
-                  {% if field_errors.statut %}
-                    <div class="invalid-feedback">{{ field_errors.statut }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="numero_eleve">Numéro d'élève</label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.numero_eleve %}is-invalid{% endif %}" 
-                         id="numero_eleve" 
-                         name="numero_eleve" 
-                         value="{{ form_data.numero_eleve }}"
-                         placeholder="Généré automatiquement côté serveur"
-                         readonly>
-                  {% if field_errors.numero_eleve %}
-                    <div class="invalid-feedback">{{ field_errors.numero_eleve }}</div>
-                  {% endif %}
-                  <small class="form-text text-muted">
-                    <i class="fas fa-info-circle"></i>
-                    Le numéro d'élève est généré automatiquement côté serveur
-                  </small>
-                </div>
-              </div>
+                <a href="{% url 'secretaire:dashboard_secretaire' %}" class="btn-back-modern">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                </a>
             </div>
-
-            <!-- Étape 3: Informations du parent/tuteur -->
-            <div class="form-section" data-step="3">
-              <h3 class="section-title">
-                <i class="fas fa-user-friends"></i>
-                Informations du parent/tuteur
-              </h3>
-              
-              <!-- Instructions -->
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                <strong>Instructions :</strong> Remplissez les informations de la personne responsable de l'élève (parent, tuteur légal, etc.).
-              </div>
-
-              <!-- Champs du parent/tuteur -->
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="parent_nom">Nom du parent/tuteur <span class="required-label">*</span></label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.parent_nom %}is-invalid{% endif %}" 
-                         id="parent_nom" 
-                         name="parent_nom" 
-                         value="{{ form_data.parent_nom }}"
-                         placeholder="Nom de famille du parent/tuteur"
-                         required>
-                  {% if field_errors.parent_nom %}
-                    <div class="invalid-feedback">{{ field_errors.parent_nom }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="parent_prenom">Prénom du parent/tuteur <span class="required-label">*</span></label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.parent_prenom %}is-invalid{% endif %}" 
-                         id="parent_prenom" 
-                         name="parent_prenom" 
-                         value="{{ form_data.parent_prenom }}"
-                         placeholder="Prénom du parent/tuteur"
-                         required>
-                  {% if field_errors.parent_prenom %}
-                    <div class="invalid-feedback">{{ field_errors.parent_prenom }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="parent_telephone">Téléphone du parent/tuteur <span class="required-label">*</span></label>
-                  <input type="tel" 
-                         class="form-control {% if field_errors.parent_telephone %}is-invalid{% endif %}" 
-                         id="parent_telephone" 
-                         name="parent_telephone" 
-                         value="{{ form_data.parent_telephone }}"
-                         placeholder="Téléphone du parent/tuteur"
-                         required>
-                  {% if field_errors.parent_telephone %}
-                    <div class="invalid-feedback">{{ field_errors.parent_telephone }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="parent_email">Email du parent/tuteur <span class="optional-label">(optionnel)</span></label>
-                  <input type="email" 
-                         class="form-control {% if field_errors.parent_email %}is-invalid{% endif %}" 
-                         id="parent_email" 
-                         name="parent_email" 
-                         value="{{ form_data.parent_email }}"
-                         placeholder="Email du parent/tuteur (optionnel)">
-                  {% if field_errors.parent_email %}
-                    <div class="invalid-feedback">{{ field_errors.parent_email }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="parent_profession">Profession du parent/tuteur <span class="optional-label">(optionnel)</span></label>
-                  <input type="text" 
-                         class="form-control {% if field_errors.parent_profession %}is-invalid{% endif %}" 
-                         id="parent_profession" 
-                         name="parent_profession" 
-                         value="{{ form_data.parent_profession }}"
-                         placeholder="Profession du parent/tuteur (optionnel)">
-                  {% if field_errors.parent_profession %}
-                    <div class="invalid-feedback">{{ field_errors.parent_profession }}</div>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="parent_lien">Lien avec l'élève <span class="required-label">*</span></label>
-                  <select class="form-control {% if field_errors.parent_lien %}is-invalid{% endif %}" 
-                          id="parent_lien" 
-                          name="parent_lien" 
-                          required>
-                    <option value="">Sélectionner le lien</option>
-                    <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>Père</option>
-                    <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>Mère</option>
-                    <option value="grand_parent" {% if form_data.parent_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
-                    <option value="oncle_tante" {% if form_data.parent_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
-                    <option value="frere_soeur" {% if form_data.parent_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
-                    <option value="autre_famille" {% if form_data.parent_lien == 'autre_famille' %}selected{% endif %}>Autre membre de la famille</option>
-                    <option value="tuteur_legal" {% if form_data.parent_lien == 'tuteur_legal' %}selected{% endif %}>Tuteur légal</option>
-                    <option value="autre" {% if form_data.parent_lien == 'autre' %}selected{% endif %}>Autre</option>
-                  </select>
-                  {% if field_errors.parent_lien %}
-                    <div class="invalid-feedback">{{ field_errors.parent_lien }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- Mot de passe provisoire (généré automatiquement) -->
-          
-            </div>
-
-            <!-- Étape 4: Validation des documents -->
-            <div class="form-section" data-step="4">
-              <h3 class="section-title">
-                <i class="fas fa-file-check"></i>
-                Validation des documents
-              </h3>
-                
-                <div class="documents-grid">
-                  <div class="document-category">
-                    <h4 class="category-title">Documents d'identité</h4>
-                    <div class="checkbox-group">
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_acte_naissance" value="true" {% if form_data.document_acte_naissance %}checked{% endif %}>
-                        <span class="checkbox-label">Acte de naissance</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_cni" value="true" {% if form_data.document_cni %}checked{% endif %}>
-                        <span class="checkbox-label">Carte nationale d'identité</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_passeport" value="true" {% if form_data.document_passeport %}checked{% endif %}>
-                        <span class="checkbox-label">Passeport</span>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <div class="document-category">
-                    <h4 class="category-title">Documents scolaires</h4>
-                    <div class="checkbox-group">
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_bulletin_precedent" value="true" {% if form_data.document_bulletin_precedent %}checked{% endif %}>
-                        <span class="checkbox-label">Bulletin de l'année précédente</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_certificat_scolarite" value="true" {% if form_data.document_certificat_scolarite %}checked{% endif %}>
-                        <span class="checkbox-label">Certificat de scolarité</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_livret_scolaire" value="true" {% if form_data.document_livret_scolaire %}checked{% endif %}>
-                        <span class="checkbox-label">Livret scolaire</span>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <div class="document-category">
-                    <h4 class="category-title">Documents médicaux</h4>
-                    <div class="checkbox-group">
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_certificat_medical" value="true" {% if form_data.document_certificat_medical %}checked{% endif %}>
-                        <span class="checkbox-label">Certificat médical</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_carnet_vaccination" value="true" {% if form_data.document_carnet_vaccination %}checked{% endif %}>
-                        <span class="checkbox-label">Carnet de vaccination</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_assurance_maladie" value="true" {% if form_data.document_assurance_maladie %}checked{% endif %}>
-                        <span class="checkbox-label">Attestation d'assurance maladie</span>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <div class="document-category">
-                    <h4 class="category-title">Documents administratifs</h4>
-                    <div class="checkbox-group">
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_justificatif_domicile" value="true" {% if form_data.document_justificatif_domicile %}checked{% endif %}>
-                        <span class="checkbox-label">Justificatif de domicile</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_photo_identite" value="true" {% if form_data.document_photo_identite %}checked{% endif %}>
-                        <span class="checkbox-label">Photo d'identité</span>
-                      </label>
-                      <label class="checkbox-option">
-                        <input type="checkbox" name="document_autorisation_parentale" value="true" {% if form_data.document_autorisation_parentale %}checked{% endif %}>
-                        <span class="checkbox-label">Autorisation parentale</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Actions du formulaire -->
-            <div class="form-actions">
-                <button type="button" class="btn-secondary" onclick="resetForm()">
-                  <i class="fas fa-undo"></i>
-                  <span>Réinitialiser</span>
-                </button>
-                <button type="submit" class="btn-primary">
-                  <i class="fas fa-save"></i>
-                  <span>Inscrire l'élève</span>
-                </button>
-              </div>
-          </form>
         </div>
-      </div>
+
+        <!-- Messages Django -->
+        {% include 'school_admin/partials/messages.html' %}
+
+        <!-- Formulaire d'inscription moderne -->
+        <div class="form-container-modern">
+            <form method="post" action="{% url 'secretaire:inscription_eleves' %}" class="inscription-form-modern" id="inscriptionForm">
+                {% csrf_token %}
+                
+                <!-- Alertes d'erreur globales -->
+                {% for key, error in field_errors.items %}
+                    {% if key == '__all__' %}
+                    <div class="alert-error-modern">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Erreur d'inscription :</strong>
+                            <p>{{ error }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Section 1: Informations Personnelles -->
+                <div class="form-section-modern" data-section="1">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Informations Personnelles</h2>
+                            <p class="section-subtitle-modern">Identité et coordonnées de l'élève</p>
+                        </div>
+                        <div class="section-number">01</div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="nom">
+                                <i class="fas fa-id-card"></i>
+                                Nom de famille <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.nom %}input-error{% endif %}" 
+                                   id="nom" 
+                                   name="nom" 
+                                   value="{{ form_data.nom }}"
+                                   placeholder="Ex: Dupont"
+                                   required>
+                            {% if field_errors.nom %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.nom }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="prenom">
+                                <i class="fas fa-user"></i>
+                                Prénom <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.prenom %}input-error{% endif %}" 
+                                   id="prenom" 
+                                   name="prenom" 
+                                   value="{{ form_data.prenom }}"
+                                   placeholder="Ex: Marie"
+                                   required>
+                            {% if field_errors.prenom %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.prenom }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="date_naissance">
+                                <i class="fas fa-calendar-alt"></i>
+                                Date de naissance <span class="required-star">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="input-modern {% if field_errors.date_naissance %}input-error{% endif %}" 
+                                   id="date_naissance" 
+                                   name="date_naissance" 
+                                   value="{{ form_data.date_naissance }}"
+                                   required>
+                            {% if field_errors.date_naissance %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.date_naissance }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="lieu_naissance">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Lieu de naissance <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.lieu_naissance %}input-error{% endif %}" 
+                                   id="lieu_naissance" 
+                                   name="lieu_naissance" 
+                                   value="{{ form_data.lieu_naissance }}"
+                                   placeholder="Ex: Dakar, Sénégal"
+                                   required>
+                            {% if field_errors.lieu_naissance %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.lieu_naissance }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="sexe">
+                                <i class="fas fa-venus-mars"></i>
+                                Sexe <span class="required-star">*</span>
+                            </label>
+                            <select class="input-modern {% if field_errors.sexe %}input-error{% endif %}" id="sexe" name="sexe" required>
+                                <option value="">Sélectionnez le sexe</option>
+                                <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
+                                <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
+                            </select>
+                            {% if field_errors.sexe %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.sexe }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="nationalite">
+                                <i class="fas fa-flag"></i>
+                                Nationalité <span class="required-star">*</span>
+                            </label>
+                            <select class="input-modern {% if field_errors.nationalite %}input-error{% endif %}" 
+                                    id="nationalite" 
+                                    name="nationalite" 
+                                    required>
+                                <option value="">Sélectionnez un pays</option>
+                                {% if pays_list %}
+                                    {% for code, nom in pays_list %}
+                                        <option value="{{ code }}" {% if form_data.nationalite == code or form_data.nationalite == nom %}selected{% endif %}>
+                                            {{ nom }}
+                                        </option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="" disabled>Aucun pays disponible - Veuillez redémarrer le serveur</option>
+                                {% endif %}
+                            </select>
+                            {% if field_errors.nationalite %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.nationalite }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern full-width">
+                        <label class="label-modern" for="adresse">
+                            <i class="fas fa-home"></i>
+                            Adresse de résidence <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <textarea class="input-modern textarea-modern {% if field_errors.adresse %}input-error{% endif %}" 
+                                  id="adresse" 
+                                  name="adresse" 
+                                  rows="3"
+                                  placeholder="Adresse complète de résidence (optionnel)">{{ form_data.adresse }}</textarea>
+                        {% if field_errors.adresse %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.adresse }}</span>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <!-- Section 2: Informations Scolaires -->
+                <div class="form-section-modern" data-section="2">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Informations Scolaires</h2>
+                            <p class="section-subtitle-modern">Classe et statut d'inscription</p>
+                        </div>
+                        <div class="section-number">02</div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="classe">
+                                <i class="fas fa-chalkboard"></i>
+                                Classe d'affectation <span class="required-star">*</span>
+                            </label>
+                            <select class="input-modern {% if field_errors.classe %}input-error{% endif %}" id="classe" name="classe" required>
+                                <option value="">Sélectionnez une classe</option>
+                                {% for classe in classes %}
+                                    <option value="{{ classe.id }}" {% if form_data.classe == classe.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if field_errors.classe %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.classe }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="date_inscription">
+                                <i class="fas fa-calendar-check"></i>
+                                Date d'inscription <span class="required-star">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="input-modern {% if field_errors.date_inscription %}input-error{% endif %}" 
+                                   id="date_inscription" 
+                                   name="date_inscription" 
+                                   value="{{ form_data.date_inscription }}"
+                                   required>
+                            {% if field_errors.date_inscription %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.date_inscription }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="statut">
+                            <i class="fas fa-user-check"></i>
+                            Type d'inscription <span class="required-star">*</span>
+                        </label>
+                        <select class="input-modern {% if field_errors.statut %}input-error{% endif %}" id="statut" name="statut" required>
+                            <option value="">Sélectionnez un type</option>
+                            <option value="nouvelle" {% if form_data.statut == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
+                            <option value="reinscription" {% if form_data.statut == 'reinscription' %}selected{% endif %}>Réinscription</option>
+                        </select>
+                        {% if field_errors.statut %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.statut }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Section 3: Informations Parent/Tuteur -->
+                <div class="form-section-modern" data-section="3">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Parent / Tuteur</h2>
+                            <p class="section-subtitle-modern">Informations de la personne responsable</p>
+                        </div>
+                        <div class="section-number">03</div>
+                    </div>
+
+                    <div class="info-box-modern">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Remplissez les informations de la personne responsable de l'élève (parent, tuteur légal, etc.)</p>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_nom">
+                                <i class="fas fa-id-card"></i>
+                                Nom du parent/tuteur <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.parent_nom %}input-error{% endif %}" 
+                                   id="parent_nom" 
+                                   name="parent_nom" 
+                                   value="{{ form_data.parent_nom }}"
+                                   placeholder="Nom de famille"
+                                   required>
+                            {% if field_errors.parent_nom %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_nom }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_prenom">
+                                <i class="fas fa-user"></i>
+                                Prénom du parent/tuteur <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.parent_prenom %}input-error{% endif %}" 
+                                   id="parent_prenom" 
+                                   name="parent_prenom" 
+                                   value="{{ form_data.parent_prenom }}"
+                                   placeholder="Prénom"
+                                   required>
+                            {% if field_errors.parent_prenom %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_prenom }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="parent_telephone">
+                            <i class="fas fa-phone"></i>
+                            Téléphone du parent/tuteur <span class="required-star">*</span>
+                        </label>
+                        <input type="tel" 
+                               class="input-modern {% if field_errors.parent_telephone %}input-error{% endif %}" 
+                               id="parent_telephone" 
+                               name="parent_telephone" 
+                               value="{{ form_data.parent_telephone }}"
+                               placeholder=""
+                               required>
+                        <input type="hidden" name="parent_telephone_full" id="parent_telephone_full">
+                        {% if field_errors.parent_telephone %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_telephone }}</span>
+                        {% endif %}
+                        <small class="phone-error-message" id="parent-phone-error" style="display: none;"></small>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_profession">
+                                <i class="fas fa-briefcase"></i>
+                                Profession <span class="optional-badge">Optionnel</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.parent_profession %}input-error{% endif %}" 
+                                   id="parent_profession" 
+                                   name="parent_profession" 
+                                   value="{{ form_data.parent_profession }}"
+                                   placeholder="Ex: Enseignant, Médecin, etc.">
+                            {% if field_errors.parent_profession %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_profession }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_lien">
+                                <i class="fas fa-link"></i>
+                                Lien avec l'élève <span class="required-star">*</span>
+                            </label>
+                            <select class="input-modern {% if field_errors.parent_lien %}input-error{% endif %}" 
+                                    id="parent_lien" 
+                                    name="parent_lien" 
+                                    required>
+                                <option value="">Sélectionner le lien</option>
+                                <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>Père</option>
+                                <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>Mère</option>
+                                <option value="grand_parent" {% if form_data.parent_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
+                                <option value="oncle_tante" {% if form_data.parent_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
+                                <option value="frere_soeur" {% if form_data.parent_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
+                                <option value="autre_famille" {% if form_data.parent_lien == 'autre_famille' %}selected{% endif %}>Autre membre de la famille</option>
+                                <option value="tuteur_legal" {% if form_data.parent_lien == 'tuteur_legal' %}selected{% endif %}>Tuteur légal</option>
+                                <option value="autre" {% if form_data.parent_lien == 'autre' %}selected{% endif %}>Autre</option>
+                            </select>
+                            {% if field_errors.parent_lien %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_lien }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Documents -->
+                <div class="form-section-modern" data-section="4">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-file-check"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Documents Fournis</h2>
+                            <p class="section-subtitle-modern">Cochez les documents fournis par l'élève</p>
+                        </div>
+                        <div class="section-number">04</div>
+                    </div>
+
+                    <div class="documents-grid-modern">
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-id-badge"></i>
+                                Documents d'identité
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_acte_naissance" value="true" {% if form_data.document_acte_naissance %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-file-alt"></i>
+                                        <span>Acte de naissance</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_cni" value="true" {% if form_data.document_cni %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>Carte nationale d'identité</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_passeport" value="true" {% if form_data.document_passeport %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-passport"></i>
+                                        <span>Passeport</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-graduation-cap"></i>
+                                Documents scolaires
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_bulletin_precedent" value="true" {% if form_data.document_bulletin_precedent %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-file-signature"></i>
+                                        <span>Bulletin de l'année précédente</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_certificat_scolarite" value="true" {% if form_data.document_certificat_scolarite %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-certificate"></i>
+                                        <span>Certificat de scolarité</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_livret_scolaire" value="true" {% if form_data.document_livret_scolaire %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-book"></i>
+                                        <span>Livret scolaire</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-heartbeat"></i>
+                                Documents médicaux
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_certificat_medical" value="true" {% if form_data.document_certificat_medical %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-user-md"></i>
+                                        <span>Certificat médical</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_carnet_vaccination" value="true" {% if form_data.document_carnet_vaccination %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-syringe"></i>
+                                        <span>Carnet de vaccination</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_assurance_maladie" value="true" {% if form_data.document_assurance_maladie %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>Attestation d'assurance maladie</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-folder-open"></i>
+                                Documents administratifs
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_justificatif_domicile" value="true" {% if form_data.document_justificatif_domicile %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-home"></i>
+                                        <span>Justificatif de domicile</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_photo_identite" value="true" {% if form_data.document_photo_identite %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-image"></i>
+                                        <span>Photo d'identité</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_autorisation_parentale" value="true" {% if form_data.document_autorisation_parentale %}checked{% endif %}>
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-handshake"></i>
+                                        <span>Autorisation parentale</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions du formulaire -->
+                <div class="form-actions-modern">
+                    <button type="button" class="btn-reset-modern" onclick="resetForm()">
+                        <i class="fas fa-redo"></i>
+                        <span>Réinitialiser</span>
+                    </button>
+                    <button type="submit" class="btn-submit-modern">
+                        <i class="fas fa-save"></i>
+                        <span>Inscrire l'élève</span>
+                        <div class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Script pour animations -->
+    <!-- Scripts -->
+    <!-- intl-tel-input JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-
-        // Animation d'apparition progressive des champs
-        const formGroups = document.querySelectorAll('.form-group');
-        formGroups.forEach((group, index) => {
-          group.style.opacity = '0';
-          group.style.transform = 'translateY(10px)';
-          
-          setTimeout(() => {
-            group.style.transition = 'all 0.3s ease';
-            group.style.opacity = '1';
-            group.style.transform = 'translateY(0)';
-          }, index * 50);
-        });
-
-        // Effet de focus amélioré sur les champs
-        const formControls = document.querySelectorAll('.form-control');
-        formControls.forEach(control => {
-          control.addEventListener('focus', function() {
-            this.parentElement.style.transform = 'scale(1.02)';
-            this.parentElement.style.transition = 'transform 0.2s ease';
-          });
-          
-          control.addEventListener('blur', function() {
-            this.parentElement.style.transform = 'scale(1)';
-          });
-        });
-
-      });
-
-      function resetForm() {
-        if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ?')) {
-          // Animation de réinitialisation
-          const form = document.getElementById('inscriptionForm');
-          form.style.opacity = '0.5';
-          form.style.transform = 'scale(0.98)';
-          
-          setTimeout(() => {
-            form.reset();
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector("#inscriptionForm");
             
-            // Animation de retour
-            form.style.transition = 'all 0.3s ease';
-            form.style.opacity = '1';
-            form.style.transform = 'scale(1)';
-          }, 200);
+            // Initialisation intl-tel-input pour le téléphone du parent
+            const parentPhoneInput = document.querySelector("#parent_telephone");
+            const parentPhoneFullInput = document.querySelector("#parent_telephone_full");
+            const parentPhoneError = document.querySelector("#parent-phone-error");
+            
+            if (parentPhoneInput) {
+                const itiParent = window.intlTelInput(parentPhoneInput, {
+                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js",
+                    separateDialCode: true,
+                    initialCountry: "auto",
+                    preferredCountries: ["sn", "ci", "cm", "fr"],
+                    geoIpLookup: function(callback) {
+                        fetch("https://ipapi.co/json")
+                            .then(function(res) {
+                                return res.json();
+                            })
+                            .then(function(data) {
+                                callback(data.country_code);
+                            })
+                            .catch(function() {
+                                callback("sn");
+                            });
+                    },
+                    nationalMode: false,
+                    autoFormat: true,
+                    autoPlaceholder: "aggressive"
+                });
+                
+                parentPhoneInput.addEventListener('blur', function() {
+                    if (parentPhoneInput.value.trim()) {
+                        if (itiParent.isValidNumber()) {
+                            parentPhoneError.style.display = 'none';
+                            parentPhoneInput.classList.remove('input-error');
+                            parentPhoneFullInput.value = itiParent.getNumber();
+                        } else {
+                            parentPhoneError.textContent = 'Numéro de téléphone invalide.';
+                            parentPhoneError.style.display = 'block';
+                            parentPhoneError.style.color = '#ef4444';
+                            parentPhoneInput.classList.add('input-error');
+                            parentPhoneFullInput.value = '';
+                        }
+                    }
+                });
+                
+                parentPhoneInput.addEventListener('input', function() {
+                    parentPhoneError.style.display = 'none';
+                    parentPhoneInput.classList.remove('input-error');
+                });
+                
+                form.addEventListener('submit', function(e) {
+                    if (parentPhoneInput.value.trim()) {
+                        if (itiParent.isValidNumber()) {
+                            parentPhoneFullInput.value = itiParent.getNumber();
+                            parentPhoneInput.value = itiParent.getNumber();
+                        } else {
+                            e.preventDefault();
+                            parentPhoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
+                            parentPhoneError.style.display = 'block';
+                            parentPhoneError.style.color = '#ef4444';
+                            parentPhoneInput.classList.add('input-error');
+                            parentPhoneInput.focus();
+                            return false;
+                        }
+                    }
+                });
+                
+                if (parentPhoneInput.value) {
+                    try {
+                        itiParent.setNumber(parentPhoneInput.value);
+                        parentPhoneFullInput.value = itiParent.getNumber();
+                    } catch (e) {
+                        console.log('Erreur lors du formatage du numéro existant:', e);
+                    }
+                }
+            }
+            
+            // Animation au scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+            
+            document.querySelectorAll('.form-section-modern').forEach(section => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(30px)';
+                section.style.transition = 'all 0.6s ease';
+                observer.observe(section);
+            });
+            
+            // Animation des boutons checkbox
+            document.querySelectorAll('.checkbox-card-modern input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const card = this.closest('.checkbox-card-modern');
+                    if (this.checked) {
+                        card.style.transform = 'scale(1.02)';
+                        setTimeout(() => {
+                            card.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                });
+            });
+            
+            // Gestion du chargement du formulaire
+            form.addEventListener('submit', function(e) {
+                const submitBtn = form.querySelector('.btn-submit-modern');
+                const btnText = submitBtn.querySelector('span');
+                const btnLoading = submitBtn.querySelector('.btn-loading');
+                
+                btnText.style.display = 'none';
+                btnLoading.style.display = 'inline-block';
+                submitBtn.disabled = true;
+            });
+        });
+        
+        function resetForm() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ? Toutes les données saisies seront perdues.')) {
+                document.getElementById('inscriptionForm').reset();
+                // Réinitialiser les champs hidden
+                document.getElementById('parent_telephone_full').value = '';
+            }
         }
-      }
     </script>
-  
+
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

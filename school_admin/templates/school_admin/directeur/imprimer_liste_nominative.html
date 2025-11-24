@@ -23,7 +23,7 @@
             <div class="header-right">
                 <div class="info-item">
                     <span class="info-label">Année scolaire :</span>
-                    <span class="info-value">{{ annee_scolaire }}</span>
+                    <span class="info-value">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Date d'impression :</span>
@@ -99,7 +99,7 @@
         <div class="resume-section">
             <p class="resume-text">
                 <strong>Total :</strong> {{ nombre_eleves }} élève{{ nombre_eleves|pluralize }} inscrit{{ nombre_eleves|pluralize }} 
-                dans la classe {{ classe.nom }} pour l'année scolaire {{ annee_scolaire }}.
+                dans la classe {{ classe.nom }} pour l'année scolaire {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}.
             </p>
         </div>
 

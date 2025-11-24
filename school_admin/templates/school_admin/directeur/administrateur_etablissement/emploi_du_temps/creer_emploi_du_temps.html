@@ -117,26 +117,20 @@
                 </div>
               </div>
 
-              <!-- Champ Année scolaire -->
-              <div class="form-group">
-                <label for="annee_scolaire" class="form-label">
-                  <i class="fas fa-calendar-alt"></i>
-                  Année Scolaire
-                </label>
-                <input 
-                  type="text" 
-                  id="annee_scolaire" 
-                  name="annee_scolaire" 
-                  class="form-control" 
-                  value="{{ annee_scolaire_defaut }}"
-                  placeholder="Ex: 2023-2024"
-                  required
-                />
-                <small class="form-hint">
-                  <i class="fas fa-info-circle"></i>
-                  Format attendu : YYYY-YYYY (ex: 2023-2024)
-                </small>
+              <!-- Message d'information sur l'année scolaire active -->
+              {% if annee_scolaire_active %}
+              <div class="info-box" style="background: var(--primary-light, rgba(59, 130, 246, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--primary, #3b82f6);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6); font-size: 1.25rem;"></i>
+                  <div>
+                    <strong style="color: var(--gray-800, #1f2937);">Année scolaire active</strong>
+                    <p style="margin: 0.25rem 0 0 0; color: var(--gray-600, #4b5563); font-size: 0.875rem;">
+                      Cet emploi du temps sera associé à l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+                    </p>
+                  </div>
+                </div>
               </div>
+              {% endif %}
 
               <!-- Champ Notes -->
               <div class="form-group">

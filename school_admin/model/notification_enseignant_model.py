@@ -28,6 +28,14 @@ class NotificationEnseignant(models.Model):
         related_name="notifications",
         verbose_name="Enseignant",
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notifications_enseignants',
+        verbose_name="Année scolaire"
+    )
 
     titre = models.CharField(max_length=180, verbose_name="Titre de la notification")
     message = models.TextField(verbose_name="Contenu de la notification")

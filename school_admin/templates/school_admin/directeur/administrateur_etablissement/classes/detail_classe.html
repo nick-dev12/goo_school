@@ -20,7 +20,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_improved.css' %}"
+      href="{% static 'school_admin/css/directeur/classes_improved.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
@@ -54,6 +54,14 @@
             </p>
           </div>
           <div class="page-actions">
+            <button type="button" class="btn-action btn-edit" id="btnModifierClasse">
+              <i class="fas fa-edit"></i>
+              <span>Modifier</span>
+            </button>
+            <button type="button" class="btn-action btn-delete" id="btnSupprimerClasse">
+              <i class="fas fa-trash"></i>
+              <span>Supprimer</span>
+            </button>
             <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-back">
               <i class="fas fa-arrow-left"></i>
               <span>Retour à la liste</span>
@@ -71,6 +79,101 @@
             </div>
           {% endfor %}
         {% endif %}
+
+        <!-- Formulaire de modification (masqué par défaut) -->
+        <div class="edit-form-container" id="editFormContainer" style="display: none;">
+          <div class="edit-form-card">
+            <div class="edit-form-header">
+              <h3 class="edit-form-title">
+                <i class="fas fa-edit"></i>
+                Modifier la classe {{ classe.nom }}
+              </h3>
+              <button type="button" class="btn-close-form" id="btnCloseForm">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <form method="post" action="{% url 'administrateur_etablissement:modifier_classe' classe.id %}" class="edit-form">
+              {% csrf_token %}
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="nom">Nom de la classe *</label>
+                  <input type="text" 
+                         class="form-control" 
+                         id="nom" 
+                         name="nom" 
+                         value="{{ classe.nom }}"
+                         placeholder="Ex: 6ème A, Terminale S, etc."
+                         required>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="capacite_max">Capacité maximale *</label>
+                  <input type="number" 
+                         class="form-control" 
+                         id="capacite_max" 
+                         name="capacite_max"
+                         value="{{ classe.capacite_max }}"
+                         min="1" 
+                         max="100" 
+                         placeholder="30"
+                         required>
+                  <small class="form-text">Nombre d'élèves actuels : {{ classe.nombre_eleves }}</small>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="description">Description (optionnel)</label>
+                <textarea class="form-control" 
+                          id="description" 
+                          name="description" 
+                          rows="3"
+                          placeholder="Description de la classe...">{{ classe.description|default:"" }}</textarea>
+              </div>
+              
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" id="btnAnnulerModif">
+                  <i class="fas fa-times"></i>
+                  <span>Annuler</span>
+                </button>
+                <button type="submit" class="btn-submit">
+                  <i class="fas fa-save"></i>
+                  <span>Enregistrer les modifications</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Modal de confirmation de suppression -->
+        <div class="modal-overlay" id="deleteConfirmModal" style="display: none;">
+          <div class="modal-container">
+            <div class="modal-header">
+              <h3 class="modal-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Confirmer la suppression
+              </h3>
+            </div>
+            
+            <div class="modal-body">
+              <p class="modal-message" id="deleteMessage">
+                <!-- Le message sera inséré ici par JavaScript -->
+              </p>
+            </div>
+            
+            <div class="modal-actions">
+              <button type="button" class="btn-cancel" id="btnCancelDelete">
+                <i class="fas fa-times"></i>
+                <span>Annuler</span>
+              </button>
+              <button type="button" class="btn-danger" id="btnConfirmDelete">
+                <i class="fas fa-trash"></i>
+                <span>Supprimer</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Classe Overview Card -->
         <div class="classe-overview-card">
@@ -1280,6 +1383,144 @@
         
         filterClasseEleves(classeId);
       }
+
+      // Gestion du formulaire de modification
+      document.addEventListener('DOMContentLoaded', function() {
+        const btnModifier = document.getElementById('btnModifierClasse');
+        const btnSupprimer = document.getElementById('btnSupprimerClasse');
+        const editFormContainer = document.getElementById('editFormContainer');
+        const btnCloseForm = document.getElementById('btnCloseForm');
+        const btnAnnulerModif = document.getElementById('btnAnnulerModif');
+
+        // Fonction pour afficher le formulaire de modification
+        function showEditForm() {
+          editFormContainer.style.display = 'block';
+          editFormContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          
+          // Focus sur le premier champ
+          const firstInput = editFormContainer.querySelector('input[name="nom"]');
+          if (firstInput) {
+            setTimeout(() => firstInput.focus(), 300);
+          }
+        }
+
+        // Fonction pour masquer le formulaire de modification
+        function hideEditForm() {
+          editFormContainer.style.display = 'none';
+        }
+
+        // Fonction pour confirmer la suppression
+        function confirmDelete() {
+          const className = '{{ classe.nom|escapejs }}';
+          const studentCount = {{ classe.nombre_eleves }};
+          const deleteModal = document.getElementById('deleteConfirmModal');
+          const deleteMessage = document.getElementById('deleteMessage');
+          const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+          
+          let message = `Êtes-vous sûr de vouloir supprimer la classe "<strong>${className}</strong>" ?`;
+          
+          if (studentCount > 0) {
+            message = `<div class="alert-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              <strong>Impossible de supprimer cette classe</strong>
+            </div>
+            <p>Cette classe contient <strong>${studentCount} élève(s)</strong>.</p>
+            <p>Vous devez d'abord transférer ou supprimer les élèves avant de pouvoir supprimer la classe.</p>`;
+            
+            deleteMessage.innerHTML = message;
+            btnConfirmDelete.style.display = 'none'; // Masquer le bouton supprimer
+            deleteModal.style.display = 'flex';
+            return;
+          }
+          
+          message += '<p class="text-danger"><strong>Cette action est irréversible.</strong></p>';
+          
+          deleteMessage.innerHTML = message;
+          btnConfirmDelete.style.display = 'flex'; // Afficher le bouton supprimer
+          deleteModal.style.display = 'flex';
+        }
+
+        // Fonction pour effectuer la suppression
+        function performDelete() {
+          // Créer un formulaire pour la suppression
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '{% url "administrateur_etablissement:supprimer_classe" classe.id %}';
+          
+          // Ajouter le token CSRF
+          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+          if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+          }
+          
+          document.body.appendChild(form);
+          form.submit();
+        }
+
+        // Fonction pour fermer le modal de confirmation
+        function closeDeleteModal() {
+          const deleteModal = document.getElementById('deleteConfirmModal');
+          deleteModal.style.display = 'none';
+        }
+
+        // Event listeners
+        if (btnModifier) {
+          btnModifier.addEventListener('click', showEditForm);
+        }
+
+        if (btnSupprimer) {
+          btnSupprimer.addEventListener('click', confirmDelete);
+        }
+
+        if (btnCloseForm) {
+          btnCloseForm.addEventListener('click', hideEditForm);
+        }
+
+        if (btnAnnulerModif) {
+          btnAnnulerModif.addEventListener('click', hideEditForm);
+        }
+
+        // Event listeners pour le modal de confirmation
+        const btnCancelDelete = document.getElementById('btnCancelDelete');
+        const btnConfirmDeleteModal = document.getElementById('btnConfirmDelete');
+        const deleteModal = document.getElementById('deleteConfirmModal');
+
+        if (btnCancelDelete) {
+          btnCancelDelete.addEventListener('click', closeDeleteModal);
+        }
+
+        if (btnConfirmDeleteModal) {
+          btnConfirmDeleteModal.addEventListener('click', function() {
+            closeDeleteModal();
+            performDelete();
+          });
+        }
+
+        // Fermer le modal en cliquant sur l'overlay
+        if (deleteModal) {
+          deleteModal.addEventListener('click', function(e) {
+            if (e.target === deleteModal) {
+              closeDeleteModal();
+            }
+          });
+        }
+
+        // Fermer les modals avec la touche Escape
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            if (editFormContainer.style.display === 'block') {
+              hideEditForm();
+            }
+            if (deleteModal.style.display === 'flex') {
+              closeDeleteModal();
+            }
+          }
+        });
+      });
     </script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

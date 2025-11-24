@@ -41,6 +41,14 @@ class NotificationParent(models.Model):
         related_name="notifications_parents",
         verbose_name="Élève"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notifications_parents',
+        verbose_name="Année scolaire"
+    )
 
     titre = models.CharField(
         max_length=180,

@@ -38,6 +38,14 @@ class AffectationProfesseur(models.Model):
         blank=True,
         help_text="Matière que le professeur enseigne dans cette classe"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='affectations_professeurs',
+        verbose_name="Année scolaire"
+    )
     statut = models.CharField(
         max_length=20,
         choices=STATUT_CHOICES,

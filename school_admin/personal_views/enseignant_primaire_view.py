@@ -50,6 +50,8 @@ from ..utils.calcul_moyennes_primaire import (
     get_repartition_moyennes_classe,
     calculer_moyenne_avec_mode
 )
+from ..utils.session_utils import get_session_active
+from ..model.inscription_eleve_model import InscriptionEleve
 
 logger = logging.getLogger(__name__)
 
@@ -85,19 +87,34 @@ def dashboard_enseignant_primaire(request):
         messages.warning(request, "Vous n'êtes pas un enseignant du primaire. Redirection vers le tableau de bord standard.")
         return redirect('enseignant:dashboard_enseignant')
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     # Récupérer les affectations primaires du professeur
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe').prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe').prefetch_related('matieres')
     classe_ids = [aff.classe_id for aff in affectations]
     
     total_classes = affectations.count()
     
-    # Compter le nombre total d'élèves
-    total_eleves = 0
-    for affectation in affectations:
-        total_eleves += affectation.classe.nombre_eleves
+    # Compter le nombre total d'élèves via InscriptionEleve
+    if annee_scolaire_active:
+        classe_ids = [aff.classe_id for aff in affectations]
+        total_eleves = InscriptionEleve.objects.filter(
+            classe_id__in=classe_ids,
+            annee_scolaire=annee_scolaire_active
+        ).count()
+    else:
+        total_eleves = 0
+        for affectation in affectations:
+            total_eleves += affectation.classe.nombre_eleves
     
     # Compter le nombre total de matières enseignées (uniques)
     matieres_enseignees = set()
@@ -109,12 +126,15 @@ def dashboard_enseignant_primaire(request):
     date_debut = date.today()
     date_fin = date_debut + timedelta(days=7)
     
-    evaluations_a_venir = EvaluationPrimaire.objects.filter(
+    evaluations_a_venir_qs = EvaluationPrimaire.objects.filter(
         professeur=professeur,
         date_evaluation__gte=date_debut,
         date_evaluation__lte=date_fin,
         actif=True
-    ).count()
+    )
+    if annee_scolaire_active:
+        evaluations_a_venir_qs = evaluations_a_venir_qs.filter(annee_scolaire=annee_scolaire_active)
+    evaluations_a_venir = evaluations_a_venir_qs.count()
     
     # Préparer les données des classes
     classes_data = []
@@ -129,6 +149,8 @@ def dashboard_enseignant_primaire(request):
             emploi_du_temps__statut_publication='publie',
             professeur=professeur
         )
+        if annee_scolaire_active:
+            creneaux_classe = creneaux_classe.filter(emploi_du_temps__annee_scolaire_fk=annee_scolaire_active)
         
         heures_semaine = sum(creneau.duree_minutes / 60 for creneau in creneaux_classe)
         
@@ -163,6 +185,8 @@ def dashboard_enseignant_primaire(request):
     
     classes_professeur = [affectation.classe for affectation in affectations]
     emplois_actifs = EmploiDuTemps.objects.filter(classe__in=classes_professeur, est_actif=True)
+    if annee_scolaire_active:
+        emplois_actifs = emplois_actifs.filter(annee_scolaire_fk=annee_scolaire_active)
     emplois_publies = emplois_actifs.filter(statut_publication='publie')
     emploi_publie_disponible = emplois_publies.exists()
     
@@ -176,23 +200,29 @@ def dashboard_enseignant_primaire(request):
         creneaux_aujourdhui = []
     
     # Prochaines évaluations (détaillées)
-    prochaines_evaluations = EvaluationPrimaire.objects.filter(
+    prochaines_evaluations_qs = EvaluationPrimaire.objects.filter(
         professeur=professeur,
         date_evaluation__gte=date_debut,
         actif=True
-    ).select_related('classe', 'matiere', 'periode_scolaire').order_by('date_evaluation')[:5]
+    )
+    if annee_scolaire_active:
+        prochaines_evaluations_qs = prochaines_evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+    prochaines_evaluations = prochaines_evaluations_qs.select_related('classe', 'matiere', 'periode_scolaire').order_by('date_evaluation')[:5]
     
     # Compter les annonces destinées aux enseignants
     from ..model.annonce_model import Annonce
     from django.db.models import Q
     
-    nombre_annonces = Annonce.objects.filter(
+    annonces_qs = Annonce.objects.filter(
         Q(etablissement=professeur.etablissement) &
         Q(statut='publiee') &
         Q(actif=True) &
         (Q(destinataires__contains=['tous']) | 
          Q(destinataires__contains=['enseignants']))
-    ).count()
+    )
+    if annee_scolaire_active:
+        annonces_qs = annonces_qs.filter(annee_scolaire=annee_scolaire_active)
+    nombre_annonces = annonces_qs.count()
     
     notifications_non_lues = NotificationEnseignant.objects.filter(
         enseignant=professeur, statut='non_lu'
@@ -212,6 +242,7 @@ def dashboard_enseignant_primaire(request):
         'emploi_publie': emploi_publie_disponible,
         'emploi_non_publie': (not emploi_publie_disponible) and emplois_actifs.exists(),
         'notifications_enseignant_non_lues': notifications_non_lues,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/dashboard_primaire.html', context)
@@ -228,11 +259,19 @@ def gestion_classes_primaire(request):
     
     professeur = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     # Récupérer les affectations
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe').prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe').prefetch_related('matieres')
     
     # Regrouper les classes par catégorie (comme dans le système de base)
     import re
@@ -269,11 +308,14 @@ def gestion_classes_primaire(request):
             }
         
         # Calculer les statistiques de la classe
-        nombre_evaluations = EvaluationPrimaire.objects.filter(
+        evaluations_qs = EvaluationPrimaire.objects.filter(
             professeur=professeur,
             classe=affectation.classe,
             actif=True
-        ).count()
+        )
+        if annee_scolaire_active:
+            evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+        nombre_evaluations = evaluations_qs.count()
         
         # Calculer la moyenne de la classe (exemple simplifié)
         moyenne_classe = None  # À implémenter avec les calculs de moyennes
@@ -304,7 +346,15 @@ def gestion_classes_primaire(request):
     
     # Statistiques globales
     total_classes = affectations.count()
-    total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
+    # Calculer le nombre total d'élèves via InscriptionEleve
+    if annee_scolaire_active:
+        classe_ids = [aff.classe_id for aff in affectations]
+        total_eleves = InscriptionEleve.objects.filter(
+            classe_id__in=classe_ids,
+            annee_scolaire=annee_scolaire_active
+        ).count()
+    else:
+        total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
     
     # Compter les affectations principales et polyvalentes
     affectations_principales = affectations.filter(statut='principal').count()
@@ -318,6 +368,7 @@ def gestion_classes_primaire(request):
         'total_matieres': total_matieres,
         'affectations_principales': affectations_principales,
         'affectations_polyvalentes': affectations_polyvalentes,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/gestion_classes_primaire.html', context)
@@ -334,11 +385,19 @@ def gestion_eleves_primaire(request):
     
     professeur = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     # Récupérer toutes les classes du professeur
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe')
     
     classes = [aff.classe for aff in affectations]
     
@@ -364,27 +423,41 @@ def gestion_eleves_primaire(request):
                 'total_eleves': 0
             }
         
-        # Récupérer les élèves de cette classe avec statistiques
-        eleves_classe = Eleve.objects.filter(
-            classe=classe,
-            actif=True
-        ).select_related('classe').order_by('nom', 'prenom')
+        # Récupérer les élèves de cette classe avec statistiques via InscriptionEleve
+        if annee_scolaire_active:
+            eleves_classe = Eleve.objects.filter(
+                classe=classe,
+                actif=True,
+                id__in=InscriptionEleve.objects.filter(
+                    classe=classe,
+                    annee_scolaire=annee_scolaire_active
+                ).values_list('eleve_id', flat=True)
+            ).select_related('classe').order_by('nom', 'prenom')
+        else:
+            eleves_classe = Eleve.objects.filter(
+                classe=classe,
+                actif=True
+            ).select_related('classe').order_by('nom', 'prenom')
         
         # Calculer les statistiques pour chaque élève
         eleves_data = []
         for eleve in eleves_classe:
             # Compter les absences (30 derniers jours)
             date_limite = datetime.now().date() - timedelta(days=30)
-            nombre_absences = Presence.objects.filter(
+            presence_qs = Presence.objects.filter(
                 eleve=eleve,
                 statut='absent',
                 date__gte=date_limite
-            ).count()
+            )
+            if annee_scolaire_active:
+                presence_qs = presence_qs.filter(annee_scolaire=annee_scolaire_active)
+            nombre_absences = presence_qs.count()
             
             # Compter les sanctions
-            nombre_sanctions = Sanction.objects.filter(
-                eleve=eleve
-            ).count()
+            sanction_qs = Sanction.objects.filter(eleve=eleve)
+            if annee_scolaire_active:
+                sanction_qs = sanction_qs.filter(annee_scolaire=annee_scolaire_active)
+            nombre_sanctions = sanction_qs.count()
             
             eleves_data.append({
                 'eleve': eleve,
@@ -405,14 +478,23 @@ def gestion_eleves_primaire(request):
     
     # Statistiques globales
     total_classes = len(classes)
-    total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
+    # Calculer le nombre total d'élèves via InscriptionEleve
+    if annee_scolaire_active:
+        classe_ids = [aff.classe_id for aff in affectations]
+        total_eleves = InscriptionEleve.objects.filter(
+            classe_id__in=classe_ids,
+            annee_scolaire=annee_scolaire_active
+        ).count()
+    else:
+        total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
     
     context = {
         'professeur': professeur,
         'eleves_par_categorie': eleves_par_categorie_ordered,
         'total_classes': total_classes,
         'total_eleves': total_eleves,
-        'today': datetime.now().date()
+        'today': datetime.now().date(),
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/gestion_eleves_primaire.html', context)
@@ -429,6 +511,11 @@ def gestion_notes_primaire(request):
     
     professeur = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     # Récupérer les paramètres de navigation
     classe_id = request.GET.get('classe')
     matiere_id = request.GET.get('matiere')
@@ -438,7 +525,10 @@ def gestion_notes_primaire(request):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     # Période active par défaut
     if periode_id:
@@ -484,32 +574,41 @@ def gestion_notes_primaire(request):
     
     if classe_id:
         classe_selectionnee = get_object_or_404(Classe, id=classe_id)
-        affectation_selectionnee = AffectationProfesseurPrimaire.objects.filter(
+        affectation_selectionnee_qs = AffectationProfesseurPrimaire.objects.filter(
             professeur=professeur,
             classe=classe_selectionnee,
             actif=True
-        ).prefetch_related('matieres').first()
+        )
+        if annee_scolaire_active:
+            affectation_selectionnee_qs = affectation_selectionnee_qs.filter(annee_scolaire=annee_scolaire_active)
+        affectation_selectionnee = affectation_selectionnee_qs.prefetch_related('matieres').first()
         
         if affectation_selectionnee:
             from ..model.session_examen_model import SessionExamen
             
             for matiere in affectation_selectionnee.matieres.all():
                 # Compter les évaluations normales pour cette matière
-                nb_evaluations = EvaluationPrimaire.objects.filter(
+                evaluations_qs = EvaluationPrimaire.objects.filter(
                     professeur=professeur,
                     classe=classe_selectionnee,
                     matiere=matiere,
                     periode_scolaire=periode_selectionnee,
                     actif=True
-                ).count()
+                )
+                if annee_scolaire_active:
+                    evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+                nb_evaluations = evaluations_qs.count()
                 
                 # Compter aussi les sessions d'examens (pas les créneaux)
-                nb_examens = SessionExamen.objects.filter(
+                examens_qs = SessionExamen.objects.filter(
                     classes=classe_selectionnee,
                     periode=periode_selectionnee,
                     matieres=matiere,
                     actif=True
-                ).distinct().count()
+                )
+                if annee_scolaire_active:
+                    examens_qs = examens_qs.filter(annee_scolaire=annee_scolaire_active)
+                nb_examens = examens_qs.distinct().count()
                 
                 matieres_data.append({
                     'matiere': matiere,
@@ -526,23 +625,29 @@ def gestion_notes_primaire(request):
         classe_selectionnee = get_object_or_404(Classe, id=classe_id)
         
         # Récupérer toutes les évaluations normales pour cette matière et période
-        evaluations_list = list(EvaluationPrimaire.objects.filter(
+        evaluations_qs = EvaluationPrimaire.objects.filter(
             classe=classe_selectionnee,
             professeur=professeur,
             matiere=matiere_selectionnee,
             periode_scolaire=periode_selectionnee,
             actif=True
-        ).order_by('date_evaluation'))
+        )
+        if annee_scolaire_active:
+            evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+        evaluations_list = list(evaluations_qs.order_by('date_evaluation'))
         
         # Récupérer les sessions d'examens pour cette matière et période (PAS les créneaux!)
         from ..model.session_examen_model import SessionExamen
         
-        sessions_examens_list = list(SessionExamen.objects.filter(
+        sessions_examens_qs = SessionExamen.objects.filter(
             classes=classe_selectionnee,
             periode=periode_selectionnee,
             matieres=matiere_selectionnee,
             actif=True
-        ).distinct().order_by('date_debut'))
+        )
+        if annee_scolaire_active:
+            sessions_examens_qs = sessions_examens_qs.filter(annee_scolaire=annee_scolaire_active)
+        sessions_examens_list = list(sessions_examens_qs.distinct().order_by('date_debut'))
         
         # Ajouter des numéros distincts pour devoirs, interrogations et examens
         compteur_devoirs = 0
@@ -589,19 +694,32 @@ def gestion_notes_primaire(request):
             
             evaluations_matiere.append(eval_dict)
         
-        # Récupérer tous les élèves de la classe
-        eleves = Eleve.objects.filter(
-            classe=classe_selectionnee,
-            actif=True
-        ).order_by('nom', 'prenom')
+        # Récupérer tous les élèves de la classe via InscriptionEleve
+        if annee_scolaire_active:
+            eleves = Eleve.objects.filter(
+                classe=classe_selectionnee,
+                actif=True,
+                id__in=InscriptionEleve.objects.filter(
+                    classe=classe_selectionnee,
+                    annee_scolaire=annee_scolaire_active
+                ).values_list('eleve_id', flat=True)
+            ).order_by('nom', 'prenom')
+        else:
+            eleves = Eleve.objects.filter(
+                classe=classe_selectionnee,
+                actif=True
+            ).order_by('nom', 'prenom')
         
         for eleve in eleves:
             # Récupérer la moyenne ENREGISTRÉE (pas calculée)
-            moyenne_obj = MoyenneMatierePrimaire.objects.filter(
+            moyenne_qs = MoyenneMatierePrimaire.objects.filter(
                 eleve=eleve,
                 matiere=matiere_selectionnee,
                 periode_scolaire=periode_selectionnee
-            ).first()
+            )
+            if annee_scolaire_active:
+                moyenne_qs = moyenne_qs.filter(annee_scolaire=annee_scolaire_active)
+            moyenne_obj = moyenne_qs.first()
             
             moyenne = moyenne_obj.moyenne if moyenne_obj and moyenne_obj.moyenne is not None else None
             appreciation = moyenne_obj.appreciation if moyenne_obj else None
@@ -613,17 +731,23 @@ def gestion_notes_primaire(request):
             for eval_dict in evaluations_matiere:
                 # Si c'est un examen, chercher dans NoteExamen (basé sur session)
                 if eval_dict.get('est_examen'):
-                    note_obj = NoteExamen.objects.filter(
+                    note_examen_qs = NoteExamen.objects.filter(
                         eleve=eleve,
                         session_examen_id=eval_dict['session_id'],
                         matiere=matiere_selectionnee
-                    ).first()
+                    )
+                    if annee_scolaire_active:
+                        note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+                    note_obj = note_examen_qs.first()
                 else:
                     # Sinon, chercher dans NotePrimaire
-                    note_obj = NotePrimaire.objects.filter(
+                    note_primaire_qs = NotePrimaire.objects.filter(
                         eleve=eleve,
                         evaluation_primaire_id=eval_dict['id']
-                    ).first()
+                    )
+                    if annee_scolaire_active:
+                        note_primaire_qs = note_primaire_qs.filter(annee_scolaire=annee_scolaire_active)
+                    note_obj = note_primaire_qs.first()
                 
                 # Ajouter la couleur basée sur la note normalisée
                 if note_obj and note_obj.note is not None and not note_obj.absent:
@@ -668,7 +792,15 @@ def gestion_notes_primaire(request):
     
     # Statistiques globales
     total_classes = affectations.count()
-    total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
+    # Calculer le nombre total d'élèves via InscriptionEleve
+    if annee_scolaire_active:
+        classe_ids = [aff.classe_id for aff in affectations]
+        total_eleves = InscriptionEleve.objects.filter(
+            classe_id__in=classe_ids,
+            annee_scolaire=annee_scolaire_active
+        ).count()
+    else:
+        total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
     
     # Vérifier si on demande le relevé complet
     show_releve_complet = request.GET.get('releve_complet') == '1'
@@ -683,12 +815,15 @@ def gestion_notes_primaire(request):
         matieres_releve_complet = list(affectation_selectionnee.matieres.all().order_by('nom'))
         
         # Vérifier si le relevé a déjà été soumis pour LES MATIÈRES DE CE PROFESSEUR
-        releve_deja_soumis = MoyenneMatierePrimaire.objects.filter(
+        releve_qs = MoyenneMatierePrimaire.objects.filter(
             classe=classe_selectionnee,
             periode_scolaire=periode_selectionnee,
             matiere__in=affectation_selectionnee.matieres.all(),  # Filtrer par matières du professeur
             soumis=True
-        ).exists()
+        )
+        if annee_scolaire_active:
+            releve_qs = releve_qs.filter(annee_scolaire=annee_scolaire_active)
+        releve_deja_soumis = releve_qs.exists()
     
     context = {
         'professeur': professeur,
@@ -707,6 +842,7 @@ def gestion_notes_primaire(request):
         'resultats_releve_complet': resultats_releve_complet,
         'matieres_releve_complet': matieres_releve_complet,
         'releve_deja_soumis': releve_deja_soumis,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/gestion_notes_primaire.html', context)
@@ -729,6 +865,11 @@ def justifications_notes_primaire(request):
     if not professeur.etablissement:
         messages.error(request, "Votre profil n'est pas rattaché à un établissement.")
         return redirect('enseignant_primaire:gestion_notes')
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
 
     from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
     from ..model.evaluation_primaire_model import EvaluationPrimaire
@@ -816,6 +957,7 @@ def justifications_notes_primaire(request):
                     nouvelle_note=nouvelle_note,
                     motif=motif,
                     description=description,
+                    annee_scolaire=annee_scolaire_active,
                 )
                 messages.success(request, "Votre demande de justification a été envoyée à la direction.")
 
@@ -834,7 +976,10 @@ def justifications_notes_primaire(request):
     # Préparation des données d'affichage
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
 
     periode_id = request.GET.get('periode')
     periode_selectionnee = None
@@ -847,7 +992,10 @@ def justifications_notes_primaire(request):
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe').prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe').prefetch_related('matieres')
 
     if not affectations.exists():
         messages.info(request, "Aucune classe affectée. Contactez l'administration.")
@@ -902,7 +1050,18 @@ def justifications_notes_primaire(request):
                 'total_eleves': 0,
             }
 
-        eleves_classe = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves via InscriptionEleve
+        if annee_scolaire_active:
+            eleves_classe = Eleve.objects.filter(
+                classe=classe,
+                actif=True,
+                id__in=InscriptionEleve.objects.filter(
+                    classe=classe,
+                    annee_scolaire=annee_scolaire_active
+                ).values_list('eleve_id', flat=True)
+            ).order_by('nom', 'prenom')
+        else:
+            eleves_classe = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
         nombre_eleves = eleves_classe.count()
         
         # Vérifier si cette classe a déjà été ajoutée
@@ -928,9 +1087,12 @@ def justifications_notes_primaire(request):
                     classe=classe,
                     matiere=matiere,
                     actif=True
-                ).order_by('date_evaluation')
+                )
+                if annee_scolaire_active:
+                    evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
                 if periode_selectionnee:
                     evaluations_qs = evaluations_qs.filter(periode_scolaire=periode_selectionnee)
+                evaluations_qs = evaluations_qs.order_by('date_evaluation')
                 
                 nb_evaluations = evaluations_qs.count()
                 matieres_data.append({
@@ -951,12 +1113,15 @@ def justifications_notes_primaire(request):
     
     if classe_selectionnee and matiere_selectionnee:
         # Vérifier que le professeur est bien affecté à cette classe et matière
-        affectation_selectionnee = AffectationProfesseurPrimaire.objects.filter(
+        affectation_selectionnee_qs = AffectationProfesseurPrimaire.objects.filter(
             professeur=professeur,
             classe=classe_selectionnee,
             matieres=matiere_selectionnee,
             actif=True
-        ).first()
+        )
+        if annee_scolaire_active:
+            affectation_selectionnee_qs = affectation_selectionnee_qs.filter(annee_scolaire=annee_scolaire_active)
+        affectation_selectionnee = affectation_selectionnee_qs.first()
         
         if affectation_selectionnee:
             # Récupérer toutes les évaluations pour cette matière et période
@@ -965,9 +1130,12 @@ def justifications_notes_primaire(request):
                 classe=classe_selectionnee,
                 matiere=matiere_selectionnee,
                 actif=True
-            ).order_by('date_evaluation')
+            )
+            if annee_scolaire_active:
+                evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
             if periode_selectionnee:
                 evaluations_qs = evaluations_qs.filter(periode_scolaire=periode_selectionnee)
+            evaluations_qs = evaluations_qs.order_by('date_evaluation')
             
             evaluations_liste = list(evaluations_qs)
             
@@ -995,21 +1163,34 @@ def justifications_notes_primaire(request):
                 
                 evaluations_matiere.append(eval_dict)
             
-            # Récupérer tous les élèves de la classe
-            eleves = Eleve.objects.filter(
-                classe=classe_selectionnee,
-                actif=True
-            ).order_by('nom', 'prenom')
+            # Récupérer tous les élèves de la classe via InscriptionEleve
+            if annee_scolaire_active:
+                eleves = Eleve.objects.filter(
+                    classe=classe_selectionnee,
+                    actif=True,
+                    id__in=InscriptionEleve.objects.filter(
+                        classe=classe_selectionnee,
+                        annee_scolaire=annee_scolaire_active
+                    ).values_list('eleve_id', flat=True)
+                ).order_by('nom', 'prenom')
+            else:
+                eleves = Eleve.objects.filter(
+                    classe=classe_selectionnee,
+                    actif=True
+                ).order_by('nom', 'prenom')
             
             for eleve in eleves:
                 notes_evaluations = {}
                 derniere_justification_globale = None
                 
                 for eval_dict in evaluations_matiere:
-                    note_obj = NotePrimaire.objects.filter(
+                    note_primaire_qs = NotePrimaire.objects.filter(
                         eleve=eleve,
                         evaluation_primaire_id=eval_dict['id']
-                    ).select_related('evaluation_primaire').prefetch_related('justifications').first()
+                    )
+                    if annee_scolaire_active:
+                        note_primaire_qs = note_primaire_qs.filter(annee_scolaire=annee_scolaire_active)
+                    note_obj = note_primaire_qs.select_related('evaluation_primaire').prefetch_related('justifications').first()
                     
                     if note_obj:
                         justifications = sorted(
@@ -1083,6 +1264,7 @@ def justifications_notes_primaire(request):
         'stats': stats,
         'notes_json': notes_json,
         'motifs_justification': MOTIFS_JUSTIFICATION_PRIMAIRE,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/enseignant/primaire/justifications_notes_primaire.html', context)
@@ -1104,12 +1286,20 @@ def exercices_maison_primaire(request):
             "Cette section est réservée aux enseignants du primaire.",
         )
         return redirect('enseignant:dashboard_enseignant')
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
 
     # Récupération des périodes scolaires actives de l'établissement
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
 
     periode_id = request.GET.get('periode')
     if periode_id:
@@ -1125,7 +1315,10 @@ def exercices_maison_primaire(request):
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe').prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe').prefetch_related('matieres')
 
     if not affectations.exists():
         messages.info(request, "Aucune classe affectée. Contactez la direction.")
@@ -1153,6 +1346,8 @@ def exercices_maison_primaire(request):
             classe_id__in=classe_ids,
             actif=True
         )
+        if annee_scolaire_active:
+            exercices_counts_qs = exercices_counts_qs.filter(annee_scolaire=annee_scolaire_active)
         if periode_selectionnee:
             exercices_counts_qs = exercices_counts_qs.filter(periode_scolaire=periode_selectionnee)
 
@@ -1326,6 +1521,8 @@ def exercices_maison_primaire(request):
                 exercice.description = description
                 exercice.date_rendu = date_rendu
                 exercice.actif = True
+                if annee_scolaire_active:
+                    exercice.annee_scolaire = annee_scolaire_active
                 exercice.save()
                 action_message = "mis à jour"
             else:
@@ -1339,6 +1536,7 @@ def exercices_maison_primaire(request):
                     description=description,
                     date_rendu=date_rendu,
                     actif=True,
+                    annee_scolaire=annee_scolaire_active,
                 )
         except Exception as creation_error:
             logger.error(
@@ -1352,7 +1550,18 @@ def exercices_maison_primaire(request):
         if not exercice_id:
             from ..model.eleve_model import Eleve
 
-            eleves = Eleve.objects.filter(classe=classe_obj, actif=True).select_related('classe')
+            # Filtrer les élèves via InscriptionEleve
+            if annee_scolaire_active:
+                eleves = Eleve.objects.filter(
+                    classe=classe_obj,
+                    actif=True,
+                    id__in=InscriptionEleve.objects.filter(
+                        classe=classe_obj,
+                        annee_scolaire=annee_scolaire_active
+                    ).values_list('eleve_id', flat=True)
+                ).select_related('classe')
+            else:
+                eleves = Eleve.objects.filter(classe=classe_obj, actif=True).select_related('classe')
             if eleves.exists():
                 date_claire = date_format(date_rendu, "l d F Y", use_l10n=True)
                 payload_base = {
@@ -1454,9 +1663,12 @@ def exercices_maison_primaire(request):
                 classe=classe_selectionnee,
                 matiere=matiere_selectionnee,
                 actif=True,
-            ).select_related('classe', 'matiere', 'periode_scolaire', 'professeur')
+            )
+            if annee_scolaire_active:
+                exercices_qs = exercices_qs.filter(annee_scolaire=annee_scolaire_active)
             if periode_selectionnee:
                 exercices_qs = exercices_qs.filter(periode_scolaire=periode_selectionnee)
+            exercices_qs = exercices_qs.select_related('classe', 'matiere', 'periode_scolaire', 'professeur')
             exercices = list(exercices_qs.order_by('-date_rendu', '-date_creation'))
         except (ProgrammingError, OperationalError) as exc:
             exercices = []
@@ -1540,6 +1752,7 @@ def exercices_maison_primaire(request):
         'exercices_json': exercices_json,
         'aujourdhui': today,
         'stats': stats,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/enseignant/primaire/exercices_maison_primaire.html', context)
@@ -1556,13 +1769,22 @@ def creer_evaluation_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_classes')
+    
     # Vérifier que le professeur enseigne dans cette classe
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
     try:
-        affectation = AffectationProfesseurPrimaire.objects.get(
-            professeur=professeur,
-            classe=classe,
-            actif=True
-        )
+        affectation = affectation_qs.get()
     except AffectationProfesseurPrimaire.DoesNotExist:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
         return redirect('enseignant_primaire:gestion_classes')
@@ -1574,7 +1796,10 @@ def creer_evaluation_primaire(request, classe_id):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     if request.method == 'POST':
         try:
@@ -1610,16 +1835,28 @@ def creer_evaluation_primaire(request, classe_id):
                     date_evaluation=date_evaluation,
                     bareme=bareme,
                     periode_scolaire=periode,
-                    actif=True
+                    actif=True,
+                    annee_scolaire=annee_scolaire_active,
                 )
                 
-                # Créer automatiquement les notes pour tous les élèves
-                eleves = Eleve.objects.filter(classe=classe, actif=True)
+                # Créer automatiquement les notes pour tous les élèves via InscriptionEleve
+                if annee_scolaire_active:
+                    eleves = Eleve.objects.filter(
+                        classe=classe,
+                        actif=True,
+                        id__in=InscriptionEleve.objects.filter(
+                            classe=classe,
+                            annee_scolaire=annee_scolaire_active
+                        ).values_list('eleve_id', flat=True)
+                    )
+                else:
+                    eleves = Eleve.objects.filter(classe=classe, actif=True)
                 for eleve in eleves:
                     NotePrimaire.objects.create(
                         eleve=eleve,
                         evaluation_primaire=evaluation,
-                        absent=False
+                        absent=False,
+                        annee_scolaire=annee_scolaire_active,
                     )
                     
                 if eleves:
@@ -1722,6 +1959,7 @@ def creer_evaluation_primaire(request, classe_id):
         'periodes': periodes,
         'form_data': request.POST if request.method == 'POST' else {},
         'aujourdhui': timezone.now().date().isoformat(),
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/creer_evaluation_primaire.html', context)
@@ -1741,12 +1979,21 @@ def noter_eleves_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_classes')
+    
     # Vérifier l'affectation
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_qs.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
@@ -1756,7 +2003,10 @@ def noter_eleves_primaire(request, classe_id):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     # Récupérer l'ID de la période sélectionnée (depuis GET ou par défaut la période en cours)
     periode_id = request.GET.get('periode', '')
@@ -1772,31 +2022,47 @@ def noter_eleves_primaire(request, classe_id):
     if not periode_selectionnee:
         periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
     
-    # Récupérer les élèves de la classe
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    # Récupérer les élèves de la classe via InscriptionEleve
+    if annee_scolaire_active:
+        eleves = Eleve.objects.filter(
+            classe=classe,
+            actif=True,
+            id__in=InscriptionEleve.objects.filter(
+                classe=classe,
+                annee_scolaire=annee_scolaire_active
+            ).values_list('eleve_id', flat=True)
+        ).order_by('nom', 'prenom')
+    else:
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
     
     # Préparer les données UNIQUEMENT pour les matières qui ont des évaluations OU des examens
     matieres_data = []
     for matiere in affectation.matieres.all():
         # Récupérer toutes les évaluations normales pour cette matière et période
-        evaluations = list(EvaluationPrimaire.objects.filter(
+        evaluations_qs = EvaluationPrimaire.objects.filter(
             classe=classe,
             professeur=professeur,
             matiere=matiere,
             periode_scolaire=periode_selectionnee,
             actif=True
-        ).order_by('date_evaluation'))
+        )
+        if annee_scolaire_active:
+            evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+        evaluations = list(evaluations_qs.order_by('date_evaluation'))
         
         # Récupérer aussi les sessions d'examens pour cette matière et période
         from ..model.session_examen_model import SessionExamen
         
         # Récupérer les sessions d'examen pour cette matière (PAS les créneaux !)
-        sessions_examens = SessionExamen.objects.filter(
+        sessions_examens_qs = SessionExamen.objects.filter(
             classes=classe,
             periode=periode_selectionnee,
             matieres=matiere,
             actif=True
-        ).distinct().order_by('date_debut')
+        )
+        if annee_scolaire_active:
+            sessions_examens_qs = sessions_examens_qs.filter(annee_scolaire=annee_scolaire_active)
+        sessions_examens = sessions_examens_qs.distinct().order_by('date_debut')
         
         # Créer des pseudo-évaluations à partir des SESSIONS d'examens (pas des créneaux)
         evaluations_examens = []
@@ -1831,17 +2097,21 @@ def noter_eleves_primaire(request, classe_id):
             
             # Notes des évaluations normales
             for evaluation in evaluations:
-                note_obj = NotePrimaire.objects.filter(
+                note_primaire_qs = NotePrimaire.objects.filter(
                     eleve=eleve, 
                     evaluation_primaire=evaluation
-                ).first()
+                )
+                if annee_scolaire_active:
+                    note_primaire_qs = note_primaire_qs.filter(annee_scolaire=annee_scolaire_active)
+                note_obj = note_primaire_qs.first()
                 
                 # Créer automatiquement la note si elle n'existe pas
                 if not note_obj:
                     note_obj = NotePrimaire.objects.create(
                         eleve=eleve,
                         evaluation_primaire=evaluation,
-                        absent=False
+                        absent=False,
+                        annee_scolaire=annee_scolaire_active,
                     )
                 
                 notes_existantes[eleve.id][evaluation.id] = note_obj
@@ -1850,11 +2120,14 @@ def noter_eleves_primaire(request, classe_id):
             for eval_examen in evaluations_examens:
                 # Chercher la note d'examen basée sur (eleve, session, matiere)
                 session = eval_examen.session if hasattr(eval_examen, 'session') else SessionExamen.objects.get(id=eval_examen.session_id)
-                note_examen_obj = NoteExamen.objects.filter(
+                note_examen_qs = NoteExamen.objects.filter(
                     eleve=eleve,
                     session_examen=session,
                     matiere=matiere
-                ).first()
+                )
+                if annee_scolaire_active:
+                    note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+                note_examen_obj = note_examen_qs.first()
                 
                 # Si la note n'existe pas (cas d'élève ajouté après la création de la session)
                 # On la crée maintenant
@@ -1869,6 +2142,7 @@ def noter_eleves_primaire(request, classe_id):
                             'absent': False,
                             'note': None,
                             'bareme': 20,
+                            'annee_scolaire': annee_scolaire_active,
                         }
                     )
                 
@@ -1891,11 +2165,14 @@ def noter_eleves_primaire(request, classe_id):
         moyennes = {}
         matiere_soumise = False
         for eleve in eleves:
-            moyenne_obj = MoyenneMatierePrimaire.objects.filter(
+            moyenne_qs = MoyenneMatierePrimaire.objects.filter(
                 eleve=eleve,
                 matiere=matiere,
                 periode_scolaire=periode_selectionnee
-            ).first()
+            )
+            if annee_scolaire_active:
+                moyenne_qs = moyenne_qs.filter(annee_scolaire=annee_scolaire_active)
+            moyenne_obj = moyenne_qs.first()
             if moyenne_obj:
                 if moyenne_obj.moyenne is not None:
                     moyennes[eleve.id] = moyenne_obj.moyenne
@@ -1907,19 +2184,25 @@ def noter_eleves_primaire(request, classe_id):
         for evaluation in toutes_evaluations:
             if hasattr(evaluation, 'est_examen') and evaluation.est_examen:
                 # Pour les examens - utiliser session_id au lieu de creneau_id
-                nb_retenues = NoteExamen.objects.filter(
+                note_examen_qs = NoteExamen.objects.filter(
                     session_examen_id=evaluation.session_id,
                     matiere=matiere,
                     retenue=True,
                     absent=False
-                ).exclude(note__isnull=True).count()
+                )
+                if annee_scolaire_active:
+                    note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+                nb_retenues = note_examen_qs.exclude(note__isnull=True).count()
             else:
                 # Pour les évaluations normales
-                nb_retenues = NotePrimaire.objects.filter(
+                note_primaire_qs = NotePrimaire.objects.filter(
                     evaluation_primaire=evaluation,
                     retenue=True,
                     absent=False
-                ).exclude(note__isnull=True).count()
+                )
+                if annee_scolaire_active:
+                    note_primaire_qs = note_primaire_qs.filter(annee_scolaire=annee_scolaire_active)
+                nb_retenues = note_primaire_qs.exclude(note__isnull=True).count()
             
             notes_retenues_par_eval[evaluation.id] = nb_retenues
         
@@ -1951,12 +2234,15 @@ def noter_eleves_primaire(request, classe_id):
             return redirect('enseignant_primaire:noter_eleves', classe_id=classe_id)
         
         # VÉRIFIER SI LE RELEVÉ A DÉJÀ ÉTÉ SOUMIS
-        releve_soumis = MoyenneMatierePrimaire.objects.filter(
+        releve_qs = MoyenneMatierePrimaire.objects.filter(
             classe=classe,
             matiere=matiere,
             periode_scolaire=periode_selectionnee,
             soumis=True
-        ).exists()
+        )
+        if annee_scolaire_active:
+            releve_qs = releve_qs.filter(annee_scolaire=annee_scolaire_active)
+        releve_soumis = releve_qs.exists()
         
         if releve_soumis:
             messages.error(request, f"⚠️ Le relevé de notes pour {matiere.nom} a déjà été soumis. Modification impossible.")
@@ -2010,6 +2296,7 @@ def noter_eleves_primaire(request, classe_id):
                                 'evaluations_utilisees': evaluations_utilisees_effectives or evaluations_selectionnees,
                                 'ponderation': ponderation,
                                 'nombre_notes': len(evaluations_utilisees_effectives or evaluations_selectionnees),
+                                'annee_scolaire': annee_scolaire_active,
                             }
                         )
                         moyennes_calculees += 1
@@ -2020,19 +2307,25 @@ def noter_eleves_primaire(request, classe_id):
                     if eval_id_str.startswith('examen_'):
                         session_id = int(eval_id_str.replace('examen_', ''))
                         from ..model.note_examen_model import NoteExamen
-                        count = NoteExamen.objects.filter(
+                        note_examen_qs = NoteExamen.objects.filter(
                             session_examen_id=session_id,
                             matiere=matiere,
                             eleve__in=eleves,
                             retenue=True
-                        ).count()
+                        )
+                        if annee_scolaire_active:
+                            note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+                        count = note_examen_qs.count()
                         notes_retenues_dict[eval_id_str] = count
                     else:
-                        count = NotePrimaire.objects.filter(
+                        note_primaire_qs = NotePrimaire.objects.filter(
                             evaluation_primaire_id=int(eval_id_str),
                             eleve__in=eleves,
                             retenue=True
-                        ).count()
+                        )
+                        if annee_scolaire_active:
+                            note_primaire_qs = note_primaire_qs.filter(annee_scolaire=annee_scolaire_active)
+                        count = note_primaire_qs.count()
                         notes_retenues_dict[eval_id_str] = count
                 
                 # Message détaillé selon le mode et la pondération
@@ -2241,10 +2534,13 @@ def noter_eleves_primaire(request, classe_id):
                         notes_a_publier = []
 
                         for evaluation in evaluations:
-                            note_obj = NotePrimaire.objects.filter(
+                            note_primaire_qs = NotePrimaire.objects.filter(
                                 eleve=eleve,
                                 evaluation_primaire=evaluation
-                            ).first()
+                            )
+                            if annee_scolaire_active:
+                                note_primaire_qs = note_primaire_qs.filter(annee_scolaire=annee_scolaire_active)
+                            note_obj = note_primaire_qs.first()
                             if (
                                 note_obj
                                 and note_obj.note is not None
@@ -2261,11 +2557,14 @@ def noter_eleves_primaire(request, classe_id):
                                 })
 
                         for session in sessions_examens:
-                            note_examen_obj = NoteExamen.objects.filter(
+                            note_examen_qs = NoteExamen.objects.filter(
                                 eleve=eleve,
                                 session_examen=session,
                                 matiere=matiere
-                            ).first()
+                            )
+                            if annee_scolaire_active:
+                                note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+                            note_examen_obj = note_examen_qs.first()
                             if (
                                 note_examen_obj
                                 and note_examen_obj.note is not None
@@ -2374,7 +2673,10 @@ def noter_eleves_primaire(request, classe_id):
                             note_obj, created = NotePrimaire.objects.get_or_create(
                                 eleve=eleve,
                                 evaluation_primaire=evaluation,
-                                defaults={'absent': False}
+                                defaults={
+                                    'absent': False,
+                                    'annee_scolaire': annee_scolaire_active,
+                                }
                             )
                             if note_value:
                                 try:
@@ -2412,6 +2714,7 @@ def noter_eleves_primaire(request, classe_id):
                                 'classe': classe,
                                 'absent': False,
                                 'bareme': 20,
+                                'annee_scolaire': annee_scolaire_active,
                             }
                         )
                         if note_value:
@@ -2481,6 +2784,7 @@ def noter_eleves_primaire(request, classe_id):
         'matieres_data': matieres_data,
         'eleves': eleves,
         'releve_global_soumis': releve_global_soumis,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/noter_eleves_primaire.html', context)
@@ -2514,13 +2818,22 @@ def soumettre_releve_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_notes')
+    
     # Vérifier l'affectation
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
     try:
-        affectation = AffectationProfesseurPrimaire.objects.get(
-            professeur=professeur,
-            classe=classe,
-            actif=True
-        )
+        affectation = affectation_qs.get()
     except AffectationProfesseurPrimaire.DoesNotExist:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
         return redirect('enseignant_primaire:gestion_classes')
@@ -2546,6 +2859,8 @@ def soumettre_releve_primaire(request, classe_id):
             periode_scolaire=periode,
             matiere__in=matieres_professeur
         )
+        if annee_scolaire_active:
+            moyennes = moyennes.filter(annee_scolaire=annee_scolaire_active)
         
         # Vérifier si déjà soumis
         if moyennes.filter(soumis=True).exists():
@@ -2594,12 +2909,20 @@ def imprimer_releve_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        return HttpResponse("Aucune année scolaire active n'est définie pour votre établissement.", status=403)
+    
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=classe,
+        actif=True
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
     try:
-        affectation = AffectationProfesseurPrimaire.objects.get(
-            professeur=professeur,
-            classe=classe,
-            actif=True
-        )
+        affectation = affectation_qs.get()
     except AffectationProfesseurPrimaire.DoesNotExist:
         return HttpResponse("Vous n'êtes pas affecté à cette classe.", status=403)
     
@@ -2608,6 +2931,8 @@ def imprimer_releve_primaire(request, classe_id):
         etablissement=professeur.etablissement,
         est_active=True
     )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
     
     if periode_id:
         periode_selectionnee = get_object_or_404(PeriodeScolaire, id=periode_id)
@@ -2625,6 +2950,7 @@ def imprimer_releve_primaire(request, classe_id):
         'resultats': resultats,
         'etablissement': professeur.etablissement,
         'date_impression': date.today(),
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/imprimer_releve_primaire.html', context)
@@ -2640,6 +2966,11 @@ def liste_evaluations_primaire(request):
     
     professeur = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     # Filtres
     matiere_id = request.GET.get('matiere')
     periode_id = request.GET.get('periode')
@@ -2649,7 +2980,9 @@ def liste_evaluations_primaire(request):
     evaluations = EvaluationPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe', 'matiere', 'periode_scolaire').order_by('-date_evaluation')
+    )
+    if annee_scolaire_active:
+        evaluations = evaluations.filter(annee_scolaire=annee_scolaire_active)
     
     # Appliquer les filtres
     if matiere_id:
@@ -2659,11 +2992,16 @@ def liste_evaluations_primaire(request):
     if classe_id:
         evaluations = evaluations.filter(classe_id=classe_id)
     
+    evaluations = evaluations.select_related('classe', 'matiere', 'periode_scolaire').order_by('-date_evaluation')
+    
     # Récupérer les options de filtres
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.prefetch_related('matieres')
     
     matieres_enseignees = set()
     classes_enseignees = []
@@ -2674,7 +3012,10 @@ def liste_evaluations_primaire(request):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     context = {
         'professeur': professeur,
@@ -2685,6 +3026,7 @@ def liste_evaluations_primaire(request):
         'matiere_selectionnee': matiere_id,
         'periode_selectionnee': periode_id,
         'classe_selectionnee': classe_id,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/liste_evaluations_primaire.html', context)
@@ -2702,12 +3044,21 @@ def evaluations_classe_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id, actif=True)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_notes')
+    
     # Vérifier que le professeur est affecté à cette classe
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_qs.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
@@ -2717,7 +3068,10 @@ def evaluations_classe_primaire(request, classe_id):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     # Récupérer la période sélectionnée depuis l'URL
     periode_id = request.GET.get('periode')
@@ -2738,7 +3092,10 @@ def evaluations_classe_primaire(request, classe_id):
         professeur=professeur,
         classe=classe,
         actif=True
-    ).select_related('matiere', 'periode_scolaire').order_by('-date_evaluation')
+    )
+    if annee_scolaire_active:
+        evaluations_query = evaluations_query.filter(annee_scolaire=annee_scolaire_active)
+    evaluations_query = evaluations_query.select_related('matiere', 'periode_scolaire').order_by('-date_evaluation')
     
     # Filtrer par période si une période est sélectionnée
     if periode_selectionnee:
@@ -2777,6 +3134,7 @@ def evaluations_classe_primaire(request, classe_id):
         'evaluations_passees': evaluations_passees,
         'evaluations_a_venir': evaluations_a_venir,
         'matieres': matieres,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/evaluations_classe_primaire.html', context)
@@ -2791,15 +3149,23 @@ def modifier_evaluation_primaire(request, evaluation_id):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
+    etablissement = professeur.etablissement
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
     evaluation = get_object_or_404(EvaluationPrimaire, id=evaluation_id, professeur=professeur, actif=True)
+    if annee_scolaire_active:
+        evaluation = get_object_or_404(EvaluationPrimaire, id=evaluation_id, professeur=professeur, actif=True, annee_scolaire=annee_scolaire_active)
     classe = evaluation.classe
     
     # Vérifier que le professeur est affecté à cette classe
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_query = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_query = affectation_query.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_query.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
@@ -2807,10 +3173,13 @@ def modifier_evaluation_primaire(request, evaluation_id):
     
     # Récupérer les matières et périodes
     matieres = affectation.matieres.all()
-    periodes = PeriodeScolaire.objects.filter(
+    periodes_query = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes_query = periodes_query.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes_query.order_by('date_debut')
     
     if request.method == 'POST':
         try:
@@ -2847,6 +3216,8 @@ def modifier_evaluation_primaire(request, evaluation_id):
                 evaluation.date_evaluation = date_evaluation
                 evaluation.bareme = bareme
                 evaluation.periode_scolaire = periode
+                if annee_scolaire_active:
+                    evaluation.annee_scolaire = annee_scolaire_active
                 evaluation.save()
                 
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -2873,6 +3244,7 @@ def modifier_evaluation_primaire(request, evaluation_id):
             'evaluation': evaluation,
             'matieres': matieres,
             'periodes': periodes,
+            'annee_scolaire_active': annee_scolaire_active,
         }, request=request)
         return JsonResponse({'html': html})
     
@@ -2888,23 +3260,38 @@ def calculer_moyennes_classe_primaire(request, classe_id):
         return JsonResponse({'success': False, 'error': 'Accès non autorisé'})
     
     professeur = request.user
+    etablissement = professeur.etablissement
+    annee_scolaire_active = get_session_active(request, etablissement)
     classe = get_object_or_404(Classe, id=classe_id)
     
     try:
-        affectation = AffectationProfesseurPrimaire.objects.get(
+        affectation_query = AffectationProfesseurPrimaire.objects.filter(
             professeur=professeur,
             classe=classe,
             actif=True
         )
+        if annee_scolaire_active:
+            affectation_query = affectation_query.filter(annee_scolaire=annee_scolaire_active)
+        affectation = affectation_query.get()
     except AffectationProfesseurPrimaire.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Vous n\'êtes pas affecté à cette classe'})
     
     periode_id = request.POST.get('periode_id')
     periode = get_object_or_404(PeriodeScolaire, id=periode_id)
+    if annee_scolaire_active:
+        periode = get_object_or_404(PeriodeScolaire, id=periode_id, annee_scolaire_fk=annee_scolaire_active)
     
     try:
         # Calculer toutes les moyennes
-        eleves = Eleve.objects.filter(classe=classe, actif=True)
+        # Filtrer les élèves via InscriptionEleve
+        if annee_scolaire_active:
+            eleves_ids = InscriptionEleve.objects.filter(
+                eleve__classe=classe,
+                annee_scolaire=annee_scolaire_active
+            ).values_list('eleve_id', flat=True)
+            eleves = Eleve.objects.filter(id__in=eleves_ids, actif=True)
+        else:
+            eleves = Eleve.objects.filter(classe=classe, actif=True)
         matieres = affectation.matieres.all()
         
         moyennes_calculees = 0
@@ -2919,6 +3306,10 @@ def calculer_moyennes_classe_primaire(request, classe_id):
                     ponderation='50_50',
                 )
                 if created or moyenne_obj:
+                    # S'assurer que l'année scolaire est définie
+                    if annee_scolaire_active and moyenne_obj:
+                        moyenne_obj.annee_scolaire = annee_scolaire_active
+                        moyenne_obj.save()
                     moyennes_calculees += 1
         
         # Envoyer des notifications push personnalisées aux élèves
@@ -2930,10 +3321,13 @@ def calculer_moyennes_classe_primaire(request, classe_id):
                 notifications_envoyees = 0
                 for eleve in eleves:
                     # Récupérer toutes les moyennes de l'élève pour cette période
-                    moyennes_eleve = MoyenneMatierePrimaire.objects.filter(
+                    moyennes_eleve_query = MoyenneMatierePrimaire.objects.filter(
                         eleve=eleve,
                         periode_scolaire=periode
                     )
+                    if annee_scolaire_active:
+                        moyennes_eleve_query = moyennes_eleve_query.filter(annee_scolaire=annee_scolaire_active)
+                    moyennes_eleve = moyennes_eleve_query
                     
                     if moyennes_eleve.exists():
                         # Calculer la moyenne générale
@@ -2994,13 +3388,21 @@ def liste_presence_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_classes')
+    
     # Vérifier l'affectation primaire
-    affectation = get_object_or_404(
-        AffectationProfesseurPrimaire,
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
     )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = get_object_or_404(affectation_qs)
     
     # Date du jour
     from datetime import date
@@ -3015,7 +3417,10 @@ def liste_presence_primaire(request, classe_id):
         classe=classe,
         date=today,
         validee=True
-    ).order_by('numero_appel')
+    )
+    if annee_scolaire_active:
+        appels_du_jour = appels_du_jour.filter(annee_scolaire=annee_scolaire_active)
+    appels_du_jour = appels_du_jour.order_by('numero_appel')
     
     nombre_appels_valides = appels_du_jour.count()
     
@@ -3038,12 +3443,15 @@ def liste_presence_primaire(request, classe_id):
     # Vérifier s'il existe déjà une liste de présence non validée pour ce numéro d'appel
     liste_presence_actuelle = None
     if prochain_numero_appel:
-        liste_presence_actuelle = ListePresence.objects.filter(
+        liste_presence_qs = ListePresence.objects.filter(
             classe=classe,
             date=today,
             numero_appel=prochain_numero_appel,
             validee=False
-        ).first()
+        )
+        if annee_scolaire_active:
+            liste_presence_qs = liste_presence_qs.filter(annee_scolaire=annee_scolaire_active)
+        liste_presence_actuelle = liste_presence_qs.first()
         
         # Si aucune liste non validée n'existe et qu'on n'a pas atteint la limite, en créer une
         if not liste_presence_actuelle and not limite_atteinte:
@@ -3052,21 +3460,35 @@ def liste_presence_primaire(request, classe_id):
                 date=today,
                 numero_appel=prochain_numero_appel,
                 professeur=professeur,
-                etablissement=classe.etablissement
+                etablissement=classe.etablissement,
+                annee_scolaire=annee_scolaire_active,
             )
     
-    # Récupérer tous les élèves actifs de la classe
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    # Récupérer tous les élèves actifs de la classe via InscriptionEleve
+    if annee_scolaire_active:
+        eleves = Eleve.objects.filter(
+            classe=classe,
+            actif=True,
+            id__in=InscriptionEleve.objects.filter(
+                classe=classe,
+                annee_scolaire=annee_scolaire_active
+            ).values_list('eleve_id', flat=True)
+        ).order_by('nom', 'prenom')
+    else:
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
     
     # Récupérer les présences pour l'appel en cours (si existe)
     eleves_avec_presence = []
     if liste_presence_actuelle:
         # Récupérer les présences liées à cet appel spécifique
-        presences_existantes = Presence.objects.filter(
+        presences_qs = Presence.objects.filter(
             classe=classe,
             date=today,
             numero_appel=prochain_numero_appel
-        ).select_related('eleve')
+        )
+        if annee_scolaire_active:
+            presences_qs = presences_qs.filter(annee_scolaire=annee_scolaire_active)
+        presences_existantes = presences_qs.select_related('eleve')
         
         # Créer un dictionnaire des présences existantes
         presences_dict = {p.eleve.id: p for p in presences_existantes}
@@ -3099,6 +3521,7 @@ def liste_presence_primaire(request, classe_id):
         'nombre_appels_valides': nombre_appels_valides,
         'limite_atteinte': limite_atteinte,
         'appels_du_jour': appels_du_jour,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/liste_presence_primaire.html', context)
@@ -3121,13 +3544,21 @@ def valider_presence_primaire(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:liste_presence', classe_id=classe_id)
+    
     # Vérifier l'affectation primaire
-    affectation = get_object_or_404(
-        AffectationProfesseurPrimaire,
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
     )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = get_object_or_404(affectation_qs)
     
     # Date du jour
     from datetime import date
@@ -3141,12 +3572,14 @@ def valider_presence_primaire(request, classe_id):
     try:
         with transaction.atomic():
             # Récupérer la liste de présence pour ce numéro d'appel
-            liste_presence = get_object_or_404(
-                ListePresence,
+            liste_presence_qs = ListePresence.objects.filter(
                 classe=classe,
                 date=today,
                 numero_appel=numero_appel
             )
+            if annee_scolaire_active:
+                liste_presence_qs = liste_presence_qs.filter(annee_scolaire=annee_scolaire_active)
+            liste_presence = get_object_or_404(liste_presence_qs)
             
             # Si déjà validée, interdire la modification
             if liste_presence.validee:
@@ -3173,7 +3606,8 @@ def valider_presence_primaire(request, classe_id):
                             defaults={
                                 'professeur': professeur,
                                 'etablissement': classe.etablissement,
-                                'statut': value
+                                'statut': value,
+                                'annee_scolaire': annee_scolaire_active,
                             }
                         )
                         
@@ -3206,11 +3640,14 @@ def valider_presence_primaire(request, classe_id):
                 from school_admin.services.firebase_service import FirebaseService
                 
                 # Récupérer toutes les présences de cette liste
-                presences = Presence.objects.filter(
+                presences_qs = Presence.objects.filter(
                     classe=classe,
                     date=today,
                     numero_appel=numero_appel
                 )
+                if annee_scolaire_active:
+                    presences_qs = presences_qs.filter(annee_scolaire=annee_scolaire_active)
+                presences = presences_qs
                 
                 # Préparer la date en clair avec heure
                 from django.utils import timezone
@@ -3383,12 +3820,21 @@ def soumettre_sanction_eleve_primaire(request):
     eleve = get_object_or_404(Eleve, id=eleve_id, actif=True)
     classe = get_object_or_404(Classe, id=classe_id, actif=True)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_eleves')
+    
     # Vérifier l'affectation primaire
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_qs.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas autorisé à sanctionner cet élève.")
@@ -3412,7 +3858,8 @@ def soumettre_sanction_eleve_primaire(request):
             raison=raison,
             gravite=gravite,
             description=description,
-            date_sanction=date_sanction
+            date_sanction=date_sanction,
+            annee_scolaire=annee_scolaire_active,
         )
         
         logger.info(f"Sanction primaire créée - Élève: {eleve.nom_complet}, Type: {type_sanction}, Raison: {raison}")
@@ -3593,13 +4040,22 @@ def detail_eleve_primaire(request, eleve_id):
     professeur = request.user
     eleve = get_object_or_404(Eleve, id=eleve_id)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_eleves')
+    
     # Vérifier que le professeur enseigne dans la classe de l'élève
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur,
+        classe=eleve.classe,
+        actif=True
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
     try:
-        affectation = AffectationProfesseurPrimaire.objects.get(
-            professeur=professeur,
-            classe=eleve.classe,
-            actif=True
-        )
+        affectation = affectation_qs.get()
     except AffectationProfesseurPrimaire.DoesNotExist:
         messages.error(request, "Vous n'enseignez pas dans la classe de cet élève.")
         return redirect('enseignant_primaire:gestion_eleves')
@@ -3612,7 +4068,10 @@ def detail_eleve_primaire(request, eleve_id):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     if periode_id:
         periode_selectionnee = get_object_or_404(PeriodeScolaire, id=periode_id)
@@ -3626,36 +4085,48 @@ def detail_eleve_primaire(request, eleve_id):
         
         for matiere in matieres:
             # Récupérer toutes les évaluations et notes
-            evaluations = EvaluationPrimaire.objects.filter(
+            evaluations_qs = EvaluationPrimaire.objects.filter(
                 classe=eleve.classe,
                 matiere=matiere,
                 periode_scolaire=periode_selectionnee,
                 actif=True
-            ).order_by('date_evaluation')
+            )
+            if annee_scolaire_active:
+                evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+            evaluations = evaluations_qs.order_by('date_evaluation')
             
-            notes_objs = NotePrimaire.objects.filter(
+            notes_objs_qs = NotePrimaire.objects.filter(
                 eleve=eleve,
                 evaluation_primaire__in=evaluations
-            ).select_related('evaluation_primaire')
+            )
+            if annee_scolaire_active:
+                notes_objs_qs = notes_objs_qs.filter(annee_scolaire=annee_scolaire_active)
+            notes_objs = notes_objs_qs.select_related('evaluation_primaire')
             
             # Créer un dictionnaire des notes indexé par evaluation_id
             notes_dict = {note.evaluation_primaire.id: note for note in notes_objs}
             
             # Récupérer les sessions d'examen (PAS les créneaux!) pour cette matière et période
             from ..model.session_examen_model import SessionExamen
-            sessions_examen = SessionExamen.objects.filter(
+            sessions_examen_qs = SessionExamen.objects.filter(
                 classes=eleve.classe,
                 periode=periode_selectionnee,
                 matieres=matiere,
                 actif=True
-            ).distinct()
+            )
+            if annee_scolaire_active:
+                sessions_examen_qs = sessions_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+            sessions_examen = sessions_examen_qs.distinct()
             
             # Récupérer les notes d'examen basées sur (eleve, session, matiere)
-            notes_examen_objs = NoteExamen.objects.filter(
+            notes_examen_objs_qs = NoteExamen.objects.filter(
                 eleve=eleve,
                 session_examen__in=sessions_examen,
                 matiere=matiere
-            ).select_related('session_examen')
+            )
+            if annee_scolaire_active:
+                notes_examen_objs_qs = notes_examen_objs_qs.filter(annee_scolaire=annee_scolaire_active)
+            notes_examen_objs = notes_examen_objs_qs.select_related('session_examen')
             
             # Ajouter les notes d'examen au dictionnaire avec un préfixe "examen_"
             for note_examen in notes_examen_objs:
@@ -3677,11 +4148,14 @@ def detail_eleve_primaire(request, eleve_id):
                 evaluations_list.append(PseudoExamen(session))
             
             # Récupérer la moyenne enregistrée
-            moyenne_obj = MoyenneMatierePrimaire.objects.filter(
+            moyenne_qs = MoyenneMatierePrimaire.objects.filter(
                 eleve=eleve,
                 matiere=matiere,
                 periode_scolaire=periode_selectionnee
-            ).first()
+            )
+            if annee_scolaire_active:
+                moyenne_qs = moyenne_qs.filter(annee_scolaire=annee_scolaire_active)
+            moyenne_obj = moyenne_qs.first()
             
             moyenne = moyenne_obj.moyenne if moyenne_obj else None
             
@@ -3718,7 +4192,10 @@ def detail_eleve_primaire(request, eleve_id):
         eleve=eleve,
         date__gte=debut_annee,
         date__lte=fin_annee
-    ).select_related('eleve', 'classe')
+    )
+    if annee_scolaire_active:
+        presences_query = presences_query.filter(annee_scolaire=annee_scolaire_active)
+    presences_query = presences_query.select_related('eleve', 'classe')
     
     # Calculer les statistiques globales (par DATE unique, pas par appel)
     total_jours = presences_query.values('date').distinct().count()
@@ -3731,12 +4208,15 @@ def detail_eleve_primaire(request, eleve_id):
     # Données pour l'onglet présences
     if onglet == 'presences':
         # Récupérer les listes de présences validées pour cette classe
-        listes_validees = ListePresence.objects.filter(
+        listes_validees_qs = ListePresence.objects.filter(
             classe=eleve.classe,
             validee=True,
             date__gte=debut_annee,
             date__lte=fin_annee
-        ).values_list('date', flat=True)
+        )
+        if annee_scolaire_active:
+            listes_validees_qs = listes_validees_qs.filter(annee_scolaire=annee_scolaire_active)
+        listes_validees = listes_validees_qs.values_list('date', flat=True)
         
         # Extraire les mois uniques qui ont des listes validées
         mois_avec_presences = set()
@@ -3811,9 +4291,10 @@ def detail_eleve_primaire(request, eleve_id):
     
     # Données pour l'onglet sanctions
     if onglet == 'sanctions':
-        sanctions = Sanction.objects.filter(
-            eleve=eleve
-        ).order_by('-date_sanction')[:20]
+        sanctions_qs = Sanction.objects.filter(eleve=eleve)
+        if annee_scolaire_active:
+            sanctions_qs = sanctions_qs.filter(annee_scolaire=annee_scolaire_active)
+        sanctions = sanctions_qs.order_by('-date_sanction')[:20]
     else:
         sanctions = []
     
@@ -3844,6 +4325,7 @@ def detail_eleve_primaire(request, eleve_id):
         'nombre_retards_mois': nombre_retards_mois if onglet == 'presences' else 0,
         'nombre_presents_mois': nombre_presents_mois if onglet == 'presences' else 0,
         'taux_presence_mois': taux_presence_mois if onglet == 'presences' else 0,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/detail_eleve_primaire.html', context)
@@ -3862,6 +4344,12 @@ def detail_classe_primaire(request, classe_id):
     
     professeur = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_classes')
+    
     # Récupérer l'onglet actif (pour restauration après filtrage)
     onglet_actif = request.GET.get('onglet', 'eleves')
     
@@ -3869,18 +4357,32 @@ def detail_classe_primaire(request, classe_id):
     classe = get_object_or_404(Classe, id=classe_id, actif=True)
     
     # Vérifier que le professeur est affecté à cette classe
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_qs.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
         return redirect('enseignant_primaire:gestion_classes')
     
     # === STATISTIQUES GÉNÉRALES ===
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    # Récupérer les élèves via InscriptionEleve
+    if annee_scolaire_active:
+        eleves = Eleve.objects.filter(
+            classe=classe,
+            actif=True,
+            id__in=InscriptionEleve.objects.filter(
+                classe=classe,
+                annee_scolaire=annee_scolaire_active
+            ).values_list('eleve_id', flat=True)
+        ).order_by('nom', 'prenom')
+    else:
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
     nombre_eleves = eleves.count()
     taux_occupation = round((nombre_eleves / classe.capacite_max * 100), 1) if classe.capacite_max > 0 else 0
     
@@ -3893,9 +4395,10 @@ def detail_classe_primaire(request, classe_id):
     debut_mois = date(today.year, today.month, 1)
     
     # Récupérer tous les mois distincts avec présence pour déterminer les mois disponibles
-    presences_dates = Presence.objects.filter(
-        classe=classe
-    ).dates('date', 'month', order='DESC')
+    presences_dates_qs = Presence.objects.filter(classe=classe)
+    if annee_scolaire_active:
+        presences_dates_qs = presences_dates_qs.filter(annee_scolaire=annee_scolaire_active)
+    presences_dates = presences_dates_qs.dates('date', 'month', order='DESC')
     
     # Filtre par mois (GET parameter)
     mois_filtre = request.GET.get('mois', None)
@@ -3935,6 +4438,8 @@ def detail_classe_primaire(request, classe_id):
         date__gte=premier_jour_mois,
         date__lte=dernier_jour_mois
     )
+    if annee_scolaire_active:
+        presences_mois = presences_mois.filter(annee_scolaire=annee_scolaire_active)
     
     total_presences_mois = presences_mois.count()
     nombre_presents_mois = presences_mois.filter(statut='present').count()
@@ -3950,7 +4455,10 @@ def detail_classe_primaire(request, classe_id):
         validee=True,
         date__gte=premier_jour_mois,
         date__lte=dernier_jour_mois
-    ).order_by('-date', 'numero_appel')
+    )
+    if annee_scolaire_active:
+        listes_presence_query = listes_presence_query.filter(annee_scolaire=annee_scolaire_active)
+    listes_presence_query = listes_presence_query.order_by('-date', 'numero_appel')
     
     # Regrouper les listes de présence par date
     from collections import defaultdict
@@ -4002,7 +4510,10 @@ def detail_classe_primaire(request, classe_id):
     periodes_scolaires = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes_scolaires = periodes_scolaires.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes_scolaires = periodes_scolaires.order_by('date_debut')
     
     periode_eval_active = None
     
@@ -4029,6 +4540,8 @@ def detail_classe_primaire(request, classe_id):
         professeur=professeur,
         actif=True
     )
+    if annee_scolaire_active:
+        evaluations = evaluations.filter(annee_scolaire=annee_scolaire_active)
     
     # Filtrer par matière si spécifiée
     if matiere_eval_active:
@@ -4056,28 +4569,38 @@ def detail_classe_primaire(request, classe_id):
     eleves_avec_stats = []
     for eleve in eleves:
         # Absences
-        nombre_absences = Presence.objects.filter(
+        presence_abs_qs = Presence.objects.filter(
             eleve=eleve,
             statut='absent'
-        ).count()
+        )
+        if annee_scolaire_active:
+            presence_abs_qs = presence_abs_qs.filter(annee_scolaire=annee_scolaire_active)
+        nombre_absences = presence_abs_qs.count()
         
         # Retards
-        nombre_retards = Presence.objects.filter(
+        presence_ret_qs = Presence.objects.filter(
             eleve=eleve,
             statut='retard'
-        ).count()
+        )
+        if annee_scolaire_active:
+            presence_ret_qs = presence_ret_qs.filter(annee_scolaire=annee_scolaire_active)
+        nombre_retards = presence_ret_qs.count()
         
         # Sanctions
         from ..model.sanction_model import Sanction
-        nombre_sanctions = Sanction.objects.filter(
-            eleve=eleve
-        ).count()
+        sanction_qs = Sanction.objects.filter(eleve=eleve)
+        if annee_scolaire_active:
+            sanction_qs = sanction_qs.filter(annee_scolaire=annee_scolaire_active)
+        nombre_sanctions = sanction_qs.count()
         
         # Notes
-        nombre_notes = NotePrimaire.objects.filter(
+        note_qs = NotePrimaire.objects.filter(
             eleve=eleve,
             evaluation_primaire__professeur=professeur
-        ).count()
+        )
+        if annee_scolaire_active:
+            note_qs = note_qs.filter(annee_scolaire=annee_scolaire_active)
+        nombre_notes = note_qs.count()
         
         eleves_avec_stats.append({
             'eleve': eleve,
@@ -4121,6 +4644,7 @@ def detail_classe_primaire(request, classe_id):
         'periode_eval_active': periode_eval_active,
         'matieres_enseignees': matieres_enseignees,
         'matiere_eval_active': matiere_eval_active,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/detail_classe_primaire.html', context)
@@ -4269,6 +4793,12 @@ def gestion_presence_primaire(request):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     from django.utils import timezone
     from datetime import timedelta
     import re
@@ -4277,7 +4807,10 @@ def gestion_presence_primaire(request):
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe', 'classe__etablissement').prefetch_related('classe__eleves').order_by('classe__nom')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe', 'classe__etablissement').prefetch_related('classe__eleves').order_by('classe__nom')
     
     # Regrouper les classes par catégorie
     classes_grouped = {}
@@ -4308,8 +4841,18 @@ def gestion_presence_primaire(request):
                 'total_eleves': 0,
             }
         
-        # Récupérer les élèves actifs de cette classe
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves actifs de cette classe via InscriptionEleve
+        if annee_scolaire_active:
+            eleves = Eleve.objects.filter(
+                classe=classe,
+                actif=True,
+                id__in=InscriptionEleve.objects.filter(
+                    classe=classe,
+                    annee_scolaire=annee_scolaire_active
+                ).values_list('eleve_id', flat=True)
+            ).order_by('nom', 'prenom')
+        else:
+            eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
         
         # Calculer les statistiques de présence pour chaque élève
         # IMPORTANT : Filtrer par le professeur pour afficher uniquement ses appels
@@ -4321,6 +4864,8 @@ def gestion_presence_primaire(request):
                 professeur=professeur,
                 date__gte=debut_annee
             )
+            if annee_scolaire_active:
+                presences = presences.filter(annee_scolaire=annee_scolaire_active)
             
             # Compter les présences par statut
             nombre_presences = presences.filter(statut='present').count()
@@ -4358,6 +4903,7 @@ def gestion_presence_primaire(request):
         'professeur': professeur,
         'classes_grouped': classes_grouped,
         'stats': stats,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/gestion_presence_primaire.html', context)
@@ -4375,6 +4921,12 @@ def eleves_en_difficulte_primaire(request):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     import re
     
     # Récupérer les paramètres de navigation
@@ -4384,7 +4936,10 @@ def eleves_en_difficulte_primaire(request):
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
         est_active=True
-    ).order_by('date_debut')
+    )
+    if annee_scolaire_active:
+        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes.order_by('date_debut')
     
     # Période active par défaut
     if periode_id:
@@ -4396,7 +4951,10 @@ def eleves_en_difficulte_primaire(request):
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe').prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe').prefetch_related('matieres')
     
     # Grouper les classes par catégorie (CI, CP, CE1, CE2, CM1, CM2)
     classes_grouped = {}
@@ -4423,18 +4981,31 @@ def eleves_en_difficulte_primaire(request):
         # Récupérer toutes les matières de cette affectation
         matieres = affectation.matieres.all()
         
-        # Récupérer les élèves actifs de la classe
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves actifs de la classe via InscriptionEleve
+        if annee_scolaire_active:
+            eleves = Eleve.objects.filter(
+                classe=classe,
+                actif=True,
+                id__in=InscriptionEleve.objects.filter(
+                    classe=classe,
+                    annee_scolaire=annee_scolaire_active
+                ).values_list('eleve_id', flat=True)
+            ).order_by('nom', 'prenom')
+        else:
+            eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
         
         # Pour chaque élève, récupérer ses moyennes dans toutes les matières
         eleves_difficulte = []
         
         for eleve in eleves:
             # Récupérer toutes les moyennes de cet élève pour la période
-            moyennes = MoyenneMatierePrimaire.objects.filter(
+            moyennes_qs = MoyenneMatierePrimaire.objects.filter(
                 eleve=eleve,
                 periode_scolaire=periode_selectionnee
             )
+            if annee_scolaire_active:
+                moyennes_qs = moyennes_qs.filter(annee_scolaire=annee_scolaire_active)
+            moyennes = moyennes_qs
             
             # Calculer la moyenne générale
             if moyennes.exists():
@@ -4486,6 +5057,7 @@ def eleves_en_difficulte_primaire(request):
         'stats': stats,
         'periode_selectionnee': periode_selectionnee,
         'periodes': periodes,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/eleves_en_difficulte_primaire.html', context)
@@ -4504,12 +5076,21 @@ def imprimer_tableau_presence(request, classe_id):
     professeur = request.user
     classe = get_object_or_404(Classe, id=classe_id, actif=True)
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+        return redirect('enseignant_primaire:gestion_presence')
+    
     # Vérifier que le professeur est affecté à cette classe
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_qs.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
@@ -4524,8 +5105,18 @@ def imprimer_tableau_presence(request, classe_id):
     
     classes_data = []
     
-    # Traiter uniquement la classe sélectionnée
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    # Traiter uniquement la classe sélectionnée via InscriptionEleve
+    if annee_scolaire_active:
+        eleves = Eleve.objects.filter(
+            classe=classe,
+            actif=True,
+            id__in=InscriptionEleve.objects.filter(
+                classe=classe,
+                annee_scolaire=annee_scolaire_active
+            ).values_list('eleve_id', flat=True)
+        ).order_by('nom', 'prenom')
+    else:
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
     
     # Récupérer les présences de la semaine pour tous les élèves
     # IMPORTANT : Filtrer par professeur pour afficher uniquement ses appels
@@ -4534,7 +5125,10 @@ def imprimer_tableau_presence(request, classe_id):
         professeur=professeur,
         date__gte=lundi,
         date__lte=samedi
-    ).select_related('eleve')
+    )
+    if annee_scolaire_active:
+        presences_semaine = presences_semaine.filter(annee_scolaire=annee_scolaire_active)
+    presences_semaine = presences_semaine.select_related('eleve')
     
     # Organiser les présences par élève et par date
     presences_dict = defaultdict(lambda: defaultdict(list))
@@ -4601,6 +5195,7 @@ def imprimer_tableau_presence(request, classe_id):
         'samedi': samedi,
         'jours_semaine': jours_semaine,
         'date_impression': today,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/imprimer_tableau_presence.html', context)
@@ -4615,6 +5210,11 @@ def annonces_enseignant_primaire(request):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
     
     # Vérifier que le professeur est bien de niveau primaire
     if professeur.niveau_enseignement != 'primaire':
@@ -4632,7 +5232,10 @@ def annonces_enseignant_primaire(request):
         Q(actif=True) &
         (Q(destinataires__contains=['tous']) | 
          Q(destinataires__contains=['enseignants']))
-    ).order_by('-date_publication', '-date_creation')
+    )
+    if annee_scolaire_active:
+        annonces = annonces.filter(annee_scolaire=annee_scolaire_active)
+    annonces = annonces.order_by('-date_publication', '-date_creation')
     
     # Filtrer par date si demandé
     filtre_periode = request.GET.get('periode', '')
@@ -4662,6 +5265,7 @@ def annonces_enseignant_primaire(request):
         'total_annonces': total_annonces,
         'annonces_cette_semaine': annonces_cette_semaine,
         'filtre_periode': filtre_periode,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/annonces_enseignant.html', context)

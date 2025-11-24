@@ -36,7 +36,9 @@ class MatiereController:
             'primary': 'primaire',
             'collège': 'college',
             'lycée': 'lycee',
+            'lycee': 'lycee',  # Version sans accent (base de données)
             'collège_lycée': 'college',  # Par défaut pour collège+lycée
+            'coll�ge_lyc�e': 'college',  # Version avec caractères spéciaux
             'mixte': 'tous',  # Pour mixte, on peut utiliser "tous" pour permettre tous les niveaux
         }
         return mapping.get(type_etablissement, 'tous')

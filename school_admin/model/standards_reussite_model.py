@@ -9,6 +9,14 @@ class StandardsReussite(models.Model):
         related_name='standards_reussite',
         verbose_name="Établissement"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='standards_reussite',
+        verbose_name="Année scolaire"
+    )
     moyenne_passage = models.DecimalField(
         max_digits=5,
         decimal_places=2,

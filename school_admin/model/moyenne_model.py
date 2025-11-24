@@ -89,6 +89,14 @@ class Moyenne(models.Model):
         auto_now=True,
         verbose_name="Date du calcul"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moyennes',
+        verbose_name="Année scolaire"
+    )
     actif = models.BooleanField(
         default=True,
         verbose_name="Actif"

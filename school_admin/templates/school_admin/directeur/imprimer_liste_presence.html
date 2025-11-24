@@ -39,6 +39,11 @@
         <div class="document-title">
             <h2>LISTE DE PRÉSENCE</h2>
             <p class="document-subtitle">{{ classe.nom }} - {{ classe.get_niveau_display }} - {{ mois.nom }} {{ mois.annee }}</p>
+            {% if annee_scolaire_active %}
+            <p class="document-subtitle" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600, #4b5563);">
+                Année scolaire : {{ annee_scolaire_active.libelle }}
+            </p>
+            {% endif %}
         </div>
 
         <!-- Informations de la classe -->

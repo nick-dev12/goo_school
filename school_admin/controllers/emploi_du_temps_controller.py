@@ -53,6 +53,7 @@ from ..model.classe_model import Classe
 from ..model.emploi_du_temps_model import EmploiDuTemps, CreneauEmploiDuTemps
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.etablissement_model import Etablissement
+from ..utils.session_utils import get_session_active
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class EmploiDuTempsController:
     def liste_emplois_du_temps(request):
         """
         Affiche la liste des classes avec leurs emplois du temps regroupés par catégorie
+        Affiche uniquement les emplois du temps de l'année scolaire active
         """
         # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
         if isinstance(request.user, PersonnelAdministratif):
@@ -79,6 +81,9 @@ class EmploiDuTempsController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
         # Récupérer toutes les classes de l'établissement
         classes = Classe.objects.filter(
             etablissement=etablissement,
@@ -88,8 +93,15 @@ class EmploiDuTempsController:
         # Ajouter les informations d'emploi du temps pour chaque classe
         classes_with_edt = []
         for classe in classes:
-            # Récupérer l'emploi du temps actif
-            emploi_actif = classe.emplois_du_temps.filter(est_actif=True).first()
+            # Récupérer l'emploi du temps actif pour l'année scolaire active uniquement
+            if annee_scolaire_active:
+                emploi_actif = classe.emplois_du_temps.filter(
+                    est_actif=True,
+                    annee_scolaire_fk=annee_scolaire_active
+                ).first()
+            else:
+                # Si pas d'année active, aucun emploi du temps
+                emploi_actif = None
             
             classe_data = {
                 'classe': classe,
@@ -143,9 +155,6 @@ class EmploiDuTempsController:
             'total_categories': len(classes_grouped),
         }
         
-        # Année scolaire actuelle
-        annee_actuelle = EmploiDuTempsController._get_annee_scolaire_actuelle()
-        
         context = {
             'classes': classes,
             'classes_with_edt': classes_with_edt,
@@ -153,7 +162,8 @@ class EmploiDuTempsController:
             'etablissement': etablissement,
             'personnel': personnel,
             'stats': stats,
-            'annee_scolaire': annee_actuelle,
+            'annee_scolaire_active': annee_scolaire_active,
+            'annee_scolaire': annee_scolaire_active.libelle if annee_scolaire_active else '',
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/liste_emplois_du_temps.html', context)
@@ -175,15 +185,25 @@ class EmploiDuTempsController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de consulter un emploi du temps.")
+            return redirect('administrateur_etablissement:liste_emplois_du_temps')
+        
         # Récupérer la classe
         classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
         
-        # Récupérer l'emploi du temps actif
-        emploi_du_temps = classe.emplois_du_temps.filter(est_actif=True).first()
+        # Récupérer l'emploi du temps actif pour l'année scolaire active uniquement
+        emploi_du_temps = classe.emplois_du_temps.filter(
+            est_actif=True,
+            annee_scolaire_fk=annee_scolaire_active
+        ).first()
         
         # Si pas d'emploi du temps, rediriger vers la création
         if not emploi_du_temps:
-            messages.info(request, f"Aucun emploi du temps actif pour la classe {classe.nom}. Créez-en un.")
+            messages.info(request, f"Aucun emploi du temps actif pour la classe {classe.nom} pour l'année scolaire {annee_scolaire_active.libelle}. Créez-en un.")
             return redirect('administrateur_etablissement:creer_emploi_du_temps', classe_id=classe.id)
         
         # Récupérer les créneaux organisés par jour
@@ -195,14 +215,23 @@ class EmploiDuTempsController:
         # Organiser les créneaux par période et par jour
         from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
         
-        # Récupérer la configuration horaire de l'établissement
-        config_horaire = ConfigurationHoraire.objects.filter(etablissement=etablissement, actif=True).first()
+        # Récupérer la configuration horaire de l'établissement pour l'année scolaire active
+        config_horaire = None
+        if annee_scolaire_active:
+            config_horaire = ConfigurationHoraire.objects.filter(
+                etablissement=etablissement,
+                annee_scolaire=annee_scolaire_active,
+                actif=True
+            ).first()
         
         periodes_affichage = []
         
         if config_horaire:
-            # Utiliser les périodes de l'établissement
-            periodes = config_horaire.periodes.filter(actif=True).order_by('ordre')
+            # Utiliser les périodes de l'établissement pour l'année scolaire active
+            periodes = config_horaire.periodes.filter(
+                annee_scolaire=annee_scolaire_active,
+                actif=True
+            ).order_by('ordre')
             
             # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
             creneaux_groupes = {}
@@ -497,39 +526,40 @@ class EmploiDuTempsController:
             messages.warning(request, f"La classe {classe.nom} a déjà un emploi du temps actif.")
             return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe.id)
         
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de créer un emploi du temps.")
+            return redirect('administrateur_etablissement:liste_emplois_du_temps')
+        
         if request.method == 'POST':
-            annee_scolaire = request.POST.get('annee_scolaire', '').strip()
             notes = request.POST.get('notes', '').strip()
-            
-            # Validation
-            if not annee_scolaire:
-                annee_scolaire = EmploiDuTempsController._get_annee_scolaire_actuelle()
             
             try:
                 with transaction.atomic():
-                    # Créer l'emploi du temps
+                    # Créer l'emploi du temps avec l'année scolaire active
                     emploi_du_temps = EmploiDuTemps.objects.create(
                         classe=classe,
-                        annee_scolaire=annee_scolaire,
+                        annee_scolaire=annee_scolaire_active.libelle,  # Utiliser le libellé
+                        annee_scolaire_fk=annee_scolaire_active,  # Lier à l'année scolaire active
                         est_actif=True,
                         notes=notes if notes else None
                     )
                     
-                    messages.success(request, f"Emploi du temps créé avec succès pour la classe {classe.nom}.")
+                    messages.success(request, f"Emploi du temps créé avec succès pour la classe {classe.nom} pour l'année scolaire {annee_scolaire_active.libelle}.")
                     return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe.id)
                     
             except Exception as e:
                 logger.error(f"Erreur lors de la création de l'emploi du temps: {str(e)}")
                 messages.error(request, "Une erreur est survenue lors de la création de l'emploi du temps.")
         
-        # Année scolaire actuelle par défaut
-        annee_actuelle = EmploiDuTempsController._get_annee_scolaire_actuelle()
-        
         context = {
             'classe': classe,
             'etablissement': etablissement,
             'personnel': personnel,
-            'annee_scolaire_defaut': annee_actuelle,
+            'annee_scolaire_active': annee_scolaire_active,
+            'annee_scolaire_defaut': annee_scolaire_active.libelle if annee_scolaire_active else '',
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/creer_emploi_du_temps.html', context)
@@ -551,11 +581,19 @@ class EmploiDuTempsController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
-        # Récupérer l'emploi du temps
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter un créneau.")
+            return redirect('administrateur_etablissement:liste_emplois_du_temps')
+        
+        # Récupérer l'emploi du temps et vérifier qu'il appartient à l'année scolaire active
         emploi_du_temps = get_object_or_404(
             EmploiDuTemps.objects.select_related('classe'),
             id=emploi_id,
-            classe__etablissement=etablissement
+            classe__etablissement=etablissement,
+            annee_scolaire_fk=annee_scolaire_active  # Vérifier que l'emploi du temps appartient à l'année active
         )
         
         # Récupérer les matières et professeurs
@@ -568,13 +606,20 @@ class EmploiDuTempsController:
         
         professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe)
         
-        # Récupérer les périodes de l'établissement
+        # Récupérer les périodes de l'établissement pour l'année scolaire active
         from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
-        config_horaire = ConfigurationHoraire.objects.filter(etablissement=etablissement, actif=True).first()
+        config_horaire = None
+        if annee_scolaire_active:
+            config_horaire = ConfigurationHoraire.objects.filter(
+                etablissement=etablissement,
+                annee_scolaire=annee_scolaire_active,
+                actif=True
+            ).first()
         periodes_etablissement = []
         if config_horaire:
             periodes_etablissement = PeriodeEtablissement.objects.filter(
                 configuration_horaire=config_horaire,
+                annee_scolaire=annee_scolaire_active,
                 actif=True,
                 type_periode='cours'  # Seulement les périodes de cours
             ).order_by('ordre')
@@ -713,6 +758,7 @@ class EmploiDuTempsController:
             'field_errors': field_errors,
             'jours_choices': CreneauEmploiDuTemps.JOUR_CHOICES,
             'type_cours_choices': CreneauEmploiDuTemps.TYPE_COURS_CHOICES,
+            'annee_scolaire_active': annee_scolaire_active,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/ajouter_creneau.html', context)

@@ -64,6 +64,14 @@ class ReleveNotes(models.Model):
         related_name='releves_notes',
         verbose_name="Période scolaire"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='releves_notes_annee_scolaire',
+        verbose_name="Année scolaire"
+    )
     
     soumis = models.BooleanField(
         default=False,

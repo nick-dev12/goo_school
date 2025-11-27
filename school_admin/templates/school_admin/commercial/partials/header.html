@@ -10,7 +10,7 @@
 />
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/commercial/header_commercial.css' %}"
+  href="{% static 'school_admin/css/header.css' %}"
 />
 <div class="dashboard">
   <!-- Main Content -->
@@ -24,10 +24,6 @@
       </div>
 
       <div class="header-right">
-        <div class="header-search">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Rechercher un établissement..." />
-        </div>
 
         <button class="header-button">
           <i class="fas fa-bell"></i>
@@ -61,18 +57,12 @@
         <h1 class="banner-title">
           Bienvenue, {{ user.nom }} {{ user.prenom }}
         </h1>
-        <p class="banner-subtitle">
-          Zone: Afrique de l'Ouest - Objectif mensuel: 10 nouveaux
-          établissements
+        <p class="banner-subtitle">Aria</p>
         </p>
         <a href="{% url 'school_admin:deconnexion_compte_commercial' %}"
           >Déconnexion</a
         >
       </div>
-      <button class="nav-toggle-btn" id="openNavMenu">
-        menu
-        <i class="fas fa-th"></i>
-      </button>
     </section>
 
     <!-- Navigation Overlay -->
@@ -114,15 +104,20 @@
             <p>Informations personnelles</p>
           </div>
         </a>
-        <a href="#" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-green">
-            <i class="fas fa-bullseye"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Mes objectifs</h3>
-            <p>Suivi de performance</p>
-          </div>
-        </a>
+        
+        <a
+        href="{% url 'school_admin:commercial_comptes_rendus' %}"
+        class="nav-link-card nav-link-complementary"
+      >
+        <div class="nav-card-icon neo-light-blue">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="nav-link-content">
+          <h3>Comptes rendus</h3>
+          <p>Comptes rendus</p>
+        </div>
+      </a>
+       
         <a
           href="{% url 'school_admin:deconnexion_compte_commercial' %}"
           class="nav-link-card logout-card nav-link-complementary"

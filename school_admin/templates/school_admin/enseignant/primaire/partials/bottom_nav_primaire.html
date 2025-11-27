@@ -3,6 +3,24 @@
   rel="stylesheet"
   href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.3"
 />
+
+<style>
+
+  @media (max-width: 992px) {
+    .enseignant-bottom-nav {
+    width: 80% !important;
+    }
+  }
+  @media (max-width: 592px) {
+  .bouton-none {
+    display: none !important;
+    }
+    .enseignant-bottom-nav {
+    width: 95% !important;
+    }
+  }
+
+</style>
 <nav
   class="enseignant-bottom-nav"
   aria-label="Navigation principale de l’espace enseignant primaire"
@@ -49,7 +67,7 @@
     <li
       class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'exercices_maison' %}active{% endif %}"
     >
-      <a href="{% url 'enseignant_primaire:exercices_maison' %}">
+      <a class="bouton-none" href="{% url 'enseignant_primaire:exercices_maison' %}">
         <span class="icon-wrapper icon-exercices"
           ><i class="fas fa-book-open"></i
         ></span>

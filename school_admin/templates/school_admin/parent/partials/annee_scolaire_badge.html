@@ -1,0 +1,90 @@
+{% load static %}
+<style>
+  .annee-scolaire-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      margin: 15px auto 25px auto;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.05));
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      color: #1f2937;
+      box-shadow: 0 12px 25px rgba(59, 130, 246, 0.08);
+      max-width: 960px;
+      width: calc(100% - 30px);
+  }
+
+  .annee-scolaire-banner i {
+      font-size: 1.6rem;
+      color: #2563eb;
+      background: rgba(37, 99, 235, 0.08);
+      border-radius: 12px;
+      padding: 10px;
+  }
+
+  .annee-scolaire-label {
+      display: block;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #2563eb;
+      font-weight: 600;
+  }
+
+  .annee-scolaire-value {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #0f172a;
+  }
+
+  .annee-scolaire-dates {
+      font-size: 0.9rem;
+      color: #4b5563;
+      display: block;
+      margin-top: 2px;
+  }
+
+  .annee-scolaire-banner--warning {
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.15), rgba(248, 113, 113, 0.05));
+      border-color: rgba(248, 113, 113, 0.35);
+  }
+
+  .annee-scolaire-banner--warning i {
+      color: #b91c1c;
+      background: rgba(185, 28, 28, 0.08);
+  }
+
+  @media (max-width: 640px) {
+      .annee-scolaire-banner {
+          flex-direction: column;
+          align-items: flex-start;
+          border-radius: 14px;
+      }
+  }
+</style>
+
+{% if annee_scolaire_active %}
+    <div class="annee-scolaire-banner" role="status" aria-live="polite">
+        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+        <div>
+            <span class="annee-scolaire-label">Année scolaire active</span>
+            <span class="annee-scolaire-value">{{ annee_scolaire_active.libelle|default:"Non renseignée" }}</span>
+            {% if annee_scolaire_active.date_debut and annee_scolaire_active.date_fin %}
+                <span class="annee-scolaire-dates">
+                    {{ annee_scolaire_active.date_debut|date:"d/m/Y" }} → {{ annee_scolaire_active.date_fin|date:"d/m/Y" }}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="annee-scolaire-banner annee-scolaire-banner--warning" role="alert">
+        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+        <div>
+            <span class="annee-scolaire-label">Année scolaire active</span>
+            <span class="annee-scolaire-value">Aucune session sélectionnée</span>
+            <span class="annee-scolaire-dates">Merci de contacter l'administration pour activer la session en cours.</span>
+        </div>
+    </div>
+{% endif %}
+

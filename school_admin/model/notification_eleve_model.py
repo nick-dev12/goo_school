@@ -65,6 +65,12 @@ class NotificationEleve(models.Model):
         verbose_name="Date de lecture",
     )
 
+    lu = models.BooleanField(
+        default=False,
+        verbose_name="Lu",
+        help_text="Indique si la notification a été lue"
+    )
+
     donnees = models.JSONField(
         default=dict,
         blank=True,
@@ -101,6 +107,7 @@ class NotificationEleve(models.Model):
         ordering = ["-date_creation"]
         indexes = [
             models.Index(fields=["eleve", "statut"]),
+            models.Index(fields=["eleve", "lu"]),
             models.Index(fields=["type_notification"]),
             models.Index(fields=["date_creation"]),
         ]
@@ -109,7 +116,8 @@ class NotificationEleve(models.Model):
         return f"Notification élève {self.eleve} ({self.get_type_notification_display()})"
 
     def marquer_comme_lue(self):
-        if self.statut != "lu":
+        if not self.lu:
+            self.lu = True
             self.statut = "lu"
             self.date_lecture = timezone.now()
-            self.save(update_fields=["statut", "date_lecture", "date_modification"])
+            self.save(update_fields=["lu", "statut", "date_lecture", "date_modification"])

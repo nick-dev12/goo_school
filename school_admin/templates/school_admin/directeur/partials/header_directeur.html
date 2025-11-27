@@ -1,9 +1,10 @@
 {% load static %}
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.1">
+  href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.2">
 <!-- Messages Template -->
 {% include 'school_admin/partials/messages.html' %}
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
 
 
 <div class="dashboard">
@@ -21,7 +22,9 @@
 
         <a href="{% url 'directeur:notifications_directeur' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
-          <span class="notification-badge">{{ notifications_directeur_non_lues|default:0 }}</span>
+          {% if notifications_directeur_non_lues > 0 %}
+          <span class="notification-badge">{{ notifications_directeur_non_lues }}</span>
+          {% endif %}
         </a>
 
         <button class="header-button" aria-label="Messages">
@@ -62,6 +65,14 @@
       </a>
     </section>
 
+    <!-- Bouton Retour -->
+    <div class="back-button-container">
+      <button id="backButton" class="back-button" aria-label="Retour à la page précédente" title="Retour à la page précédente">
+        <i class="fas fa-arrow-left"></i>
+        <span>Retour</span>
+      </button>
+    </div>
+
     <!-- Navigation Overlay -->
     <div class="navigation-overlay" id="navOverlay"></div>
 
@@ -80,6 +91,17 @@
       </div>
 
       <div class="nav-cards-row nav-cards-compact">
+
+
+        <a href="{% url 'directeur:gestion_administrative' %}" class="nav-link-card nav-link-complementary">
+          <div class="nav-card-icon neo-red">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Administration</h3>
+            <p>Gestion des administrations</p>
+          </div>
+        </a>
         <a href="{% url 'directeur:annonces_directeur' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-bullhorn"></i>

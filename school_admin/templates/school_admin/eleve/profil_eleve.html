@@ -10,7 +10,6 @@
     <!-- Intégration de Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Style CSS personnalisé -->
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}?v=1.0.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/profil_eleve.css' %}?v=1.0.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}?v=1.0.1">
 </head>
@@ -80,6 +79,13 @@
                             <i class="fas fa-lock"></i>
                             Modifier le mot de passe
                         </button>
+                        <a
+                            href="{% url 'eleve:historique_annees' %}"
+                            class="history-action-button"
+                        >
+                            <i class="fas fa-history"></i>
+                            Voir l'historique des années scolaires
+                        </a>
                     </div>
                     {% else %}
                     <p class="photo-action-note">

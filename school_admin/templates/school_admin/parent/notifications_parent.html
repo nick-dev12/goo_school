@@ -39,6 +39,8 @@
             </div>
         </div>
 
+        {% include 'school_admin/parent/partials/annee_scolaire_badge.html' %}
+
         {% include 'school_admin/parent/partials/navigation_panel.html' %}
 
         {% if etablissements %}
@@ -56,12 +58,21 @@
         {% if notifications_selectionnees %}
             <div class="notifications-wrapper">
                 {% for notification in notifications_selectionnees %}
-                    <div class="notification-card">
+                    <div class="notification-card {% if not notification.lu %}unread{% else %}read{% endif %}">
                         <div class="notification-header">
                             <strong>{{ notification.get_type_notification_display }} – {{ notification.eleve.nom_complet }}</strong>
                             <span class="notification-meta">
                                 <i class="fas fa-clock"></i>
                                 {{ notification.date_creation|date:"d/m/Y H:i" }}
+                                {% if not notification.lu %}
+                                  <span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 8px;">Nouveau</span>
+                                {% endif %}
+                                {% if notification.lu and notification.date_lecture %}
+                                  <span style="color: #9ca3af; margin-left: 8px;">
+                                    <i class="fas fa-check-circle"></i>
+                                    Lu le {{ notification.date_lecture|date:"d/m/Y H:i" }}
+                                  </span>
+                                {% endif %}
                             </span>
                         </div>
                         <p class="notification-body">{{ notification.message }}</p>

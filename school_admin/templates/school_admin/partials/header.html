@@ -1,7 +1,6 @@
 {% load static %}
 
 <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
-<link rel="stylesheet" href="{% static 'school_admin/css/dashboard.css' %}?v=1.0.8" />
 
 <div class="dashboard">
   <!-- Main Content -->
@@ -15,10 +14,6 @@
       </div>
 
       <div class="header-right">
-        <div class="header-search">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Rechercher une classe, un élève..." />
-        </div>
 
         <button class="header-button">
           <i class="fas fa-bell"></i>
@@ -41,9 +36,9 @@
             </div>
             <div class="header-user-info">
               <div class="header-user-name">
-                {% if user.directeur_prenom %}{{ user.directeur_prenom }} {{ user.directeur_nom }}{% else %}{{ user.nom }} {{ user.prenom }}{% endif %}
+                {{ user.prenom }} {{ user.nom }}
               </div>
-              <div class="header-user-role">{% if user.directeur_prenom %}Directeur{% else %}{{ user.fonction }}{% endif %}</div>
+              <div class="header-user-role">{{ user.fonction|default:"Administrateur" }}</div>
             </div>
           </div>
         </a>
@@ -54,9 +49,9 @@
     <section class="welcome-banner">
       <div class="banner-content">
         <h1 class="banner-title">
-          Bienvenue, {% if user.directeur_prenom %}{{ user.directeur_prenom }} {{ user.directeur_nom }}{% else %}{{ user.nom }} {{ user.prenom }}{% endif %}
+          Bienvenue, {{ user.prenom }} {{ user.nom }}
         </h1>
-        <p class="banner-subtitle">{% if user.directeur_prenom %}{{ user.nom }}{% else %}Aria{% endif %} - Année scolaire 2024-2025</p>
+        <p class="banner-subtitle">Aria - Année scolaire 2024-2025</p>
       </div>
     </section>
 
@@ -75,33 +70,9 @@
       </div>
 
       <div class="nav-cards-row nav-cards-compact">
-        <a href="{% url 'school_admin:etablissements' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-green">
-            <i class="fas fa-chalkboard"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Etablissements</h3>
-            <p>Gestion des établissements</p>
-          </div>
-        </a>
-        <a href="{% url 'school_admin:suivi_revenus' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-orange">
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Suivi des revenus</h3>
-            <p>Gestion financière et comptable</p>
-          </div>
-        </a>
-        <a href="{% url 'school_admin:suivi_activites_commerciales' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-purple">
-            <i class="fas fa-briefcase"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Activités commerciales</h3>
-            <p>Suivi des prospections et performances</p>
-          </div>
-        </a>
+       
+        
+        
         <a href="{% url 'school_admin:annonces' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-purple">
             <i class="fas fa-bullhorn"></i>
@@ -132,18 +103,7 @@
             <p>Gestion des équipes</p>
           </div>
         </a>
-        <a
-          href="{% url 'school_admin:parametres_administrateur' %}"
-          class="nav-link-card nav-link-complementary"
-        >
-          <div class="nav-card-icon neo-gray">
-            <i class="fas fa-cogs"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Paramètres</h3>
-            <p>Configuration système</p>
-          </div>
-        </a>
+       
         <a
           href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
           class="nav-link-card logout-card nav-link-complementary"
@@ -168,12 +128,5 @@
 
 {% include 'school_admin/partials/bottom_nav_administrateur.html' %}
 
-<script>
- 
-  let icon_menu = document.querySelector('.icon-menu');
-  let menu_complementary = document.getElementById('navigationSection');
 
-  icon_menu.addEventListener('click', function () {
-   console.log('click');
-  });
-</script>
+ 

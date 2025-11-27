@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique {{ annee.libelle }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <style>
+        :root {
+            font-size: 16px;
+            --history-bg: var(--gray-50, #f9fafb);
+            --history-card-bg: var(--white, #ffffff);
+            --history-border: var(--gray-200, #e5e7eb);
+            --history-muted: var(--text-secondary, #6b7280);
+            --history-text: var(--text-primary, #1f2937);
+            --history-primary: var(--primary, #3b82f6);
+            --history-accent: var(--directeur-primary, #3b82f6);
+            --history-shadow: var(--shadow-subtle, 0 2px 8px rgba(0, 0, 0, 0.06));
+        }
+        body {
+            margin: 0;
+            font-family: 'Poppins', Arial, sans-serif;
+            background-color: var(--history-bg);
+            color: var(--history-text);
+        }
+        .history-detail-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem 3rem 1.25rem;
+        }
+        .detail-header {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--history-shadow);
+        }
+        .detail-header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: var(--history-primary);
+        }
+        .detail-header p {
+            margin: 0.5rem 0 0 0;
+            color: var(--history-muted);
+        }
+        .detail-header .actions {
+            margin-top: 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .detail-header .actions a {
+            text-decoration: none;
+            border: 1px solid var(--history-primary);
+            color: var(--history-primary);
+            padding: 0.55rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .metric-card {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 18px;
+            padding: 1.25rem;
+            text-align: center;
+            box-shadow: var(--history-shadow);
+        }
+        .metric-card span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--history-muted);
+            margin-bottom: 0.4rem;
+        }
+        .metric-card strong {
+            font-size: 1.6rem;
+            color: var(--history-accent);
+        }
+        .classes-section {
+            margin-top: 2rem;
+        }
+        .classes-tabs-nav {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+        .classe-tab-btn {
+            border: 1px solid var(--history-border);
+            background-color: var(--history-card-bg);
+            color: var(--history-text);
+            border-radius: 14px;
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .classe-tab-btn span {
+            font-size: 0.85rem;
+            color: var(--history-muted);
+            font-weight: 500;
+        }
+        .classe-tab-btn.active {
+            border-color: var(--history-primary);
+            color: var(--history-primary);
+        }
+        .classe-tab-btn.active span {
+            color: var(--history-primary);
+        }
+        .classe-card {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--history-shadow);
+            display: none;
+        }
+        .classe-card.active {
+            display: block;
+        }
+        .classe-card header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .classe-card h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--history-text);
+        }
+        .classe-card .meta {
+            font-size: 0.95rem;
+            color: var(--history-muted);
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+        .eleves-table-wrapper {
+            display: block;
+        }
+        .table-responsive::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 26px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.05);
+            pointer-events: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 480px;
+        }
+        thead {
+            background-color: var(--gray-100, #f3f4f6);
+        }
+        th, td {
+            padding: 0.85rem 1rem;
+            font-size: 1rem;
+            text-align: left;
+            line-height: 1.45;
+            white-space: nowrap;
+        }
+        th {
+            font-weight: 600;
+            color: var(--history-muted);
+            border-bottom: 1px solid var(--history-border);
+        }
+        td {
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+            color: var(--history-text);
+        }
+        td.centered {
+            text-align: center;
+        }
+        td.moyenne {
+            text-align: center;
+            font-weight: 600;
+            color: var(--directeur-secondary);
+        }
+        .eleves-cards-mobile {
+            display: none;
+            gap: 1rem;
+        }
+        .eleve-card {
+            border: 1px solid var(--history-border);
+            border-radius: 18px;
+            background-color: var(--history-card-bg);
+            padding: 1rem;
+            box-shadow: var(--history-shadow);
+        }
+        .eleve-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.5rem;
+        }
+        .eleve-card-header h4 {
+            margin: 0;
+            font-size: 1.05rem;
+            color: var(--history-text);
+        }
+        .eleve-card-header span {
+            font-size: 0.8rem;
+            color: var(--history-muted);
+        }
+        .eleve-card-body {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .card-stat {
+            text-align: center;
+            border: 1px solid var(--history-border);
+            border-radius: 12px;
+            padding: 0.6rem 0.4rem;
+        }
+        .card-stat span {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--history-muted);
+        }
+        .card-stat strong {
+            display: block;
+            font-size: 1.1rem;
+            color: var(--history-primary);
+        }
+        .eleve-card-footer {
+            text-align: center;
+            font-weight: 600;
+            color: var(--directeur-secondary);
+        }
+        .empty-line {
+            text-align: center;
+            color: var(--history-muted);
+            padding: 1.25rem;
+        }
+        @media (max-width: 768px) {
+            .history-detail-wrapper {
+                padding: 1.5rem 1rem 2rem 1rem;
+            }
+            .detail-header h1 {
+                font-size: 1.5rem;
+            }
+            th, td {
+                font-size: 0.9rem;
+            }
+            .eleves-table-wrapper {
+                display: none;
+            }
+            .eleves-cards-mobile {
+                display: flex;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+    <main class="history-detail-wrapper">
+        <section class="detail-header">
+            <h1>Session {{ annee.libelle }}</h1>
+            <p>Période du {{ annee.date_debut|date:"d/m/Y" }} au {{ annee.date_fin|date:"d/m/Y" }}.</p>
+            <div class="actions">
+                <a href="{% url 'enseignant:historique_annees' %}">← Retour aux sessions archivées</a>
+            </div>
+        </section>
+
+        <section class="metrics-grid">
+            <article class="metric-card">
+                <span>Classes suivies</span>
+                <strong>{{ total_classes }}</strong>
+            </article>
+            <article class="metric-card">
+                <span>Élèves encadrés</span>
+                <strong>{{ total_eleves }}</strong>
+            </article>
+            <article class="metric-card">
+                <span>Présences enregistrées</span>
+                <strong>{{ nombre_presences }}</strong>
+            </article>
+            <article class="metric-card">
+                <span>Absences signalées</span>
+                <strong>{{ nombre_absences }}</strong>
+            </article>
+            <article class="metric-card">
+                <span>Devoirs planifiés</span>
+                <strong>{{ nombre_devoirs }}</strong>
+            </article>
+            <article class="metric-card">
+                <span>Sanctions attribuées</span>
+                <strong>{{ nombre_sanctions }}</strong>
+            </article>
+        </section>
+
+        <section class="classes-section">
+            {% if classe_details %}
+                <div class="classes-tabs-nav">
+                    {% for classe in classe_details %}
+                        <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
+                                data-target="classe-panel-{{ forloop.counter }}"
+                                onclick="switchHistoriqueClasse('classe-panel-{{ forloop.counter }}')">
+                            {{ classe.classe.nom }}
+                            <span>{{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize:"s" }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                {% for classe in classe_details %}
+                    <article class="classe-card {% if forloop.first %}active{% endif %}" id="classe-panel-{{ forloop.counter }}">
+                        <header>
+                            <div>
+                                <h2>{{ classe.classe.nom }}</h2>
+                                <p class="meta">Matière : {{ classe.matiere_nom }}</p>
+                            </div>
+                            <span class="meta">{{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize:"s" }}</span>
+                        </header>
+                        <div class="eleves-table-wrapper">
+                            <div class="table-responsive">
+                            {% if classe.eleves %}
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nom</th>
+                                            <th>Prénom</th>
+                                                <th class="centered">Absences</th>
+                                                <th class="centered">Présences</th>
+                                                <th class="centered">Sanctions</th>
+                                            <th class="text-center">Moyenne matière (/20)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for eleve in classe.eleves %}
+                                            <tr>
+                                                <td>{{ eleve.nom }}</td>
+                                                <td>{{ eleve.prenom }}</td>
+                                                    <td class="centered">{{ eleve.absences }}</td>
+                                                    <td class="centered">{{ eleve.presences }}</td>
+                                                    <td class="centered">{{ eleve.sanctions }}</td>
+                                                <td class="moyenne">
+                                                    {% if eleve.moyenne %}
+                                                        {{ eleve.moyenne|floatformat:2 }}
+                                                    {% else %}
+                                                        —
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                <p class="empty-line">Aucun élève inscrit pour cette classe.</p>
+                            {% endif %}
+                            </div>
+                        </div>
+                        {% if classe.eleves %}
+                        <div class="eleves-cards-mobile">
+                            {% for eleve in classe.eleves %}
+                                <div class="eleve-card">
+                                    <div class="eleve-card-header">
+                                        <h4>{{ eleve.prenom }} {{ eleve.nom }}</h4>
+                                        <span>{{ classe.matiere_nom }}</span>
+                                    </div>
+                                    <div class="eleve-card-body">
+                                        <div class="card-stat">
+                                            <span>Absences</span>
+                                            <strong>{{ eleve.absences }}</strong>
+                                        </div>
+                                        <div class="card-stat">
+                                            <span>Présences</span>
+                                            <strong>{{ eleve.presences }}</strong>
+                                        </div>
+                                        <div class="card-stat">
+                                            <span>Sanctions</span>
+                                            <strong>{{ eleve.sanctions }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="eleve-card-footer">
+                                        {% if eleve.moyenne %}
+                                            Moyenne : {{ eleve.moyenne|floatformat:2 }}/20
+                                        {% else %}
+                                            Moyenne : —
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-line">Aucune classe n'a été trouvée pour cette année scolaire.</div>
+            {% endif %}
+        </section>
+    </main>
+    <script>
+        function switchHistoriqueClasse(panelId) {
+            const buttons = document.querySelectorAll('.classe-tab-btn');
+            const panels = document.querySelectorAll('.classe-card');
+
+            buttons.forEach(btn => {
+                if (btn.dataset.target === panelId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            panels.forEach(panel => {
+                if (panel.id === panelId) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

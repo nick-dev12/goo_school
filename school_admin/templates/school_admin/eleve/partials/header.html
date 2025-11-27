@@ -1,4 +1,5 @@
 {% load static %}
+<link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}?v=1.0.4">
     <div class="dashboard">
         <!-- Main Content -->
         <main class="main-content full-width" id="mainContent">
@@ -17,7 +18,9 @@
 
                     <a href="{% url 'eleve:notifications_eleve' %}" class="header-button" aria-label="Notifications">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">{{ notifications_eleve_non_lues|default:0 }}</span>
+                        {% if notifications_eleve_non_lues > 0 %}
+                        <span class="notification-badge">{{ notifications_eleve_non_lues }}</span>
+                        {% endif %}
                     </a>
 
                     <a href="{% url 'eleve:annonces_eleve' %}" class="header-button" aria-label="Annonces">
@@ -34,7 +37,7 @@
                         </div>
                         <div class="header-user-info">
                             <div class="header-user-name">{{ eleve.nom_complet }}</div>
-                            <div class="header-user-role">Élève - {{ eleve.classe.nom }}</div>
+                            <div class="header-user-role">Élève - {% if classe_active %}{{ classe_active.nom }}{% elif classe %}{{ classe.nom }}{% elif eleve.classe %}{{ eleve.classe.nom }}{% else %}Non assigné{% endif %}</div>
                         </div>
                     </div>
                 </div>
@@ -80,6 +83,14 @@
                     {% endif %}
                
             </section>
+
+            <!-- Bouton Retour -->
+            <div class="back-button-container">
+              <button id="backButton" class="back-button" aria-label="Retour à la page précédente" title="Retour à la page précédente">
+                <i class="fas fa-arrow-left"></i>
+                <span>Retour</span>
+              </button>
+            </div>
 
             <!-- Navigation Overlay -->
             <div class="navigation-overlay" id="navOverlay"></div>
@@ -160,5 +171,5 @@
                 </div>
             </section>
           
-            <script src="{% static 'school_admin/js/eleve/header.js' %}"></script>
+            <script src="{% static 'school_admin/js/eleve/header.js' %}?v=1.0.2"></script>
 

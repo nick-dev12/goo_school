@@ -8,13 +8,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/noter_eleves_primaire.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/noter_eleves_primaire.css' %}?v=1.0.2">
 </head>
 <body>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <!-- Main Content -->
-    <div class="main-content-container">
+    <div class="main-content-container-note">
         <!-- Fil d'Ariane -->
         <div class="breadcrumb">
             <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
@@ -188,7 +188,7 @@
                                         </select>
                                     </div>
                                     
-                                    <!-- Sélecteur de pondération (si examen présent) -->
+                                    {% comment %} <!-- Sélecteur de pondération (si examen présent) -->
                                     <div class="ponderation-selector">
                                         <label for="ponderation_examen">
                                             <i class="fas fa-balance-scale"></i>
@@ -199,7 +199,7 @@
                                             <option value="50_50" selected>50% Devoirs / 50% Examen</option>
                                             <option value="30_70">30% Devoirs / 70% Examen</option>
                                         </select>
-                                    </div>
+                                    </div> {% endcomment %}
                                     
                                     <button type="submit" 
                                             name="action"
@@ -208,13 +208,13 @@
                                             {% if matiere_data.soumise %}disabled{% endif %}>
                                         <i class="fas fa-calculator"></i> Calculer les moyennes
                                     </button>
-                                    <button type="submit" 
+                                    {% comment %} <button type="submit" 
                                             name="action"
                                             value="arrondir"
                                             class="btn btn-warning"
                                             {% if matiere_data.soumise %}disabled{% endif %}>
                                         <i class="fas fa-arrow-up"></i> Arrondir la moyenne
-                                    </button>
+                                    </button> {% endcomment %}
                                     <button type="submit" 
                                             name="action"
                                             value="enregistrer"
@@ -361,7 +361,7 @@
                                 </div>
 
                                 <!-- Actions formulaire (bas) -->
-                                <div class="notation-actions">
+                                {% comment %} <div class="notation-actions">
                                     <button type="submit" 
                                             name="action"
                                             value="calculer"
@@ -393,7 +393,7 @@
                                     <a href="{% url 'enseignant_primaire:gestion_notes' %}" class="btn btn-outline">
                                         <i class="fas fa-arrow-left"></i> Retour
                                     </a>
-                                </div>
+                                </div> {% endcomment %}
                             </form>
                         {% else %}
                             <!-- Aucune évaluation -->

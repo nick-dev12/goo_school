@@ -64,26 +64,27 @@ def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
         
         # Filtrer les élèves par année scolaire active si fournie
         if annee_scolaire_active:
-            # Récupérer les IDs des élèves inscrits pour l'année scolaire active
-            eleves_ids_inscrits = InscriptionEleve.objects.filter(
+            # Récupérer directement les inscriptions pour cette classe et cette année scolaire
+            inscriptions = InscriptionEleve.objects.filter(
                 annee_scolaire=annee_scolaire_active,
                 classe=classe,
                 etablissement=etablissement
-            ).values_list('eleve_id', flat=True)
+            ).select_related('eleve').order_by(Lower('eleve__nom'), Lower('eleve__prenom'))
             
-            # Filtrer les élèves actifs qui sont inscrits pour cette année
-            eleves_queryset = Eleve.objects.filter(
-                classe=classe,
-                actif=True,
-                id__in=eleves_ids_inscrits
-            ).order_by(Lower('nom'), Lower('prenom'))
+            # Récupérer les élèves depuis les inscriptions (filtrer uniquement les actifs)
+            eleves_list = [inscription.eleve for inscription in inscriptions if inscription.eleve and inscription.eleve.actif]
+            
+            # Créer un queryset à partir de la liste pour maintenir la compatibilité
+            eleves_ids = [eleve.id for eleve in eleves_list]
+            eleves_queryset = Eleve.objects.filter(id__in=eleves_ids, actif=True).order_by(Lower('nom'), Lower('prenom'))
         else:
             # Comportement par défaut : tous les élèves actifs
             eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
 
         eleves_data = []
         for eleve in eleves_queryset:
-            nombre_absences = Presence.get_nombre_absences(eleve)
+            # Filtrer les absences par année scolaire active si disponible
+            nombre_absences = Presence.get_nombre_absences(eleve, annee_scolaire=annee_scolaire_active)
             nombre_sanctions = Sanction.get_nombre_sanctions(eleve)
 
             eleves_data.append({
@@ -1625,6 +1626,7 @@ def detail_eleve(request, eleve_id):
 def transfer_eleve(request, eleve_id):
     """
     Transfert d'un élève vers une autre classe (secrétaire ou directeur)
+    Prend en compte l'année scolaire active pour mettre à jour l'InscriptionEleve
     """
     # Récupérer l'utilisateur connecté
     user = request.user
@@ -1641,6 +1643,16 @@ def transfer_eleve(request, eleve_id):
     if not etablissement:
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(
+            request,
+            "Aucune année scolaire active n'a été trouvée. Créez ou activez d'abord une session pour continuer."
+        )
+        return redirect('secretaire:detail_eleve', eleve_id=eleve_id)
     
     try:
         # Récupérer l'élève
@@ -1660,9 +1672,25 @@ def transfer_eleve(request, eleve_id):
         try:
             nouvelle_classe = Classe.objects.get(id=nouvelle_classe_id, etablissement=etablissement)
             
+            # Récupérer l'inscription de l'élève pour l'année scolaire active
+            try:
+                inscription_eleve = InscriptionEleve.objects.get(
+                    eleve=eleve,
+                    annee_scolaire=annee_scolaire_active,
+                    etablissement=etablissement
+                )
+                ancienne_classe_inscription = inscription_eleve.classe
+            except InscriptionEleve.DoesNotExist:
+                messages.error(
+                    request,
+                    f"L'élève n'a pas d'inscription pour l'année scolaire active ({annee_scolaire_active.libelle}). "
+                    "Veuillez d'abord inscrire l'élève pour cette année."
+                )
+                return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
+            
             # Vérifier si c'est la même classe
-            if nouvelle_classe.id == eleve.classe.id:
-                messages.warning(request, f"L'élève est déjà dans la classe {nouvelle_classe.nom}.")
+            if nouvelle_classe.id == ancienne_classe_inscription.id:
+                messages.warning(request, f"L'élève est déjà dans la classe {nouvelle_classe.nom} pour cette année scolaire.")
                 return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
             
             # Vérifier les places disponibles
@@ -1683,15 +1711,24 @@ def transfer_eleve(request, eleve_id):
                     f"[ATTENTION] Il ne reste qu'une place disponible dans la classe {nouvelle_classe.nom}."
                 )
             
-            # Effectuer le transfert
-            ancienne_classe = eleve.classe
-            eleve.classe = nouvelle_classe
-            eleve.save()
+            # Effectuer le transfert avec transaction atomique
+            from django.db import transaction
+            
+            with transaction.atomic():
+                # Mettre à jour l'inscription de l'élève pour l'année scolaire active
+                inscription_eleve.classe = nouvelle_classe
+                inscription_eleve.save()
+                
+                # Mettre à jour aussi la classe de l'élève (pour compatibilité)
+                ancienne_classe = eleve.classe
+                eleve.classe = nouvelle_classe
+                eleve.save()
             
             # Message de succès
             messages.success(
                 request, 
-                f"[SUCCES] Transfert reussi : {eleve.nom_complet} a ete transfere de {ancienne_classe.nom} vers {nouvelle_classe.nom}. "
+                f"[SUCCES] Transfert réussi : {eleve.nom_complet} a été transféré de {ancienne_classe_inscription.nom} vers {nouvelle_classe.nom} "
+                f"pour l'année scolaire {annee_scolaire_active.libelle}. "
                 f"Places restantes : {nouvelle_classe.places_disponibles - 1}/{nouvelle_classe.capacite_max}"
             )
             
@@ -1709,7 +1746,7 @@ def transfer_eleve(request, eleve_id):
             return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
     
     # Redirection si accès GET direct
-    return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
+    return redirect('secretaire:detail_eleve', eleve_id=eleve_id)
 
 
 @login_required

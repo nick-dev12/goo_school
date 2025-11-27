@@ -88,6 +88,9 @@ class EleveNotificationService:
             try:
                 from school_admin.services.firebase_service import FirebaseService
 
+                logger.info(f"Envoi notification push à l'élève {eleve} (ID: {eleve.id})")
+                logger.debug(f"Push title: {push_title}, Push body: {push_body}, Push data: {pushdata_with_url}")
+                
                 push_result = FirebaseService.send_notification_to_multiple_users(
                     [eleve],
                     push_title,
@@ -95,9 +98,14 @@ class EleveNotificationService:
                     pushdata_with_url,
                 )
 
+                logger.info(f"Résultat envoi push: {push_result}")
+                
                 if push_result.get("success_count", 0) > 0:
                     notification.notification_push_envoyee = True
                     notification.save(update_fields=["notification_push_envoyee", "date_modification"])
+                    logger.info(f"Notification push marquée comme envoyée pour l'élève {eleve.id}")
+                else:
+                    logger.warning(f"Aucune notification push envoyée pour l'élève {eleve.id}. Résultat: {push_result}")
             except Exception as exc:  # pragma: no cover
                 logger.error(
                     "Erreur lors de l'envoi de la notification push élève: %s",

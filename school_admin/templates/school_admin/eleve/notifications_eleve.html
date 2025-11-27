@@ -4,11 +4,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Notifications reçues</title>
+    <title>Notifications reçues - Acadeflex | Espace Élève</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% include 'school_admin/partials/pwa_meta.html' %}
     <style>
       :root {
         --primary: #3b82f6;
@@ -100,6 +102,16 @@
         padding: 18px 22px;
         box-shadow: var(--shadow-card);
         border: 1px solid var(--gray-100);
+        transition: all 0.3s ease;
+      }
+
+      .notification-card.unread {
+        border-left: 4px solid var(--primary);
+        background: linear-gradient(to right, rgba(59, 130, 246, 0.05), var(--white));
+      }
+
+      .notification-card.read {
+        opacity: 0.85;
       }
 
       .card-header {
@@ -158,6 +170,7 @@
     </style>
   </head>
   <body>
+    {% include 'school_admin/eleve/partials/header.html' %}
     <div class="page-wrapper">
       <header class="page-header">
         <h1>Notifications reçues</h1>
@@ -173,10 +186,13 @@
       {% if notifications %}
         <div class="notifications-list">
           {% for notification in notifications %}
-            <article class="notification-card">
+            <article class="notification-card {% if not notification.lu %}unread{% else %}read{% endif %}">
               <div class="card-header">
                 <i class="fas fa-bell"></i>
                 {{ notification.titre }}
+                {% if not notification.lu %}
+                  <span style="margin-left: auto; background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Nouveau</span>
+                {% endif %}
               </div>
               <div class="card-meta">
                 <span>
@@ -187,6 +203,12 @@
                   <i class="fas fa-tag"></i>
                   {{ notification.get_type_notification_display }}
                 </span>
+                {% if notification.lu and notification.date_lecture %}
+                  <span style="color: var(--gray-400);">
+                    <i class="fas fa-check-circle"></i>
+                    Lu le {{ notification.date_lecture|date:"d/m/Y H:i" }}
+                  </span>
+                {% endif %}
               </div>
               <div class="card-body">{{ notification.message }}</div>
             </article>

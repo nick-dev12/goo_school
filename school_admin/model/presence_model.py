@@ -149,15 +149,19 @@ class Presence(models.Model):
         return self.statut in ['absent', 'absent_justifie']
     
     @staticmethod
-    def get_nombre_absences(eleve, date_debut=None, date_fin=None):
+    def get_nombre_absences(eleve, date_debut=None, date_fin=None, annee_scolaire=None):
         """
         Retourne le nombre d'absences NON JUSTIFIÉES d'un élève sur une période
         Si aucune période n'est spécifiée, retourne le total
+        Si annee_scolaire est fournie, filtre par année scolaire
         """
         queryset = Presence.objects.filter(
             eleve=eleve,
             statut='absent'
         )
+        
+        if annee_scolaire:
+            queryset = queryset.filter(annee_scolaire=annee_scolaire)
         
         if date_debut:
             queryset = queryset.filter(date__gte=date_debut)
@@ -253,6 +257,14 @@ class ListePresence(models.Model):
     date_modification = models.DateTimeField(
         auto_now=True,
         verbose_name="Date de modification"
+    )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='listes_presences',
+        verbose_name="Année scolaire"
     )
     
     class Meta:

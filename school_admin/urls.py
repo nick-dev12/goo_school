@@ -24,6 +24,7 @@ urlpatterns =[
     path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),
     path('api/fcm/delete-token/', fcm_views.delete_fcm_token, name='delete_fcm_token'),
     path('api/fcm/test-notification/', fcm_test_views.test_notification, name='test_notification'),
+    path('api/fcm/test-notification-eleve/', fcm_test_views.test_notification_eleve, name='test_notification_eleve'),
     path('api/fcm/check-status/', fcm_test_views.check_fcm_status, name='check_fcm_status'),
     
     # Page de test FCM

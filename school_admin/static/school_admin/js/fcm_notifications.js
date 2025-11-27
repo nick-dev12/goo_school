@@ -76,18 +76,24 @@ export async function requestNotificationPermission() {
  */
 async function registerServiceWorkerAndGetToken(showMessage = false) {
   try {
-    // Enregistrer le service worker
-    console.log('[FCM] Enregistrement du service worker...');
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-      scope: '/'
-    });
+    // Utiliser le service worker PWA existant au lieu d'enregistrer un nouveau
+    console.log('[FCM] Utilisation du service worker PWA existant...');
+    
+    // Attendre que le service worker soit prêt (peut être le PWA ou Firebase)
+    let registration = await navigator.serviceWorker.ready;
+    
+    // Si aucun service worker n'est actif, enregistrer celui de PWA
+    if (!navigator.serviceWorker.controller) {
+      console.log('[FCM] Enregistrement du service worker PWA...');
+      registration = await navigator.serviceWorker.register('/service-worker.js', {
+        scope: '/'
+      });
+      await navigator.serviceWorker.ready;
+    }
 
-    console.log('[FCM] Service worker enregistré:', registration);
+    console.log('[FCM] Service worker prêt:', registration);
 
-    // Attendre que le service worker soit actif
-    await navigator.serviceWorker.ready;
-
-    // Obtenir le token FCM
+    // Obtenir le token FCM en utilisant le service worker actif
     console.log('[FCM] Obtention du token FCM...');
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,

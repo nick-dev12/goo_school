@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique {{ annee.libelle }} - Espace Élève</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            font-size: 16px;
+            --history-bg: var(--gray-50, #f9fafb);
+            --history-card-bg: var(--white, #ffffff);
+            --history-border: var(--gray-200, #e5e7eb);
+            --history-muted: var(--text-secondary, #6b7280);
+            --history-text: var(--text-primary, #1f2937);
+            --history-primary: var(--primary, #3b82f6);
+            --history-shadow: var(--shadow-subtle, 0 2px 8px rgba(0, 0, 0, 0.06));
+        }
+        body {
+            margin: 0;
+            font-family: 'Poppins', Arial, sans-serif;
+            background-color: var(--history-bg);
+            color: var(--history-text);
+        }
+        .history-detail-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem 3rem 1.25rem;
+        }
+        .detail-header {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--history-shadow);
+        }
+        .detail-header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: var(--history-primary);
+        }
+        .detail-header p {
+            margin: 0.5rem 0 0 0;
+            color: var(--history-muted);
+        }
+        .detail-header .actions {
+            margin-top: 1.25rem;
+        }
+        .detail-header .actions a {
+            text-decoration: none;
+            border: 1px solid var(--history-primary);
+            color: var(--history-primary);
+            padding: 0.55rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .detail-header .actions a:hover {
+            background-color: var(--history-primary);
+            color: var(--white, #ffffff);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .metric-card {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 18px;
+            padding: 1.25rem;
+            text-align: center;
+            box-shadow: var(--history-shadow);
+        }
+        .metric-card span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--history-muted);
+            margin-bottom: 0.4rem;
+        }
+        .metric-card strong {
+            font-size: 1.6rem;
+            color: var(--history-primary);
+        }
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--history-text);
+            margin: 0 0 1.25rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--history-primary);
+        }
+        .matieres-section {
+            margin-top: 2rem;
+        }
+        .matieres-tabs-nav {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+        .matiere-tab-btn {
+            border: 1px solid var(--history-border);
+            background-color: var(--history-card-bg);
+            color: var(--history-text);
+            border-radius: 14px;
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .matiere-tab-btn.active {
+            border-color: var(--history-primary);
+            color: var(--history-primary);
+        }
+        .matiere-card {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--history-shadow);
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+        .matiere-card.active {
+            display: block;
+        }
+        .matiere-card header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .matiere-card h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--history-text);
+        }
+        .matiere-card .moyenne-generale {
+            font-size: 1.1rem;
+            color: var(--history-primary);
+            font-weight: 600;
+        }
+        .periodes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .periode-section {
+            border: 1px solid var(--gray-100, #f3f4f6);
+            border-radius: 14px;
+            padding: 1.25rem;
+            background-color: var(--gray-50, #f9fafb);
+        }
+        .periode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .periode-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--history-text);
+        }
+        .periode-moyenne {
+            font-size: 1rem;
+            color: var(--history-primary);
+            font-weight: 600;
+        }
+        .notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .note-item {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .note-item-info {
+            flex: 1;
+        }
+        .note-item-info .note-titre {
+            font-weight: 600;
+            color: var(--history-text);
+            margin-bottom: 0.25rem;
+        }
+        .note-item-info .note-date {
+            font-size: 0.85rem;
+            color: var(--history-muted);
+        }
+        .note-item-value {
+            text-align: right;
+        }
+        .note-item-value .note-sur-20 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--history-primary);
+        }
+        .note-item-value .note-bareme {
+            font-size: 0.85rem;
+            color: var(--history-muted);
+        }
+        .presences-section, .sanctions-section {
+            margin-top: 2rem;
+        }
+        .presence-periode-card, .sanction-item {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 18px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--history-shadow);
+        }
+        .presence-periode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+        }
+        .presence-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .presence-stat {
+            text-align: center;
+            padding: 0.75rem;
+            background-color: var(--gray-50, #f9fafb);
+            border-radius: 12px;
+        }
+        .presence-stat span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--history-muted);
+            margin-bottom: 0.25rem;
+        }
+        .presence-stat strong {
+            font-size: 1.3rem;
+            color: var(--history-primary);
+        }
+        .sanction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .sanction-info {
+            flex: 1;
+        }
+        .sanction-info .sanction-type {
+            font-weight: 600;
+            color: var(--history-text);
+            margin-bottom: 0.25rem;
+        }
+        .sanction-info .sanction-date {
+            font-size: 0.85rem;
+            color: var(--history-muted);
+        }
+        .sanction-gravite {
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .sanction-gravite.legere {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .sanction-gravite.moyenne {
+            background-color: #fde68a;
+            color: #78350f;
+        }
+        .sanction-gravite.grave {
+            background-color: #fed7aa;
+            color: #7c2d12;
+        }
+        .sanction-gravite.tres_grave {
+            background-color: #fecaca;
+            color: #991b1b;
+        }
+        .empty-line {
+            text-align: center;
+            color: var(--history-muted);
+            padding: 2rem;
+        }
+        @media (max-width: 768px) {
+            .history-detail-wrapper {
+                padding: 1rem 1rem 2rem 1rem;
+            }
+            .detail-header {
+                padding: 1.25rem;
+            }
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .matieres-tabs-nav {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .presence-stats {
+                grid-template-columns: 1fr;
+            }
+            .note-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .note-item-value {
+                text-align: left;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/eleve/partials/header.html' %}
+    {% include 'school_admin/partials/messages.html' %}
+
+    <main class="history-detail-wrapper">
+        <section class="detail-header">
+            <h1>{{ annee.libelle }}</h1>
+            <p>{{ annee.date_debut|date:"d/m/Y" }} — {{ annee.date_fin|date:"d/m/Y" }}</p>
+            {% if classe %}
+                <p><i class="fas fa-graduation-cap"></i> Classe : {{ classe.nom }}</p>
+            {% endif %}
+            <div class="actions">
+                <a href="{% url 'eleve:historique_annees' %}">
+                    <i class="fas fa-arrow-left"></i> Retour à l'historique
+                </a>
+            </div>
+        </section>
+
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <span>Moyenne générale</span>
+                <strong>{% if moyenne_generale_annee %}{{ moyenne_generale_annee|floatformat:2 }}/20{% else %}—{% endif %}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Présences</span>
+                <strong>{{ nombre_presences }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Absences</span>
+                <strong>{{ nombre_absences }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Retards</span>
+                <strong>{{ nombre_retards }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Sanctions</span>
+                <strong>{{ nombre_sanctions }}</strong>
+            </div>
+        </section>
+
+        {% if matieres_data %}
+        <section class="matieres-section">
+            <h2 class="section-title">
+                <i class="fas fa-book"></i> Notes et moyennes par matière
+            </h2>
+            
+            <div class="matieres-tabs-nav">
+                {% for matiere_data in matieres_data %}
+                    <button class="matiere-tab-btn" onclick="switchMatiere('matiere-panel-{{ forloop.counter }}')" id="tab-matiere-{{ forloop.counter }}">
+                        {{ matiere_data.matiere.nom }}
+                    </button>
+                {% endfor %}
+            </div>
+
+            {% for matiere_data in matieres_data %}
+                <article class="matiere-card" id="matiere-panel-{{ forloop.counter }}">
+                    <header>
+                        <h2>{{ matiere_data.matiere.nom }}</h2>
+                        {% if matiere_data.moyenne_generale %}
+                            <div class="moyenne-generale">
+                                Moyenne générale : {{ matiere_data.moyenne_generale|floatformat:2 }}/20
+                            </div>
+                        {% endif %}
+                    </header>
+                    
+                    <div class="periodes-container">
+                        {% for periode_note in matiere_data.periodes_notes %}
+                            <div class="periode-section">
+                                <div class="periode-header">
+                                    <h3>{{ periode_note.periode.nom_periode }}</h3>
+                                    {% if periode_note.moyenne %}
+                                        <div class="periode-moyenne">
+                                            Moyenne : {{ periode_note.moyenne|floatformat:2 }}/20
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if periode_note.notes %}
+                                    <div class="notes-list">
+                                        {% for note in periode_note.notes %}
+                                            <div class="note-item">
+                                                <div class="note-item-info">
+                                                    <div class="note-titre">{{ note.titre }}</div>
+                                                    <div class="note-date">{{ note.date|date:"d/m/Y" }}</div>
+                                                </div>
+                                                <div class="note-item-value">
+                                                    <div class="note-sur-20">
+                                                        {% if note.note_sur_20 %}{{ note.note_sur_20|floatformat:2 }}/20{% else %}—{% endif %}
+                                                    </div>
+                                                    <div class="note-bareme">{{ note.note }}/{{ note.bareme }}</div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="empty-line">Aucune note pour cette période</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if presences_par_periode %}
+        <section class="presences-section">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-check"></i> Présences et absences par période
+            </h2>
+            
+            {% for pres_periode in presences_par_periode %}
+                <div class="presence-periode-card">
+                    <div class="presence-periode-header">
+                        <h3>{{ pres_periode.periode.nom_periode }}</h3>
+                        <span>{{ pres_periode.periode.date_debut|date:"d/m/Y" }} — {{ pres_periode.periode.date_fin|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="presence-stats">
+                        <div class="presence-stat">
+                            <span>Présences</span>
+                            <strong>{{ pres_periode.presences.count }}</strong>
+                        </div>
+                        <div class="presence-stat">
+                            <span>Absences</span>
+                            <strong>{{ pres_periode.absences.count }}</strong>
+                        </div>
+                        <div class="presence-stat">
+                            <span>Retards</span>
+                            <strong>{{ pres_periode.retards.count }}</strong>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if sanctions_list %}
+        <section class="sanctions-section">
+            <h2 class="section-title">
+                <i class="fas fa-exclamation-triangle"></i> Sanctions disciplinaires
+            </h2>
+            
+            {% for sanction in sanctions_list %}
+                <div class="sanction-item">
+                    <div class="sanction-info">
+                        <div class="sanction-type">{{ sanction.get_type_sanction_display }}</div>
+                        <div class="sanction-date">{{ sanction.date_sanction|date:"d/m/Y" }}</div>
+                        {% if sanction.description %}
+                            <p style="margin-top: 0.5rem; color: var(--history-muted);">{{ sanction.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="sanction-gravite {{ sanction.gravite }}">
+                        {{ sanction.get_gravite_display }}
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+    </main>
+
+    <script>
+        function switchMatiere(panelId) {
+            // Masquer toutes les cartes
+            document.querySelectorAll('.matiere-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            // Désactiver tous les onglets
+            document.querySelectorAll('.matiere-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Afficher la carte sélectionnée
+            document.getElementById(panelId).classList.add('active');
+            // Activer l'onglet sélectionné
+            event.target.classList.add('active');
+        }
+        // Activer le premier onglet par défaut
+        if (document.querySelector('.matiere-tab-btn')) {
+            document.querySelector('.matiere-tab-btn').classList.add('active');
+            document.querySelector('.matiere-card').classList.add('active');
+        }
+    </script>
+</body>
+</html>
+

@@ -1,7 +1,7 @@
 {% load static %}
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/gestion_comptable/header_comptable.css' %}"
+  href="{% static 'school_admin/css/header.css' %}"
 />
 <div class="dashboard">
   <!-- Main Content -->
@@ -15,10 +15,7 @@
       </div>
 
       <div class="header-right">
-        <div class="header-search">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Rechercher une classe, un élève..." />
-        </div>
+        
 
         <button class="header-button">
           <i class="fas fa-bell"></i>
@@ -56,12 +53,8 @@
         <h1 class="banner-title">
           Bienvenue, {{ user.nom }} {{ user.prenom }}
         </h1>
-        <p class="banner-subtitle">Goo-School - Année scolaire 2023-2024</p>
+        <p class="banner-subtitle">Aria</p>
       </div>
-      <button class="nav-toggle-btn" id="openNavMenu">
-        menu
-        <i class="fas fa-th"></i>
-      </button>
     </section>
 
     <!-- Navigation Overlay -->
@@ -94,6 +87,19 @@
             <p>Gestion financière du personnel</p>
           </div>
         </a>
+
+        <a
+        href="{% url 'school_admin:gestion_depenses' %}"
+        class="nav-link-card nav-link-complementary"
+      >
+        <div class="nav-card-icon neo-light-blue">
+          <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <div class="nav-link-content">
+          <h3>Dépenses</h3>
+          <p>Gestion des dépenses</p>
+        </div>
+      </a>
         <a href="{% url 'school_admin:profil_admin' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-light-blue">
             <i class="fas fa-user-circle"></i>
@@ -125,6 +131,6 @@
   </main>
 </div>
 
-{% include 'school_admin/comptable/partials/bottom_nav_comptable.html' %}
+{% include 'school_admin/gestion_comptable/partials/bottom_nav_comptable.html' %}
 
 <script src="{% static 'school_admin/js/script.js' %}"></script>

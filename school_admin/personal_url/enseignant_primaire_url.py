@@ -29,6 +29,8 @@ from ..personal_views.enseignant_primaire_view import (
     historique_sanctions_eleve_primaire,
     liste_sanctions_classe_primaire,
     parametres_profil_primaire,
+    historique_annees_primaire,
+    detail_historique_annee_primaire,
     emploi_du_temps_primaire,
     imprimer_tableau_presence,
     annonces_enseignant_primaire,
@@ -80,6 +82,8 @@ urlpatterns = [
     
     # Paramètres et emploi du temps
     path('enseignant/primaire/parametres-profil/', parametres_profil_primaire, name='parametres_profil'),
+    path('enseignant/primaire/historique-annees/', historique_annees_primaire, name='historique_annees'),
+    path('enseignant/primaire/historique-annees/<int:annee_id>/', detail_historique_annee_primaire, name='historique_annee_detail'),
     path('enseignant/primaire/emploi-du-temps/', emploi_du_temps_primaire, name='emploi_du_temps'),
     
     # Annonces

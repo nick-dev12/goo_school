@@ -13,9 +13,50 @@ from school_admin.model.lien_familial_model import LienFamilial
 from school_admin.model.demande_liaison_model import DemandeLiaisonParent
 from school_admin.model.notification_parent_model import NotificationParent
 from school_admin.model.convocation_model import Convocation
+from ..utils.session_utils import get_session_active
+from ..model.inscription_eleve_model import InscriptionEleve
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def get_classe_eleve_active(eleve, annee_scolaire_active, etablissement=None):
+    """
+    Récupère la classe de l'élève pour l'année scolaire active depuis InscriptionEleve.
+    Retourne None si l'élève n'est pas inscrit pour cette année.
+    
+    Args:
+        eleve: L'objet Eleve
+        annee_scolaire_active: L'objet AnneeScolaire active
+        etablissement: L'établissement (optionnel, utilise eleve.etablissement si non fourni)
+    
+    Returns:
+        Classe ou None
+    """
+    if not annee_scolaire_active:
+        # Fallback sur eleve.classe si pas d'année scolaire active
+        return eleve.classe
+    
+    if not etablissement:
+        etablissement = eleve.etablissement
+    
+    if not etablissement:
+        return eleve.classe
+    
+    try:
+        inscription = InscriptionEleve.objects.filter(
+            eleve=eleve,
+            annee_scolaire=annee_scolaire_active,
+            etablissement=etablissement
+        ).select_related('classe').first()
+        
+        if inscription and inscription.classe:
+            return inscription.classe
+    except Exception:
+        pass
+    
+    # Fallback sur eleve.classe si aucune inscription trouvée
+    return eleve.classe
 
 
 def dashboard_parent(request):
@@ -35,18 +76,27 @@ def dashboard_parent(request):
     
     parent = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = None
+    if parent.etablissement:
+        annee_scolaire_active = get_session_active(request, parent.etablissement)
+    
     # Préparer les notifications récentes pour le parent
-    notifications_queryset = NotificationParent.objects.filter(
-        parent=parent
-    ).select_related('eleve').order_by('-date_creation')[:30]
+    notifications_queryset = NotificationParent.objects.filter(parent=parent)
+    if annee_scolaire_active:
+        notifications_queryset = notifications_queryset.filter(annee_scolaire=annee_scolaire_active)
+    notifications_queryset = notifications_queryset.select_related('eleve').order_by('-date_creation')[:30]
     notifications_list = list(notifications_queryset)
     notifications_map = {}
     for notification in notifications_list:
         notifications_map.setdefault(notification.eleve_id, []).append(notification)
-    notifications_parent_non_lues = NotificationParent.objects.filter(
+    notifications_non_lues_query = NotificationParent.objects.filter(
         parent=parent,
         statut='non_lu'
-    ).count()
+    )
+    if annee_scolaire_active:
+        notifications_non_lues_query = notifications_non_lues_query.filter(annee_scolaire=annee_scolaire_active)
+    notifications_parent_non_lues = notifications_non_lues_query.count()
     
     # Récupérer tous les enfants liés à ce parent
     liens_familiaux = LienFamilial.objects.filter(
@@ -68,8 +118,18 @@ def dashboard_parent(request):
                 from school_admin.model.presence_model import Presence
                 from django.db.models import Q
                 
+                # Récupérer l'année scolaire active pour l'élève
+                eleve_annee_scolaire_active = None
+                if eleve.etablissement:
+                    eleve_annee_scolaire_active = get_session_active(request, eleve.etablissement)
+                
+                # Récupérer la classe de l'élève pour l'année scolaire active
+                classe_eleve_active = get_classe_eleve_active(eleve, eleve_annee_scolaire_active, eleve.etablissement)
+                
                 # Statistiques de présence et absences
                 presences = Presence.objects.filter(eleve=eleve)
+                if eleve_annee_scolaire_active:
+                    presences = presences.filter(annee_scolaire=eleve_annee_scolaire_active)
                 total_presences = presences.filter(statut='present').count()
                 total_absences = presences.filter(Q(statut='absent') | Q(statut='absent_justifie')).count()
                 
@@ -88,9 +148,18 @@ def dashboard_parent(request):
                     'total_presences': total_presences,
                     'total_absences': total_absences,
                     'age': age,
+                    'classe': classe_eleve_active,
                 })
             except Exception as e:
                 print(f"[DASHBOARD PARENT] Erreur pour élève {eleve.nom_complet}: {str(e)}")
+                # Récupérer l'année scolaire active pour l'élève même en cas d'erreur
+                eleve_annee_scolaire_active = None
+                if eleve.etablissement:
+                    eleve_annee_scolaire_active = get_session_active(request, eleve.etablissement)
+                
+                # Récupérer la classe de l'élève pour l'année scolaire active
+                classe_eleve_active = get_classe_eleve_active(eleve, eleve_annee_scolaire_active, eleve.etablissement)
+                
                 # Calculer l'âge même en cas d'erreur
                 age = None
                 if eleve.date_naissance:
@@ -107,6 +176,7 @@ def dashboard_parent(request):
                     'total_presences': 0,
                     'total_absences': 0,
                     'age': age,
+                    'classe': classe_eleve_active,
                 })
 
     # Attacher les notifications par enfant
@@ -125,13 +195,16 @@ def dashboard_parent(request):
     
     nombre_annonces = 0
     if parent.etablissement:
-        nombre_annonces = Annonce.objects.filter(
+        annonces_query = Annonce.objects.filter(
             Q(etablissement=parent.etablissement) &
             Q(statut='publiee') &
             Q(actif=True) &
             (Q(destinataires__contains=['tous']) | 
              Q(destinataires__contains=['parents']))
-        ).count()
+        )
+        if annee_scolaire_active:
+            annonces_query = annonces_query.filter(annee_scolaire=annee_scolaire_active)
+        nombre_annonces = annonces_query.count()
     
     context = {
         'parent': parent,
@@ -145,6 +218,7 @@ def dashboard_parent(request):
         'notifications_non_lues': notifications_parent_non_lues,
         'notifications_parent_non_lues': notifications_parent_non_lues,
         'current_url': request.get_full_path(),
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/parent/dashboard_parent.html', context)
@@ -346,9 +420,17 @@ def demande_liaison_enfant(request):
         raison_echec = None
         verification_reussie = True
         
+        # Récupérer l'année scolaire active de l'établissement de l'élève
+        annee_scolaire_active = None
+        if eleve.etablissement:
+            annee_scolaire_active = get_session_active(request, eleve.etablissement)
+        
+        # Récupérer la classe de l'élève pour l'année scolaire active
+        classe_eleve_active = get_classe_eleve_active(eleve, annee_scolaire_active, eleve.etablissement)
+        
         # Vérifier la classe
         classe_fournie_clean = classe_eleve.strip().lower().replace(' ', '').replace('-', '')
-        classe_eleve_clean = eleve.classe.nom.strip().lower().replace(' ', '').replace('-', '') if eleve.classe else ''
+        classe_eleve_clean = classe_eleve_active.nom.strip().lower().replace(' ', '').replace('-', '') if classe_eleve_active else ''
         
         if classe_fournie_clean != classe_eleve_clean:
             raison_echec = f"La classe fournie ({classe_eleve}) ne correspond pas à la classe réelle de l'élève"
@@ -379,18 +461,6 @@ def demande_liaison_enfant(request):
             statut_demande = 'reussie'
         else:
             statut_demande = 'echec'
-        
-        # Récupérer l'année scolaire active de l'établissement de l'élève
-        from school_admin.utils.session_utils import get_session_active
-        annee_scolaire_active = None
-        if eleve.etablissement:
-            # Créer une requête factice pour récupérer l'année scolaire active
-            # On utilise l'établissement de l'élève
-            from school_admin.model.annee_scolaire_model import AnneeScolaire
-            annee_scolaire_active = AnneeScolaire.objects.filter(
-                etablissement=eleve.etablissement,
-                est_active=True
-            ).first()
         
         # Mettre à jour la demande existante ou créer une nouvelle
         if demande_existante and demande_existante.statut in ['echec', 'en_attente']:
@@ -533,6 +603,16 @@ def annonces_parent(request):
     selected_etablissement_id = request.GET.get('etablissement')
     today = timezone.now().date()
 
+    # Récupérer l'année scolaire active pour chaque établissement
+    # On prend la première année scolaire active trouvée parmi les établissements
+    annee_scolaire_active = None
+    for etab_id in etablissements_ids:
+        etab = next((data["etablissement"] for data in etablissements_map.values() if data["etablissement"].id == etab_id), None)
+        if etab:
+            annee_scolaire_active = get_session_active(request, etab)
+            if annee_scolaire_active:
+                break
+    
     annonces_queryset = Annonce.objects.filter(
         Q(etablissement_id__in=etablissements_ids),
         Q(statut='publiee'),
@@ -541,7 +621,10 @@ def annonces_parent(request):
             Q(destinataires__contains=['tous']) |
             Q(destinataires__contains=['parents'])
         )
-    ).order_by('-date_publication', '-date_creation')
+    )
+    if annee_scolaire_active:
+        annonces_queryset = annonces_queryset.filter(annee_scolaire=annee_scolaire_active)
+    annonces_queryset = annonces_queryset.order_by('-date_publication', '-date_creation')
 
     if filtre_periode:
         if filtre_periode == 'semaine':
@@ -607,6 +690,7 @@ def annonces_parent(request):
         'filtre_periode': filtre_periode,
         'selected_etablissement_id': selected_etablissement_id,
         'today': today,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/parent/annonces_parent.html', context)
@@ -655,14 +739,43 @@ def notifications_parent(request):
 
         ensure_entry(etablissement, eleve)
 
+    # Récupérer l'année scolaire active pour chaque établissement
+    annee_scolaire_active = None
+    for entry in etablissements_map.values():
+        etab = entry.get("etablissement")
+        if etab:
+            annee_scolaire_active = get_session_active(request, etab)
+            if annee_scolaire_active:
+                break
+    
+    # Base query pour toutes les notifications du parent (SANS FILTRE de lecture)
+    notifications_query = NotificationParent.objects.filter(parent=parent)
+    
+    # Filtrer par année scolaire si disponible (optionnel)
+    # if annee_scolaire_active:
+    #     notifications_query = notifications_query.filter(annee_scolaire=annee_scolaire_active)
+    
+    # Récupérer TOUTES les notifications non lues pour les marquer comme lues
+    notifications_non_lues = notifications_query.filter(lu=False)
+    notification_ids_non_lues = list(notifications_non_lues.values_list('id', flat=True))
+    
+    # Marquer TOUTES les notifications non lues comme lues quand on visite la page
+    if notification_ids_non_lues:
+        NotificationParent.objects.filter(id__in=notification_ids_non_lues).update(
+            lu=True,
+            statut='lu',
+            date_lecture=timezone.now(),
+            date_modification=timezone.now(),
+        )
+    
+    # Récupérer TOUTES les notifications pour l'affichage (de la plus récente à la plus ancienne)
+    # AUCUN FILTRE - Afficher toutes les notifications, lues ou non lues
     notifications = list(
-        NotificationParent.objects.filter(parent=parent)
-        .select_related('eleve', 'eleve__etablissement', 'source_content_type')
+        notifications_query.select_related('eleve', 'eleve__etablissement', 'source_content_type')
         .order_by('-date_creation')
     )
 
-    notification_ids = [n.id for n in notifications]
-
+    # Organiser les notifications par établissement
     for notification in notifications:
         eleve = getattr(notification, "eleve", None)
         etablissement = getattr(eleve, "etablissement", None) if eleve else None
@@ -671,6 +784,18 @@ def notifications_parent(request):
             entry = ensure_entry(etablissement, eleve)
             if entry is not None:
                 entry["notifications"].append(notification)
+    
+    # Compter les notifications non lues restantes (après marquage)
+    notifications_non_lues_count = notifications_query.filter(lu=False).count()
+    
+    # Log pour débogage
+    logger.info(
+        f"Notifications pour parent {parent.id} ({parent.nom_complet}): "
+        f"Total={notifications_query.count()}, "
+        f"Non lues avant marquage={len(notification_ids_non_lues)}, "
+        f"Non lues après marquage={notifications_non_lues_count}, "
+        f"À afficher={len(notifications)}"
+    )
 
     etablissements_list = sorted(
         [
@@ -710,22 +835,16 @@ def notifications_parent(request):
             []
         )
 
-    if notification_ids:
-        NotificationParent.objects.filter(id__in=notification_ids).update(statut='lu', date_lecture=timezone.now())
-
     context = {
         'parent': parent,
         'etablissements': etablissements_list,
         'notifications_selectionnees': notifications_selectionnees,
         'selected_etablissement_id': selected_etablissement_id,
+        'annee_scolaire_active': annee_scolaire_active,
+        'notifications_parent_non_lues': notifications_non_lues_count,
     }
 
-    response = render(request, 'school_admin/parent/notifications_parent.html', context)
-
-    if notification_ids:
-        NotificationParent.objects.filter(id__in=notification_ids).delete()
-
-    return response
+    return render(request, 'school_admin/parent/notifications_parent.html', context)
 
 
 def profil_parent(request):
@@ -792,14 +911,23 @@ def profil_parent(request):
         parent=parent,
         actif=True,
         statut='valide'
-    ).select_related('eleve__classe', 'eleve__etablissement')
+    ).select_related('eleve__etablissement')
     
     enfants_list = []
     for lien in liens_familiaux:
+        eleve = lien.eleve
+        # Récupérer l'année scolaire active pour chaque élève
+        eleve_annee_scolaire_active = None
+        if eleve.etablissement:
+            eleve_annee_scolaire_active = get_session_active(request, eleve.etablissement)
+        
+        # Récupérer la classe de l'élève pour l'année scolaire active
+        classe_eleve_active = get_classe_eleve_active(eleve, eleve_annee_scolaire_active, eleve.etablissement)
+        
         enfants_list.append({
-            'eleve': lien.eleve,
+            'eleve': eleve,
             'type_lien': lien.get_type_lien_display(),
-            'classe': lien.eleve.classe.nom if lien.eleve.classe else 'Non assigné',
+            'classe': classe_eleve_active.nom if classe_eleve_active else 'Non assigné',
         })
     
     context = {
@@ -864,11 +992,23 @@ def convocations_parent(request):
     selected_etablissement_id = request.GET.get('etablissement')
     today = timezone.now().date()
 
+    # Récupérer l'année scolaire active pour chaque établissement
+    annee_scolaire_active = None
+    for entry in etablissements_map.values():
+        etab = entry.get("etablissement")
+        if etab:
+            annee_scolaire_active = get_session_active(request, etab)
+            if annee_scolaire_active:
+                break
+
     # Récupérer toutes les convocations des enfants du parent
     convocations_queryset = Convocation.objects.filter(
         eleve_id__in=all_eleves_ids,
         actif=True
-    ).select_related('eleve', 'etablissement').order_by('-date_convocation', '-heure_convocation')
+    )
+    if annee_scolaire_active:
+        convocations_queryset = convocations_queryset.filter(annee_scolaire=annee_scolaire_active)
+    convocations_queryset = convocations_queryset.select_related('eleve', 'etablissement').order_by('-date_convocation', '-heure_convocation')
 
     # Répartir les convocations par établissement
     for convocation in convocations_queryset:
@@ -945,6 +1085,7 @@ def convocations_parent(request):
         'convocations_honorees': convocations_honorees,
         'selected_etablissement_id': selected_etablissement_id,
         'today': today,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/parent/convocations_parent.html', context)

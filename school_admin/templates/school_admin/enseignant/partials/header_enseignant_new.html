@@ -1,7 +1,7 @@
 {% load static notes_tags %}
 <link
   rel="stylesheet"
-  href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}"
+  href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3"
 />
 <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}?v=1.0.0">
 {% include 'school_admin/partials/messages.html' %}
@@ -20,7 +20,9 @@
 
         <a href="{% url 'enseignant:notifications_enseignant' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
-          <span class="notification-badge">{{ notifications_enseignant_non_lues|default:0 }}</span>
+          {% if notifications_enseignant_non_lues > 0 %}
+          <span class="notification-badge">{{ notifications_enseignant_non_lues }}</span>
+          {% endif %}
         </a>
 
         <a href="{% url 'enseignant:annonces_enseignant' %}" class="header-button" aria-label="Annonces">
@@ -65,6 +67,14 @@
       </a>
     </section>
 
+    <!-- Bouton Retour -->
+    <div class="back-button-container">
+      <button id="backButton" class="back-button" aria-label="Retour à la page précédente" title="Retour à la page précédente">
+        <i class="fas fa-arrow-left"></i>
+        <span>Retour</span>
+      </button>
+    </div>
+
     <!-- Navigation Overlay -->
     <div class="navigation-overlay" id="navOverlay"></div>
 
@@ -83,6 +93,15 @@
       </div>
 
       <div class="nav-cards-row nav-cards-compact">
+        <a href="{% url 'enseignant:exercices_maison' %}" class="nav-link-card">
+          <div class="nav-card-icon neo-green">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <div class="nav-link-content">
+            <h3>Exercices</h3>
+            <p>Accédez aux exercices</p>
+          </div>
+        </a>
         {% if professeur|peut_justifier_notes %}
         <a href="{% url 'enseignant:justifications_notes' %}" class="nav-link-card">
           <div class="nav-card-icon neo-blue">
@@ -116,4 +135,7 @@
         </a>
       </div>
     </section>
+
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+
 

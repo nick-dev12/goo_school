@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Intégration de Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
     <link rel="stylesheet" href="{% static 'school_admin/css/etablissement.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/header.css' %}" />
   </head>
@@ -32,7 +33,7 @@
           </div>
           {% endif %}
           
-          <form id="teacher-form" method="POST" action="">
+          <form id="teacher-form" method="POST" action="{% url 'school_admin:ajout_etablissement' %}">
             {% csrf_token %}
             <!-- Informations personnelles -->
             <div class="form-row">
@@ -63,7 +64,15 @@
               </div>
               <div class="form-group {% if field_errors.teacher_phone %}has-error{% endif %}">
                 <label for="teacher-phone">Téléphone</label>
-                <input type="tel" id="teacher-phone" name="teacher_phone" placeholder="06 XX XX XX XX" value="{{ form_data.teacher_phone|default:'' }}" />
+                <input
+                  type="tel"
+                  id="teacher-phone"
+                  name="teacher_phone"
+                  placeholder="06 XX XX XX XX"
+                  value="{{ form_data.teacher_phone|default:'' }}"
+                  data-default-country="{{ form_data.establishment_country|default:''|lower }}"
+                />
+                <input type="hidden" id="teacher-phone-full" name="teacher_phone_full" value="{{ form_data.teacher_phone_full|default:'' }}" />
                 {% if field_errors.teacher_phone %}
                   <span class="error-message">{{ field_errors.teacher_phone }}</span>
                 {% endif %}
@@ -93,7 +102,12 @@
                 <div class="box">
                   <div class="form-group {% if field_errors.establishment_country %}has-error{% endif %}">
                     <label for="establishment-country" class="required">Pays</label>
-                    <input type="text" id="establishment-country" name="establishment_country" placeholder="Pays" value="{{ form_data.establishment_country|default:'' }}" required />
+                    <select id="establishment-country" name="establishment_country" required>
+                      <option value="" {% if not form_data.establishment_country %}selected{% endif %}>Sélectionner un pays</option>
+                      {% for code, nom in pays_list %}
+                        <option value="{{ code }}" {% if form_data.establishment_country == code %}selected{% endif %}>{{ nom }}</option>
+                      {% endfor %}
+                    </select>
                     {% if field_errors.establishment_country %}
                       <span class="error-message">{{ field_errors.establishment_country }}</span>
                     {% endif %}
@@ -117,7 +131,15 @@
               </div>
               <div class="form-group {% if field_errors.establishment_phone %}has-error{% endif %}">
                 <label for="establishment-phone">Téléphone</label>
-                <input type="tel" id="establishment-phone" name="establishment_phone" placeholder="06 XX XX XX XX" value="{{ form_data.establishment_phone|default:'' }}" />
+                <input
+                  type="tel"
+                  id="establishment-phone"
+                  name="establishment_phone"
+                  placeholder="06 XX XX XX XX"
+                  value="{{ form_data.establishment_phone|default:'' }}"
+                  data-default-country="{{ form_data.establishment_country|default:''|lower }}"
+                />
+                <input type="hidden" id="establishment-phone-full" name="establishment_phone_full" value="{{ form_data.establishment_phone_full|default:'' }}" />
                 {% if field_errors.establishment_phone %}
                   <span class="error-message">{{ field_errors.establishment_phone }}</span>
                 {% endif %}
@@ -410,5 +432,111 @@
         </div>
       </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!window.intlTelInput) {
+          console.error('intl-tel-input non chargé');
+          return;
+        }
+        const form = document.getElementById('teacher-form');
+        const countrySelect = document.getElementById('establishment-country');
+        const phoneInstances = [];
+
+        const geoIpLookup = (callback) => {
+          fetch('https://ipapi.co/json')
+            .then((res) => res.json())
+            .then((data) => callback(data && data.country_code ? data.country_code.toLowerCase() : 'sn'))
+            .catch(() => callback('sn'));
+        };
+
+        const getFallbackCountry = () => {
+          const selectValue = (countrySelect && countrySelect.value) ? countrySelect.value.toLowerCase() : '';
+          return selectValue || 'sn';
+        };
+
+        const buildIntlConfig = (initialCountry) => {
+          const config = {
+            utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js',
+            separateDialCode: true,
+            preferredCountries: ['sn', 'ci', 'cm', 'fr'],
+            nationalMode: false,
+            autoPlaceholder: 'aggressive',
+            formatOnDisplay: true,
+            autoInsertDialCode: true,
+          };
+
+          if (initialCountry === 'auto') {
+            config.initialCountry = 'auto';
+            config.geoIpLookup = geoIpLookup;
+          } else {
+            config.initialCountry = initialCountry || getFallbackCountry();
+          }
+
+          return config;
+        };
+
+        const phoneFieldConfigs = [
+          { inputId: 'teacher-phone', hiddenId: 'teacher-phone-full' },
+          { inputId: 'establishment-phone', hiddenId: 'establishment-phone-full' },
+        ];
+
+        phoneFieldConfigs.forEach(({ inputId, hiddenId }) => {
+          const input = document.getElementById(inputId);
+          const hiddenField = document.getElementById(hiddenId);
+
+          if (!input) {
+            return;
+          }
+
+          const datasetCountry = (input.dataset.defaultCountry || '').toLowerCase();
+          const selectCountry = (countrySelect && countrySelect.value) ? countrySelect.value.toLowerCase() : '';
+          const initialCountry = datasetCountry || selectCountry || 'auto';
+
+          const iti = window.intlTelInput(input, buildIntlConfig(initialCountry));
+
+          if (hiddenField && hiddenField.value) {
+            iti.setNumber(hiddenField.value);
+          }
+
+          const syncHiddenField = () => {
+            if (hiddenField) {
+              hiddenField.value = iti.getNumber();
+            }
+          };
+
+          input.addEventListener('blur', syncHiddenField);
+          input.addEventListener('change', syncHiddenField);
+
+          phoneInstances.push({ iti, hiddenField });
+        });
+
+        if (countrySelect) {
+          countrySelect.addEventListener('change', function () {
+            const selectedCountry = (countrySelect.value || '').toLowerCase();
+            if (!selectedCountry) {
+              return;
+            }
+            phoneInstances.forEach(({ iti, hiddenField }) => {
+              iti.setCountry(selectedCountry);
+              if (hiddenField) {
+                hiddenField.value = iti.getNumber();
+              }
+            });
+          });
+        }
+
+        if (form) {
+          form.addEventListener('submit', function () {
+            phoneInstances.forEach(({ iti, hiddenField }) => {
+              if (hiddenField) {
+                hiddenField.value = iti.getNumber();
+              }
+            });
+          });
+        }
+      });
+    </script>
   </body>
 </html>

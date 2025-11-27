@@ -1,8 +1,51 @@
 // Service Worker pour Aria - Plateforme Éducative
-// Version du cache - Mis à jour pour le cache complet des pages
-const CACHE_NAME = 'aria-pwa-v1.0.2';
-const RUNTIME_CACHE = 'aria-runtime-v1.0.2';
-const PAGES_CACHE = 'aria-pages-v1.0.2';
+// Version du cache - Mis à jour pour le cache complet des pages + FCM
+const CACHE_NAME = 'aria-pwa-v1.0.3';
+const RUNTIME_CACHE = 'aria-runtime-v1.0.3';
+const PAGES_CACHE = 'aria-pages-v1.0.3';
+
+// Import Firebase scripts pour les notifications push
+importScripts('https://www.gstatic.com/firebasejs/12.5.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.5.0/firebase-messaging-compat.js');
+
+// Configuration Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCSvm0VNdvnLqdIFPdDs4DPYDjHvDsO4_Q",
+  authDomain: "gestion-scolaire-6945a.firebaseapp.com",
+  projectId: "gestion-scolaire-6945a",
+  storageBucket: "gestion-scolaire-6945a.firebasestorage.app",
+  messagingSenderId: "983006440407",
+  appId: "1:983006440407:web:8cbfc916f43b745a7e7992",
+  measurementId: "G-1SHG5PC5T7"
+};
+
+// Initialiser Firebase
+try {
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+  
+  // Gérer les notifications en arrière-plan
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[Service Worker] Message FCM reçu en arrière-plan', payload);
+    
+    const notificationTitle = payload.notification?.title || 'Nouvelle notification';
+    const notificationOptions = {
+      body: payload.notification?.body || 'Vous avez une nouvelle notification',
+      icon: '/static/school_admin/images/logo.png',
+      badge: '/static/school_admin/images/badge.png',
+      tag: payload.data?.tag || payload.data?.type || 'general',
+      data: payload.data || {},
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+  
+  console.log('[Service Worker] Firebase Messaging initialisé');
+} catch (error) {
+  console.error('[Service Worker] Erreur initialisation Firebase:', error);
+}
 
 // Limite de taille du cache (en nombre d'éléments) - Augmenté pour plus de pages
 const MAX_CACHE_ITEMS = 500;
@@ -362,5 +405,37 @@ self.addEventListener('message', (event) => {
 // Notification de mise à jour disponible
 self.addEventListener('updatefound', () => {
   console.log('[Service Worker] Nouvelle version disponible');
+});
+
+// ============================================
+// GESTION DES NOTIFICATIONS FCM
+// ============================================
+
+// Gérer le clic sur la notification
+self.addEventListener('notificationclick', (event) => {
+  console.log('[Service Worker] Clic sur la notification', event);
+  
+  event.notification.close();
+  
+  // Ouvrir l'URL spécifiée ou le dashboard
+  const notificationData = event.notification.data || {};
+  const urlToOpen = notificationData.url || notificationData.redirect_url || '/eleve/dashboard/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Vérifier si une fenêtre est déjà ouverte
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url.includes(urlToOpen) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // Ouvrir une nouvelle fenêtre
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
 });
 

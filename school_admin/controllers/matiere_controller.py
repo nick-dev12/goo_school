@@ -715,21 +715,46 @@ class MatiereController:
                 return redirect('school_admin:connexion_compte_user')
         
         try:
-            matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
-            nom_matiere = matiere.nom_complet
-            
-            # Vérifier s'il y a des professeurs associés
+            from django.db import transaction
             from ..model.professeur_model import Professeur
-            professeurs_principaux = Professeur.objects.filter(matiere_principale=matiere).count()
-            professeurs_secondaires = Professeur.objects.filter(matieres_secondaires=matiere).count()
             
-            if professeurs_principaux > 0 or professeurs_secondaires > 0:
-                messages.error(request, f"Impossible de supprimer la matière '{nom_matiere}' car elle est associée à {professeurs_principaux + professeurs_secondaires} professeur(s).")
-                return redirect('matiere:detail_matiere', matiere_id=matiere_id)
-            
-            # Supprimer la matière
-            matiere.delete()
-            messages.success(request, f"La matière '{nom_matiere}' a été supprimée avec succès !")
+            with transaction.atomic():
+                matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
+                nom_matiere = matiere.nom_complet
+                
+                # Vérifier s'il y a des professeurs associés
+                professeurs_principaux = Professeur.objects.filter(matiere_principale=matiere, etablissement=etablissement)
+                professeurs_secondaires = Professeur.objects.filter(matieres_secondaires=matiere, etablissement=etablissement)
+                
+                total_professeurs = professeurs_principaux.count() + professeurs_secondaires.count()
+                
+                if total_professeurs > 0:
+                    # Retirer les associations avec les professeurs avant de supprimer
+                    # Pour les professeurs avec cette matière principale, on doit leur assigner une autre matière
+                    # ou les laisser sans matière principale (nécessite que le champ accepte null)
+                    # Pour l'instant, on va chercher une autre matière du même établissement
+                    autres_matieres = Matiere.objects.filter(etablissement=etablissement).exclude(id=matiere_id)
+                    
+                    if autres_matieres.exists():
+                        matiere_remplacement = autres_matieres.first()
+                        # Assigner une autre matière comme matière principale
+                        professeurs_principaux.update(matiere_principale=matiere_remplacement)
+                        messages.info(request, f"Les {professeurs_principaux.count()} professeur(s) ayant '{nom_matiere}' comme matière principale ont été réassignés à '{matiere_remplacement.nom}'.")
+                    else:
+                        # Si aucune autre matière n'existe, on ne peut pas supprimer
+                        messages.error(request, f"Impossible de supprimer la matière '{nom_matiere}' car elle est la seule matière de l'établissement et {total_professeurs} professeur(s) en dépendent. Veuillez d'abord créer une autre matière ou réassigner les professeurs.")
+                        return redirect('matiere:detail_matiere', matiere_id=matiere_id)
+                    
+                    # Retirer la matière des matières secondaires
+                    for professeur in professeurs_secondaires:
+                        professeur.matieres_secondaires.remove(matiere)
+                    
+                    if professeurs_secondaires.exists():
+                        messages.info(request, f"La matière '{nom_matiere}' a été retirée des matières secondaires de {professeurs_secondaires.count()} professeur(s).")
+                
+                # Supprimer la matière
+                matiere.delete()
+                messages.success(request, f"La matière '{nom_matiere}' a été supprimée avec succès !")
             
         except Matiere.DoesNotExist:
             messages.error(request, "Matière non trouvée.")

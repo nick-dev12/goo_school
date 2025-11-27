@@ -33,24 +33,14 @@
                 <i class="fas fa-edit"></i>
                 <span>Modifier</span>
             </button>
-            <button class="btn-add btn-danger" onclick="confirmDelete()">
+            <button class="btn-add btn-danger" onclick="confirmDelete({{ matiere.id }})">
                 <i class="fas fa-trash"></i>
                 <span>Supprimer</span>
             </button>
         </div>
     </div>
 
-    <!-- Messages -->
-    {% if messages %}
-        <div class="messages-container">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+ 
 
     <!-- Matiere Information -->
     <div class="matiere-info-container">

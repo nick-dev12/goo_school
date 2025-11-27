@@ -3,6 +3,19 @@
   rel="stylesheet"
   href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.3"
 />
+<style>
+  @media (max-width: 992px) {
+    .bottom-nav-eleve {
+      width: 90% !important;
+    }
+  }
+  @media (max-width: 592px) {
+    .bottom-nav-eleve {
+      width: 85% !important;
+    }
+  }
+
+</style>
 <nav
   class="enseignant-bottom-nav bottom-nav-eleve"
   aria-label="Navigation principale de l’espace élève"
@@ -36,16 +49,7 @@
         <span class="label">Notes</span>
       </a>
     </li>
-    <li
-      class="bottom-nav-item nav-item-primary nav-item-desktop-only {% if request.resolver_match.url_name == 'bulletin_eleve' %}active{% endif %}"
-    >
-      <a href="{% url 'eleve:bulletin_eleve' %}">
-        <span class="icon-wrapper icon-bulletin"
-          ><i class="fas fa-file-signature"></i
-        ></span>
-        <span class="label">Bulletin</span>
-      </a>
-    </li>
+   
     <li
       class="bottom-nav-item nav-item-primary nav-item-core {% if request.resolver_match.url_name == 'absences_retards' %}active{% endif %}"
     >
@@ -54,16 +58,6 @@
           ><i class="fas fa-calendar-times"></i
         ></span>
         <span class="label">Absences</span>
-      </a>
-    </li>
-    <li
-      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'profil_eleve' %}active{% endif %}"
-    >
-      <a href="{% url 'eleve:profil_eleve' %}">
-        <span class="icon-wrapper icon-profil"
-          ><i class="fas fa-user-circle"></i
-        ></span>
-        <span class="label">Profil</span>
       </a>
     </li>
     <li
@@ -103,6 +97,16 @@
           ><i class="fas fa-bullhorn"></i
         ></span>
         <span class="label">Annonces</span>
+      </a>
+    </li>
+      <li
+      class="bottom-nav-item nav-item-extra {% if request.resolver_match.url_name == 'profil_eleve' %}active{% endif %}"
+    >
+      <a href="{% url 'eleve:profil_eleve' %}">
+        <span class="icon-wrapper icon-profil"
+          ><i class="fas fa-user-circle"></i
+        ></span>
+        <span class="label">Profil</span>
       </a>
     </li>
     {% endif %}

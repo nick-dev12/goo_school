@@ -117,10 +117,15 @@ function initializeFormValidation() {
 /**
  * Fonction globale pour confirmer la suppression
  */
-window.confirmDelete = function() {
+window.confirmDelete = function(matiereId) {
+    if (!matiereId) {
+        console.error('ID de matière non fourni');
+        alert('Erreur : Impossible de récupérer l\'ID de la matière');
+        return;
+    }
+    
     if (confirm('Êtes-vous sûr de vouloir supprimer cette matière ? Cette action est irréversible.')) {
         // Rediriger vers l'URL de suppression
-        const matiereId = window.location.pathname.split('/')[2];
         window.location.href = `/matieres/${matiereId}/supprimer/`;
     }
 };

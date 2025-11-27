@@ -254,6 +254,14 @@ class CompteUserController:
                     request.session['_auth_user_type'] = user_type
                     logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
                     
+                    # Sauvegarder l'année scolaire active dans la session pour les élèves
+                    if isinstance(user, Eleve) and user.etablissement:
+                        from ..utils.session_utils import get_session_active
+                        annee_scolaire_active = get_session_active(request, user.etablissement)
+                        if annee_scolaire_active:
+                            request.session['annee_scolaire_active_id'] = annee_scolaire_active.id
+                            logger.info(f"Année scolaire active sauvegardée pour l'élève: {annee_scolaire_active.id}")
+                    
                     # Redirection vers l'URL next si présente, sinon vers le tableau de bord approprié
                     if next_url:
                         return None, redirect(next_url)
@@ -272,6 +280,13 @@ class CompteUserController:
                         elif isinstance(user, Eleve):
                             return None, redirect('eleve:dashboard_eleve')
                         elif isinstance(user, Parent):
+                            # Sauvegarder l'année scolaire active dans la session pour les parents
+                            if user.etablissement:
+                                from ..utils.session_utils import get_session_active
+                                annee_scolaire_active = get_session_active(request, user.etablissement)
+                                if annee_scolaire_active:
+                                    request.session['annee_scolaire_active_id'] = annee_scolaire_active.id
+                                    logger.info(f"Année scolaire active sauvegardée pour le parent: {annee_scolaire_active.id}")
                             # Redirection vers le dashboard parent
                             return None, redirect('school_admin:dashboard_parent')
                         else:

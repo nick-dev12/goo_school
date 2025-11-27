@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique des sessions - Primaire</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
+    <style>
+        :root {
+            font-size: 16px;
+            --history-bg: var(--gray-50, #f9fafb);
+            --history-card-bg: var(--white, #ffffff);
+            --history-border: var(--gray-200, #e5e7eb);
+            --history-muted: var(--text-secondary, #6b7280);
+            --history-text: var(--text-primary, #1f2937);
+            --history-primary: var(--primary, #3b82f6);
+            --history-shadow: var(--shadow-subtle, 0 2px 8px rgba(0, 0, 0, 0.06));
+        }
+        body {
+            margin: 0;
+            font-family: 'Poppins', Arial, sans-serif;
+            background-color: var(--history-bg);
+            color: var(--history-text);
+        }
+        .history-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem 3rem 1.25rem;
+        }
+        .page-header {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--history-shadow);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: var(--history-primary);
+        }
+        .page-header p {
+            margin: 0.5rem 0 0 0;
+            color: var(--history-muted);
+            font-size: 1rem;
+            max-width: 640px;
+        }
+        .page-header a {
+            align-self: center;
+            text-decoration: none;
+            border: 1px solid var(--history-primary);
+            color: var(--history-primary);
+            padding: 0.6rem 1.5rem;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.25rem;
+        }
+        .history-card {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 18px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: var(--history-shadow);
+        }
+        .history-card header {
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+            padding-bottom: 0.75rem;
+        }
+        .session-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--history-muted);
+            margin: 0;
+        }
+        .session-title {
+            margin: 0.35rem 0 0 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--history-text);
+        }
+        .session-dates {
+            margin: 0.1rem 0 0 0;
+            font-size: 0.95rem;
+            color: var(--history-muted);
+        }
+        .card-metrics {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .metric {
+            flex: 1;
+            text-align: center;
+        }
+        .metric span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--history-muted);
+        }
+        .metric strong {
+            display: block;
+            font-size: 1.4rem;
+            color: var(--history-primary);
+        }
+        .history-card footer {
+            margin-top: auto;
+            text-align: right;
+        }
+        .history-card footer a {
+            display: inline-block;
+            padding: 0.6rem 1.3rem;
+            border-radius: 12px;
+            text-decoration: none;
+            background-color: var(--history-primary);
+            color: var(--white, #ffffff);
+            font-weight: 600;
+        }
+        .empty-state {
+            background-color: var(--history-card-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 18px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: var(--history-shadow);
+        }
+        .empty-state h2 {
+            margin: 0 0 0.75rem 0;
+            color: var(--history-text);
+            font-size: 1.5rem;
+        }
+        .empty-state p {
+            margin: 0;
+            color: var(--history-muted);
+        }
+        @media (max-width: 768px) {
+            .history-wrapper {
+                padding: 1.5rem 1rem 2rem 1rem;
+            }
+            .page-header {
+                flex-direction: column;
+            }
+            .page-header a {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+    <main class="history-wrapper">
+        <section class="page-header">
+            <div>
+                <h1>Historique des sessions (Primaire)</h1>
+                <p>Consulte les années scolaires clôturées ou archivées pour retrouver tes classes et effectifs encadrés.</p>
+            </div>
+            <a href="{% url 'enseignant_primaire:parametres_profil' %}">Retour au profil</a>
+        </section>
+
+        {% if historique_data %}
+            <div class="cards-grid">
+                {% for item in historique_data %}
+                    <article class="history-card">
+                        <header>
+                            <p class="session-label">Session archivée</p>
+                            <p class="session-title">{{ item.annee.libelle }}</p>
+                            <p class="session-dates">
+                                {{ item.annee.date_debut|date:"d/m/Y" }} — {{ item.annee.date_fin|date:"d/m/Y" }}
+                            </p>
+                        </header>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <span>Classes</span>
+                                <strong>{{ item.total_classes }}</strong>
+                            </div>
+                            <div class="metric">
+                                <span>Élèves suivis</span>
+                                <strong>{{ item.total_eleves }}</strong>
+                            </div>
+                        </div>
+                        <footer>
+                            <a href="{% url 'enseignant_primaire:historique_annee_detail' item.annee.id %}">Consulter</a>
+                        </footer>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>Aucune session archivée</h2>
+                <p>Dès qu'une année scolaire sera clôturée, elle apparaîtra automatiquement ici.</p>
+            </div>
+        {% endif %}
+    </main>
+</body>
+</html>
+

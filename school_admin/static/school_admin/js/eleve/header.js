@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (deferredPrompt) {
                 // Afficher le prompt d'installation (doit être appelé directement depuis le gestionnaire de clic)
                 deferredPrompt.prompt();
-                
+
                 // Attendre la réponse de l'utilisateur
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -76,12 +76,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         console.log('[PWA] L\'utilisateur a refusé l\'installation');
                     }
-                    
+
                     // Masquer le bouton après la réponse
                     if (pwaInstallBtn) {
                         pwaInstallBtn.style.display = 'none';
                     }
-                    
+
                     // Réinitialiser
                     deferredPrompt = null;
                 });
@@ -104,5 +104,47 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         deferredPrompt = null;
     });
+
+    // Gestion du bouton retour
+    const backButton = document.getElementById('backButton');
+
+    if (backButton) {
+        // Gérer le clic sur le bouton retour
+        backButton.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            // Utiliser history.back() pour revenir à la page précédente
+            // Le navigateur gère automatiquement si aucune page précédente n'existe
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                // Fallback: si pas d'historique, rediriger vers le dashboard
+                // On utilise une URL relative pour éviter les problèmes de configuration
+                try {
+                    window.location.href = document.referrer || '/eleve/dashboard/';
+                } catch (error) {
+                    // Si document.referrer n'est pas disponible, utiliser history.back() quand même
+                    window.history.back();
+                }
+            }
+        });
+
+        // Ajouter un effet visuel au survol (géré par CSS, mais on peut ajouter des animations JS si nécessaire)
+        backButton.addEventListener('mouseenter', function () {
+            if (!backButton.disabled) {
+                const icon = backButton.querySelector('i');
+                if (icon) {
+                    icon.style.transform = 'translateX(-3px)';
+                }
+            }
+        });
+
+        backButton.addEventListener('mouseleave', function () {
+            const icon = backButton.querySelector('i');
+            if (icon) {
+                icon.style.transform = 'translateX(0)';
+            }
+        });
+    }
 });
 

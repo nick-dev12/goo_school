@@ -31,6 +31,46 @@ from ..model.note_primaire_model import MoyenneMatierePrimaire
 from ..utils.calcul_moyennes_primaire import calculer_moyenne_avec_mode, get_appreciation_moyenne
 from ..model.standards_reussite_model import StandardsReussite, AppreciationMatiereStandard, AppreciationConseilStandard
 from ..model.annee_scolaire_model import AnneeScolaire
+from ..model.inscription_eleve_model import InscriptionEleve
+from ..model.inscription_parent_model import InscriptionParent
+from ..model.classe_model import Classe
+from ..model.parent_model import Parent
+from django.db.models.functions import Lower
+from ..utils.session_utils import get_session_active
+from django.db.models import Q
+from django.db import transaction
+from datetime import datetime, date
+
+
+def _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active=None):
+    """
+    Récupère les élèves d'une classe depuis InscriptionEleve pour l'année scolaire active.
+    Retourne un queryset d'élèves actifs inscrits dans cette classe pour l'année active.
+    
+    Args:
+        classe: L'objet Classe
+        etablissement: L'établissement
+        annee_scolaire_active: L'année scolaire active (optionnel)
+    
+    Returns:
+        QuerySet d'élèves
+    """
+    if annee_scolaire_active:
+        # Récupérer directement les inscriptions pour cette classe et cette année scolaire
+        inscriptions = InscriptionEleve.objects.filter(
+            annee_scolaire=annee_scolaire_active,
+            classe=classe,
+            etablissement=etablissement
+        ).select_related('eleve').order_by(Lower('eleve__nom'), Lower('eleve__prenom'))
+        
+        # Récupérer les élèves depuis les inscriptions (filtrer uniquement les actifs)
+        eleves_ids = [inscription.eleve_id for inscription in inscriptions if inscription.eleve and inscription.eleve.actif]
+        
+        # Créer un queryset à partir de la liste pour maintenir la compatibilité
+        return Eleve.objects.filter(id__in=eleves_ids, actif=True).order_by(Lower('nom'), Lower('prenom'))
+    else:
+        # Comportement par défaut : tous les élèves actifs de la classe
+        return Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
 
 try:
     import qrcode
@@ -642,7 +682,7 @@ def dashboard_directeur(request):
     
     notifications_non_lues = NotificationDirecteur.objects.filter(
         etablissement=etablissement,
-        statut='non_lu'
+        lu=False,
     ).count()
 
     # Préparer le contexte avec les données de l'établissement
@@ -793,11 +833,448 @@ def gestion_eleves(request):
     """
     Vue de la page de gestion des élèves pour les directeurs d'établissement
     """
-      # Vérifier que l'utilisateur connecté est bien un établissement
     if not isinstance(request.user, Etablissement):
         return redirect('school_admin:connexion_compte_user')
   
     return render(request, 'school_admin/directeur/gestion_eleves.html')
+
+
+@login_required
+def liste_reinscription_eleves(request):
+    """
+    Liste des élèves éligibles à la réinscription
+    Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active
+    """
+    if not isinstance(request.user, Etablissement):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    etablissement = request.user
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(
+            request,
+            "Aucune année scolaire active n'a été trouvée. Créez ou activez d'abord une session pour continuer."
+        )
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+    
+    # Récupérer les classes de l'établissement
+    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+    
+    # Récupérer les IDs des élèves déjà inscrits pour l'année active
+    eleves_inscrits_ids = InscriptionEleve.objects.filter(
+        annee_scolaire=annee_scolaire_active,
+        etablissement=etablissement
+    ).values_list('eleve_id', flat=True)
+    
+    # Récupérer les élèves ayant une inscription dans une année précédente (désactivée)
+    # mais pas dans l'année active
+    eleves_eligibles = Eleve.objects.filter(
+        etablissement=etablissement,
+        inscriptions__annee_scolaire__est_active=False
+    ).exclude(
+        id__in=eleves_inscrits_ids
+    ).distinct().select_related('classe').prefetch_related('inscriptions__annee_scolaire', 'inscriptions__classe')
+    
+    # Recherche par nom/prénom (insensible à la casse)
+    search_query = request.GET.get('search', '').strip()
+    classe_id = request.GET.get('classe', '').strip()
+    
+    eleves_data = []
+    has_search = False
+    
+    # Si une recherche a été effectuée
+    if search_query or classe_id:
+        has_search = True
+        
+        # Filtre par nom/prénom (insensible à la casse)
+        if search_query:
+            eleves_eligibles = eleves_eligibles.filter(
+                Q(nom__icontains=search_query) | 
+                Q(prenom__icontains=search_query) | 
+                Q(matricule_eleve__icontains=search_query)
+            )
+        
+        # Filtre par classe (via la dernière inscription)
+        if classe_id:
+            try:
+                classe_obj = Classe.objects.get(id=classe_id, etablissement=etablissement)
+                # Filtrer les élèves qui ont eu une inscription dans cette classe
+                eleves_ids_avec_classe = InscriptionEleve.objects.filter(
+                    annee_scolaire__est_active=False,
+                    classe=classe_obj,
+                    etablissement=etablissement
+                ).values_list('eleve_id', flat=True)
+                eleves_eligibles = eleves_eligibles.filter(id__in=eleves_ids_avec_classe)
+            except Classe.DoesNotExist:
+                pass
+        
+        # Préparer les données pour l'affichage
+        for eleve in eleves_eligibles.order_by('nom', 'prenom'):
+            # Récupérer la dernière inscription (année la plus récente)
+            derniere_inscription = eleve.inscriptions.filter(
+                annee_scolaire__est_active=False
+            ).select_related('annee_scolaire', 'classe').order_by('-annee_scolaire__date_debut').first()
+            
+            if derniere_inscription:
+                eleves_data.append({
+                    'eleve': eleve,
+                    'derniere_inscription': derniere_inscription,
+                    'derniere_annee': derniere_inscription.annee_scolaire,
+                    'derniere_classe': derniere_inscription.classe,
+                })
+    
+    context = {
+        'etablissement': etablissement,
+        'annee_scolaire_active': annee_scolaire_active,
+        'eleves_data': eleves_data,
+        'search_query': search_query,
+        'classe_id': classe_id,
+        'classes': classes,
+        'has_search': has_search,
+    }
+    
+    return render(request, 'school_admin/directeur/reinscription/liste_reinscription_eleves.html', context)
+
+
+@login_required
+def reinscription_eleve(request, eleve_id):
+    """
+    Formulaire de réinscription pour un élève spécifique
+    """
+    if not isinstance(request.user, Etablissement):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    etablissement = request.user
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(
+            request,
+            "Aucune année scolaire active n'a été trouvée. Créez ou activez d'abord une session pour continuer."
+        )
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+    
+    # Récupérer l'élève
+    try:
+        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
+    except Eleve.DoesNotExist:
+        messages.error(request, "Élève non trouvé.")
+        return redirect('directeur:liste_reinscription')
+    
+    # Vérifier que l'élève n'est pas déjà inscrit pour l'année active
+    inscription_existante = InscriptionEleve.objects.filter(
+        eleve=eleve,
+        annee_scolaire=annee_scolaire_active,
+        etablissement=etablissement
+    ).first()
+    
+    if inscription_existante:
+        messages.warning(request, f"L'élève {eleve.nom_complet} est déjà inscrit pour l'année scolaire active.")
+        return redirect('directeur:liste_reinscription')
+    
+    # Récupérer les classes de l'établissement
+    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+    
+    # Récupérer le parent associé (s'il existe)
+    parent = None
+    lien_familial = None
+    if eleve.parent_telephone:
+        from ..model.lien_familial_model import LienFamilial
+        lien_familial = LienFamilial.objects.filter(
+            eleve=eleve,
+            actif=True
+        ).select_related('parent').first()
+        if lien_familial:
+            parent = lien_familial.parent
+    
+    # Initialiser les données du formulaire avec les données de l'élève
+    form_data = {
+        'nom': eleve.nom,
+        'prenom': eleve.prenom,
+        'date_naissance': eleve.date_naissance.strftime('%Y-%m-%d') if eleve.date_naissance else '',
+        'lieu_naissance': eleve.lieu_naissance or '',
+        'sexe': eleve.sexe,
+        'nationalite': eleve.nationalite or '',
+        'adresse': eleve.adresse or '',
+        'telephone': eleve.telephone or '',
+        'email': eleve.email or '',
+        'classe': eleve.classe.id if eleve.classe else '',
+        'date_inscription': date.today().strftime('%Y-%m-%d'),
+        'statut': 'reinscription',
+        # Informations parent
+        'parent_nom': eleve.parent_nom or (parent.nom if parent else ''),
+        'parent_prenom': eleve.parent_prenom or (parent.prenom if parent else ''),
+        'parent_telephone': eleve.parent_telephone or (parent.telephone if parent else ''),
+        'parent_email': eleve.parent_email or (parent.email if parent else ''),
+        'parent_adresse': eleve.parent_adresse or (parent.adresse if parent else ''),
+        'parent_profession': eleve.parent_profession or (parent.profession if parent else ''),
+        'parent_lien': eleve.parent_lien or (lien_familial.type_lien if lien_familial else ''),
+        # Documents
+        'document_acte_naissance': eleve.document_acte_naissance,
+        'document_cni': eleve.document_cni,
+        'document_passeport': eleve.document_passeport,
+        'document_bulletin_precedent': eleve.document_bulletin_precedent,
+        'document_certificat_scolarite': eleve.document_certificat_scolarite,
+        'document_livret_scolaire': eleve.document_livret_scolaire,
+        'document_certificat_medical': eleve.document_certificat_medical,
+        'document_carnet_vaccination': eleve.document_carnet_vaccination,
+        'document_assurance_maladie': eleve.document_assurance_maladie,
+        'document_justificatif_domicile': eleve.document_justificatif_domicile,
+        'document_photo_identite': eleve.document_photo_identite,
+        'document_autorisation_parentale': eleve.document_autorisation_parentale,
+    }
+    
+    field_errors = {}
+    
+    if request.method == 'POST':
+        # Récupération des données du formulaire
+        form_data = {
+            'nom': request.POST.get('nom', '').strip(),
+            'prenom': request.POST.get('prenom', '').strip(),
+            'date_naissance': request.POST.get('date_naissance', ''),
+            'lieu_naissance': request.POST.get('lieu_naissance', '').strip(),
+            'sexe': request.POST.get('sexe', ''),
+            'nationalite': request.POST.get('nationalite', '').strip(),
+            'adresse': request.POST.get('adresse', '').strip(),
+            'telephone': request.POST.get('telephone', '').strip(),
+            'email': request.POST.get('email', '').strip(),
+            'classe': request.POST.get('classe', ''),
+            'date_inscription': request.POST.get('date_inscription', ''),
+            'statut': 'reinscription',
+            # Informations parent
+            'parent_nom': request.POST.get('parent_nom', '').strip(),
+            'parent_prenom': request.POST.get('parent_prenom', '').strip(),
+            'parent_telephone': request.POST.get('parent_telephone_full', '').strip() or request.POST.get('parent_telephone', '').strip(),
+            'parent_email': request.POST.get('parent_email', '').strip(),
+            'parent_adresse': request.POST.get('parent_adresse', '').strip(),
+            'parent_profession': request.POST.get('parent_profession', '').strip(),
+            'parent_lien': request.POST.get('parent_lien', ''),
+            # Documents
+            'document_acte_naissance': request.POST.get('document_acte_naissance') == 'true',
+            'document_cni': request.POST.get('document_cni') == 'true',
+            'document_passeport': request.POST.get('document_passeport') == 'true',
+            'document_bulletin_precedent': request.POST.get('document_bulletin_precedent') == 'true',
+            'document_certificat_scolarite': request.POST.get('document_certificat_scolarite') == 'true',
+            'document_livret_scolaire': request.POST.get('document_livret_scolaire') == 'true',
+            'document_certificat_medical': request.POST.get('document_certificat_medical') == 'true',
+            'document_carnet_vaccination': request.POST.get('document_carnet_vaccination') == 'true',
+            'document_assurance_maladie': request.POST.get('document_assurance_maladie') == 'true',
+            'document_justificatif_domicile': request.POST.get('document_justificatif_domicile') == 'true',
+            'document_photo_identite': request.POST.get('document_photo_identite') == 'true',
+            'document_autorisation_parentale': request.POST.get('document_autorisation_parentale') == 'true',
+        }
+        
+        # Validation
+        is_valid = True
+        inscription_date_obj = None
+        
+        # Champs obligatoires
+        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'classe', 'date_inscription']
+        for field in required_fields:
+            if not form_data[field]:
+                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                is_valid = False
+        
+        # Validation des champs parent
+        parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
+        for field in parent_required:
+            if not form_data[field]:
+                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                is_valid = False
+        
+        # Validation de la date de naissance
+        if form_data['date_naissance']:
+            try:
+                birth_date = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
+                if birth_date > date.today():
+                    field_errors['date_naissance'] = "La date de naissance ne peut pas être dans le futur."
+                    is_valid = False
+            except ValueError:
+                field_errors['date_naissance'] = "Format de date invalide."
+                is_valid = False
+        
+        # Validation de la date d'inscription
+        if form_data['date_inscription']:
+            try:
+                inscription_date = datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date()
+                inscription_date_obj = inscription_date
+                if inscription_date > date.today():
+                    field_errors['date_inscription'] = "La date d'inscription ne peut pas être dans le futur."
+                    is_valid = False
+            except ValueError:
+                field_errors['date_inscription'] = "Format de date invalide."
+                is_valid = False
+        
+        # Validation de la classe
+        classe = None
+        if form_data['classe']:
+            try:
+                classe = Classe.objects.get(id=form_data['classe'], etablissement=etablissement)
+                if classe.places_disponibles <= 0:
+                    field_errors['classe'] = f"La classe {classe.nom} est pleine. Aucune place disponible."
+                    is_valid = False
+            except Classe.DoesNotExist:
+                field_errors['classe'] = "La classe sélectionnée n'existe pas."
+                is_valid = False
+        
+        # Validation du sexe
+        if form_data['sexe'] not in ['M', 'F']:
+            field_errors['sexe'] = "Le sexe doit être Masculin ou Féminin."
+            is_valid = False
+        
+        # Validation du lien parent
+        if form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
+            field_errors['parent_lien'] = "Le lien avec l'élève sélectionné n'est pas valide."
+            is_valid = False
+        
+        # Si tout est valide, procéder à la réinscription
+        if is_valid:
+            try:
+                with transaction.atomic():
+                    # Mettre à jour les informations de l'élève si nécessaire
+                    eleve.nom = form_data['nom']
+                    eleve.prenom = form_data['prenom']
+                    if form_data['date_naissance']:
+                        eleve.date_naissance = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
+                    eleve.lieu_naissance = form_data['lieu_naissance']
+                    eleve.sexe = form_data['sexe']
+                    eleve.nationalite = form_data['nationalite']
+                    eleve.adresse = form_data['adresse'] if form_data['adresse'] else None
+                    eleve.telephone = form_data['telephone'] if form_data['telephone'] else None
+                    eleve.email = form_data['email'] if form_data['email'] else None
+                    eleve.classe = classe
+                    eleve.date_inscription = inscription_date_obj
+                    eleve.statut = 'reinscription'
+                    # Informations parent
+                    eleve.parent_nom = form_data['parent_nom']
+                    eleve.parent_prenom = form_data['parent_prenom']
+                    eleve.parent_telephone = form_data['parent_telephone']
+                    eleve.parent_email = form_data['parent_email'] if form_data['parent_email'] else None
+                    eleve.parent_adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else None
+                    eleve.parent_profession = form_data['parent_profession'] if form_data['parent_profession'] else None
+                    eleve.parent_lien = form_data['parent_lien']
+                    # Documents
+                    eleve.document_acte_naissance = form_data['document_acte_naissance']
+                    eleve.document_cni = form_data['document_cni']
+                    eleve.document_passeport = form_data['document_passeport']
+                    eleve.document_bulletin_precedent = form_data['document_bulletin_precedent']
+                    eleve.document_certificat_scolarite = form_data['document_certificat_scolarite']
+                    eleve.document_livret_scolaire = form_data['document_livret_scolaire']
+                    eleve.document_certificat_medical = form_data['document_certificat_medical']
+                    eleve.document_carnet_vaccination = form_data['document_carnet_vaccination']
+                    eleve.document_assurance_maladie = form_data['document_assurance_maladie']
+                    eleve.document_justificatif_domicile = form_data['document_justificatif_domicile']
+                    eleve.document_photo_identite = form_data['document_photo_identite']
+                    eleve.document_autorisation_parentale = form_data['document_autorisation_parentale']
+                    
+                    eleve.save()
+                    
+                    # Gérer le parent
+                    from ..model.lien_familial_model import LienFamilial
+                    
+                    # Vérifier si un parent avec ce téléphone existe déjà
+                    parent_existant = None
+                    if form_data['parent_telephone']:
+                        parent_existant = Parent.objects.filter(
+                            telephone=form_data['parent_telephone'],
+                            etablissement=etablissement
+                        ).first()
+                    
+                    if parent_existant:
+                        parent = parent_existant
+                        # Mettre à jour les informations du parent si nécessaire
+                        parent.nom = form_data['parent_nom']
+                        parent.prenom = form_data['parent_prenom']
+                        if form_data['parent_email']:
+                            parent.email = form_data['parent_email']
+                        if form_data['parent_adresse']:
+                            parent.adresse = form_data['parent_adresse']
+                        if form_data['parent_profession']:
+                            parent.profession = form_data['parent_profession']
+                        parent.save()
+                    else:
+                        # Créer un nouveau compte parent si nécessaire
+                        # Note: Parent est déjà importé en haut du fichier
+                        matricule_parent = Parent.generer_matricule_parent(etablissement)
+                        mot_de_passe_parent = Parent.generer_mot_de_passe()
+                        
+                        parent = Parent(
+                            matricule_parental=matricule_parent,
+                            type_parent=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                            nom=form_data['parent_nom'],
+                            prenom=form_data['parent_prenom'],
+                            telephone=form_data['parent_telephone'],
+                            email=form_data['parent_email'] if form_data['parent_email'] else '',
+                            adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
+                            profession=form_data['parent_profession'] if form_data['parent_profession'] else '',
+                            etablissement=etablissement,
+                            mot_de_passe_provisoire=mot_de_passe_parent,
+                            mot_de_passe_modifie=False,
+                            username=matricule_parent,
+                            is_active=True,
+                            is_staff=False,
+                            is_superuser=False,
+                        )
+                        parent.set_password(mot_de_passe_parent)
+                        parent.save()
+                    
+                    # Créer ou mettre à jour le lien familial
+                    lien_familial, created = LienFamilial.objects.update_or_create(
+                        parent=parent,
+                        eleve=eleve,
+                        defaults={
+                            'type_lien': form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                            'statut': 'valide',
+                            'est_inscripteur': True,
+                            'actif': True,
+                        }
+                    )
+                    
+                    # Archiver l'inscription dans InscriptionEleve
+                    from ..personal_views.secretaire_view import _archiver_inscription_eleve_parent
+                    _archiver_inscription_eleve_parent(
+                        eleve=eleve,
+                        parent=parent,
+                        etablissement=etablissement,
+                        annee_scolaire=annee_scolaire_active,
+                        date_inscription=inscription_date_obj or eleve.date_inscription
+                    )
+                    
+                    # Mettre à jour la date de dernière facturation
+                    etablissement.date_derniere_facturation = timezone.now()
+                    etablissement.save(update_fields=['date_derniere_facturation'])
+                    
+                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été réinscrit avec succès pour l'année scolaire {annee_scolaire_active.libelle} !")
+                    return redirect('directeur:liste_reinscription')
+                    
+            except Exception as e:
+                logger.error(f"Erreur lors de la réinscription: {str(e)}", exc_info=True)
+                field_errors['__all__'] = f"Une erreur est survenue lors de la réinscription: {str(e)}. Veuillez réessayer."
+                is_valid = False
+    
+    # Récupérer la liste des pays pour le select
+    try:
+        from django_countries import countries
+        pays_list = [(code, str(nom)) for code, nom in countries]
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des pays: {str(e)}")
+        pays_list = []
+    
+    context = {
+        'etablissement': etablissement,
+        'annee_scolaire_active': annee_scolaire_active,
+        'eleve': eleve,
+        'classes': classes,
+        'form_data': form_data,
+        'field_errors': field_errors,
+        'pays_list': pays_list,
+        'parent': parent,
+    }
+    
+    return render(request, 'school_admin/directeur/reinscription/reinscription_eleve.html', context)
 
 
 @login_required
@@ -878,20 +1355,8 @@ def notes_et_resultats(request):
         
         if est_primaire:
             # LOGIQUE PRIMAIRE
-            # Filtrer les élèves par année scolaire active si disponible
-            if annee_scolaire_active:
-                eleves_ids_inscrits = InscriptionEleve.objects.filter(
-                    annee_scolaire=annee_scolaire_active,
-                    classe=classe,
-                    etablissement=etablissement
-                ).values_list('eleve_id', flat=True)
-                eleves = Eleve.objects.filter(
-                    classe=classe,
-                    actif=True,
-                    id__in=eleves_ids_inscrits
-                ).order_by('nom', 'prenom')
-            else:
-                eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+            # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+            eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
             
             # Utiliser la période sélectionnée
             periode_active = periode_selectionnee
@@ -964,20 +1429,8 @@ def notes_et_resultats(request):
                 actif=True
             ).order_by('nom')
             
-            # Filtrer les élèves par année scolaire active si disponible
-            if annee_scolaire_active:
-                eleves_ids_inscrits = InscriptionEleve.objects.filter(
-                    annee_scolaire=annee_scolaire_active,
-                    classe=classe,
-                    etablissement=etablissement
-                ).values_list('eleve_id', flat=True)
-                eleves = Eleve.objects.filter(
-                    classe=classe,
-                    actif=True,
-                    id__in=eleves_ids_inscrits
-                )
-            else:
-                eleves = Eleve.objects.filter(classe=classe, actif=True)
+            # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+            eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
             
             # Préparer les données pour chaque élève
             eleves_data = []
@@ -1357,7 +1810,8 @@ def bulletins_notes(request):
                 'nombre_classes': 0,
             }
 
-        eleves_classe_qs = Eleve.objects.filter(classe=classe, actif=True)
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves_classe_qs = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         nombre_eleves_classe = eleves_classe_qs.count()
 
         bulletins_info = {
@@ -1605,11 +2059,11 @@ def calculer_moyennes_periode(request, classe_id):
         reverse('school_admin:verifier_bulletin_qr')
     )
     
-    # Récupérer tous les élèves de la classe
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+    eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
     
     if not eleves.exists():
-        messages.warning(request, "Cette classe ne contient aucun élève.")
+        messages.warning(request, "Cette classe ne contient aucun élève pour l'année scolaire active.")
         return redirect('directeur:bulletins_notes')
 
     # Récupérer les matières
@@ -1900,31 +2354,33 @@ def notifications_directeur(request):
 
     etablissement = request.user
 
-    notifications = list(
-        NotificationDirecteur.objects.filter(etablissement=etablissement)
-        .order_by('-date_creation')
-    )
-    notification_ids = [notification.id for notification in notifications]
+    notifications_query = NotificationDirecteur.objects.filter(etablissement=etablissement)
 
-    if notification_ids:
-        NotificationDirecteur.objects.filter(id__in=notification_ids).update(
+    notifications_non_lues = notifications_query.filter(lu=False)
+    notification_ids_non_lues = list(notifications_non_lues.values_list('id', flat=True))
+
+    if notification_ids_non_lues:
+        NotificationDirecteur.objects.filter(id__in=notification_ids_non_lues).update(
+            lu=True,
             statut='lu',
             date_lecture=timezone.now(),
             date_modification=timezone.now(),
         )
 
+    notifications = list(
+        notifications_query
+        .order_by('-date_creation')
+    )
+
+    notifications_non_lues_count = notifications_query.filter(lu=False).count()
+
     context = {
         'etablissement': etablissement,
         'notifications': notifications,
-        'notifications_directeur_non_lues': 0,
+        'notifications_directeur_non_lues': notifications_non_lues_count,
     }
 
-    response = render(request, 'school_admin/directeur/notifications_directeur.html', context)
-
-    if notification_ids:
-        NotificationDirecteur.objects.filter(id__in=notification_ids).delete()
-
-    return response
+    return render(request, 'school_admin/directeur/notifications_directeur.html', context)
 
 
 def _build_bulletin_context(request, classe_id, eleve_id):
@@ -2665,7 +3121,8 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                 )
 
             # Recalculer les rangs de toute la classe (car le rang dépend des autres élèves)
-            eleves_classe = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+            # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+            eleves_classe = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
             eleves_moyennes_generales = []
 
             for eleve_classe in eleves_classe:
@@ -2941,11 +3398,11 @@ def imprimer_bulletins_classe(request, classe_id):
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
     
-    # Récupérer tous les élèves de la classe
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+    # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+    eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
     
     if not eleves.exists():
-        messages.warning(request, "Cette classe ne contient aucun élève.")
+        messages.warning(request, "Cette classe ne contient aucun élève pour l'année scolaire active.")
         return redirect('directeur:bulletins_notes')
     
     # Construire le contexte pour chaque élève
@@ -3429,20 +3886,8 @@ def suivi_presence(request):
                 'nombre_classes': 0,
             }
         
-        # Filtrer les élèves par année scolaire active si disponible
-        if annee_scolaire_active:
-            eleves_ids_inscrits = InscriptionEleve.objects.filter(
-                annee_scolaire=annee_scolaire_active,
-                classe=classe,
-                etablissement=etablissement
-            ).values_list('eleve_id', flat=True)
-            eleves = Eleve.objects.filter(
-                classe=classe,
-                actif=True,
-                id__in=eleves_ids_inscrits
-            ).order_by('nom', 'prenom')
-        else:
-            eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         # Construire le queryset de présence filtré par période et année scolaire active
         presences_queryset = Presence.objects.filter(classe=classe)
@@ -3902,8 +4347,9 @@ def api_details_notes_matiere(request):
         matiere = Matiere.objects.get(nom=matiere_nom, etablissement=classe.etablissement)
         periode = PeriodeScolaire.objects.get(id=periode_id)
         
-        # Récupérer tous les élèves de la classe
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        annee_scolaire_active = get_session_active(request, classe.etablissement)
+        eleves = _get_eleves_classe_par_inscription(classe, classe.etablissement, annee_scolaire_active)
         
         eleves_data = []
         for eleve in eleves:
@@ -4059,8 +4505,9 @@ def api_details_notes_matiere_secondaire(request):
         if not periode:
             return JsonResponse({'success': False, 'message': 'Aucune période active trouvée'}, status=404)
         
-        # Récupérer tous les élèves de la classe avec leurs moyennes
-        eleves = Eleve.objects.filter(classe=classe, actif=True)
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        annee_scolaire_active = get_session_active(request, classe.etablissement)
+        eleves = _get_eleves_classe_par_inscription(classe, classe.etablissement, annee_scolaire_active)
         
         eleves_data = []
         for eleve in eleves:
@@ -4432,15 +4879,8 @@ def certificat_scolarite_liste(request):
                 'total_eleves': 0
             }
         
-        # Récupérer les élèves de cette classe filtrés par année scolaire active
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
-        
-        # Filtrer par année scolaire active si disponible
-        if annee_scolaire_active:
-            eleves_ids = InscriptionEleve.objects.filter(
-                annee_scolaire=annee_scolaire_active
-            ).values_list('eleve_id', flat=True)
-            eleves = eleves.filter(id__in=eleves_ids)
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         classe_data = {
             'classe': classe,
@@ -4552,15 +4992,8 @@ def convocation_liste(request):
                 'total_eleves': 0
             }
         
-        # Récupérer les élèves de cette classe filtrés par année scolaire active
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
-        
-        # Filtrer par année scolaire active si disponible
-        if annee_scolaire_active:
-            eleves_ids = InscriptionEleve.objects.filter(
-                annee_scolaire=annee_scolaire_active
-            ).values_list('eleve_id', flat=True)
-            eleves = eleves.filter(id__in=eleves_ids)
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         classe_data = {
             'classe': classe,
@@ -5099,15 +5532,8 @@ def attestation_reussite_liste(request):
                 'total_eleves': 0
             }
         
-        # Récupérer les élèves de cette classe filtrés par année scolaire active
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
-        
-        # Filtrer par année scolaire active si disponible
-        if annee_scolaire_active:
-            eleves_ids = InscriptionEleve.objects.filter(
-                annee_scolaire=annee_scolaire_active
-            ).values_list('eleve_id', flat=True)
-            eleves = eleves.filter(id__in=eleves_ids)
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         classe_data = {
             'classe': classe,
@@ -5214,23 +5640,8 @@ def attestation_conduite_liste(request):
             }
         
         # Filtrer les élèves par année scolaire active si disponible
-        if annee_scolaire_active:
-            # Filtrer les élèves par année scolaire active via InscriptionEleve
-            eleves_ids_inscrits = InscriptionEleve.objects.filter(
-                annee_scolaire=annee_scolaire_active,
-                classe=classe,
-                etablissement=etablissement
-            ).values_list('eleve_id', flat=True)
-            
-            # Récupérer les élèves de cette classe filtrés par année scolaire active
-            eleves = Eleve.objects.filter(
-                id__in=eleves_ids_inscrits,
-                classe=classe,
-                actif=True
-            ).order_by('nom', 'prenom')
-        else:
-            # Comportement par défaut : tous les élèves actifs
-            eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         classe_data = {
             'classe': classe,
@@ -5342,15 +5753,8 @@ def fiche_inscription_liste(request):
                 'total_eleves': 0
             }
         
-        # Récupérer les élèves de cette classe filtrés par année scolaire active
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
-        
-        # Filtrer par année scolaire active si disponible
-        if annee_scolaire_active:
-            eleves_ids = InscriptionEleve.objects.filter(
-                annee_scolaire=annee_scolaire_active
-            ).values_list('eleve_id', flat=True)
-            eleves = eleves.filter(id__in=eleves_ids)
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         classe_data = {
             'classe': classe,
@@ -5495,7 +5899,11 @@ def certificat_radiation_liste(request):
     etablissement = request.user
     from ..model.classe_model import Classe
     from ..model.eleve_model import Eleve
+    from ..utils.session_utils import get_session_active
     import re
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
     
     # Récupérer toutes les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
@@ -5521,8 +5929,8 @@ def certificat_radiation_liste(request):
                 'total_eleves': 0
             }
         
-        # Récupérer les élèves de cette classe
-        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by('nom', 'prenom')
+        # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         classe_data = {
             'classe': classe,
@@ -5536,6 +5944,7 @@ def certificat_radiation_liste(request):
     context = {
         'etablissement': etablissement,
         'classes_grouped': dict(classes_grouped),
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/certificat_radiation_liste.html', context)

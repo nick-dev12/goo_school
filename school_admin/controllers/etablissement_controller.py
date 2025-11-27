@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
+from django_countries import countries
 import logging
 import uuid
 import random
@@ -276,6 +277,7 @@ class EtablissementController:
                 'teacher_email': 'Email du directeur',
                 'establishment_name': 'Nom de l\'établissement',
                 'establishment_address': 'Adresse de l\'établissement',
+                'establishment_country': 'Pays',
                 'establishment_email': 'Email de l\'établissement',
                 'establishment_type': 'Type d\'établissement',
                 'type_facturation': 'Type de facturation',
@@ -299,6 +301,17 @@ class EtablissementController:
             if '@' not in data.get('establishment_email', ''):
                 errors['establishment_email'] = "L'adresse email de l'établissement n'est pas valide."
                 return False, "L'adresse email de l'établissement n'est pas valide.", None, errors
+
+            # Validation du pays via django-countries
+            valid_country_codes = {code for code, _ in countries}
+            selected_country_code = data.get('establishment_country')
+            if selected_country_code not in valid_country_codes:
+                errors['establishment_country'] = "Le pays sélectionné n'est pas valide."
+                return False, "Le pays sélectionné n'est pas valide.", None, errors
+            country_display_name = dict(countries).get(selected_country_code, selected_country_code)
+            
+            teacher_phone_value = (data.get('teacher_phone_full') or data.get('teacher_phone') or '').strip()
+            establishment_phone_value = (data.get('establishment_phone_full') or data.get('establishment_phone') or '').strip()
             
             # Vérification si l'email du directeur existe déjà
             if Etablissement.objects.filter(email=data['teacher_email']).exists():
@@ -352,15 +365,15 @@ class EtablissementController:
                     code_etablissement=code_etablissement,
                     nom=data['establishment_name'],
                     adresse=data['establishment_address'],
-                    pays=data['establishment_country'],
+                    pays=country_display_name,
                     ville=data['establishment_city'],
                     email=data['establishment_email'],
-                    telephone=data.get('establishment_phone', ''),
+                    telephone=establishment_phone_value,
                     type_etablissement=data['establishment_type'],
                     directeur_prenom=data['teacher_firstname'],
                     directeur_nom=data['teacher_lastname'],
                     directeur_email=data['teacher_email'],
-                    directeur_telephone=data.get('teacher_phone', ''),
+                    directeur_telephone=teacher_phone_value,
                     username=username,
                     cree_par=request.user if request.user.is_authenticated else None,
                     # Configuration de facturation
@@ -489,9 +502,16 @@ class EtablissementController:
         Returns:
             tuple: (context, redirect_response)
         """
+        try:
+            pays_list = [(code, str(nom)) for code, nom in countries]
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des pays pour le formulaire établissement: {str(e)}")
+            pays_list = []
+
         context = {
             'field_errors': {},
-            'form_data': {}
+            'form_data': {},
+            'pays_list': pays_list,
         }
         
         if request.method == 'POST':
@@ -501,10 +521,12 @@ class EtablissementController:
                 'teacher_lastname': request.POST.get('teacher_lastname', ''),
                 'teacher_email': request.POST.get('teacher_email', ''),
                 'teacher_phone': request.POST.get('teacher_phone', ''),
+                'teacher_phone_full': request.POST.get('teacher_phone_full', ''),
                 'establishment_name': request.POST.get('establishment_name', ''),
                 'establishment_address': request.POST.get('establishment_address', ''),
                 'establishment_email': request.POST.get('establishment_email', ''),
                 'establishment_phone': request.POST.get('establishment_phone', ''),
+                'establishment_phone_full': request.POST.get('establishment_phone_full', ''),
                 'establishment_type': request.POST.get('establishment_type', ''),
                 'establishment_country': request.POST.get('establishment_country', ''),
                 'establishment_city': request.POST.get('establishment_city', ''),

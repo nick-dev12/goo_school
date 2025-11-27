@@ -386,6 +386,84 @@ body {
   opacity: 0.9;
 }
 
+/* Bouton Retour - COMPACT VERSION */
+.back-button-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  background-color: rgb(0, 119, 255);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 1;
+  margin-bottom: -60px !important;
+}
+
+.back-button:hover {
+  background-color: white;
+  border-color: rgb(70, 70, 70);
+  color: rgb(70, 70, 70);
+  transform: translateX(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.back-button:active {
+  transform: translateX(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.back-button i {
+  font-size: 0.875rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.back-button:hover i {
+  transform: translateX(-3px);
+}
+
+.back-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Responsive pour le bouton retour */
+@media (max-width: 768px) {
+  .back-button-container {
+    padding: 0 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .back-button-container {
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
 /* Navigation Toggle Button - COMPACT VERSION */
 .nav-toggle-btn {
   background: rgba(255, 255, 255, 0.15);

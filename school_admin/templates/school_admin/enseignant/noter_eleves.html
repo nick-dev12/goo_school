@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_eleves.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_eleves.css' %}?v=1.0.3">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -25,7 +25,7 @@
         </div>
 
         {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
+        {% comment %} <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
           <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
             <i class="fas fa-calendar-check"></i>
           </span>
@@ -37,7 +37,7 @@
               Les notes et moyennes enregistrées seront automatiquement liées à cette année scolaire.
             </p>
           </div>
-        </div>
+        </div> {% endcomment %}
         {% endif %}
 
         <!-- Statut du relevé -->
@@ -225,20 +225,6 @@
                             class="btn btn-secondary"
                             {% if releve_notes.soumis %}disabled{% endif %}>
                         <i class="fas fa-calculator"></i> Calculer les moyennes
-                    </button>
-                    <button type="submit" 
-                            name="action"
-                            value="enregistrer"
-                            class="btn btn-primary"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-save"></i> Enregistrer les notes
-                    </button>
-                    <button type="submit" 
-                            name="action"
-                            value="publier"
-                            class="btn btn-success"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-bullhorn"></i> Publier les notes
                     </button>
                     <button type="submit" 
                             name="action"

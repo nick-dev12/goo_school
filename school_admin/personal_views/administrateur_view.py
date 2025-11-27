@@ -203,17 +203,11 @@ def ajout_etablissement(request):
     """
     Ajout d'un établissement (protégé)
     """
-    
-    if request.method == 'POST':
-        # Utiliser le contrôleur pour traiter l'ajout d'établissement
-        context, response = EtablissementController.process_ajout_etablissement(request)
-        if response:
-            return response
-        # Si pas de redirection, afficher le template avec les erreurs
+    context, response = EtablissementController.process_ajout_etablissement(request)
+    if response:
+        return response
+    else:
         return render(request, 'school_admin/etablissements/ajout_etablissement.html', context)
-    
-    # Si GET, afficher simplement le formulaire
-    return render(request, 'school_admin/etablissements/ajout_etablissement.html', {'field_errors': {}, 'form_data': {}})
 
 
 def detaille_etablissement(request):

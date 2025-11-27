@@ -102,7 +102,7 @@
 }
 
 .page-title {
-    font-size: 1.5rem;
+    font-size: 2rem; /* ~32px desktop - sera ajusté par les media queries responsive */
     font-weight: 700;
     color: #1e293b;
     display: flex;
@@ -283,7 +283,7 @@
 }
 
 .periode-tab.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: #667eea;
     border-color: #667eea;
     color: white;
     box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
@@ -319,7 +319,7 @@
    ======================================== */
 
 .notes-selection-container {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: #e7e7e8;
     padding: 0.875rem;
     margin-bottom: 1rem;
     border-radius: 10px;
@@ -593,6 +593,10 @@
     margin-bottom: 1rem;
     flex-wrap: wrap;
     align-items: center;
+    background: #ffffff;
+    border-radius: 6px;
+    padding: 0.425rem 0.625rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .notation-actions.bottom {
@@ -662,6 +666,9 @@
     transition: all 0.3s ease;
     border: none;
     text-decoration: none;
+    width: 100%;
+    max-width: 250px !important;
+    min-width: 250px !important;
 }
 
 .btn i {
@@ -708,14 +715,15 @@
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     overflow: auto;
-    max-width: 100%;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
     border: 1px solid #e2e8f0;
 }
 
 .notation-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 850px;
 }
 
 .notation-table thead {
@@ -763,11 +771,8 @@
 /* Colonnes */
 .eleve-col {
     width: 200px;
-    min-width: 200px;
-    position: sticky;
-    left: 0;
+    min-width: 120px;
     background: #f9fafb;
-    z-index: 10;
     text-align: left !important;
 }
 
@@ -827,12 +832,10 @@
 
 /* Cellule élève */
 .eleve-cell {
-    position: sticky;
-    left: 0;
     background: inherit;
     text-align: left !important;
     width: 200px;
-    min-width: 200px;
+    min-width: 120px;
 }
 
 .eleve-info-notation {
@@ -875,6 +878,9 @@
 .note-cell.has-evaluation .note-input {
     background: #f0fdf4;
     border-color: #10b981;
+    width: 100% !important;
+    max-width: 80px;
+    min-width: 40px !important;
 }
 
 .note-cell.has-evaluation .note-input:focus {
@@ -907,6 +913,9 @@
 .examen-cell .examen-input {
     background: #dbeafe !important;
     border-color: #3b82f6 !important;
+    width: 100% !important;
+    max-width: 80px;
+    min-width: 40px !important;
 }
 
 .examen-cell .examen-input:focus {
@@ -1032,9 +1041,7 @@
         margin-top: 70px;
     }
 
-    .page-title {
-        font-size: 1.25rem;
-    }
+    /* Le style pour .page-title est maintenant dans la section typographie responsive */
 
     .classe-info-card {
         flex-direction: column;
@@ -1068,9 +1075,7 @@
 }
 
 @media (max-width: 480px) {
-    .page-title {
-        font-size: 1.125rem;
-    }
+    /* Le style pour .page-title est maintenant dans la section typographie responsive */
 
     .notes-selection-container {
         padding: 1rem;
@@ -1141,9 +1146,7 @@
 }
 
 .retenue-status.retenue-active {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.25);
+    color: #059669;
 }
 
 .retenue-status i {
@@ -1151,9 +1154,7 @@
 }
 
 .retenue-status.retenue-inactive {
-    background: #f3f4f6;
     color: #9ca3af;
-    border: 1px dashed #d1d5db;
 }
 
 /* Badge retenue sous chaque note */
@@ -1177,9 +1178,7 @@
 }
 
 .retenue-badge.retenue-active {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.25);
+    color: #059669;
 }
 
 .retenue-badge.retenue-active i {
@@ -1187,12 +1186,186 @@
 }
 
 .retenue-badge.retenue-inactive {
-    background: #f3f4f6;
     color: #9ca3af;
-    border: 1px dashed #d1d5db;
 }
 
 .retenue-badge.retenue-inactive i {
     font-size: 0.625rem;
+}
+
+/* ==========================================
+   TYPOGRAPHIE RESPONSIVE - TEXTES UNIQUEMENT
+   ========================================== */
+
+/* Base typographique - Desktop */
+html {
+    font-size: 16px; /* base */
+}
+
+/* H1 - Titre principal */
+.page-title {
+    font-size: 2rem; /* ~32px desktop */
+}
+
+/* H3 - Sous-titres */
+.selection-header-text h3,
+.empty-state h3 {
+    font-size: 1.25rem; /* ~20px desktop */
+}
+
+/* Paragraphes et textes courants */
+.page-subtitle,
+.releve-status-banner .status-text p,
+.selection-header-text p,
+.empty-state p,
+.active-year-info p {
+    font-size: 1rem; /* ~16px desktop */
+    line-height: 1.5;
+}
+
+/* Textes secondaires */
+.breadcrumb,
+.breadcrumb a,
+.breadcrumb span,
+.classe-info-card .info-item,
+.eleve-nom {
+    font-size: 0.875rem; /* ~14px desktop */
+    line-height: 1.4;
+}
+
+/* Textes dans les badges et labels */
+.releve-status-banner .status-text strong,
+.classe-info-card .info-item strong,
+.active-year-info p[style*="font-weight: 600"] {
+    font-size: 0.875rem; /* ~14px desktop */
+}
+
+/* ==========================================
+   RESPONSIVE - TABLETTE (max-width: 1024px)
+   ========================================== */
+@media (max-width: 1024px) {
+    /* H1 - Titre principal */
+    .page-title {
+        font-size: 1.75rem; /* ~28px tablette */
+    }
+    
+    /* H3 - Sous-titres */
+    .selection-header-text h3,
+    .empty-state h3 {
+        font-size: 1.125rem; /* ~18px tablette */
+    }
+    
+    /* Paragraphes et textes courants */
+    .page-subtitle,
+    .releve-status-banner .status-text p,
+    .selection-header-text p,
+    .empty-state p,
+    .active-year-info p {
+        font-size: 1rem; /* ~16px tablette */
+        line-height: 1.5;
+    }
+    
+    /* Textes secondaires */
+    .breadcrumb,
+    .breadcrumb a,
+    .breadcrumb span,
+    .classe-info-card .info-item,
+    .eleve-nom {
+        font-size: 0.9375rem; /* ~15px tablette */
+        line-height: 1.4;
+    }
+    
+    /* Textes dans les badges et labels */
+    .releve-status-banner .status-text strong,
+    .classe-info-card .info-item strong,
+    .active-year-info p[style*="font-weight: 600"] {
+        font-size: 0.9375rem; /* ~15px tablette */
+    }
+}
+
+/* ==========================================
+   RESPONSIVE - MOBILE (max-width: 768px)
+   ========================================== */
+@media (max-width: 768px) {
+    /* H1 - Titre principal */
+    .page-title {
+        font-size: 1.5rem; /* ~24px mobile */
+    }
+    
+    /* H3 - Sous-titres */
+    .selection-header-text h3,
+    .empty-state h3 {
+        font-size: 1rem; /* ~16px mobile */
+    }
+    
+    /* Paragraphes et textes courants */
+    .page-subtitle,
+    .releve-status-banner .status-text p,
+    .selection-header-text p,
+    .empty-state p,
+    .active-year-info p {
+        font-size: 0.875rem; /* ~14px mobile */
+        line-height: 1.5;
+    }
+    
+    /* Textes secondaires */
+    .breadcrumb,
+    .breadcrumb a,
+    .breadcrumb span,
+    .classe-info-card .info-item,
+    .eleve-nom {
+        font-size: 0.8125rem; /* ~13px mobile */
+        line-height: 1.4;
+    }
+    
+    /* Textes dans les badges et labels */
+    .releve-status-banner .status-text strong,
+    .classe-info-card .info-item strong,
+    .active-year-info p[style*="font-weight: 600"] {
+        font-size: 0.8125rem; /* ~13px mobile */
+    }
+}
+
+/* ==========================================
+   RESPONSIVE - PETIT MOBILE (max-width: 480px)
+   ========================================== */
+@media (max-width: 480px) {
+    /* H1 - Titre principal */
+    .page-title {
+        font-size: 1.375rem; /* ~22px petit mobile */
+    }
+    
+    /* H3 - Sous-titres */
+    .selection-header-text h3,
+    .empty-state h3 {
+        font-size: 0.9375rem; /* ~15px petit mobile */
+    }
+    
+    /* Paragraphes et textes courants */
+    .page-subtitle,
+    .releve-status-banner .status-text p,
+    .selection-header-text p,
+    .empty-state p,
+    .active-year-info p {
+        font-size: 0.8125rem; /* ~13px petit mobile - minimum lisible */
+        line-height: 1.5;
+    }
+    
+    /* Textes secondaires */
+    .breadcrumb,
+    .breadcrumb a,
+    .breadcrumb span,
+    .classe-info-card .info-item,
+    .eleve-nom {
+        font-size: 0.75rem; /* ~12px petit mobile */
+        line-height: 1.4;
+    }
+    
+    /* Textes dans les badges et labels */
+    .releve-status-banner .status-text strong,
+    .classe-info-card .info-item strong,
+    .active-year-info p[style*="font-weight: 600"] {
+        font-size: 0.75rem; /* ~12px petit mobile */
+    }
 }
 

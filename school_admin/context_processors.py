@@ -22,7 +22,7 @@ def notifications_enseignant(request) -> Dict[str, int]:
 
     def _count() -> int:
         return NotificationEnseignant.objects.filter(
-            enseignant=user, statut='non_lu'
+            enseignant=user, lu=False
         ).count()
 
     return {
@@ -44,11 +44,34 @@ def notifications_parent(request) -> Dict[str, int]:
 
     def _count() -> int:
         return NotificationParent.objects.filter(
-            parent=user, statut='non_lu'
+            parent=user, lu=False
         ).count()
 
     return {
         'notifications_parent_non_lues': SimpleLazyObject(_count),
+    }
+
+
+def notifications_directeur(request) -> Dict[str, int]:
+    """Retourne le nombre de notifications non lues pour le directeur connecté."""
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
+        return {}
+
+    from school_admin.model.etablissement_model import Etablissement
+    from school_admin.model.notification_directeur_model import NotificationDirecteur
+
+    if not isinstance(user, Etablissement):
+        return {}
+
+    def _count() -> int:
+        return NotificationDirecteur.objects.filter(
+            etablissement=user,
+            lu=False,
+        ).count()
+
+    return {
+        'notifications_directeur_non_lues': SimpleLazyObject(_count),
     }
 
 
@@ -66,7 +89,7 @@ def notifications_eleve(request) -> Dict[str, int]:
 
     def _count() -> int:
         return NotificationEleve.objects.filter(
-            eleve=user, statut='non_lu'
+            eleve=user, lu=False
         ).count()
 
     return {

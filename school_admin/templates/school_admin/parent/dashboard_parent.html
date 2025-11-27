@@ -51,7 +51,9 @@
                 <a href="{% url 'school_admin:notifications_parent' %}" class="btn-notifications">
                     <i class="fas fa-bell"></i>
                     Notifications
-                    <span class="badge">{{ notifications_parent_non_lues|default:0 }}</span>
+                    {% if notifications_parent_non_lues > 0 %}
+                    <span class="badge">{{ notifications_parent_non_lues }}</span>
+                    {% endif %}
                 </a>
                 <a href="{% url 'school_admin:deconnexion_parent' %}" class="btn-deconnexion">
                     <i class="fas fa-sign-out-alt"></i>
@@ -59,6 +61,8 @@
                 </a>
             </div>
         </div>
+
+        {% include 'school_admin/parent/partials/annee_scolaire_badge.html' %}
 
         {% include 'school_admin/parent/partials/navigation_panel.html' %}
 

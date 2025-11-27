@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Réinscription des Élèves - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <style>
+        .reinscription-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+        .page-header-reinscription {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title-reinscription h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--gray-800, #1f2937);
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .page-title-reinscription p {
+            color: var(--gray-600, #4b5563);
+            margin: 0;
+            font-size: 0.95rem;
+        }
+        .search-bar-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+            margin-bottom: 1.5rem;
+        }
+        .search-input-wrapper {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        .search-input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400, #9ca3af);
+            z-index: 1;
+        }
+        .search-input-wrapper input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            border: 1px solid var(--gray-300, #d1d5db);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .search-input-wrapper input:focus {
+            outline: none;
+            border-color: var(--primary, #3b82f6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .search-bar-container button:hover {
+            background: var(--directeur-secondary, #1d4ed8) !important;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+        }
+        .search-bar-container select:focus {
+            outline: none;
+            border-color: var(--primary, #3b82f6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--gray-100, #f3f4f6);
+            color: var(--gray-700, #374151);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-back:hover {
+            background: var(--gray-200, #e5e7eb);
+        }
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+            overflow: hidden;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: var(--gray-50, #f9fafb);
+        }
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700, #374151);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+        }
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200, #e5e7eb);
+            color: var(--gray-700, #374151);
+        }
+        tbody tr:hover {
+            background: var(--gray-50, #f9fafb);
+        }
+        .btn-reinscrire {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary, #3b82f6);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-reinscrire:hover {
+            background: var(--directeur-secondary, #1d4ed8);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+        }
+        .badge-annee {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--primary-light, rgba(59, 130, 246, 0.1));
+            color: var(--primary, #3b82f6);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray-500, #6b7280);
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--gray-300, #d1d5db);
+        }
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-700, #374151);
+        }
+        @media (max-width: 768px) {
+            .reinscription-container {
+                padding: 1rem;
+            }
+            .page-header-reinscription {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .search-bar-container form {
+                flex-direction: column;
+            }
+            .search-bar-container form > div,
+            .search-bar-container form button {
+                width: 100%;
+            }
+            table {
+                font-size: 0.875rem;
+            }
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+            .btn-reinscrire span {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-container">
+        <div class="reinscription-container">
+            <!-- Messages -->
+            {% include 'school_admin/partials/messages.html' %}
+
+            <!-- Page Header -->
+            <div class="page-header-reinscription">
+                <div class="page-title-reinscription">
+                    <h1>
+                        <i class="fas fa-redo"></i>
+                        Réinscription des Élèves
+                    </h1>
+                    <p>Liste des élèves éligibles à la réinscription pour l'année scolaire active</p>
+                </div>
+                <a href="{% url 'directeur:gestion_eleves' %}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                </a>
+            </div>
+
+            <!-- Année scolaire active -->
+            {% if annee_scolaire_active %}
+            <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
+                <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
+                    <i class="fas fa-calendar-check"></i>
+                </span>
+                <div>
+                    <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
+                        Année scolaire active : {{ annee_scolaire_active.libelle }}
+                    </p>
+                    <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
+                        Les élèves ci-dessous peuvent être réinscrits pour cette session.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Barre de recherche -->
+            <div class="search-bar-container" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); margin-bottom: 1.5rem;">
+                <form method="get" action="{% url 'directeur:liste_reinscription' %}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="search-input-wrapper" style="flex: 1; min-width: 250px;">
+                        <i class="fas fa-user"></i>
+                        <input type="text" 
+                               name="search" 
+                               value="{{ search_query }}" 
+                               placeholder="Nom, prénom ou matricule de l'élève..."
+                               autocomplete="off"
+                               style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; transition: all 0.2s;">
+                    </div>
+                    <div style="min-width: 200px;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700, #374151); font-size: 0.875rem;">
+                            <i class="fas fa-chalkboard"></i> Classe
+                        </label>
+                        <select name="classe" 
+                                style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; background: white; cursor: pointer; transition: all 0.2s;">
+                            <option value="">Toutes les classes</option>
+                            {% for classe in classes %}
+                                <option value="{{ classe.id }}" {% if classe_id == classe.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" style="padding: 0.75rem 1.5rem; background: var(--primary, #3b82f6); color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
+                        <i class="fas fa-search"></i>
+                        <span>Rechercher</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Tableau des élèves (affiché uniquement après recherche) -->
+            {% if has_search %}
+            <div class="table-container">
+                {% if eleves_data %}
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Prénom</th>
+                                <th>Matricule</th>
+                                <th>Dernière classe</th>
+                                <th>Dernière année</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in eleves_data %}
+                            <tr>
+                                <td><strong>{{ data.eleve.nom }}</strong></td>
+                                <td>{{ data.eleve.prenom }}</td>
+                                <td>{{ data.eleve.matricule_eleve|default:"-" }}</td>
+                                <td>
+                                    {% if data.derniere_classe %}
+                                        {{ data.derniere_classe.nom }}
+                                    {% else %}
+                                        <span style="color: var(--gray-400, #9ca3af);">Non renseigné</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if data.derniere_annee %}
+                                        <span class="badge-annee">{{ data.derniere_annee.libelle }}</span>
+                                    {% else %}
+                                        <span style="color: var(--gray-400, #9ca3af);">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'directeur:reinscription_eleve' data.eleve.id %}" class="btn-reinscrire">
+                                        <i class="fas fa-redo"></i>
+                                        <span>Réinscrire</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-user-slash"></i>
+                    <h3>Aucun élève trouvé</h3>
+                    <p>
+                        Aucun élève ne correspond à votre recherche.
+                        {% if search_query %}
+                            <br>Nom recherché : "{{ search_query }}"
+                        {% endif %}
+                        {% if classe_id %}
+                            {% for classe in classes %}
+                                {% if classe_id == classe.id|stringformat:"s" %}
+                                    <br>Classe : {{ classe.nom }}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <!-- Message d'information si aucune recherche -->
+            <div class="empty-state" style="background: white; padding: 3rem 1rem; border-radius: 12px; box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1));">
+                <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; color: var(--gray-300, #d1d5db);"></i>
+                <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gray-700, #374151);">Rechercher un élève</h3>
+                <p style="color: var(--gray-500, #6b7280);">
+                    Utilisez la barre de recherche ci-dessus pour trouver un élève à réinscrire.<br>
+                    Vous pouvez rechercher par nom, prénom, matricule et/ou filtrer par classe.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>
+

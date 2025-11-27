@@ -110,6 +110,7 @@
     min-width: 280px;
     max-width: 350px;
     min-height: 100px;
+    position: relative;
 }
 
 .nav-link-card:hover {
@@ -117,6 +118,31 @@
     transform: translateY(-2px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     color: #1f2937;
+}
+
+.nav-card-number {
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    z-index: 10;
+    border: 3px solid white;
+    transition: all 0.3s ease;
+}
+
+.nav-link-card:hover .nav-card-number {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
 }
 
 .nav-card-icon {
@@ -294,11 +320,19 @@
         gap: 0.5rem;
     }
     
-    .nav-link-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-        padding: 1rem;
+  
+    
+    .nav-card-number {
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+    
+    .nav-link-card:hover .nav-card-number {
+        transform: translateX(-50%) scale(1.1) rotate(5deg);
     }
     
     .nav-card-icon {

@@ -72,6 +72,12 @@ class NotificationDirecteur(models.Model):
         verbose_name="Date de lecture",
     )
 
+    lu = models.BooleanField(
+        default=False,
+        verbose_name="Lu",
+        help_text="Indique si la notification a été lue",
+    )
+
     donnees = models.JSONField(
         default=dict,
         blank=True,
@@ -115,6 +121,7 @@ class NotificationDirecteur(models.Model):
         ordering = ["-date_creation"]
         indexes = [
             models.Index(fields=["etablissement", "statut"]),
+            models.Index(fields=["etablissement", "lu"]),
             models.Index(fields=["type_notification"]),
             models.Index(fields=["date_creation"]),
         ]
@@ -124,9 +131,10 @@ class NotificationDirecteur(models.Model):
 
     def marquer_comme_lue(self):
         """Met à jour le statut de la notification en la marquant comme lue."""
-        if self.statut != "lu":
+        if not self.lu:
+            self.lu = True
             self.statut = "lu"
             self.date_lecture = timezone.now()
-            self.save(update_fields=["statut", "date_lecture", "date_modification"])
+            self.save(update_fields=["lu", "statut", "date_lecture", "date_modification"])
 
 

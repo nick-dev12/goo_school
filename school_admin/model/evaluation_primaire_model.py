@@ -114,9 +114,9 @@ class EvaluationPrimaire(models.Model):
             })
         
         # Vérifier que la classe est bien de niveau primaire
-        # Accepter soit le niveau "Primaire" soit les codes spécifiques (CI, CP, CE1, CE2, CM1, CM2)
-        niveau_primaire = ['Primaire', 'CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2']
-        if self.classe.niveau not in niveau_primaire and not self.classe.nom.startswith(('CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2')):
+        # Vérifier uniquement le niveau de la classe (insensible à la casse)
+        niveau_classe = (self.classe.niveau or "").strip().lower()
+        if niveau_classe != 'primaire':
             raise ValidationError({
                 'classe': "Ce type d'évaluation est réservé aux classes du primaire."
             })

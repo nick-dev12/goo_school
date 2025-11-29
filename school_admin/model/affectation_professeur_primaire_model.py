@@ -62,8 +62,13 @@ class AffectationProfesseurPrimaire(models.Model):
     class Meta:
         verbose_name = "Affectation Professeur Primaire"
         verbose_name_plural = "Affectations Professeurs Primaire"
-        unique_together = ['professeur', 'classe']
+        # Contrainte unique incluant l'année scolaire pour permettre plusieurs affectations pour différentes années
+        unique_together = ['professeur', 'classe', 'annee_scolaire']
         ordering = ['-date_affectation']
+        indexes = [
+            models.Index(fields=['professeur', 'classe', 'annee_scolaire']),
+            models.Index(fields=['annee_scolaire', 'actif']),
+        ]
     
     def __str__(self):
         matieres_list = ", ".join([m.nom for m in self.matieres.all()[:3]])
@@ -90,16 +95,24 @@ class AffectationProfesseurPrimaire(models.Model):
                 "Ce type d'affectation est réservé aux classes du primaire."
             )
         
-        # Vérifier qu'il n'y a pas déjà une affectation active pour ce professeur dans cette classe
+        # Vérifier qu'il n'y a pas déjà une affectation active pour ce professeur dans cette classe et cette année scolaire
         if self.pk is None:  # Nouvelle affectation
             existing = AffectationProfesseurPrimaire.objects.filter(
                 professeur=self.professeur,
                 classe=self.classe,
                 actif=True
             )
+            # Filtrer par année scolaire si elle est définie
+            if self.annee_scolaire:
+                existing = existing.filter(annee_scolaire=self.annee_scolaire)
+            else:
+                # Si pas d'année scolaire, vérifier uniquement les affectations sans année scolaire
+                existing = existing.filter(annee_scolaire__isnull=True)
+            
             if existing.exists():
+                annee_info = f" pour l'année scolaire {self.annee_scolaire.libelle}" if self.annee_scolaire else ""
                 raise ValidationError(
-                    f"Le professeur {self.professeur.nom_complet} est déjà affecté à la classe {self.classe.nom}."
+                    f"Le professeur {self.professeur.nom_complet} est déjà affecté à la classe {self.classe.nom}{annee_info}."
                 )
     
     def save(self, *args, **kwargs):

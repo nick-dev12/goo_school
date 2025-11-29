@@ -930,11 +930,17 @@ def profil_parent(request):
             'classe': classe_eleve_active.nom if classe_eleve_active else 'Non assigné',
         })
     
+    # Récupérer l'année scolaire active pour l'établissement du parent
+    annee_scolaire_active = None
+    if parent.etablissement:
+        annee_scolaire_active = get_session_active(request, parent.etablissement)
+    
     context = {
         'parent': parent,
         'etablissement': parent.etablissement,
         'nombre_enfants': nombre_enfants,
         'enfants_list': enfants_list,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/parent/profil_parent.html', context)

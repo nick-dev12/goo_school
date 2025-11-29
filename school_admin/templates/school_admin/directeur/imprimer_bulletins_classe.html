@@ -7,7 +7,7 @@
     <title>Impression - Bulletins de {{ classe.nom }} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/imprimer_bulletin_eleve.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.1" />
   </head>
   <body>
     {% for item in bulletins_data %}
@@ -122,10 +122,16 @@
                   <tr>
                     <th>Matière</th>
                     <th>Moyenne de classe</th>
+                    {% if bulletin.has_note_examen %}
                     <th>Note d'examen</th>
+                    {% endif %}
                     <th>Coefficient</th>
                     <th>Moyenne élève</th>
+                    <th>Moyenne × Coefficient</th>
                     <th>Rang</th>
+                    {% if bulletin.est_college_lycee %}
+                    <th>Professeur</th>
+                    {% endif %}
                     <th>Appréciations</th>
                   </tr>
                 </thead>
@@ -140,6 +146,7 @@
                           –
                         {% endif %}
                       </td>
+                      {% if bulletin.has_note_examen %}
                       <td>
                         {% if matiere.note_examen is not None %}
                           {{ matiere.note_examen|floatformat:2 }}
@@ -147,10 +154,18 @@
                           –
                         {% endif %}
                       </td>
+                      {% endif %}
                       <td>{{ matiere.coefficient|floatformat:1 }}</td>
                       <td class="{% if matiere.moyenne_eleve is not None and matiere.moyenne_eleve >= 10 %}moyenne-reussie{% elif matiere.moyenne_eleve is not None %}moyenne-echec{% endif %}">
                         {% if matiere.moyenne_eleve is not None %}
                           {{ matiere.moyenne_eleve|floatformat:2 }}
+                        {% else %}
+                          –
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if matiere.moyenne_avec_coefficient is not None %}
+                          {{ matiere.moyenne_avec_coefficient|floatformat:2 }}
                         {% else %}
                           –
                         {% endif %}
@@ -162,12 +177,21 @@
                           –
                         {% endif %}
                       </td>
+                      {% if bulletin.est_college_lycee %}
+                      <td>
+                        {% if matiere.professeur %}
+                          {{ matiere.professeur }}
+                        {% else %}
+                          –
+                        {% endif %}
+                      </td>
+                      {% endif %}
                       <td>
                         {% if matiere.appreciation %}
                           <span class="appreciation-text">{{ matiere.appreciation }}</span>
                         {% if matiere.appreciation_source == 'initiale' %}
                             <span class="appreciation-origin">Initiale</span>
-                          {% endif %}
+                        {% endif %}
                         {% else %}
                           –
                         {% endif %}
@@ -180,20 +204,81 @@
           </section>
 
           <!-- Informations complémentaires -->
+          <div class="bulletin-summary-container">
+            <!-- PROFIL DE LA CLASSE -->
+            <div class="class-profile-section">
+              <h3>PROFIL DE LA CLASSE</h3>
+              <table class="complementary-table">
+                <tr>
+                  <th>Forte moyenne trim</th>
+                  <td>{% if bulletin.complement_info.forte_moyenne_classe %}{{ bulletin.complement_info.forte_moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
+                </tr>
+                <tr>
+                  <th>Faible moyenne trim</th>
+                  <td>{% if bulletin.complement_info.faible_moyenne_classe %}{{ bulletin.complement_info.faible_moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
+                </tr>
+                <tr>
+                  <th>Moyenne de la classe</th>
+                  <td>{% if bulletin.complement_info.moyenne_classe_periode_actuelle %}{{ bulletin.complement_info.moyenne_classe_periode_actuelle|floatformat:2 }}{% else %}–{% endif %}</td>
+                </tr>
+                <tr style="border-top: 1px solid #dee2e6;">
+                  <th style="padding-top: 8px;">PROFESSEUR PRINCIPAL</th>
+                  <td style="padding-top: 8px;">
+                    {% if bulletin.complement_info.professeur_principal %}
+                      {{ bulletin.complement_info.professeur_principal.nom_complet }}
+                    {% else %}
+                      –
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- BILAN -->
+            <div class="bilan-section">
+              <h3>BILAN</h3>
+              <table class="complementary-table">
+                <thead>
+                  <tr>
+                    <th>Moyenne</th>
+                    <th>Apprenant</th>
+                    <th>Classe</th>
+                    <th>Rang</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if bulletin.complement_info.moyennes_toutes_periodes %}
+                    {% for periode_moyenne in bulletin.complement_info.moyennes_toutes_periodes %}
+                    <tr>
+                      <th>{{ periode_moyenne.periode_nom }}</th>
+                      <td>{% if periode_moyenne.moyenne %}{{ periode_moyenne.moyenne|floatformat:2 }}{% else %}–{% endif %}</td>
+                      <td>{% if periode_moyenne.moyenne_classe %}{{ periode_moyenne.moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
+                      <td>{% if periode_moyenne.rang %}{{ periode_moyenne.rang }}{% else %}–{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <th>{{ bulletin.periode.nom_periode }}</th>
+                      <td>{% if bulletin.complement_info.moyenne_periode %}{{ bulletin.complement_info.moyenne_periode|floatformat:2 }}{% else %}–{% endif %}</td>
+                      <td>–</td>
+                      <td>{% if bulletin.complement_info.rang_general %}{{ bulletin.complement_info.rang_general }}{% else %}–{% endif %}</td>
+                    </tr>
+                  {% endif %}
+                  {% if bulletin.complement_info.moyenne_annuelle is not None %}
+                  <tr>
+                    <th>Moyenne annuelle</th>
+                    <td>{{ bulletin.complement_info.moyenne_annuelle|floatformat:2 }}</td>
+                    <td>{% if bulletin.complement_info.moyenne_annuelle_classe %}{{ bulletin.complement_info.moyenne_annuelle_classe|floatformat:2 }}{% else %}–{% endif %}</td>
+                    <td>{% if bulletin.complement_info.rang_annuel %}{{ bulletin.complement_info.rang_annuel }}{% else %}–{% endif %}</td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <section class="complementary-section">
             <table class="complementary-table">
-              <tr>
-                <th>Moyenne de la période</th>
-                <td>{% if bulletin.complement_info.moyenne_periode %}{{ bulletin.complement_info.moyenne_periode|floatformat:2 }}/20{% else %}–{% endif %}</td>
-                <th>Rang général</th>
-                <td>
-                  {% if bulletin.complement_info.rang_general %}
-                    {{ bulletin.complement_info.rang_general }}/{{ bulletin.complement_info.effectif }}
-                  {% else %}
-                    –
-                  {% endif %}
-                </td>
-              </tr>
               <tr>
                 <th>Absences justifiées</th>
                 <td>{{ bulletin.complement_info.absences_justifiees }}</td>

@@ -618,7 +618,10 @@ def gestion_notes_primaire(request):
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe').prefetch_related('matieres')
+    )
+    if annee_scolaire_active:
+        affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations.select_related('classe').prefetch_related('matieres')
     
     # Grouper les classes par catégorie (CI, CP, CE1, CE2, CM1, CM2)
     import re
@@ -3616,37 +3619,68 @@ def valider_presence_primaire(request, classe_id):
             nombre_absents = 0
             nombre_retards = 0
             
+            # Log pour déboguer
+            logger.info(f"Validation présence primaire - POST keys: {list(request.POST.keys())}")
+            logger.info(f"Validation présence primaire - Nombre d'éléments POST: {len(request.POST)}")
+            
+            # Récupérer tous les élèves de la classe pour s'assurer qu'on traite tous les élèves
+            eleves_classe = _get_eleves_classe_par_inscription(classe, professeur.etablissement, annee_scolaire_active)
+            logger.info(f"Validation présence primaire - Nombre d'élèves dans la classe: {eleves_classe.count()}")
+            
+            # Parcourir les données POST pour récupérer les statuts
+            presences_post = {}
             for key, value in request.POST.items():
                 if key.startswith('presence_'):
                     eleve_id = key.replace('presence_', '')
-                    try:
-                        eleve = Eleve.objects.get(id=eleve_id, classe=classe, actif=True)
-                        
-                        # Créer ou mettre à jour la présence avec le numéro d'appel
-                        presence, created = Presence.objects.update_or_create(
-                            eleve=eleve,
-                            classe=classe,
-                            date=today,
-                            numero_appel=numero_appel,
-                            defaults={
-                                'professeur': professeur,
-                                'etablissement': classe.etablissement,
-                                'statut': value,
-                                'annee_scolaire': annee_scolaire_active,
-                            }
-                        )
-                        
-                        # Compter les présents, absents et retards
-                        if value == 'present':
-                            nombre_presents += 1
-                        elif value in ['absent', 'absent_justifie']:
-                            nombre_absents += 1
-                        elif value == 'retard':
-                            nombre_retards += 1
+                    presences_post[eleve_id] = value
+                    logger.info(f"Traitement présence primaire - Key: {key}, Value: {value}, Eleve ID: {eleve_id}")
+            
+            logger.info(f"Validation présence primaire - Nombre de présences dans POST: {len(presences_post)}")
+            
+            # Traiter chaque élève de la classe
+            for eleve in eleves_classe:
+                eleve_id_str = str(eleve.id)
+                statut = presences_post.get(eleve_id_str, 'present')  # Par défaut 'present' si non spécifié
+                
+                try:
+                    # Créer ou mettre à jour la présence avec le numéro d'appel
+                    presence, created = Presence.objects.update_or_create(
+                        eleve=eleve,
+                        classe=classe,
+                        date=today,
+                        numero_appel=numero_appel,
+                        matiere=None,  # Pas de matière pour le primaire
+                        defaults={
+                            'professeur': professeur,
+                            'etablissement': classe.etablissement,
+                            'statut': statut,
+                            'annee_scolaire': annee_scolaire_active,
+                        }
+                    )
                     
-                    except Eleve.DoesNotExist:
-                        logger.warning(f"Élève {eleve_id} non trouvé ou inactif")
-                        continue
+                    # Si la présence existait déjà, mettre à jour le statut et s'assurer que l'année scolaire est correcte
+                    if not created:
+                        presence.statut = statut
+                        if annee_scolaire_active:
+                            presence.annee_scolaire = annee_scolaire_active
+                        presence.save()
+                    
+                    # Compter les présents, absents et retards
+                    if statut == 'present':
+                        nombre_presents += 1
+                    elif statut in ['absent', 'absent_justifie']:
+                        nombre_absents += 1
+                    elif statut == 'retard':
+                        nombre_retards += 1
+                    
+                    logger.info(f"Présence primaire enregistrée - Élève: {eleve.nom_complet}, Statut: {statut}, Créée: {created}")
+                    
+                except Eleve.DoesNotExist:
+                    logger.warning(f"Élève {eleve.id} non trouvé ou inactif")
+                    continue
+                except Exception as e:
+                    logger.error(f"Erreur lors de l'enregistrement de la présence pour l'élève {eleve.id}: {str(e)}")
+                    continue
             
             # Valider la liste de présence
             liste_presence.validee = True
@@ -3988,6 +4022,12 @@ def liste_sanctions_classe_primaire(request, classe_id):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     from ..model.sanction_model import Sanction
     from django.db.models import Count
     
@@ -3995,11 +4035,14 @@ def liste_sanctions_classe_primaire(request, classe_id):
     classe = get_object_or_404(Classe, id=classe_id, actif=True)
     
     # Vérifier l'affectation primaire
-    affectation = AffectationProfesseurPrimaire.objects.filter(
+    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_qs.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
@@ -4008,7 +4051,10 @@ def liste_sanctions_classe_primaire(request, classe_id):
     # Récupérer toutes les sanctions de la classe
     sanctions = Sanction.objects.filter(
         classe=classe
-    ).select_related('eleve', 'professeur').order_by('-date_sanction', '-date_creation')
+    )
+    if annee_scolaire_active:
+        sanctions = sanctions.filter(annee_scolaire=annee_scolaire_active)
+    sanctions = sanctions.select_related('eleve', 'professeur').order_by('-date_sanction', '-date_creation')
     
     # Statistiques globales
     total_sanctions = sanctions.count()
@@ -4048,6 +4094,7 @@ def liste_sanctions_classe_primaire(request, classe_id):
         'sanctions_tres_graves': sanctions_tres_graves,
         'sanctions_par_type': sanctions_par_type,
         'top_eleves_sanctions': top_eleves_sanctions,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/liste_sanctions_classe_primaire.html', context)
@@ -4680,6 +4727,11 @@ def parametres_profil_primaire(request):
     
     professeur = request.user
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, professeur.etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
+    
     # Gestion POST pour mise à jour des informations
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -4742,40 +4794,52 @@ def parametres_profil_primaire(request):
         return redirect('enseignant_primaire:parametres_profil')
     
     # Statistiques pour enseignant primaire
-    nombre_classes = AffectationProfesseurPrimaire.objects.filter(
+    affectations_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).count()
+    )
+    if annee_scolaire_active:
+        affectations_qs = affectations_qs.filter(annee_scolaire=annee_scolaire_active)
+    nombre_classes = affectations_qs.count()
     
     # Récupérer toutes les affectations primaires pour avoir les matières
-    affectations = AffectationProfesseurPrimaire.objects.filter(
-        professeur=professeur,
-        actif=True
-    ).prefetch_related('matieres')
+    affectations = affectations_qs.prefetch_related('matieres')
     
     # Récupérer toutes les matières enseignées
     matieres_enseignees = set()
     for affectation in affectations:
         matieres_enseignees.update(affectation.matieres.all())
     
-    nombre_evaluations = EvaluationPrimaire.objects.filter(
+    evaluations_qs = EvaluationPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).count()
+    )
+    if annee_scolaire_active:
+        evaluations_qs = evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+    nombre_evaluations = evaluations_qs.count()
     
-    nombre_notes = NotePrimaire.objects.filter(
+    notes_qs = NotePrimaire.objects.filter(
         evaluation_primaire__professeur=professeur
-    ).count()
+    )
+    if annee_scolaire_active:
+        notes_qs = notes_qs.filter(annee_scolaire=annee_scolaire_active)
+    nombre_notes = notes_qs.count()
     
-    nombre_sanctions = Sanction.objects.filter(
+    sanctions_qs = Sanction.objects.filter(
         professeur=professeur
-    ).count()
+    )
+    if annee_scolaire_active:
+        sanctions_qs = sanctions_qs.filter(annee_scolaire=annee_scolaire_active)
+    nombre_sanctions = sanctions_qs.count()
     
     # Dernières activités (évaluations primaires)
-    dernieres_evaluations = EvaluationPrimaire.objects.filter(
+    dernieres_evaluations_qs = EvaluationPrimaire.objects.filter(
         professeur=professeur,
         actif=True
-    ).order_by('-date_creation')[:5]
+    )
+    if annee_scolaire_active:
+        dernieres_evaluations_qs = dernieres_evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+    dernieres_evaluations = dernieres_evaluations_qs.order_by('-date_creation')[:5]
     
     context = {
         'professeur': professeur,
@@ -4786,6 +4850,7 @@ def parametres_profil_primaire(request):
         'nombre_notes': nombre_notes,
         'nombre_sanctions': nombre_sanctions,
         'dernieres_evaluations': dernieres_evaluations,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/primaire/parametres_profil_primaire.html', context)

@@ -238,8 +238,26 @@ def dashboard_secretaire(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True)
+    
+    # Statistiques des élèves et classes filtrées par année scolaire active
+    total_eleves = 0
+    nouveaux_eleves = 0
+    if annee_scolaire_active:
+        # Compter les élèves via InscriptionEleve pour l'année scolaire active
+        total_eleves = InscriptionEleve.objects.filter(
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire_active
+        ).count()
+        nouveaux_eleves = InscriptionEleve.objects.filter(
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire_active,
+            statut='nouvelle'
+        ).count()
     
     # Statistiques de l'utilisateur
     if isinstance(user, PersonnelAdministratif):
@@ -270,10 +288,10 @@ def dashboard_secretaire(request):
         'pays': etablissement.pays,
     }
     
-    # Statistiques des élèves et classes (placeholder pour l'instant)
+    # Statistiques des élèves et classes filtrées par année scolaire active
     dashboard_stats = {
-        'total_eleves': 0,  # TODO: Implémenter le comptage des élèves
-        'nouveaux_eleves': 0,  # TODO: Implémenter le comptage des nouveaux élèves
+        'total_eleves': total_eleves,
+        'nouveaux_eleves': nouveaux_eleves,
         'total_classes': classes.count(),
         'evaluations_en_cours': 0,  # TODO: Implémenter le comptage des évaluations
         'taches_urgentes': 3,  # Placeholder
@@ -286,6 +304,7 @@ def dashboard_secretaire(request):
         'etablissement_stats': etablissement_stats,
         'dashboard_stats': dashboard_stats,
         'classes': classes,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/dashboard_secretaire.html', context)
@@ -1001,6 +1020,61 @@ def detail_eleve(request, eleve_id):
     if not annee_scolaire_active:
         messages.warning(request, "Aucune année scolaire active. Les données affichées ne sont pas filtrées par session.")
     
+    # Récupérer l'inscription de l'élève pour l'année scolaire active
+    # Cela nous permet d'afficher la classe et le statut corrects pour cette année scolaire
+    inscription_eleve = None
+    classe_eleve_annee = None
+    statut_eleve_annee = None
+    
+    if annee_scolaire_active:
+        try:
+            inscription_eleve = InscriptionEleve.objects.get(
+                eleve=eleve,
+                annee_scolaire=annee_scolaire_active,
+                etablissement=etablissement
+            )
+            classe_eleve_annee = inscription_eleve.classe
+            statut_eleve_annee = inscription_eleve.statut
+        except InscriptionEleve.DoesNotExist:
+            # Si pas d'inscription pour cette année, utiliser les valeurs par défaut de l'élève
+            classe_eleve_annee = eleve.classe
+            statut_eleve_annee = eleve.statut
+    else:
+        # Si pas d'année scolaire active, utiliser les valeurs par défaut de l'élève
+        classe_eleve_annee = eleve.classe
+        statut_eleve_annee = eleve.statut
+    
+    # Créer un objet proxy pour l'élève avec la classe et le statut de l'année scolaire active
+    # Cela permet au template d'utiliser eleve.classe et eleve.statut sans modification
+    class EleveProxy:
+        def __init__(self, eleve, classe, statut):
+            self._eleve = eleve
+            self._classe = classe
+            self._statut = statut
+        
+        def __getattr__(self, name):
+            # Déléguer tous les attributs non définis à l'élève original
+            return getattr(self._eleve, name)
+        
+        @property
+        def classe(self):
+            return self._classe
+        
+        @property
+        def statut(self):
+            return self._statut
+        
+        def get_statut_display(self):
+            # Utiliser les choix du modèle Eleve pour obtenir le libellé
+            choices = dict(self._eleve._meta.get_field('statut').choices)
+            return choices.get(self._statut, self._statut)
+    
+    # Utiliser le proxy si on a une inscription, sinon utiliser l'élève original
+    if inscription_eleve:
+        eleve_display = EleveProxy(eleve, classe_eleve_annee, statut_eleve_annee)
+    else:
+        eleve_display = eleve
+    
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
     
@@ -1207,10 +1281,16 @@ def detail_eleve(request, eleve_id):
     
     # Remplir les données uniquement pour les établissements secondaires
     if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
-        matieres_aff = AffectationProfesseur.objects.filter(
-            classe=eleve.classe,
+        # Utiliser la classe de l'année scolaire active
+        classe_eleve_actuelle = classe_eleve_annee if classe_eleve_annee else eleve.classe
+        matieres_aff_qs = AffectationProfesseur.objects.filter(
+            classe=classe_eleve_actuelle,
             actif=True
-        ).select_related('matiere').values_list('matiere', flat=True)
+        )
+        # Filtrer par année scolaire active si disponible
+        if annee_scolaire_active:
+            matieres_aff_qs = matieres_aff_qs.filter(annee_scolaire=annee_scolaire_active)
+        matieres_aff = matieres_aff_qs.select_related('matiere').values_list('matiere', flat=True)
         matieres_classe = list(Matiere.objects.filter(id__in=matieres_aff, actif=True).order_by('nom'))
         
         # Récupérer toutes les périodes actives filtrées par année scolaire active
@@ -1226,17 +1306,18 @@ def detail_eleve(request, eleve_id):
                 est_active=True
             ).order_by('date_debut'))
         
-        # La période active par défaut
-        periode_active_notes = PeriodeScolaire.get_periode_active(etablissement) or (
-            periodes_actives[0] if periodes_actives else None
-        )
+        # La période active par défaut (filtrée par année scolaire active)
+        # Utiliser la première période active de l'année scolaire active
+        periode_active_notes = periodes_actives[0] if periodes_actives else None
         
         if matieres_classe and periodes_actives:
             # Récupérer toutes les moyennes pour cet élève pour toutes les périodes
+            # Utiliser la classe de l'année scolaire active
+            classe_eleve_actuelle = classe_eleve_annee if classe_eleve_annee else eleve.classe
             for periode in periodes_actives:
                 moyennes_qs = Moyenne.objects.filter(
                     eleve=eleve,
-                    classe=eleve.classe,
+                    classe=classe_eleve_actuelle,
                     matiere__in=matieres_classe,
                     periode=str(periode.id),
                     actif=True
@@ -1322,8 +1403,10 @@ def detail_eleve(request, eleve_id):
                             ).first()
                             
                             if matiere_obj:
+                                # Utiliser la classe de l'année scolaire active
+                                classe_eleve_actuelle = classe_eleve_annee if classe_eleve_annee else eleve.classe
                                 releve_qs = ReleveNotes.objects.filter(
-                                    classe=eleve.classe,
+                                    classe=classe_eleve_actuelle,
                                     matiere=matiere_obj,
                                     periode_scolaire=premier_note['evaluation'].periode_scolaire,
                                     soumis=True,
@@ -1593,7 +1676,7 @@ def detail_eleve(request, eleve_id):
     context = {
         'user': user,
         'etablissement': etablissement,
-        'eleve': eleve,
+        'eleve': eleve_display,  # Utiliser le proxy avec la classe et le statut de l'année scolaire active
         'classes': classes,
         'form_data': form_data,
         'field_errors': field_errors,
@@ -1770,26 +1853,31 @@ def gestion_classes(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
     
-    # Statistiques des classes
-    stats_classes = {
-        'total_classes': classes.count(),
-        'total_capacite': sum(classe.capacite_max for classe in classes),
-        'total_eleves': sum(classe.eleves.count() for classe in classes),
-        'taux_occupation_moyen': 0,
-    }
-    
-    if stats_classes['total_capacite'] > 0:
-        stats_classes['taux_occupation_moyen'] = round(
-            (stats_classes['total_eleves'] / stats_classes['total_capacite']) * 100, 1
-        )
+    # Calculer les statistiques en filtrant par année scolaire active
+    total_eleves = 0
+    total_capacite = sum(classe.capacite_max for classe in classes)
     
     # Préparer les données pour chaque classe
     classes_data = []
     for classe in classes:
-        eleves_count = classe.eleves.count()
+        # Filtrer les élèves par année scolaire active via InscriptionEleve
+        if annee_scolaire_active:
+            eleves_count = InscriptionEleve.objects.filter(
+                classe=classe,
+                etablissement=etablissement,
+                annee_scolaire=annee_scolaire_active
+            ).count()
+        else:
+            eleves_count = classe.eleves.filter(actif=True).count()
+        
+        total_eleves += eleves_count
+        
         classes_data.append({
             'classe': classe,
             'eleves_count': eleves_count,
@@ -1798,11 +1886,25 @@ def gestion_classes(request):
             'statut_capacite': 'pleine' if classe.places_disponibles == 0 else 'libre' if classe.places_disponibles == classe.capacite_max else 'partielle',
         })
     
+    # Statistiques des classes
+    stats_classes = {
+        'total_classes': classes.count(),
+        'total_capacite': total_capacite,
+        'total_eleves': total_eleves,
+        'taux_occupation_moyen': 0,
+    }
+    
+    if stats_classes['total_capacite'] > 0:
+        stats_classes['taux_occupation_moyen'] = round(
+            (stats_classes['total_eleves'] / stats_classes['total_capacite']) * 100, 1
+        )
+    
     context = {
         'user': user,
         'etablissement': etablissement,
         'classes_data': classes_data,
         'stats_classes': stats_classes,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/gestion_classes.html', context)
@@ -1836,9 +1938,25 @@ def detail_classe(request, classe_id):
         messages.error(request, "Classe non trouvée.")
         return redirect('secretaire:gestion_classes')
     
-    # Récupérer les élèves de la classe
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    # Récupérer les élèves de la classe filtrés par année scolaire active
     from django.db.models import Lower
-    eleves = Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
+    if annee_scolaire_active:
+        # Filtrer via InscriptionEleve pour l'année scolaire active
+        eleves_ids_inscrits = InscriptionEleve.objects.filter(
+            annee_scolaire=annee_scolaire_active,
+            classe=classe,
+            etablissement=etablissement
+        ).values_list('eleve_id', flat=True)
+        eleves = Eleve.objects.filter(
+            id__in=eleves_ids_inscrits,
+            classe=classe,
+            actif=True
+        ).order_by(Lower('nom'), Lower('prenom'))
+    else:
+        eleves = Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
     
     # Statistiques de la classe
     stats_classe = {
@@ -1864,6 +1982,7 @@ def detail_classe(request, classe_id):
         'eleves': eleves,
         'stats_classe': stats_classe,
         'stats_sexe': stats_sexe,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/detail_classe.html', context)
@@ -2115,11 +2234,21 @@ def synchroniser_facturation(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de synchroniser la facturation.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+    
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # Compter les élèves actifs
-                eleves_actifs = Eleve.objects.filter(etablissement=etablissement, actif=True).count()
+                # Compter les élèves actifs filtrés par année scolaire active via InscriptionEleve
+                eleves_actifs = InscriptionEleve.objects.filter(
+                    etablissement=etablissement,
+                    annee_scolaire=annee_scolaire_active
+                ).count()
                 montant_par_eleve = etablissement.montant_par_eleve
                 montant_total_calcule = eleves_actifs * montant_par_eleve
                 
@@ -2141,8 +2270,11 @@ def synchroniser_facturation(request):
             messages.error(request, f"Erreur lors de la synchronisation: {str(e)}")
             return redirect('secretaire:dashboard_secretaire')
     
-    # Statistiques actuelles
-    eleves_actifs = Eleve.objects.filter(etablissement=etablissement, actif=True).count()
+    # Statistiques actuelles filtrées par année scolaire active
+    eleves_actifs = InscriptionEleve.objects.filter(
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active
+    ).count()
     montant_par_eleve = etablissement.montant_par_eleve
     montant_total_calcule = eleves_actifs * montant_par_eleve
     
@@ -2154,6 +2286,7 @@ def synchroniser_facturation(request):
         'montant_total_calcule': montant_total_calcule,
         'montant_actuel': etablissement.montant_total_facturation,
         'nombre_actuel': etablissement.nombre_eleves_factures,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/secretaire/synchroniser_facturation.html', context)
@@ -2190,6 +2323,10 @@ def get_notes_detail_matiere(request, eleve_id, matiere_id):
     if etablissement.type_etablissement not in ['lycée', 'collège', 'collège_lycée']:
         return JsonResponse({'error': 'Cette fonctionnalité est réservée aux établissements secondaires'}, status=403)
     
+    # Récupérer l'année scolaire active
+    from ..utils.session_utils import get_session_active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
     try:
         eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
         matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
@@ -2198,39 +2335,68 @@ def get_notes_detail_matiere(request, eleve_id, matiere_id):
         periode_id = request.GET.get('periode_id')
         if periode_id:
             try:
-                periode_active = PeriodeScolaire.objects.get(id=int(periode_id), etablissement=etablissement)
+                periode_qs = PeriodeScolaire.objects.filter(id=int(periode_id), etablissement=etablissement)
+                if annee_scolaire_active:
+                    periode_qs = periode_qs.filter(annee_scolaire_fk=annee_scolaire_active)
+                periode_active = periode_qs.first()
+                if not periode_active:
+                    raise PeriodeScolaire.DoesNotExist
             except (PeriodeScolaire.DoesNotExist, ValueError):
-                periode_active = PeriodeScolaire.get_periode_active(etablissement)
+                # Utiliser la première période active de l'année scolaire active
+                periode_qs = PeriodeScolaire.objects.filter(
+                    etablissement=etablissement,
+                    est_active=True
+                )
+                if annee_scolaire_active:
+                    periode_qs = periode_qs.filter(annee_scolaire_fk=annee_scolaire_active)
+                periode_active = periode_qs.order_by('date_debut').first()
         else:
-            periode_active = PeriodeScolaire.get_periode_active(etablissement) or PeriodeScolaire.objects.filter(
-                etablissement=etablissement, est_active=True
-            ).order_by('date_debut').first()
+            # Utiliser la première période active de l'année scolaire active
+            periode_qs = PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                est_active=True
+            )
+            if annee_scolaire_active:
+                periode_qs = periode_qs.filter(annee_scolaire_fk=annee_scolaire_active)
+            periode_active = periode_qs.order_by('date_debut').first()
         
         if not periode_active:
             return JsonResponse({'error': 'Aucune période active trouvée'}, status=404)
         
         # Récupérer toutes les notes de devoirs/interrogations retenues pour cette matière
-        notes_devoirs = Note.objects.filter(
+        notes_devoirs_qs = Note.objects.filter(
             eleve=eleve,
             evaluation__matiere=matiere,
             evaluation__periode_scolaire=periode_active,
             retenue=True
-        ).select_related('evaluation').order_by('evaluation__date_evaluation')
+        )
+        # Filtrer par année scolaire active si disponible
+        if annee_scolaire_active:
+            notes_devoirs_qs = notes_devoirs_qs.filter(annee_scolaire=annee_scolaire_active)
+        notes_devoirs = notes_devoirs_qs.select_related('evaluation').order_by('evaluation__date_evaluation')
         
         # Récupérer la note d'examen
-        note_examen = NoteExamen.objects.filter(
+        note_examen_qs = NoteExamen.objects.filter(
             eleve=eleve,
             matiere=matiere,
             session_examen__periode=periode_active
-        ).select_related('session_examen').first()
+        )
+        # Filtrer par année scolaire active si disponible
+        if annee_scolaire_active:
+            note_examen_qs = note_examen_qs.filter(annee_scolaire=annee_scolaire_active)
+        note_examen = note_examen_qs.select_related('session_examen').first()
         
         # Récupérer la moyenne
-        moyenne_obj = Moyenne.objects.filter(
+        moyenne_qs = Moyenne.objects.filter(
             eleve=eleve,
             matiere=matiere,
             periode=str(periode_active.id),
             actif=True
-        ).first()
+        )
+        # Filtrer par année scolaire active si disponible
+        if annee_scolaire_active:
+            moyenne_qs = moyenne_qs.filter(annee_scolaire=annee_scolaire_active)
+        moyenne_obj = moyenne_qs.first()
         
         # Construire la réponse
         notes_data = []

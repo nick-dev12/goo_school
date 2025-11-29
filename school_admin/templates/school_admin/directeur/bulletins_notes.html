@@ -172,6 +172,10 @@
                       <i class="fas fa-calculator"></i>
                       Calculer les moyennes de la période
                     </a>
+                    <a href="{% url 'directeur:calculer_moyenne_annuelle' classe_data.classe.id %}{% if periode_active %}?periode={{ periode_active.id }}&classe_id={{ classe_data.classe.id }}{% else %}?classe_id={{ classe_data.classe.id }}{% endif %}" class="btn-primary">
+                      <i class="fas fa-chart-line"></i>
+                      Calculer la moyenne de l'année
+                    </a>
                     <button
                       type="submit"
                       class="btn-outline btn-publish"

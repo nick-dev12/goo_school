@@ -64,8 +64,13 @@ class AffectationProfesseur(models.Model):
     class Meta:
         verbose_name = "Affectation Professeur"
         verbose_name_plural = "Affectations Professeurs"
-        unique_together = ['professeur', 'classe', 'matiere']
+        # Contrainte unique incluant l'année scolaire pour permettre plusieurs affectations pour différentes années
+        unique_together = ['professeur', 'classe', 'matiere', 'annee_scolaire']
         ordering = ['-date_affectation']
+        indexes = [
+            models.Index(fields=['professeur', 'classe', 'matiere', 'annee_scolaire']),
+            models.Index(fields=['annee_scolaire', 'actif']),
+        ]
     
     def __str__(self):
         return f"{self.professeur.nom_complet} - {self.classe.nom} ({self.get_statut_display()})"
@@ -92,28 +97,43 @@ class AffectationProfesseur(models.Model):
         if not self.matiere:
             self.matiere = self.professeur.matiere_principale
         
-        # Vérifier s'il y a déjà un professeur de la même matière pour cette classe
+        # Vérifier s'il y a déjà un professeur de la même matière pour cette classe et cette année scolaire
         existing_same_matiere = AffectationProfesseur.objects.filter(
             classe=self.classe,
             matiere=self.matiere,
             actif=True
-        ).exclude(pk=self.pk)
+        )
+        # Filtrer par année scolaire si elle est définie
+        if self.annee_scolaire:
+            existing_same_matiere = existing_same_matiere.filter(annee_scolaire=self.annee_scolaire)
+        else:
+            # Si pas d'année scolaire, vérifier uniquement les affectations sans année scolaire
+            existing_same_matiere = existing_same_matiere.filter(annee_scolaire__isnull=True)
+        existing_same_matiere = existing_same_matiere.exclude(pk=self.pk)
         
         if existing_same_matiere.exists():
             existing_prof = existing_same_matiere.first()
+            annee_info = f" pour l'année scolaire {self.annee_scolaire.libelle}" if self.annee_scolaire else ""
             raise ValidationError(
                 f"Il y a déjà un professeur de {self.matiere.nom} "
-                f"({existing_prof.professeur.nom_complet}) affecté à la classe {self.classe.nom}. "
-                f"Une classe ne peut avoir qu'un seul enseignant par matière."
+                f"({existing_prof.professeur.nom_complet}) affecté à la classe {self.classe.nom}{annee_info}. "
+                f"Une classe ne peut avoir qu'un seul enseignant par matière par année scolaire."
             )
         
-        # Vérifier s'il y a déjà un professeur principal pour cette classe
+        # Vérifier s'il y a déjà un professeur principal pour cette classe et cette année scolaire
         if self.statut == 'principal':
             existing_principal = AffectationProfesseur.objects.filter(
                 classe=self.classe,
                 statut='principal',
                 actif=True
-            ).exclude(pk=self.pk)
+            )
+            # Filtrer par année scolaire si elle est définie
+            if self.annee_scolaire:
+                existing_principal = existing_principal.filter(annee_scolaire=self.annee_scolaire)
+            else:
+                # Si pas d'année scolaire, vérifier uniquement les affectations sans année scolaire
+                existing_principal = existing_principal.filter(annee_scolaire__isnull=True)
+            existing_principal = existing_principal.exclude(pk=self.pk)
             
             if existing_principal.exists():
                 raise ValidationError(

@@ -221,21 +221,27 @@ def dashboard_eleve(request):
 
             moyenne_obj = None
             if periode_active:
-                moyenne_obj = MoyennePeriode.objects.filter(
+                moyenne_obj_qs = MoyennePeriode.objects.filter(
                     eleve=eleve,
                     etablissement=eleve.etablissement,
                     periode=periode_active,
                     est_moyenne_generale=True,
                     afficher_bulletin=True
-                ).order_by('-updated_at').first()
+                )
+                if annee_scolaire_active:
+                    moyenne_obj_qs = moyenne_obj_qs.filter(annee_scolaire=annee_scolaire_active)
+                moyenne_obj = moyenne_obj_qs.order_by('-updated_at').first()
 
             if not moyenne_obj:
-                moyenne_obj = MoyennePeriode.objects.filter(
+                moyenne_obj_qs = MoyennePeriode.objects.filter(
                     eleve=eleve,
                     etablissement=eleve.etablissement,
                     est_moyenne_generale=True,
                     afficher_bulletin=True
-                ).order_by('-updated_at').first()
+                )
+                if annee_scolaire_active:
+                    moyenne_obj_qs = moyenne_obj_qs.filter(annee_scolaire=annee_scolaire_active)
+                moyenne_obj = moyenne_obj_qs.order_by('-updated_at').first()
 
             if moyenne_obj and moyenne_obj.moyenne_generale is not None:
                 moyenne_generale = format(moyenne_obj.moyenne_generale, '.2f')
@@ -354,6 +360,8 @@ def dashboard_eleve(request):
                 classe=classe_active,
                 est_actif=True,
             )
+            if annee_scolaire_active:
+                emplois_actifs = emplois_actifs.filter(annee_scolaire_fk=annee_scolaire_active)
             emploi_du_temps = emplois_actifs.filter(statut_publication='publie').first()
             
             if not emploi_du_temps and emplois_actifs.exists():
@@ -1119,13 +1127,16 @@ def notes_evaluations_eleve(request):
                 total_pondere += moyenne_decimal * coef
                 total_coefficients += coef
 
-        moyenne_generale_record = MoyennePeriode.objects.filter(
+        moyenne_generale_record_qs = MoyennePeriode.objects.filter(
             eleve=eleve,
             etablissement=etablissement,
             periode=periode,
             est_moyenne_generale=True,
             afficher_bulletin=True
-        ).order_by('-updated_at').first()
+        )
+        if annee_scolaire_active:
+            moyenne_generale_record_qs = moyenne_generale_record_qs.filter(annee_scolaire=annee_scolaire_active)
+        moyenne_generale_record = moyenne_generale_record_qs.order_by('-updated_at').first()
 
         if moyenne_generale_record and moyenne_generale_record.moyenne_generale is not None:
             moyenne_generale_value = float(moyenne_generale_record.moyenne_generale)
@@ -1858,13 +1869,16 @@ def notes_evaluations_eleve(request):
                         'total_notes': sum(len(notes) for notes in notes_par_periode.values()),
                     }
     
-    bulletin_record = MoyennePeriode.objects.filter(
+    bulletin_record_qs = MoyennePeriode.objects.filter(
         eleve=eleve,
         etablissement=etablissement,
         est_moyenne_generale=True,
         afficher_bulletin=True,
         moyenne_generale__isnull=False
-    ).select_related('periode').order_by('-updated_at').first()
+    )
+    if annee_scolaire_active:
+        bulletin_record_qs = bulletin_record_qs.filter(annee_scolaire=annee_scolaire_active)
+    bulletin_record = bulletin_record_qs.select_related('periode').order_by('-updated_at').first()
 
     bulletin_disponible = bool(bulletin_record)
     bulletin_periode_label = (
@@ -1930,7 +1944,10 @@ def bulletin_eleve(request):
         est_moyenne_generale=True,
         afficher_bulletin=True,
         moyenne_generale__isnull=False
-    ).select_related('periode').order_by('-updated_at')
+    )
+    if annee_scolaire_active:
+        bulletins_qs = bulletins_qs.filter(annee_scolaire=annee_scolaire_active)
+    bulletins_qs = bulletins_qs.select_related('periode').order_by('-updated_at')
 
     if periode_param:
         bulletins_qs = bulletins_qs.filter(periode_id=periode_param)
@@ -1942,10 +1959,13 @@ def bulletin_eleve(request):
 
     periode = moyenne_generale_record.periode
     if not periode:
-        periode = PeriodeScolaire.objects.filter(
+        periode_query = PeriodeScolaire.objects.filter(
             etablissement=etablissement,
             est_active=True
-        ).order_by('date_debut').first()
+        )
+        if annee_scolaire_active:
+            periode_query = periode_query.filter(annee_scolaire_fk=annee_scolaire_active)
+        periode = periode_query.order_by('date_debut').first()
         if not periode:
             messages.warning(request, "Aucune période scolaire active n'est configurée.")
             return redirect('eleve:notes_evaluations')
@@ -1955,7 +1975,10 @@ def bulletin_eleve(request):
         etablissement=etablissement,
         periode=periode,
         est_moyenne_generale=False
-    ).select_related('matiere').order_by('matiere__nom')
+    )
+    if annee_scolaire_active:
+        matieres_qs = matieres_qs.filter(annee_scolaire=annee_scolaire_active)
+    matieres_qs = matieres_qs.select_related('matiere').order_by('matiere__nom')
 
     matieres_table = []
     for moyenne in matieres_qs:
@@ -3343,7 +3366,11 @@ def detail_historique_annee_eleve(request, annee_id):
         est_moyenne_generale=True,
         afficher_bulletin=True,
         moyenne_generale__isnull=False
-    ).select_related('periode').order_by('periode__date_debut')
+    )
+    # Filtrer par l'année scolaire historique consultée (pas l'année active)
+    if annee:
+        moyennes_periodes_queryset = moyennes_periodes_queryset.filter(annee_scolaire=annee)
+    moyennes_periodes_queryset = moyennes_periodes_queryset.select_related('periode').order_by('periode__date_debut')
     
     for moy_periode in moyennes_periodes_queryset:
         if moy_periode.periode:

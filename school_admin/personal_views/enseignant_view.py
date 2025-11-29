@@ -1079,10 +1079,13 @@ def justifications_notes_enseignant(request):
         return redirect('enseignant:justifications_notes')
 
     # Construction des données d'affichage
-    affectations = AffectationProfesseur.objects.filter(
+    affectations_queryset = AffectationProfesseur.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe', 'matiere').prefetch_related('classe__eleves').order_by('classe__nom')
+    )
+    if annee_scolaire_active:
+        affectations_queryset = affectations_queryset.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations_queryset.select_related('classe', 'matiere').prefetch_related('classe__eleves').order_by('classe__nom')
 
     classes_grouped = {}
     total_eleves = 0
@@ -1115,12 +1118,15 @@ def justifications_notes_enseignant(request):
         evaluations_liste = []
         if matiere_affectation:
             # Récupérer toutes les évaluations
-            toutes_evaluations = Evaluation.objects.filter(
+            toutes_evaluations_queryset = Evaluation.objects.filter(
                 classe=classe,
                 professeur=professeur,
                 actif=True,
                 matiere=matiere_affectation
-            ).order_by('date_evaluation')
+            )
+            if annee_scolaire_active:
+                toutes_evaluations_queryset = toutes_evaluations_queryset.filter(annee_scolaire=annee_scolaire_active)
+            toutes_evaluations = toutes_evaluations_queryset.order_by('date_evaluation')
 
             # Classer par barème : <= 10 = interrogation, > 10 = devoir
             for i, eval_obj in enumerate(toutes_evaluations, 1):
@@ -1145,7 +1151,10 @@ def justifications_notes_enseignant(request):
             evaluation__classe=classe,
             evaluation__professeur=professeur,
             evaluation_id__in=evaluation_ids
-        ).select_related(
+        )
+        if annee_scolaire_active:
+            notes_query = notes_query.filter(annee_scolaire=annee_scolaire_active)
+        notes_query = notes_query.select_related(
             'evaluation',
             'evaluation__matiere',
             'eleve'
@@ -2007,12 +2016,15 @@ def eleves_en_difficulte_enseignant(request):
         
         # Récupérer les moyennes pour cette classe et cette période
         if periode_active_obj:
-            moyennes = Moyenne.objects.filter(
+            moyennes_queryset = Moyenne.objects.filter(
                 classe=classe,
                 professeur=professeur,
                 matiere=matiere_enseignee,
                 actif=True
-            ).select_related('eleve')
+            )
+            if annee_scolaire_active:
+                moyennes_queryset = moyennes_queryset.filter(annee_scolaire=annee_scolaire_active)
+            moyennes = moyennes_queryset.select_related('eleve')
         else:
             moyennes = Moyenne.objects.none()
         
@@ -5031,18 +5043,27 @@ def liste_presence_enseignant(request, classe_id):
     today = date.today()
     
     # Vérifier si une soumission existe déjà dans SoumissionListePresence
+    # IMPORTANT: Filtrer par année scolaire active pour éviter les conflits entre années
     from ..model.presence_model import SoumissionListePresence
     soumission_existante = None
     if matiere_selectionnee or not est_secondaire:
-        soumission_existante = SoumissionListePresence.objects.filter(
-            classe=classe,
-            professeur=professeur,
-            matiere=matiere_selectionnee if matiere_selectionnee else None,
-            date=today
-        ).first()
+        filters_soumission = {
+            'classe': classe,
+            'professeur': professeur,
+            'matiere': matiere_selectionnee if matiere_selectionnee else None,
+            'date': today
+        }
+        # Filtrer par année scolaire active
+        if annee_scolaire_active:
+            filters_soumission['annee_scolaire'] = annee_scolaire_active
+        else:
+            # Si pas d'année scolaire active, chercher uniquement celles sans année scolaire
+            filters_soumission['annee_scolaire__isnull'] = True
+        soumission_existante = SoumissionListePresence.objects.filter(**filters_soumission).first()
     
     # Vérifier s'il existe déjà une liste de présence pour aujourd'hui et cette matière
     # ATTENTION: Ne créer/récupérer la liste que si une matière a été sélectionnée OU si ce n'est pas un établissement secondaire
+    # IMPORTANT: Filtrer par année scolaire active pour éviter les conflits entre années
     liste_presence = None
     if matiere_selectionnee or not est_secondaire:
         filters = {
@@ -5054,24 +5075,36 @@ def liste_presence_enseignant(request, classe_id):
         else:
             filters['matiere__isnull'] = True
         
+        # Filtrer par année scolaire active
+        if annee_scolaire_active:
+            filters['annee_scolaire'] = annee_scolaire_active
+        else:
+            # Si pas d'année scolaire active, chercher uniquement celles sans année scolaire
+            filters['annee_scolaire__isnull'] = True
+        
         # Pour éviter les doublons, chercher d'abord une ListePresence existante
         liste_presence = ListePresence.objects.filter(**filters).first()
         
         # Si pas trouvée et qu'on est dans un établissement secondaire, chercher aussi sans matière
-        # (pour éviter de créer un doublon)
+        # (pour éviter de créer un doublon) - MAIS toujours filtrer par année scolaire
         if not liste_presence and est_secondaire and matiere_selectionnee:
-            liste_presence = ListePresence.objects.filter(
-                classe=classe,
-                date=today,
-                matiere__isnull=True
-            ).first()
+            filters_sans_matiere = {
+                'classe': classe,
+                'date': today,
+                'matiere__isnull': True
+            }
+            if annee_scolaire_active:
+                filters_sans_matiere['annee_scolaire'] = annee_scolaire_active
+            else:
+                filters_sans_matiere['annee_scolaire__isnull'] = True
+            liste_presence = ListePresence.objects.filter(**filters_sans_matiere).first()
             
             # Si on trouve une ListePresence sans matière, la mettre à jour avec la matière
             if liste_presence:
                 liste_presence.matiere = matiere_selectionnee
                 liste_presence.save()
         
-        # Si toujours pas trouvée, créer une nouvelle ListePresence
+        # Si toujours pas trouvée, créer une nouvelle ListePresence avec l'année scolaire active
         if not liste_presence:
             liste_presence = ListePresence.objects.create(
                 classe=classe,
@@ -5261,13 +5294,21 @@ def valider_presence_enseignant(request, classe_id):
     try:
         with transaction.atomic():
             # Vérifier si une soumission existe déjà pour cette combinaison
+            # IMPORTANT: Filtrer par année scolaire active pour éviter les conflits entre années
             # Utiliser matiere=None si pas de matière pour le primaire
-            soumission_existante = SoumissionListePresence.objects.filter(
-                classe=classe,
-                professeur=professeur,
-                matiere=matiere_selectionnee if matiere_selectionnee else None,
-                date=today
-            ).first()
+            filters_soumission = {
+                'classe': classe,
+                'professeur': professeur,
+                'matiere': matiere_selectionnee if matiere_selectionnee else None,
+                'date': today
+            }
+            # Filtrer par année scolaire active
+            if annee_scolaire_active:
+                filters_soumission['annee_scolaire'] = annee_scolaire_active
+            else:
+                # Si pas d'année scolaire active, chercher uniquement celles sans année scolaire
+                filters_soumission['annee_scolaire__isnull'] = True
+            soumission_existante = SoumissionListePresence.objects.filter(**filters_soumission).first()
             
             if soumission_existante:
                 matiere_msg = f" pour la matière {matiere_selectionnee.nom}" if matiere_selectionnee else ""
@@ -5287,64 +5328,85 @@ def valider_presence_enseignant(request, classe_id):
             nombre_absents = 0
             presences_creees = []
             
+            # Log pour déboguer
+            logger.info(f"Validation présence - POST keys: {list(request.POST.keys())}")
+            logger.info(f"Validation présence - Nombre d'éléments POST: {len(request.POST)}")
+            
+            # Récupérer tous les élèves de la classe pour s'assurer qu'on traite tous les élèves
+            eleves_classe = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
+            logger.info(f"Validation présence - Nombre d'élèves dans la classe: {eleves_classe.count()}")
+            
+            # Parcourir les données POST pour enregistrer les présences
+            presences_post = {}
             for key, value in request.POST.items():
                 if key.startswith('presence_'):
                     eleve_id = key.replace('presence_', '')
-                    try:
-                        eleve = Eleve.objects.get(id=eleve_id, classe=classe, actif=True)
-                        
-                        # Créer ou mettre à jour la présence
-                        # Le unique_together est (eleve, classe, date, numero_appel, matiere)
-                        presence, created = Presence.objects.update_or_create(
-                            eleve=eleve,
-                            classe=classe,
-                            date=today,
-                            numero_appel=numero_appel,
-                            matiere=matiere_selectionnee,
-                            defaults={
-                                'professeur': professeur,
-                                'etablissement': etablissement,
-                                'statut': value,
-                                'annee_scolaire': annee_scolaire_active
-                            }
-                        )
-                        
-                        # Si la présence existait déjà, mettre à jour le statut et s'assurer que la matière est correcte
-                        if not created:
-                            presence.professeur = professeur
-                            presence.etablissement = etablissement
-                            presence.statut = value
-                            # S'assurer que la matière est toujours correcte (important pour les établissements secondaires)
-                            if matiere_selectionnee and not presence.matiere:
-                                presence.matiere = matiere_selectionnee
-                            # S'assurer que l'année scolaire active est toujours correcte
-                            if annee_scolaire_active:
-                                presence.annee_scolaire = annee_scolaire_active
-                            presence.save()
-                        
-                        presences_creees.append(presence)
-                        
-                        # Compter les présents et absents
-                        if value == 'present':
-                            nombre_presents += 1
-                        elif value in ['absent', 'absent_justifie']:
-                            nombre_absents += 1
-                    
-                    except Eleve.DoesNotExist:
-                        logger.warning(f"Élève {eleve_id} non trouvé ou inactif")
-                        continue
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'enregistrement de la présence pour l'élève {eleve_id}: {str(e)}")
-                        continue
+                    presences_post[eleve_id] = value
+                    logger.info(f"Traitement présence - Key: {key}, Value: {value}, Eleve ID: {eleve_id}")
             
-            # Créer l'enregistrement de soumission
+            logger.info(f"Validation présence - Nombre de présences dans POST: {len(presences_post)}")
+            
+            # Traiter chaque élève de la classe
+            for eleve in eleves_classe:
+                eleve_id_str = str(eleve.id)
+                statut = presences_post.get(eleve_id_str, 'present')  # Par défaut 'present' si non spécifié
+                
+                try:
+                    # Créer ou mettre à jour la présence
+                    # Le unique_together est (eleve, classe, date, numero_appel, matiere)
+                    presence, created = Presence.objects.update_or_create(
+                        eleve=eleve,
+                        classe=classe,
+                        date=today,
+                        numero_appel=numero_appel,
+                        matiere=matiere_selectionnee,
+                        defaults={
+                            'professeur': professeur,
+                            'etablissement': etablissement,
+                            'statut': statut,
+                            'annee_scolaire': annee_scolaire_active
+                        }
+                    )
+                    
+                    # Si la présence existait déjà, mettre à jour le statut et s'assurer que la matière est correcte
+                    if not created:
+                        presence.professeur = professeur
+                        presence.etablissement = etablissement
+                        presence.statut = statut
+                        # S'assurer que la matière est toujours correcte (important pour les établissements secondaires)
+                        if matiere_selectionnee and not presence.matiere:
+                            presence.matiere = matiere_selectionnee
+                        # S'assurer que l'année scolaire active est toujours correcte
+                        if annee_scolaire_active:
+                            presence.annee_scolaire = annee_scolaire_active
+                        presence.save()
+                    
+                    presences_creees.append(presence)
+                    
+                    # Compter les présents et absents
+                    if statut == 'present':
+                        nombre_presents += 1
+                    elif statut in ['absent', 'absent_justifie']:
+                        nombre_absents += 1
+                    
+                    logger.info(f"Présence enregistrée - Élève: {eleve.nom_complet}, Statut: {statut}, Créée: {created}")
+                    
+                except Eleve.DoesNotExist:
+                    logger.warning(f"Élève {eleve.id} non trouvé ou inactif")
+                    continue
+                except Exception as e:
+                    logger.error(f"Erreur lors de l'enregistrement de la présence pour l'élève {eleve.id}: {str(e)}")
+                    continue
+            
+            # Créer l'enregistrement de soumission avec l'année scolaire active
             soumission = SoumissionListePresence.objects.create(
                 classe=classe,
                 professeur=professeur,
                 etablissement=etablissement,
                 matiere=matiere_selectionnee,
                 date=today,
-                date_soumission=timezone.now()
+                date_soumission=timezone.now(),
+                annee_scolaire=annee_scolaire_active
             )
             
             logger.info(
@@ -6560,20 +6622,33 @@ def liste_sanctions_classe(request, classe_id):
     
     # Vérifier que le professeur est affecté à cette classe
     from ..model.affectation_model import AffectationProfesseur
-    affectation = AffectationProfesseur.objects.filter(
+    from ..utils.session_utils import get_session_active
+    
+    etablissement = professeur.etablissement if hasattr(professeur, 'etablissement') else None
+    annee_scolaire_active = None
+    if etablissement:
+        annee_scolaire_active = get_session_active(request, etablissement)
+    
+    affectation_queryset = AffectationProfesseur.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_queryset = affectation_queryset.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_queryset.first()
     
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe.")
         return redirect('enseignant:gestion_eleves')
     
     # Récupérer toutes les sanctions de la classe
-    sanctions = Sanction.objects.filter(
+    sanctions_queryset = Sanction.objects.filter(
         classe=classe
-    ).select_related('eleve', 'professeur').order_by('-date_sanction', '-date_creation')
+    )
+    if annee_scolaire_active:
+        sanctions_queryset = sanctions_queryset.filter(annee_scolaire=annee_scolaire_active)
+    sanctions = sanctions_queryset.select_related('eleve', 'professeur').order_by('-date_sanction', '-date_creation')
     
     # Statistiques globales
     total_sanctions = sanctions.count()
@@ -6614,6 +6689,7 @@ def liste_sanctions_classe(request, classe_id):
         'sanctions_tres_graves': sanctions_tres_graves,
         'sanctions_par_type': sanctions_par_type,
         'top_eleves_sanctions': top_eleves_sanctions,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/liste_sanctions_classe.html', context)
@@ -6999,24 +7075,41 @@ def emploi_du_temps_enseignant(request):
     # Récupérer toutes les classes du professeur
     from ..model.affectation_model import AffectationProfesseur
     from ..model.emploi_du_temps_model import EmploiDuTemps, CreneauEmploiDuTemps
+    from ..utils.session_utils import get_session_active
     from collections import defaultdict
     
-    affectations = AffectationProfesseur.objects.filter(
+    etablissement = professeur.etablissement if hasattr(professeur, 'etablissement') else None
+    annee_scolaire_active = None
+    if etablissement:
+        annee_scolaire_active = get_session_active(request, etablissement)
+    
+    affectations_queryset = AffectationProfesseur.objects.filter(
         professeur=professeur,
         actif=True
-    ).select_related('classe')
+    )
+    if annee_scolaire_active:
+        affectations_queryset = affectations_queryset.filter(annee_scolaire=annee_scolaire_active)
+    affectations = affectations_queryset.select_related('classe')
     
     # Récupérer tous les créneaux du professeur
     classes_ids = affectations.values_list('classe', flat=True)
-    emplois_actifs = EmploiDuTemps.objects.filter(classe__in=classes_ids, est_actif=True)
+    emplois_actifs_queryset = EmploiDuTemps.objects.filter(classe__in=classes_ids, est_actif=True)
+    if annee_scolaire_active:
+        emplois_actifs_queryset = emplois_actifs_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    emplois_actifs = emplois_actifs_queryset
     emplois_publies = emplois_actifs.filter(statut_publication='publie')
     emploi_publie_disponible = emplois_publies.exists()
     
     if emploi_publie_disponible:
-        creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
+        creneaux_professeur_queryset = CreneauEmploiDuTemps.objects.filter(
             professeur=professeur,
             emploi_du_temps__in=emplois_publies
-        ).select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('jour', 'periode_etablissement__ordre', 'heure_debut')
+        )
+        if annee_scolaire_active:
+            creneaux_professeur_queryset = creneaux_professeur_queryset.filter(
+                emploi_du_temps__annee_scolaire_fk=annee_scolaire_active
+            )
+        creneaux_professeur = creneaux_professeur_queryset.select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('jour', 'periode_etablissement__ordre', 'heure_debut')
     else:
         creneaux_professeur = CreneauEmploiDuTemps.objects.none()
     
@@ -7111,6 +7204,7 @@ def emploi_du_temps_enseignant(request):
         'etablissement': professeur.etablissement,
         'emploi_publie': emploi_publie_disponible,
         'emploi_non_publie': (not emploi_publie_disponible) and emplois_actifs.exists(),
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/enseignant/emploi_du_temps.html', context)

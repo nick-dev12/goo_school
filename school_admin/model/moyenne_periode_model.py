@@ -96,6 +96,15 @@ class MoyennePeriode(models.Model):
         verbose_name="Total matière (moyenne_matiere × coefficient)"
     )
     
+    moyenne_avec_coefficient = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Moyenne avec coefficient (moyenne_matiere × coefficient)",
+        help_text="Moyenne de l'élève multipliée par le coefficient de la matière"
+    )
+    
     # Moyenne générale (valable pour toutes les matières de la période)
     moyenne_generale = models.DecimalField(
         max_digits=5,
@@ -272,3 +281,75 @@ class MoyennePeriode(models.Model):
                 self.total_matiere = self.calculer_total_matiere()
         super().save(*args, **kwargs)
 
+
+class MoyenneAnnuelle(models.Model):
+    """
+    Modèle pour stocker la moyenne annuelle calculée pour un élève.
+    La moyenne annuelle est calculée en additionnant toutes les moyennes des périodes
+    et en divisant par le nombre de périodes.
+    """
+    
+    eleve = models.ForeignKey(
+        'school_admin.Eleve',
+        on_delete=models.CASCADE,
+        related_name='moyennes_annuelles',
+        verbose_name="Élève"
+    )
+    
+    etablissement = models.ForeignKey(
+        'school_admin.Etablissement',
+        on_delete=models.CASCADE,
+        related_name='moyennes_annuelles',
+        verbose_name="Établissement"
+    )
+    
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.CASCADE,
+        related_name='moyennes_annuelles',
+        verbose_name="Année scolaire"
+    )
+    
+    periode_calcul = models.ForeignKey(
+        'school_admin.PeriodeScolaire',
+        on_delete=models.CASCADE,
+        related_name='moyennes_annuelles_calculees',
+        verbose_name="Période où le calcul a été effectué",
+        help_text="La période à partir de laquelle la moyenne annuelle a été calculée"
+    )
+    
+    moyenne_annuelle = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
+        verbose_name="Moyenne annuelle"
+    )
+    
+    nombre_periodes = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Nombre de périodes utilisées pour le calcul",
+        help_text="Nombre de périodes dont les moyennes ont été additionnées"
+    )
+    
+    date_calcul = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de calcul"
+    )
+    
+    date_modification = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Date de modification"
+    )
+    
+    class Meta:
+        verbose_name = "Moyenne annuelle"
+        verbose_name_plural = "Moyennes annuelles"
+        unique_together = ('eleve', 'etablissement', 'annee_scolaire', 'periode_calcul')
+        ordering = ['-date_calcul', 'eleve__nom', 'eleve__prenom']
+        indexes = [
+            models.Index(fields=['eleve', 'annee_scolaire', 'periode_calcul']),
+            models.Index(fields=['etablissement', 'annee_scolaire']),
+        ]
+    
+    def __str__(self):
+        return f"Moyenne annuelle {self.eleve.nom_complet} - {self.annee_scolaire.libelle} ({self.periode_calcul.nom_periode})"

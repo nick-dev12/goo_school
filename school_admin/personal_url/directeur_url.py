@@ -22,6 +22,7 @@ urlpatterns = [
     path('bulletins/publier/<int:classe_id>/', publier_bulletins_classe, name='publier_bulletins_classe'),
     path('bulletins/visibilite/<int:classe_id>/', mettre_a_jour_visibilite_bulletins, name='mettre_a_jour_visibilite_bulletins'),
     path('bulletins/calculer-moyennes/<int:classe_id>/', calculer_moyennes_periode, name='calculer_moyennes_periode'),
+    path('bulletins/calculer-moyenne-annuelle/<int:classe_id>/', calculer_moyenne_annuelle, name='calculer_moyenne_annuelle'),
     path('bulletins/configuration-moyennes/', configuration_moyennes_generales, name='configuration_moyennes_generales'),
     path('bulletins/configuration-standards/', configuration_standards_reussite, name='configuration_standards_reussite'),
     path('suivi-presence/', suivi_presence, name='suivi_presence'),

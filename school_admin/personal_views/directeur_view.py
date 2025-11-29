@@ -660,25 +660,43 @@ def dashboard_directeur(request):
     ).order_by('-date_creation')[:2]
     
     # === DERNIÈRES MOYENNES PUBLIÉES ===
-    dernieres_moyennes = Moyenne.objects.filter(
+    dernieres_moyennes_qs = Moyenne.objects.filter(
         eleve__etablissement=etablissement,
         soumis=True,
         actif=True
-    ).select_related('eleve', 'classe', 'matiere').order_by('-date_calcul')[:2]
+    )
+    if annee_scolaire_active:
+        dernieres_moyennes_qs = dernieres_moyennes_qs.filter(annee_scolaire=annee_scolaire_active)
+    dernieres_moyennes = dernieres_moyennes_qs.select_related('eleve', 'classe', 'matiere').order_by('-date_calcul')[:2]
     
     # === DERNIÈRES ÉVALUATIONS ===
     if etablissement.type_etablissement == 'primary':
         from ..model.evaluation_primaire_model import EvaluationPrimaire
-        dernieres_evaluations = EvaluationPrimaire.objects.filter(
+        dernieres_evaluations_qs = EvaluationPrimaire.objects.filter(
             professeur__etablissement=etablissement,
             actif=True
-        ).select_related('classe', 'matiere').order_by('-date_evaluation')[:2]
+        )
+        if annee_scolaire_active:
+            dernieres_evaluations_qs = dernieres_evaluations_qs.filter(annee_scolaire=annee_scolaire_active)
+        dernieres_evaluations = dernieres_evaluations_qs.select_related('classe', 'matiere').order_by('-date_evaluation')[:2]
     else:
         from ..model.evaluation_model import Evaluation
-        dernieres_evaluations = Evaluation.objects.filter(
+        dernieres_evaluations_qs = Evaluation.objects.filter(
             professeur__etablissement=etablissement,
             actif=True
-        ).select_related('classe', 'matiere').order_by('-date_evaluation')[:2]
+        )
+        # Pour les établissements secondaires, on ne peut pas filtrer par année scolaire directement
+        # car le modèle Evaluation n'a pas ce champ, donc on filtre par période si disponible
+        if periode_active and annee_scolaire_active:
+            # Filtrer indirectement via les périodes de l'année scolaire active
+            periodes_ids = PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                annee_scolaire_fk=annee_scolaire_active
+            ).values_list('id', flat=True)
+            dernieres_evaluations_qs = dernieres_evaluations_qs.filter(
+                periode_scolaire_id__in=periodes_ids
+            )
+        dernieres_evaluations = dernieres_evaluations_qs.select_related('classe', 'matiere').order_by('-date_evaluation')[:2]
     
     notifications_non_lues = NotificationDirecteur.objects.filter(
         etablissement=etablissement,
@@ -783,7 +801,24 @@ def facturation_directeur(request):
     }
     
     # Calculer le montant total théorique
-    nombre_eleves_total = Eleve.objects.filter(etablissement=etablissement).count()
+    # Récupérer l'année scolaire active pour filtrer les élèves
+    from ..utils.session_utils import get_session_active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    # Filtrer les élèves par année scolaire active si disponible
+    if annee_scolaire_active:
+        eleves_ids_inscrits = InscriptionEleve.objects.filter(
+            annee_scolaire=annee_scolaire_active,
+            etablissement=etablissement
+        ).values_list('eleve_id', flat=True)
+        nombre_eleves_total = Eleve.objects.filter(
+            id__in=eleves_ids_inscrits,
+            etablissement=etablissement,
+            actif=True
+        ).count()
+    else:
+        nombre_eleves_total = Eleve.objects.filter(etablissement=etablissement, actif=True).count()
+    
     montant_par_eleve = etablissement.montant_par_eleve
     montant_total_theorique = nombre_eleves_total * montant_par_eleve
     
@@ -824,8 +859,18 @@ def gestion_pedagogique(request):
     if not isinstance(request.user, Etablissement):
         return redirect('school_admin:connexion_compte_user')
     
+    etablissement = request.user
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    context = {
+        'etablissement': etablissement,
+        'annee_scolaire_active': annee_scolaire_active,
+    }
    
-    return render(request, 'school_admin/directeur/gestion_pedagogique.html')
+    return render(request, 'school_admin/directeur/gestion_pedagogique.html', context)
 
 
 @login_required
@@ -835,8 +880,19 @@ def gestion_eleves(request):
     """
     if not isinstance(request.user, Etablissement):
         return redirect('school_admin:connexion_compte_user')
+    
+    etablissement = request.user
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    context = {
+        'etablissement': etablissement,
+        'annee_scolaire_active': annee_scolaire_active,
+    }
   
-    return render(request, 'school_admin/directeur/gestion_eleves.html')
+    return render(request, 'school_admin/directeur/gestion_eleves.html', context)
 
 
 @login_required
@@ -1765,7 +1821,10 @@ def bulletins_notes(request):
     from ..model.note_primaire_model import MoyenneMatierePrimaire
 
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
-    periodes = list(PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True).order_by('date_debut'))
+    periodes_queryset = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
+    if annee_scolaire_active:
+        periodes_queryset = periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = list(periodes_queryset.order_by('date_debut'))
 
     periode_param = request.GET.get('periode')
     periode_active = None
@@ -1923,12 +1982,16 @@ def bulletins_notes(request):
         eleves_liste = []
         for eleve in eleves_classe_qs.order_by('prenom', 'nom'):
             moyenne_info = moyennes_generales_map.get(eleve.id, {})
+            # Construire l'URL du bulletin avec le paramètre période si disponible
+            bulletin_url = reverse('directeur:voir_bulletin_eleve', args=[classe.id, eleve.id])
+            if periode_active:
+                bulletin_url = f"{bulletin_url}?periode={periode_active.id}"
             eleves_liste.append({
                 'id': eleve.id,
                 'nom': eleve.nom_complet,
                 'matricule': eleve.matricule_eleve or eleve.numero_eleve,
                 'bulletin_valide': eleve.id in eleves_soumis_ids if nombre_eleves_classe else False,
-                'bulletin_url': reverse('directeur:voir_bulletin_eleve', args=[classe.id, eleve.id]),
+                'bulletin_url': bulletin_url,
                 'moyenne_generale': moyenne_info.get('moyenne'),
                 'rang': moyenne_info.get('rang'),
                 'publie': moyenne_info.get('publie', False),
@@ -1995,6 +2058,7 @@ def bulletins_notes(request):
         'periodes': periodes,
         'periodes_nav': periodes_nav,
         'periode_active': periode_active,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/directeur/bulletins_notes.html', context)
@@ -2030,10 +2094,29 @@ def calculer_moyennes_periode(request, classe_id):
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
     
-    periode = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True).order_by('date_debut').first()
+    # Récupérer la période depuis le paramètre GET ou utiliser la première période active
+    periode_queryset = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
+    if annee_scolaire_active:
+        periode_queryset = periode_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    
+    periode = None
+    if selected_periode_id:
+        try:
+            periode = periode_queryset.filter(id=int(selected_periode_id)).first()
+        except (ValueError, TypeError):
+            pass
+    
+    # Si aucune période trouvée via le paramètre, prendre la première période active
+    if not periode:
+        periode = periode_queryset.order_by('date_debut').first()
+    
     if not periode:
         messages.error(request, "Aucune période scolaire active n'est configurée.")
-        return redirect('directeur:bulletins_notes')
+        # Rediriger vers les bulletins avec le paramètre période si disponible
+        redirect_url = reverse('directeur:bulletins_notes')
+        if selected_periode_id:
+            redirect_url = f"{redirect_url}?periode={selected_periode_id}"
+        return redirect(redirect_url)
 
     # Récupérer la pondération configurée
     annee_scolaire = getattr(periode, 'annee_scolaire', None) or Ponderation.default_school_year()
@@ -2202,6 +2285,7 @@ def calculer_moyennes_periode(request, classe_id):
                     
                     # Enregistrer ou mettre à jour la moyenne de la matière
                     if moyenne_matiere is not None:
+                        moyenne_avec_coeff = moyenne_matiere * coefficient
                         MoyennePeriode.objects.update_or_create(
                             eleve=eleve,
                             etablissement=etablissement,
@@ -2214,6 +2298,7 @@ def calculer_moyennes_periode(request, classe_id):
                                 'moyenne_matiere': float(moyenne_matiere),
                                 'coefficient': float(coefficient),
                                 'total_matiere': float(moyenne_matiere * coefficient),
+                                'moyenne_avec_coefficient': float(moyenne_avec_coeff),
                                 'appreciation_matiere': appreciation_matiere,
                                 'poids_classe': ponderation.poids_classe,
                                 'poids_examen': ponderation.poids_examen,
@@ -2344,6 +2429,145 @@ def calculer_moyennes_periode(request, classe_id):
 
 
 @login_required
+def calculer_moyenne_annuelle(request, classe_id):
+    """
+    Calcule et enregistre la moyenne annuelle pour tous les élèves d'une classe.
+    La moyenne annuelle est calculée en additionnant toutes les moyennes des périodes
+    et en divisant par le nombre de périodes.
+    """
+    if not isinstance(request.user, Etablissement):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    etablissement = request.user
+    from ..model.classe_model import Classe
+    from ..model.periode_model import PeriodeScolaire
+    from ..model.moyenne_periode_model import MoyennePeriode, MoyenneAnnuelle
+    from django.db import transaction
+    from ..utils.session_utils import get_session_active
+    from decimal import Decimal, ROUND_HALF_UP
+
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de calculer les moyennes annuelles.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+
+    classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
+    
+    # Récupérer la période depuis le paramètre GET ou utiliser la première période active
+    periode_param = request.GET.get('periode')
+    periode_queryset = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
+    if annee_scolaire_active:
+        periode_queryset = periode_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    
+    periode_calcul = None
+    if periode_param:
+        try:
+            periode_calcul = periode_queryset.filter(id=int(periode_param)).first()
+        except (ValueError, TypeError):
+            pass
+    
+    # Si aucune période trouvée via le paramètre, prendre la première période active
+    if not periode_calcul:
+        periode_calcul = periode_queryset.order_by('date_debut').first()
+    
+    if not periode_calcul:
+        messages.error(request, "Aucune période scolaire active n'est configurée.")
+        redirect_url = reverse('directeur:bulletins_notes')
+        if periode_param:
+            redirect_url = f"{redirect_url}?periode={periode_param}&classe_id={classe_id}"
+        return redirect(redirect_url)
+    
+    # Récupérer tous les élèves de la classe pour l'année scolaire active
+    eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
+    
+    if not eleves.exists():
+        messages.warning(request, "Cette classe ne contient aucun élève pour l'année scolaire active.")
+        redirect_url = reverse('directeur:bulletins_notes')
+        if periode_param:
+            redirect_url = f"{redirect_url}?periode={periode_param}&classe_id={classe_id}"
+        return redirect(redirect_url)
+    
+    # Récupérer toutes les périodes jusqu'à la période de calcul (inclusive)
+    periodes_queryset = PeriodeScolaire.objects.filter(
+        etablissement=etablissement,
+        date_debut__lte=periode_calcul.date_debut
+    )
+    if annee_scolaire_active:
+        periodes_queryset = periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = list(periodes_queryset.order_by('date_debut'))
+    
+    if not periodes:
+        messages.error(request, "Aucune période trouvée pour le calcul de la moyenne annuelle.")
+        redirect_url = reverse('directeur:bulletins_notes')
+        if periode_param:
+            redirect_url = f"{redirect_url}?periode={periode_param}&classe_id={classe_id}"
+        return redirect(redirect_url)
+    
+    try:
+        with transaction.atomic():
+            moyennes_calculees = 0
+            
+            for eleve in eleves:
+                # Récupérer toutes les moyennes générales des périodes pour cet élève
+                moyennes_periodes_list = []
+                for periode_item in periodes:
+                    moyenne_periode_qs = MoyennePeriode.objects.filter(
+                        eleve=eleve,
+                        etablissement=etablissement,
+                        periode=periode_item,
+                        est_moyenne_generale=True
+                    )
+                    if annee_scolaire_active:
+                        moyenne_periode_qs = moyenne_periode_qs.filter(annee_scolaire=annee_scolaire_active)
+                    moyenne_periode_obj = moyenne_periode_qs.first()
+                    
+                    if moyenne_periode_obj and moyenne_periode_obj.moyenne_generale is not None:
+                        moyennes_periodes_list.append(float(moyenne_periode_obj.moyenne_generale))
+                
+                # Calculer la moyenne annuelle si on a au moins une moyenne de période
+                if moyennes_periodes_list:
+                    somme_moyennes = sum(moyennes_periodes_list)
+                    nombre_periodes = len(moyennes_periodes_list)
+                    moyenne_annuelle = Decimal(str(somme_moyennes / nombre_periodes)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    
+                    # Enregistrer ou mettre à jour la moyenne annuelle
+                    MoyenneAnnuelle.objects.update_or_create(
+                        eleve=eleve,
+                        etablissement=etablissement,
+                        annee_scolaire=annee_scolaire_active,
+                        periode_calcul=periode_calcul,
+                        defaults={
+                            'moyenne_annuelle': float(moyenne_annuelle),
+                            'nombre_periodes': nombre_periodes
+                        }
+                    )
+                    moyennes_calculees += 1
+            
+        messages.success(
+            request, 
+            f"✅ Les moyennes annuelles ont été calculées et enregistrées avec succès pour {moyennes_calculees} élève(s) de la classe {classe.nom}. "
+            f"Calcul effectué à partir de la période {periode_calcul.nom_periode}."
+        )
+    except Exception as e:
+        logger.error(f"Erreur lors du calcul des moyennes annuelles: {str(e)}", exc_info=True)
+        messages.error(request, f"❌ Erreur lors du calcul des moyennes annuelles: {str(e)}")
+
+    redirect_url = reverse('directeur:bulletins_notes')
+    params = []
+    if periode_param:
+        params.append(f"periode={periode_param}")
+    classe_id_param = request.GET.get('classe_id')
+    if classe_id_param:
+        params.append(f"classe_id={classe_id_param}")
+    if params:
+        redirect_url = f"{redirect_url}?{'&'.join(params)}"
+    return redirect(redirect_url)
+
+
+@login_required
 def notifications_directeur(request):
     """
     Affiche les notifications reçues par le directeur puis les supprime après consultation.
@@ -2404,7 +2628,23 @@ def _build_bulletin_context(request, classe_id, eleve_id):
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
     eleve = get_object_or_404(Eleve, id=eleve_id, classe=classe, etablissement=etablissement, actif=True)
 
-    periode = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True).order_by('date_debut').first()
+    # Récupérer la période depuis le paramètre GET ou utiliser la première période active
+    periode_param = request.GET.get('periode')
+    periode_queryset = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
+    if annee_scolaire_active:
+        periode_queryset = periode_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    
+    periode = None
+    if periode_param:
+        try:
+            periode = periode_queryset.filter(id=int(periode_param)).first()
+        except (ValueError, TypeError):
+            pass
+    
+    # Si aucune période trouvée via le paramètre, prendre la première période active
+    if not periode:
+        periode = periode_queryset.order_by('date_debut').first()
+    
     if not periode:
         messages.warning(request, "Aucune période scolaire active n'est configurée.")
         return None, redirect('directeur:bulletins_notes')
@@ -2434,12 +2674,15 @@ def _build_bulletin_context(request, classe_id, eleve_id):
 
     # Vérifier si les moyennes ont été calculées et enregistrées dans MoyennePeriode
     from ..model.moyenne_periode_model import MoyennePeriode
-    moyenne_periode_generale = MoyennePeriode.objects.filter(
+    moyenne_periode_generale_qs = MoyennePeriode.objects.filter(
         eleve=eleve,
         etablissement=etablissement,
         periode=periode,
         est_moyenne_generale=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        moyenne_periode_generale_qs = moyenne_periode_generale_qs.filter(annee_scolaire=annee_scolaire_active)
+    moyenne_periode_generale = moyenne_periode_generale_qs.first()
 
     bulletin_numero_serie = None
     bulletin_signature = None
@@ -2449,17 +2692,51 @@ def _build_bulletin_context(request, classe_id, eleve_id):
 
     # Si les moyennes ont été calculées, utiliser les données de MoyennePeriode
     if moyenne_periode_generale:
-        moyennes_periode = MoyennePeriode.objects.filter(
+        moyennes_periode_qs = MoyennePeriode.objects.filter(
             eleve=eleve,
             etablissement=etablissement,
             periode=periode,
             est_moyenne_generale=False
-        ).select_related('matiere').order_by('matiere__nom')
+        )
+        if annee_scolaire_active:
+            moyennes_periode_qs = moyennes_periode_qs.filter(annee_scolaire=annee_scolaire_active)
+        # Utiliser defer() pour exclure moyenne_avec_coefficient de la requête SQL
+        # Cela évite l'erreur si la colonne n'existe pas encore dans la base de données
+        try:
+            moyennes_periode = moyennes_periode_qs.select_related('matiere').defer('moyenne_avec_coefficient').order_by('matiere__nom')
+        except Exception:
+            # Si defer échoue (champ non reconnu), charger normalement
+            # Cela signifie que le champ n'existe pas dans le modèle ou la colonne n'existe pas
+            moyennes_periode = moyennes_periode_qs.select_related('matiere').order_by('matiere__nom')
 
         # Vérifier si c'est un établissement lycée pour utiliser les coefficients par groupe
         est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+        est_college_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+        
+        # Récupérer les affectations des professeurs pour cette classe et cette année scolaire
+        professeurs_par_matiere = {}
+        if est_college_lycee:
+            from ..model.affectation_model import AffectationProfesseur
+            affectations = AffectationProfesseur.objects.filter(
+                classe=classe,
+                actif=True,
+                matiere__isnull=False
+            )
+            if annee_scolaire_active:
+                affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+            affectations = affectations.select_related('professeur', 'matiere')
+            
+            for affectation in affectations:
+                if affectation.matiere:
+                    # Extraire le premier nom et le premier prénom
+                    nom_parts = affectation.professeur.nom.split() if affectation.professeur.nom else []
+                    prenom_parts = affectation.professeur.prenom.split() if affectation.professeur.prenom else []
+                    premier_nom = nom_parts[0] if nom_parts else affectation.professeur.nom
+                    premier_prenom = prenom_parts[0] if prenom_parts else affectation.professeur.prenom
+                    professeurs_par_matiere[affectation.matiere.id] = f"{premier_prenom} {premier_nom}"
         
         matieres_table = []
+        has_note_examen = False
         for mp in moyennes_periode:
             if mp.matiere:
                 # Pour les établissements lycée, utiliser le coefficient par groupe (actuel de la configuration)
@@ -2471,12 +2748,29 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 else:
                     coefficient_value = float(mp.coefficient) if mp.coefficient else 1
                 
+                note_examen_value = float(mp.note_examen) if mp.note_examen is not None else None
+                if note_examen_value is not None:
+                    has_note_examen = True
+                
+                moyenne_avec_coeff_value = None
+                # Utiliser getattr pour éviter l'erreur si le champ n'existe pas encore dans la base
+                moyenne_avec_coeff_db = getattr(mp, 'moyenne_avec_coefficient', None)
+                if moyenne_avec_coeff_db is not None:
+                    moyenne_avec_coeff_value = float(moyenne_avec_coeff_db)
+                elif mp.moyenne_matiere is not None:
+                    # Calculer si non enregistré
+                    moyenne_avec_coeff_value = float(mp.moyenne_matiere) * coefficient_value
+                
+                professeur_nom = professeurs_par_matiere.get(mp.matiere.id) if est_college_lycee else None
+                
                 matieres_table.append({
                     'nom': mp.matiere.nom,
                     'moyenne_classe': float(mp.moyenne_classe) if mp.moyenne_classe is not None else None,
-                    'note_examen': float(mp.note_examen) if mp.note_examen is not None else None,
+                    'note_examen': note_examen_value,
                     'coefficient': coefficient_value,
                     'moyenne_eleve': float(mp.moyenne_matiere) if mp.moyenne_matiere is not None else None,
+                    'moyenne_avec_coefficient': moyenne_avec_coeff_value,
+                    'professeur': professeur_nom,
                     'rang': mp.rang,
                     'appreciation': mp.appreciation_matiere,
                 })
@@ -2503,18 +2797,21 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 # Récupérer toutes les moyennes de la classe pour cette matière
                 if est_primaire:
                     from ..model.note_primaire_model import MoyenneMatierePrimaire
-                    moyennes_classe_matiere = MoyenneMatierePrimaire.objects.filter(
+                    moyennes_classe_matiere_qs = MoyenneMatierePrimaire.objects.filter(
                         classe=classe,
                         periode_scolaire=periode,
                         matiere__nom=item['nom'],
                         soumis=True,
                         moyenne__isnull=False
                     )
+                    if annee_scolaire_active:
+                        moyennes_classe_matiere_qs = moyennes_classe_matiere_qs.filter(annee_scolaire=annee_scolaire_active)
+                    moyennes_classe_matiere = moyennes_classe_matiere_qs
                 else:
                     from ..model.moyenne_model import Moyenne
                     matiere_obj = Matiere.objects.filter(nom=item['nom'], etablissement=etablissement).first()
                     if matiere_obj:
-                        moyennes_classe_matiere = Moyenne.objects.filter(
+                        moyennes_classe_matiere_qs = Moyenne.objects.filter(
                             classe=classe,
                             periode=str(periode.id),
                             matiere=matiere_obj,
@@ -2522,6 +2819,9 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                             actif=True,
                             moyenne__isnull=False
                         )
+                        if annee_scolaire_active:
+                            moyennes_classe_matiere_qs = moyennes_classe_matiere_qs.filter(annee_scolaire=annee_scolaire_active)
+                        moyennes_classe_matiere = moyennes_classe_matiere_qs
                     else:
                         moyennes_classe_matiere = []
 
@@ -2541,21 +2841,27 @@ def _build_bulletin_context(request, classe_id, eleve_id):
             from ..model.note_primaire_model import MoyenneMatierePrimaire
             from ..model.note_examen_model import NoteExamen
 
+            eleve_moyennes_qs = MoyenneMatierePrimaire.objects.filter(
+                eleve=eleve,
+                classe=classe,
+                periode_scolaire=periode
+            )
+            if annee_scolaire_active:
+                eleve_moyennes_qs = eleve_moyennes_qs.filter(annee_scolaire=annee_scolaire_active)
             eleve_moyennes = {
                 item.matiere_id: item
-                for item in MoyenneMatierePrimaire.objects.filter(
-                    eleve=eleve,
-                    classe=classe,
-                    periode_scolaire=periode
-                )
+                for item in eleve_moyennes_qs
             }
 
-            moyennes_classe = MoyenneMatierePrimaire.objects.filter(
+            moyennes_classe_qs = MoyenneMatierePrimaire.objects.filter(
                 classe=classe,
                 periode_scolaire=periode,
                 soumis=True,
                 moyenne__isnull=False
             )
+            if annee_scolaire_active:
+                moyennes_classe_qs = moyennes_classe_qs.filter(annee_scolaire=annee_scolaire_active)
+            moyennes_classe = moyennes_classe_qs
 
             matiere_scores_map = defaultdict(list)
             overall_scores_map = defaultdict(list)
@@ -2597,6 +2903,7 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                     dict(examens_map)
                 )
 
+            has_note_examen = False
             for matiere in matieres:
                 moyenne_obj = eleve_moyennes.get(matiere.id)
                 soumis = bool(moyenne_obj and moyenne_obj.soumis)
@@ -2614,6 +2921,7 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                     note_examen_value = float(
                         (sum(examens_matiere) / Decimal(len(examens_matiere))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     )
+                    has_note_examen = True
 
                 scores_classe = matiere_scores_map.get(matiere.id, [])
                 moyenne_classe = None
@@ -2636,12 +2944,18 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 else:
                     coefficient_value = float(matiere.coefficient) if matiere.coefficient is not None else 1
                 
+                moyenne_avec_coeff_value = None
+                if moyenne_value is not None:
+                    moyenne_avec_coeff_value = float(moyenne_value * Decimal(str(coefficient_value)))
+                
                 matieres_table.append({
                     'nom': matiere.nom,
                     'moyenne_classe': float(moyenne_classe) if moyenne_classe is not None else None,
                     'note_examen': note_examen_value,
                     'coefficient': coefficient_value,
                     'moyenne_eleve': float(moyenne_value) if moyenne_value is not None else None,
+                    'moyenne_avec_coefficient': moyenne_avec_coeff_value,
+                    'professeur': None,  # Pas de professeur pour primaire
                     'rang': rang,
                     'appreciation': appreciation,
                 })
@@ -2649,12 +2963,15 @@ def _build_bulletin_context(request, classe_id, eleve_id):
             if poids_generaux > 0:
                 moyenne_generale = float((somme_generale / poids_generaux).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
-            bulletin_valide = MoyenneMatierePrimaire.objects.filter(
+            bulletin_valide_qs = MoyenneMatierePrimaire.objects.filter(
                 eleve=eleve,
                 classe=classe,
                 periode_scolaire=periode,
                 soumis=True
-            ).exists()
+            )
+            if annee_scolaire_active:
+                bulletin_valide_qs = bulletin_valide_qs.filter(annee_scolaire=annee_scolaire_active)
+            bulletin_valide = bulletin_valide_qs.exists()
 
             general_scores = []
             for eleve_id_map, valeurs in overall_scores_map.items():
@@ -2701,6 +3018,7 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 overall_totaux[item.eleve_id]['coeff'] += coeff_decimal
 
             examens_map = {}
+            has_note_examen = False
             examens_qs = NoteExamen.objects.filter(
                 eleve=eleve,
                 classe=classe,
@@ -2712,6 +3030,30 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 note_val = exam.note_sur_20 if exam.note_sur_20 is not None else exam.note
                 if note_val is not None:
                     examens_map[exam.matiere_id] = float(Decimal(note_val).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+                    has_note_examen = True
+
+            # Récupérer les affectations des professeurs pour cette classe et cette année scolaire
+            est_college_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+            professeurs_par_matiere = {}
+            if est_college_lycee:
+                from ..model.affectation_model import AffectationProfesseur
+                affectations = AffectationProfesseur.objects.filter(
+                    classe=classe,
+                    actif=True,
+                    matiere__in=matieres
+                )
+                if annee_scolaire_active:
+                    affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
+                affectations = affectations.select_related('professeur', 'matiere')
+                
+                for affectation in affectations:
+                    if affectation.matiere:
+                        # Extraire le premier nom et le premier prénom
+                        nom_parts = affectation.professeur.nom.split() if affectation.professeur.nom else []
+                        prenom_parts = affectation.professeur.prenom.split() if affectation.professeur.prenom else []
+                        premier_nom = nom_parts[0] if nom_parts else affectation.professeur.nom
+                        premier_prenom = prenom_parts[0] if prenom_parts else affectation.professeur.prenom
+                        professeurs_par_matiere[affectation.matiere.id] = f"{premier_prenom} {premier_nom}"
 
             for matiere in matieres:
                 moyenne_obj = eleve_moyennes.get(matiere.id)
@@ -2750,12 +3092,21 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 else:
                     coefficient_display = float(matiere.coefficient) if matiere.coefficient is not None else 1
                 
+                note_examen_value = examens_map.get(matiere.id)
+                moyenne_avec_coeff_value = None
+                if moyenne_value is not None:
+                    moyenne_avec_coeff_value = float(moyenne_value * Decimal(str(coefficient_display)))
+                
+                professeur_nom = professeurs_par_matiere.get(matiere.id) if est_college_lycee else None
+                
                 matieres_table.append({
                     'nom': matiere.nom,
                     'moyenne_classe': float(moyenne_classe) if moyenne_classe is not None else None,
-                    'note_examen': examens_map.get(matiere.id),
+                    'note_examen': note_examen_value,
                     'coefficient': coefficient_display,
                     'moyenne_eleve': float(moyenne_value) if moyenne_value is not None else None,
+                    'moyenne_avec_coefficient': moyenne_avec_coeff_value,
+                    'professeur': professeur_nom,
                     'rang': rang,
                     'appreciation': appreciation,
                 })
@@ -2818,15 +3169,227 @@ def _build_bulletin_context(request, classe_id, eleve_id):
         statut='absent'
     ).count()
 
+    # Récupérer toutes les moyennes des périodes précédentes et de la période actuelle
+    # Trier par date_debut croissante pour afficher dans l'ordre chronologique
+    from ..model.moyenne_periode_model import MoyennePeriode
+    
+    # Récupérer toutes les périodes de l'année scolaire active (y compris la période actuelle)
+    toutes_periodes_queryset = PeriodeScolaire.objects.filter(
+        etablissement=etablissement,
+        date_debut__lte=periode.date_debut  # Inclure la période actuelle et toutes les précédentes
+    )
+    if annee_scolaire_active:
+        toutes_periodes_queryset = toutes_periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    toutes_periodes = list(toutes_periodes_queryset.order_by('date_debut'))
+    
+    # Créer un dictionnaire pour stocker les dates de début pour le tri
+    periode_dates = {p.id: p.date_debut for p in toutes_periodes}
+    
+    # Récupérer tous les élèves de la classe pour calculer les moyennes de classe et les rangs
+    eleves_classe = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
+    
+    # Récupérer les moyennes pour toutes ces périodes avec moyenne de classe et rang
+    moyennes_periodes = []
+    for periode_item in toutes_periodes:
+        # Récupérer la moyenne de l'élève pour cette période
+        moyenne_periode_qs = MoyennePeriode.objects.filter(
+            eleve=eleve,
+            etablissement=etablissement,
+            periode=periode_item,
+            est_moyenne_generale=True
+        )
+        if annee_scolaire_active:
+            moyenne_periode_qs = moyenne_periode_qs.filter(annee_scolaire=annee_scolaire_active)
+        moyenne_periode_obj = moyenne_periode_qs.first()
+        
+        moyenne_eleve = None
+        if moyenne_periode_obj and moyenne_periode_obj.moyenne_generale is not None:
+            moyenne_eleve = float(moyenne_periode_obj.moyenne_generale)
+        elif periode_item.id == periode.id and moyenne_generale is not None:
+            # Si c'est la période actuelle et qu'on a une moyenne calculée mais pas encore enregistrée
+            moyenne_eleve = float(moyenne_generale) if moyenne_generale is not None else None
+        
+        # Calculer la moyenne de classe et le rang pour cette période
+        moyenne_classe = None
+        rang_periode = None
+        
+        if moyenne_eleve is not None:
+            # Récupérer toutes les moyennes générales de tous les élèves de la classe pour cette période
+            moyennes_classe_qs = MoyennePeriode.objects.filter(
+                eleve__in=eleves_classe,
+                etablissement=etablissement,
+                periode=periode_item,
+                est_moyenne_generale=True
+            )
+            if annee_scolaire_active:
+                moyennes_classe_qs = moyennes_classe_qs.filter(annee_scolaire=annee_scolaire_active)
+            
+            # Récupérer toutes les moyennes avec les IDs des élèves
+            moyennes_list = []
+            for moy_obj in moyennes_classe_qs:
+                if moy_obj.moyenne_generale is not None:
+                    moyennes_list.append({
+                        'eleve_id': moy_obj.eleve.id,
+                        'moyenne': float(moy_obj.moyenne_generale)
+                    })
+            
+            if moyennes_list:
+                # Calculer la moyenne de classe
+                somme_moyennes = sum(m['moyenne'] for m in moyennes_list)
+                moyenne_classe = round(somme_moyennes / len(moyennes_list), 2)
+                
+                # Calculer le rang de l'élève (tri décroissant)
+                moyennes_list.sort(key=lambda x: x['moyenne'], reverse=True)
+                for index, moy_data in enumerate(moyennes_list, start=1):
+                    if moy_data['eleve_id'] == eleve.id:
+                        rang_periode = index
+                        break
+        
+        # Ajouter les informations de la période
+        if moyenne_eleve is not None:
+            moyennes_periodes.append({
+                'periode_id': periode_item.id,
+                'periode_nom': periode_item.nom_periode,
+                'moyenne': moyenne_eleve,
+                'moyenne_classe': moyenne_classe,
+                'rang': rang_periode,
+                'effectif': len(eleves_classe) if eleves_classe.exists() else 0,
+                'est_periode_actuelle': periode_item.id == periode.id,
+                'date_debut': periode_item.date_debut
+            })
+    
+    # Trier par date_debut pour s'assurer de l'ordre chronologique (période 1, puis 2, puis 3, etc.)
+    moyennes_periodes.sort(key=lambda x: x['date_debut'])
+    
+    # Pour la compatibilité avec l'ancien code, garder aussi moyenne_periode_precedente
+    # (la dernière période avant la période actuelle)
+    moyenne_periode_precedente = None
+    periode_precedente_nom = None
+    if len(moyennes_periodes) > 1:
+        # Prendre l'avant-dernière (la dernière avant la période actuelle)
+        periode_precedente_data = moyennes_periodes[-2] if not moyennes_periodes[-1]['est_periode_actuelle'] else moyennes_periodes[-1]
+        moyenne_periode_precedente = periode_precedente_data['moyenne']
+        periode_precedente_nom = periode_precedente_data['periode_nom']
+    elif len(moyennes_periodes) == 1 and not moyennes_periodes[0]['est_periode_actuelle']:
+        moyenne_periode_precedente = moyennes_periodes[0]['moyenne']
+        periode_precedente_nom = moyennes_periodes[0]['periode_nom']
+
+    # Calculer les statistiques de la classe pour la période actuelle
+    # (forte moyenne, faible moyenne, moyenne de classe)
+    forte_moyenne_classe = None
+    faible_moyenne_classe = None
+    moyenne_classe_periode_actuelle = None
+    
+    # Récupérer toutes les moyennes générales de tous les élèves de la classe pour la période actuelle
+    moyennes_classe_actuelle_qs = MoyennePeriode.objects.filter(
+        eleve__in=eleves_classe,
+        etablissement=etablissement,
+        periode=periode,
+        est_moyenne_generale=True
+    )
+    if annee_scolaire_active:
+        moyennes_classe_actuelle_qs = moyennes_classe_actuelle_qs.filter(annee_scolaire=annee_scolaire_active)
+    
+    moyennes_classe_actuelle_list = []
+    for moy_obj in moyennes_classe_actuelle_qs:
+        if moy_obj.moyenne_generale is not None:
+            moyennes_classe_actuelle_list.append(float(moy_obj.moyenne_generale))
+    
+    if moyennes_classe_actuelle_list:
+        forte_moyenne_classe = max(moyennes_classe_actuelle_list)
+        faible_moyenne_classe = min(moyennes_classe_actuelle_list)
+        moyenne_classe_periode_actuelle = round(sum(moyennes_classe_actuelle_list) / len(moyennes_classe_actuelle_list), 2)
+    
+    # Récupérer le professeur principal de la classe
+    professeur_principal = None
+    from ..model.affectation_model import AffectationProfesseur
+    from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+    
+    if est_primaire:
+        affectation_principal = AffectationProfesseurPrimaire.objects.filter(
+            classe=classe,
+            actif=True,
+            statut='principal'
+        )
+        if annee_scolaire_active:
+            affectation_principal = affectation_principal.filter(annee_scolaire=annee_scolaire_active)
+        affectation_principal = affectation_principal.first()
+        if affectation_principal:
+            professeur_principal = affectation_principal.professeur
+    else:
+        affectation_principal = AffectationProfesseur.objects.filter(
+            classe=classe,
+            actif=True,
+            statut='principal'
+        )
+        if annee_scolaire_active:
+            affectation_principal = affectation_principal.filter(annee_scolaire=annee_scolaire_active)
+        affectation_principal = affectation_principal.first()
+        if affectation_principal:
+            professeur_principal = affectation_principal.professeur
+    
+    # Récupérer la moyenne annuelle si elle existe pour cette période
+    moyenne_annuelle = None
+    moyenne_annuelle_classe = None
+    rang_annuel = None
+    from ..model.moyenne_periode_model import MoyenneAnnuelle
+    moyenne_annuelle_obj = MoyenneAnnuelle.objects.filter(
+        eleve=eleve,
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active,
+        periode_calcul=periode
+    ).first()
+    
+    if moyenne_annuelle_obj and moyenne_annuelle_obj.moyenne_annuelle is not None:
+        moyenne_annuelle = float(moyenne_annuelle_obj.moyenne_annuelle)
+        
+        # Calculer la moyenne de classe et le rang pour la moyenne annuelle
+        moyennes_annuelles_classe_qs = MoyenneAnnuelle.objects.filter(
+            eleve__in=eleves_classe,
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire_active,
+            periode_calcul=periode
+        )
+        
+        moyennes_annuelles_list = []
+        for moy_ann_obj in moyennes_annuelles_classe_qs:
+            if moy_ann_obj.moyenne_annuelle is not None:
+                moyennes_annuelles_list.append({
+                    'eleve_id': moy_ann_obj.eleve.id,
+                    'moyenne': float(moy_ann_obj.moyenne_annuelle)
+                })
+        
+        if moyennes_annuelles_list:
+            # Calculer la moyenne de classe annuelle
+            somme_moyennes_annuelles = sum(m['moyenne'] for m in moyennes_annuelles_list)
+            moyenne_annuelle_classe = round(somme_moyennes_annuelles / len(moyennes_annuelles_list), 2)
+            
+            # Calculer le rang annuel de l'élève (tri décroissant)
+            moyennes_annuelles_list.sort(key=lambda x: x['moyenne'], reverse=True)
+            for index, moy_data in enumerate(moyennes_annuelles_list, start=1):
+                if moy_data['eleve_id'] == eleve.id:
+                    rang_annuel = index
+                    break
+
     complement_info = {
         'moyenne_periode': moyenne_generale,
-        'moyenne_annuelle': None,
+        'moyenne_periode_precedente': moyenne_periode_precedente,
+        'periode_precedente_nom': periode_precedente_nom,
+        'moyennes_toutes_periodes': moyennes_periodes,  # Liste de toutes les moyennes par période avec moyenne_classe et rang
+        'moyenne_annuelle': moyenne_annuelle,
+        'moyenne_annuelle_classe': moyenne_annuelle_classe,
+        'rang_annuel': rang_annuel,
         'rang_general': rang_general,
         'effectif': classe_effectif,
         'absences_justifiees': absences_justifiees,
         'absences_non_justifiees': absences_non_justifiees,
         'appreciation_generale': appreciation_generale,
         'decision_conseil': decision_conseil,
+        # Statistiques de la classe pour la période actuelle
+        'forte_moyenne_classe': forte_moyenne_classe,
+        'faible_moyenne_classe': faible_moyenne_classe,
+        'moyenne_classe_periode_actuelle': moyenne_classe_periode_actuelle,
+        'professeur_principal': professeur_principal,
     }
 
     if standards_extra:
@@ -2842,26 +3405,41 @@ def _build_bulletin_context(request, classe_id, eleve_id):
                 'decision_conseil_source': standards_extra['decision_conseil_source'],
             })
 
+    # Construire les URLs avec le paramètre période si disponible
+    retour_url = reverse('directeur:bulletins_notes')
+    if periode:
+        retour_url = f"{retour_url}?periode={periode.id}"
+    
+    impression_url = reverse('directeur:imprimer_bulletin_eleve', args=[classe.id, eleve.id])
+    if periode:
+        impression_url = f"{impression_url}?periode={periode.id}"
+
+    # Déterminer s'il y a des notes d'examen dans matieres_table
+    has_note_examen_final = any(item.get('note_examen') is not None for item in matieres_table)
+    est_college_lycee_final = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
+    
     context = {
         'etablissement': etablissement,
         'classe': classe,
         'eleve': eleve,
         'periode': periode,
         'est_primaire': est_primaire,
+        'est_college_lycee': est_college_lycee_final,
         'matieres_table': matieres_table,
+        'has_note_examen': has_note_examen_final,
         'moyenne_generale': moyenne_generale,
         'bulletin_valide': bulletin_valide,
         'bulletin_disponible': bulletin_disponible,
         'soumissions': soumissions,
         'total_matieres': total_matieres,
         'pourcentage_soumission': pourcentage_soumission,
-        'retour_url': reverse('directeur:bulletins_notes'),
+        'retour_url': retour_url,
         'releve_classe_url': reverse('directeur:imprimer_releve_notes', args=[classe.id]),
         'date_generation': timezone.now(),
         'classe_effectif': classe_effectif,
         'rang_general': rang_general,
         'complement_info': complement_info,
-        'impression_url': reverse('directeur:imprimer_bulletin_eleve', args=[classe.id, eleve.id]),
+        'impression_url': impression_url,
         'standards_summary': standards_extra['standards_summary'] if standards_extra else None,
         'standards_applied': bool(standards_bundle),
         'bulletin_qr_image_url': bulletin_qr_image_url,
@@ -2897,14 +3475,38 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
     from ..model.moyenne_periode_model import MoyennePeriode
     from ..model.note_examen_model import NoteExamen
     from django.db import transaction
+    from ..utils.session_utils import get_session_active
+
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
     eleve = get_object_or_404(Eleve, id=eleve_id, classe=classe, etablissement=etablissement, actif=True)
 
-    periode = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True).order_by('date_debut').first()
+    # Récupérer la période depuis le paramètre GET ou utiliser la première période active
+    periode_param = request.GET.get('periode')
+    periode_queryset = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
+    if annee_scolaire_active:
+        periode_queryset = periode_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    
+    periode = None
+    if periode_param:
+        try:
+            periode = periode_queryset.filter(id=int(periode_param)).first()
+        except (ValueError, TypeError):
+            pass
+    
+    # Si aucune période trouvée via le paramètre, prendre la première période active
+    if not periode:
+        periode = periode_queryset.order_by('date_debut').first()
+    
     if not periode:
         messages.warning(request, "Aucune période scolaire active n'est configurée.")
-        return redirect('directeur:voir_bulletin_eleve', classe_id=classe_id, eleve_id=eleve_id)
+        # Rediriger vers le bulletin avec le paramètre période si disponible
+        redirect_url = reverse('directeur:voir_bulletin_eleve', args=[classe_id, eleve_id])
+        if periode_param:
+            redirect_url = f"{redirect_url}?periode={periode_param}"
+        return redirect(redirect_url)
 
     # Récupérer la pondération
     ponderation = Ponderation.objects.filter(etablissement=etablissement).first()
@@ -2947,13 +3549,16 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
 
                 if est_primaire:
                     from ..model.note_primaire_model import MoyenneMatierePrimaire
-                    moyenne_obj = MoyenneMatierePrimaire.objects.filter(
+                    moyenne_obj_qs = MoyenneMatierePrimaire.objects.filter(
                         eleve=eleve,
                         classe=classe,
                         periode_scolaire=periode,
                         matiere=matiere,
                         soumis=True
-                    ).first()
+                    )
+                    if annee_scolaire_active:
+                        moyenne_obj_qs = moyenne_obj_qs.filter(annee_scolaire=annee_scolaire_active)
+                    moyenne_obj = moyenne_obj_qs.first()
 
                     if moyenne_obj and moyenne_obj.moyenne is not None:
                         moyenne_classe = Decimal(str(moyenne_obj.moyenne))
@@ -3065,6 +3670,7 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                             'appreciation_matiere': appreciation_matiere,
                             'poids_classe': ponderation.poids_classe,
                             'poids_examen': ponderation.poids_examen,
+                            'annee_scolaire': annee_scolaire_active,
                         }
                     )
 
@@ -3108,6 +3714,7 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                         'decision_conseil': decision_conseil,
                         'poids_classe': ponderation.poids_classe,
                         'poids_examen': ponderation.poids_examen,
+                        'annee_scolaire': annee_scolaire_active,
                     }
                 )
 
@@ -3126,12 +3733,15 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             eleves_moyennes_generales = []
 
             for eleve_classe in eleves_classe:
-                moyenne_gen = MoyennePeriode.objects.filter(
+                moyenne_gen_qs = MoyennePeriode.objects.filter(
                     eleve=eleve_classe,
                     etablissement=etablissement,
                     periode=periode,
                     est_moyenne_generale=True
-                ).first()
+                )
+                if annee_scolaire_active:
+                    moyenne_gen_qs = moyenne_gen_qs.filter(annee_scolaire=annee_scolaire_active)
+                moyenne_gen = moyenne_gen_qs.first()
 
                 if moyenne_gen and moyenne_gen.moyenne_generale is not None:
                     eleves_moyennes_generales.append({
@@ -3144,24 +3754,30 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
 
             for index, item in enumerate(eleves_moyennes_generales, start=1):
                 eleve_id_rang = item['eleve_id']
-                MoyennePeriode.objects.filter(
+                rang_update_qs = MoyennePeriode.objects.filter(
                     eleve_id=eleve_id_rang,
                     etablissement=etablissement,
                     periode=periode,
                     est_moyenne_generale=True
-                ).update(rang=index)
+                )
+                if annee_scolaire_active:
+                    rang_update_qs = rang_update_qs.filter(annee_scolaire=annee_scolaire_active)
+                rang_update_qs.update(rang=index)
 
                 # Mettre à jour aussi les rangs par matière (tri décroissant : la plus forte moyenne = rang 1)
                 # IMPORTANT : Comparer uniquement les élèves de la même classe
                 for matiere in matieres:
-                    matiere_moyennes = list(MoyennePeriode.objects.filter(
+                    matiere_moyennes_qs = MoyennePeriode.objects.filter(
                         etablissement=etablissement,
                         periode=periode,
                         matiere=matiere,
                         est_moyenne_generale=False,
                         moyenne_matiere__isnull=False,
                         eleve__classe=classe  # Filtrer uniquement les élèves de la même classe
-                    ).select_related('eleve', 'eleve__classe'))
+                    )
+                    if annee_scolaire_active:
+                        matiere_moyennes_qs = matiere_moyennes_qs.filter(annee_scolaire=annee_scolaire_active)
+                    matiere_moyennes = list(matiere_moyennes_qs.select_related('eleve', 'eleve__classe'))
 
                     # Trier par moyenne décroissante (plus forte moyenne = rang 1)
                     matiere_moyennes.sort(key=lambda x: (x.moyenne_matiere is None, -(x.moyenne_matiere or 0)), reverse=False)
@@ -3175,7 +3791,12 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
         logger.error(f"Erreur lors du calcul de la moyenne de l'élève: {str(e)}", exc_info=True)
         messages.error(request, f"❌ Erreur lors du calcul de la moyenne: {str(e)}")
 
-    return redirect('directeur:voir_bulletin_eleve', classe_id=classe_id, eleve_id=eleve_id)
+    # Rediriger vers le bulletin en conservant le paramètre période
+    redirect_url = reverse('directeur:voir_bulletin_eleve', args=[classe_id, eleve_id])
+    periode_param = request.GET.get('periode')
+    if periode_param:
+        redirect_url = f"{redirect_url}?periode={periode_param}"
+    return redirect(redirect_url)
 
 
 @login_required
@@ -3197,6 +3818,10 @@ def mettre_a_jour_visibilite_bulletins(request, classe_id):
     from ..model.classe_model import Classe
     from ..model.periode_model import PeriodeScolaire
     from ..model.moyenne_periode_model import MoyennePeriode
+    from ..utils.session_utils import get_session_active
+
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
 
@@ -3219,6 +3844,8 @@ def mettre_a_jour_visibilite_bulletins(request, classe_id):
         est_moyenne_generale=True,
         eleve__classe=classe
     )
+    if annee_scolaire_active:
+        moyennes_generales_qs = moyennes_generales_qs.filter(annee_scolaire=annee_scolaire_active)
 
     if not moyennes_generales_qs.exists():
         messages.warning(
@@ -3279,10 +3906,17 @@ def publier_bulletins_classe(request, classe_id):
     from ..model.eleve_model import Eleve
     from ..model.periode_model import PeriodeScolaire
     from ..model.moyenne_periode_model import MoyennePeriode
+    from ..utils.session_utils import get_session_active
+
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
 
-    periode_qs = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True).order_by('date_debut')
+    periode_qs = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
+    if annee_scolaire_active:
+        periode_qs = periode_qs.filter(annee_scolaire_fk=annee_scolaire_active)
+    periode_qs = periode_qs.order_by('date_debut')
     if selected_periode_id:
         periode = periode_qs.filter(id=selected_periode_id).first()
     else:
@@ -3299,7 +3933,10 @@ def publier_bulletins_classe(request, classe_id):
         periode=periode,
         est_moyenne_generale=True,
         eleve__classe=classe
-    ).select_related('eleve')
+    )
+    if annee_scolaire_active:
+        moyennes_generales_qs = moyennes_generales_qs.filter(annee_scolaire=annee_scolaire_active)
+    moyennes_generales_qs = moyennes_generales_qs.select_related('eleve')
 
     if not moyennes_generales_qs.exists():
         messages.warning(request, "Aucune moyenne générale n'a été calculée pour cette classe. Veuillez d'abord calculer les moyennes avant de publier.")
@@ -3890,13 +4527,24 @@ def suivi_presence(request):
         eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         # Construire le queryset de présence filtré par période et année scolaire active
+        # PRIORITÉ AU FILTRAGE PAR DATE DE PÉRIODE (pas par année scolaire liée)
         presences_queryset = Presence.objects.filter(classe=classe)
-        if annee_scolaire_active:
-            presences_queryset = presences_queryset.filter(annee_scolaire=annee_scolaire_active)
+        
+        # LOGIQUE DE FILTRAGE BASÉE SUR LES DATES (Prioritaire sur l'objet année scolaire)
+        # On compare la date d'enregistrement de la présence à la date de la période ou de l'année active.
         if periode_selectionnee:
+            # Si une période est sélectionnée, on filtre strictement sur ses dates
+            # Peu importe l'année scolaire liée à la présence, on affiche toutes les présences
+            # dont la date est dans la plage de la période
             presences_queryset = presences_queryset.filter(
                 date__gte=periode_selectionnee.date_debut,
                 date__lte=periode_selectionnee.date_fin
+            )
+        elif annee_scolaire_active:
+            # Sinon, on filtre sur les dates de l'année scolaire active
+            presences_queryset = presences_queryset.filter(
+                date__gte=annee_scolaire_active.date_debut,
+                date__lte=annee_scolaire_active.date_fin
             )
         
         # Récupérer les mois distincts où il y a des données de présence pour cette classe
@@ -3904,14 +4552,46 @@ def suivi_presence(request):
         
         # Créer une liste des mois disponibles
         mois_disponibles = []
+        
+        # Si une période est sélectionnée, inclure tous les mois de la période même sans présences
+        if periode_selectionnee:
+            date_courante = periode_selectionnee.date_debut
+            while date_courante <= periode_selectionnee.date_fin:
+                mois_existant = next(
+                    (m for m in mois_disponibles if m['numero'] == date_courante.month and m['annee'] == date_courante.year),
+                    None
+                )
+                if not mois_existant:
+                    date_mois = datetime(date_courante.year, date_courante.month, 1)
+                    mois_disponibles.append({
+                        'numero': date_courante.month,
+                        'annee': date_courante.year,
+                        'nom': date_mois.strftime('%B'),
+                        'nom_court': date_mois.strftime('%b'),
+                    })
+                # Passer au mois suivant
+                if date_courante.month == 12:
+                    date_courante = date_courante.replace(year=date_courante.year + 1, month=1, day=1)
+                else:
+                    date_courante = date_courante.replace(month=date_courante.month + 1, day=1)
+        
+        # Ajouter aussi les mois où il y a effectivement des présences (pour éviter les doublons)
         for p in presences_classe:
-            date_mois = datetime(p['date__year'], p['date__month'], 1)
-            mois_disponibles.append({
-                'numero': p['date__month'],
-                'annee': p['date__year'],
-                'nom': date_mois.strftime('%B'),
-                'nom_court': date_mois.strftime('%b'),
-            })
+            mois_existant = next(
+                (m for m in mois_disponibles if m['numero'] == p['date__month'] and m['annee'] == p['date__year']),
+                None
+            )
+            if not mois_existant:
+                date_mois = datetime(p['date__year'], p['date__month'], 1)
+                mois_disponibles.append({
+                    'numero': p['date__month'],
+                    'annee': p['date__year'],
+                    'nom': date_mois.strftime('%B'),
+                    'nom_court': date_mois.strftime('%b'),
+                })
+        
+        # Trier les mois par année et mois
+        mois_disponibles.sort(key=lambda x: (x['annee'], x['numero']))
         
         # Pour chaque mois, calculer les statistiques de présence pour chaque élève
         mois_presences = {}
@@ -4114,8 +4794,19 @@ def gestion_etablissement(request):
     # Vérifier que l'utilisateur connecté est bien un établissement
     if not isinstance(request.user, Etablissement):
         return redirect('school_admin:connexion_compte_user')
+    
+    etablissement = request.user
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    context = {
+        'etablissement': etablissement,
+        'annee_scolaire_active': annee_scolaire_active,
+    }
    
-    return render(request, 'school_admin/directeur/gestion_etablissement.html')
+    return render(request, 'school_admin/directeur/gestion_etablissement.html', context)
 
 
 @login_required
@@ -4823,9 +5514,14 @@ def gestion_administrative(request):
         return redirect('school_admin:connexion_compte_user')
     
     etablissement = request.user
+    from ..utils.session_utils import get_session_active
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
     
     context = {
         'etablissement': etablissement,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/gestion_administrative.html', context)
@@ -5962,7 +6658,14 @@ def generer_certificat_radiation(request, eleve_id):
     
     etablissement = request.user
     from ..model.eleve_model import Eleve
+    from ..utils.session_utils import get_session_active
     from datetime import datetime
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = get_session_active(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active. Le certificat sera généré sans référence à une session spécifique.")
     
     try:
         eleve = Eleve.objects.select_related('classe').get(
@@ -5973,12 +6676,16 @@ def generer_certificat_radiation(request, eleve_id):
         messages.error(request, "Élève non trouvé.")
         return redirect('directeur:certificat_radiation_liste')
     
+    # Déterminer l'année scolaire à afficher
+    annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
+    
     # Informations pour le certificat
     context = {
         'etablissement': etablissement,
         'eleve': eleve,
         'date_generation': datetime.now(),
-        'annee_scolaire': '2024-2025',  # À adapter selon la période active
+        'annee_scolaire': annee_scolaire_libelle,
+        'annee_scolaire_active': annee_scolaire_active,
     }
     
     return render(request, 'school_admin/directeur/generer_certificat_radiation.html', context)

@@ -222,10 +222,11 @@ class AffectationController:
                             matieres_professeur.add(professeur.matiere_principale.id)
                         matieres_professeur.update(professeur.matieres_secondaires.values_list('id', flat=True))
                         
-                        # Récupérer toutes les affectations primaires existantes pour cette classe
+                        # Récupérer toutes les affectations primaires existantes pour cette classe et cette année scolaire
                         affectations_existantes = AffectationProfesseurPrimaire.objects.filter(
                             classe=classe,
-                            actif=True
+                            actif=True,
+                            annee_scolaire=annee_scolaire_active
                         ).exclude(professeur=professeur).select_related('professeur').prefetch_related('matieres')
                         
                         # Vérifier les conflits de matières par professeur
@@ -256,15 +257,16 @@ class AffectationController:
                     
                     # Pour les écoles primaires, utiliser AffectationProfesseurPrimaire
                     if etablissement.type_etablissement == 'primary':
-                        # Vérifier si une affectation primaire existe déjà
+                        # Vérifier si une affectation primaire existe déjà pour cette année scolaire
                         existing_affectation = AffectationProfesseurPrimaire.objects.filter(
                             professeur=professeur,
                             classe=classe,
-                            actif=True
+                            actif=True,
+                            annee_scolaire=annee_scolaire_active
                         ).first()
                         
                         if existing_affectation:
-                            messages.warning(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom}.")
+                            messages.warning(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour l'année scolaire {annee_scolaire_active.libelle}.")
                         else:
                             try:
                                 # Récupérer toutes les matières du professeur
@@ -309,16 +311,17 @@ class AffectationController:
                             )
                             return redirect('affectation:affectation_professeurs')
                         
-                        # Vérifier si une affectation existe déjà (actif ou non)
+                        # Vérifier si une affectation existe déjà pour cette année scolaire (actif ou non)
                         existing_affectation = AffectationProfesseur.objects.filter(
                             professeur=professeur,
                             classe=classe,
-                            matiere=matiere
+                            matiere=matiere,
+                            annee_scolaire=annee_scolaire_active
                         ).first()
                         
                         if existing_affectation:
                             if existing_affectation.actif:
-                                messages.warning(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom}.")
+                                messages.warning(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom} pour l'année scolaire {annee_scolaire_active.libelle}.")
                             else:
                                 # Réactiver l'affectation existante
                                 existing_affectation.actif = True
@@ -341,7 +344,7 @@ class AffectationController:
                                 messages.success(request, f"Professeur {professeur.nom} affecté à la classe {classe.nom} en tant que {statut_display} pour la matière {matiere.nom}")
                             except IntegrityError:
                                 # Si une erreur d'intégrité se produit (contrainte unique violée)
-                                messages.error(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom}. Veuillez vérifier les affectations existantes.")
+                                messages.error(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom} pour l'année scolaire {annee_scolaire_active.libelle}. Veuillez vérifier les affectations existantes.")
                             except ValidationError as e:
                                 messages.error(request, str(e))
                                 return redirect('affectation:affectation_professeurs')
@@ -352,11 +355,12 @@ class AffectationController:
                         affectation = AffectationProfesseurPrimaire.objects.filter(
                             professeur=professeur,
                             classe=classe,
-                            actif=True
+                            actif=True,
+                            annee_scolaire=annee_scolaire_active
                         ).first()
                         
                         if not affectation:
-                            messages.warning(request, f"Cette affectation n'existe pas.")
+                            messages.warning(request, f"Cette affectation n'existe pas pour l'année scolaire active.")
                         else:
                             affectation.actif = False
                             affectation.save()
@@ -370,18 +374,20 @@ class AffectationController:
                                 professeur=professeur,
                                 classe=classe,
                                 matiere_id=matiere_id_remove,
-                                actif=True
+                                actif=True,
+                                annee_scolaire=annee_scolaire_active
                             ).first()
                         else:
-                            # Si aucune matière n'est spécifiée, prendre la première affectation trouvée
+                            # Si aucune matière n'est spécifiée, prendre la première affectation trouvée pour cette année scolaire
                             affectation = AffectationProfesseur.objects.filter(
                                 professeur=professeur,
                                 classe=classe,
-                                actif=True
+                                actif=True,
+                                annee_scolaire=annee_scolaire_active
                             ).first()
                         
                         if not affectation:
-                            messages.warning(request, f"Cette affectation n'existe pas.")
+                            messages.warning(request, f"Cette affectation n'existe pas pour l'année scolaire active.")
                         else:
                             matiere_nom = affectation.matiere.nom if affectation.matiere else "toutes les matières"
                             affectation.actif = False

@@ -270,7 +270,7 @@ class ListePresence(models.Model):
     class Meta:
         verbose_name = "Liste de présence"
         verbose_name_plural = "Listes de présence"
-        unique_together = ('classe', 'date', 'matiere', 'numero_appel')
+        unique_together = ('classe', 'date', 'matiere', 'numero_appel', 'annee_scolaire')
         ordering = ['-date', '-numero_appel', 'classe__nom']
     
     def __str__(self):
@@ -337,16 +337,25 @@ class SoumissionListePresence(models.Model):
         auto_now_add=True,
         verbose_name="Date de soumission"
     )
+    annee_scolaire = models.ForeignKey(
+        'AnneeScolaire',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='soumissions_listes_presences',
+        verbose_name="Année scolaire"
+    )
     
     class Meta:
         verbose_name = "Soumission de liste de présence"
         verbose_name_plural = "Soumissions de listes de présence"
-        unique_together = ('classe', 'professeur', 'matiere', 'date')
+        unique_together = ('classe', 'professeur', 'matiere', 'date', 'annee_scolaire')
         ordering = ['-date', '-date_soumission', 'classe__nom']
         indexes = [
             models.Index(fields=['classe', 'matiere', 'date']),
             models.Index(fields=['professeur', 'date']),
             models.Index(fields=['etablissement', 'date']),
+            models.Index(fields=['annee_scolaire', 'date']),
         ]
     
     def __str__(self):

@@ -2043,15 +2043,55 @@ def bulletin_eleve(request):
         absences_non_justifiees_query = absences_non_justifiees_query.filter(annee_scolaire=annee_scolaire_active)
     absences_non_justifiees = absences_non_justifiees_query.count()
 
+    # Récupérer la moyenne minimale de passage depuis les standards
+    moyenne_passage_standards = None
+    if standards_bundle:
+        standards = standards_bundle.get('instance')
+        if standards and standards.moyenne_passage is not None:
+            moyenne_passage_standards = float(standards.moyenne_passage)
+    
+    # Calculer l'appréciation générale basée sur la moyenne >= 10.00
+    appreciation_generale_periode = None
+    if moyenne_generale is not None:
+        if moyenne_generale >= 10.00:
+            appreciation_generale_periode = f"{periode.nom_periode} validée"
+        else:
+            appreciation_generale_periode = f"{periode.nom_periode} non validée"
+    
+    # Récupérer la moyenne annuelle si elle existe
+    from ..model.moyenne_periode_model import MoyenneAnnuelle
+    moyenne_annuelle = None
+    moyenne_annuelle_obj = MoyenneAnnuelle.objects.filter(
+        eleve=eleve,
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active,
+        periode_calcul=periode
+    ).first()
+    
+    if moyenne_annuelle_obj and moyenne_annuelle_obj.moyenne_annuelle is not None:
+        moyenne_annuelle = float(moyenne_annuelle_obj.moyenne_annuelle)
+    
+    # Calculer la décision du conseil basée sur la moyenne annuelle
+    decision_conseil_finale = decision_conseil
+    if moyenne_annuelle is not None and moyenne_passage_standards is not None:
+        if moyenne_annuelle >= moyenne_passage_standards:
+            decision_conseil_finale = "Admis en classe supérieure"
+        else:
+            decision_conseil_finale = f"Redouble la {classe_active.nom}"
+    
     complement_info = {
         'moyenne_periode': moyenne_generale,
-        'moyenne_annuelle': None,
+        'moyenne_annuelle': moyenne_annuelle,
         'rang_general': moyenne_generale_record.rang,
         'effectif': classe_effectif,
         'absences_justifiees': absences_justifiees,
         'absences_non_justifiees': absences_non_justifiees,
-        'appreciation_generale': appreciation_generale,
-        'decision_conseil': decision_conseil,
+        'appreciation_generale': appreciation_generale_periode,  # Utiliser la nouvelle logique
+        'appreciation_generale_originale': appreciation_generale,  # Garder l'originale si besoin
+        'moyenne_generale_validee': moyenne_generale >= 10.00 if moyenne_generale is not None else None,
+        'decision_conseil': decision_conseil_finale,  # Utiliser la nouvelle logique
+        'decision_conseil_originale': decision_conseil,  # Garder l'originale si besoin
+        'moyenne_passage': moyenne_passage_standards,  # Pour la comparaison avec la moyenne annuelle
     }
 
     if standards_extra:

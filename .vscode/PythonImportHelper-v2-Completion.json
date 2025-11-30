@@ -6817,6 +6817,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -12151,6 +12167,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0176_remove_standardsreussite_appreciation_conseil_and_more",
+        "description": "school_admin.migrations.0176_remove_standardsreussite_appreciation_conseil_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0175_ensure_moyenne_avec_coefficient_column'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='standardsreussite',\n            name='appreciation_conseil',\n        ),\n        migrations.RemoveField(",
+        "detail": "school_admin.migrations.0176_remove_standardsreussite_appreciation_conseil_and_more",
+        "documentation": {}
+    },
+    {
         "label": "AffectationProfesseur",
         "kind": 6,
         "importPath": "school_admin.model.affectation_model",
@@ -13501,6 +13526,15 @@
         "documentation": {}
     },
     {
+        "label": "changer_session_directeur",
+        "kind": 2,
+        "importPath": "school_admin.personal_views.directeur_view",
+        "description": "school_admin.personal_views.directeur_view",
+        "peekOfCode": "def changer_session_directeur(request):\n    \"\"\"\n    Vue pour changer la session consultée par le directeur.\n    Cette vue permet au directeur de consulter une session différente\n    sans affecter la session active utilisée par les autres utilisateurs.\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user",
+        "detail": "school_admin.personal_views.directeur_view",
+        "documentation": {}
+    },
+    {
         "label": "facturation_directeur",
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
@@ -13523,7 +13557,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def gestion_eleves(request):\n    \"\"\"\n    Vue de la page de gestion des élèves pour les directeurs d'établissement\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active\n    annee_scolaire_active = get_session_active(request, etablissement)",
+        "peekOfCode": "def gestion_eleves(request):\n    \"\"\"\n    Vue de la page de gestion des élèves pour les directeurs d'établissement\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13532,7 +13566,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def liste_reinscription_eleves(request):\n    \"\"\"\n    Liste des élèves éligibles à la réinscription\n    Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    annee_scolaire_active = get_session_active(request, etablissement)",
+        "peekOfCode": "def liste_reinscription_eleves(request):\n    \"\"\"\n    Liste des élèves éligibles à la réinscription\n    Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13541,7 +13575,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def reinscription_eleve(request, eleve_id):\n    \"\"\"\n    Formulaire de réinscription pour un élève spécifique\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    annee_scolaire_active = get_session_active(request, etablissement)\n    if not annee_scolaire_active:",
+        "peekOfCode": "def reinscription_eleve(request, eleve_id):\n    \"\"\"\n    Formulaire de réinscription pour un élève spécifique\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    annee_scolaire_active = _get_session_directeur(request, etablissement)\n    if not annee_scolaire_active:",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13667,7 +13701,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def configuration_moyennes_generales(request):\n    \"\"\"Configuration des paramètres de calcul des moyennes générales.\"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    est_primaire = etablissement.type_etablissement == 'primary'\n    from ..model.periode_model import PeriodeScolaire\n    from ..utils.session_utils import get_session_active\n    annee_scolaire_active = get_session_active(request, etablissement)",
+        "peekOfCode": "def configuration_moyennes_generales(request):\n    \"\"\"Configuration des paramètres de calcul des moyennes générales.\"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    est_primaire = etablissement.type_etablissement == 'primary'\n    from ..model.periode_model import PeriodeScolaire\n    from ..utils.session_utils import get_session_active\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13676,7 +13710,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def configuration_standards_reussite(request):\n    \"\"\"Configuration des standards de réussite pour l'établissement.\"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    annee_scolaire_active = get_session_active(request, etablissement)\n    if not annee_scolaire_active:\n        messages.error(request, \"Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de configurer les standards.\")",
+        "peekOfCode": "def configuration_standards_reussite(request):\n    \"\"\"Configuration des standards de réussite pour l'établissement.\"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    annee_scolaire_active = _get_session_directeur(request, etablissement)\n    if not annee_scolaire_active:\n        messages.error(request, \"Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de configurer les standards.\")",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13937,7 +13971,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def demandes_liaison_liste(request):\n    \"\"\"\n    Liste des demandes de liaison parent-enfant pour le directeur\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active\n    annee_scolaire_active = get_session_active(request, etablissement)",
+        "peekOfCode": "def demandes_liaison_liste(request):\n    \"\"\"\n    Liste des demandes de liaison parent-enfant pour le directeur\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -15791,7 +15825,7 @@
         "kind": 2,
         "importPath": "school_admin.utils.session_utils",
         "description": "school_admin.utils.session_utils",
-        "peekOfCode": "def set_session_consultee(request, annee_scolaire):\n    \"\"\"\n    Définit la session consultée par l'utilisateur\n    Args:\n        request: La requête HTTP\n        annee_scolaire (AnneeScolaire): La session à consulter\n    \"\"\"\n    if annee_scolaire:\n        request.session['annee_scolaire_consultee_id'] = annee_scolaire.pk\n    else:",
+        "peekOfCode": "def set_session_consultee(request, annee_scolaire):\n    \"\"\"\n    Définit la session consultée par l'utilisateur\n    Args:\n        request: La requête HTTP\n        annee_scolaire (AnneeScolaire|None): La session à consulter (None pour réinitialiser)\n    \"\"\"\n    if annee_scolaire:\n        request.session['annee_scolaire_consultee_id'] = annee_scolaire.pk\n        # Marquer la session comme modifiée pour forcer la sauvegarde",
         "detail": "school_admin.utils.session_utils",
         "documentation": {}
     },
@@ -15972,6 +16006,15 @@
         "importPath": "school_admin.context_processors",
         "description": "school_admin.context_processors",
         "peekOfCode": "def periode_active(request) -> Dict:\n    \"\"\"Retourne la période scolaire active pour l'établissement de l'utilisateur connecté.\"\"\"\n    user = getattr(request, \"user\", None)\n    if user is None or not user.is_authenticated:\n        return {}\n    etablissement = None\n    # Vérifier si l'utilisateur est un établissement (directeur)\n    # Etablissement hérite de AbstractUser, donc user est l'établissement\n    if hasattr(user, 'directeur_prenom'):\n        etablissement = user",
+        "detail": "school_admin.context_processors",
+        "documentation": {}
+    },
+    {
+        "label": "session_directeur",
+        "kind": 2,
+        "importPath": "school_admin.context_processors",
+        "description": "school_admin.context_processors",
+        "peekOfCode": "def session_directeur(request) -> Dict:\n    \"\"\"Retourne les informations de session pour le directeur connecté.\"\"\"\n    user = getattr(request, \"user\", None)\n    if user is None or not user.is_authenticated:\n        return {}\n    # Vérifier si l'utilisateur est un établissement (directeur)\n    if not hasattr(user, 'directeur_prenom'):\n        return {}\n    etablissement = user\n    def _get_session_consultee():",
         "detail": "school_admin.context_processors",
         "documentation": {}
     },
@@ -16161,6 +16204,15 @@
         "importPath": "school_admin.views",
         "description": "school_admin.views",
         "peekOfCode": "def inscription_compte_user(request):\n    \"\"\"\n    Gère l'inscription d'un nouvel utilisateur (public)\n    \"\"\"\n    if request.method == 'POST':\n        # Utiliser le contrôleur pour traiter l'inscription\n        result = CompteUserController.compte_user_register_view(request)\n        if isinstance(result, tuple) and len(result) == 2:\n            context, response = result\n            if response:",
+        "detail": "school_admin.views",
+        "documentation": {}
+    },
+    {
+        "label": "politiques_utilisation",
+        "kind": 2,
+        "importPath": "school_admin.views",
+        "description": "school_admin.views",
+        "peekOfCode": "def politiques_utilisation(request):\n    \"\"\"\n    Affiche la page des politiques d'utilisation et de confidentialité\n    \"\"\"\n    return render(request, 'school_admin/politiques_utilisation.html')\ndef connexion_compte_user(request):\n    \"\"\"\n    Gère la connexion d'un utilisateur (public)\n    Si l'utilisateur est déjà connecté, il est redirigé vers son tableau de bord.\n    \"\"\"",
         "detail": "school_admin.views",
         "documentation": {}
     },

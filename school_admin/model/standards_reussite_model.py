@@ -23,17 +23,6 @@ class StandardsReussite(models.Model):
         default=10,
         verbose_name="Moyenne minimale de passage"
     )
-    moyenne_redoublement = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=8,
-        verbose_name="Moyenne de redoublement"
-    )
-    appreciation_conseil = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Appréciation du conseil de classe"
-    )
     date_creation = models.DateTimeField(
         default=timezone.now,
         verbose_name="Date de création"

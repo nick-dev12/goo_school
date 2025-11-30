@@ -337,6 +337,13 @@ class Eleve(AbstractUser):
         help_text="Indique si l'élève est actuellement actif"
     )
     
+    # Acceptation des conditions d'utilisation
+    conditions_acceptees = models.BooleanField(
+        default=False,
+        verbose_name="Conditions acceptées",
+        help_text="Indique si l'élève a accepté les conditions d'utilisation et la politique de confidentialité"
+    )
+    
     # Dates de gestion
     date_creation = models.DateTimeField(
         auto_now_add=True,

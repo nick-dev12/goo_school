@@ -190,10 +190,12 @@ class CompteUserController:
         if request.method == 'POST':
             # Récupération des données
             email_input = request.POST.get('email', '').strip()
+            conditions_acceptees = request.POST.get('conditions_acceptees') == 'on'
             form_data = {
                 'username': email_input,
                 'email': email_input,  # Pour compatibilité avec le template
                 'password': request.POST.get('password', '').strip(),
+                'conditions_acceptees': conditions_acceptees,
             }
             
             # Récupérer l'URL next du formulaire (peut être différente de celle dans l'URL)
@@ -226,6 +228,10 @@ class CompteUserController:
                 
             if not form_data['password']:
                 field_errors['password'] = "Le mot de passe est obligatoire."
+            
+            # Vérification de l'acceptation des conditions
+            if not conditions_acceptees:
+                field_errors['conditions_acceptees'] = "Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour vous connecter."
                 
             # Si pas d'erreurs de validation, on tente l'authentification
             if not field_errors:
@@ -233,6 +239,13 @@ class CompteUserController:
                 user = authenticate(request, username=form_data['username'], password=form_data['password'])
                 logger.info(f"Résultat authentification - User: {user}, Type: {type(user).__name__ if user else 'None'}")
                 if user is not None:
+                    # Vérifier si l'utilisateur a accepté les conditions
+                    if hasattr(user, 'conditions_acceptees') and not user.conditions_acceptees:
+                        # Si les conditions ne sont pas acceptées, les mettre à jour
+                        user.conditions_acceptees = True
+                        user.save(update_fields=['conditions_acceptees'])
+                        logger.info(f"Conditions acceptées mises à jour pour l'utilisateur: {type(user).__name__} - {getattr(user, 'email', getattr(user, 'username', 'N/A'))}")
+                    
                     login(request, user)
                     
                     # Configuration de la session persistante "à vie"

@@ -83,40 +83,6 @@
                   />
                   <p class="form-help">Seuil minimal pour passer à la classe supérieure.</p>
                 </div>
-
-                <div class="form-group">
-                  <label for="moyenne_redoublement" class="form-label required">
-                    <i class="fas fa-sync-alt"></i>
-                    Moyenne de redoublement
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="20"
-                    id="moyenne_redoublement"
-                    name="moyenne_redoublement"
-                    class="form-control"
-                    value="{{ general_settings.moyenne_redoublement }}"
-                    required
-                  />
-                  <p class="form-help">Seuil en dessous duquel un redoublement est recommandé.</p>
-                </div>
-
-                <div class="form-group form-group-full">
-                  <label for="appreciation_conseil" class="form-label">
-                    <i class="fas fa-comments"></i>
-                    Appréciation du conseil de classe (texte général)
-                  </label>
-                  <textarea
-                    id="appreciation_conseil"
-                    name="appreciation_conseil"
-                    class="form-control"
-                    rows="3"
-                    placeholder="Ex: Passage avec félicitations du conseil..."
-                  >{{ general_settings.appreciation_conseil }}</textarea>
-                  <p class="form-help">Texte affiché sur le bulletin lorsque l'élève satisfait les standards généraux.</p>
-                </div>
               </div>
 
               <div class="form-actions">
@@ -147,9 +113,17 @@
                 </button>
               </div>
 
-              <p class="form-help">
-                Définissez les notes minimales qui déclenchent une appréciation spécifique (ex: ≥ 12 « Encouragements »).
-              </p>
+              <div class="info-box" style="background: var(--info-light, rgba(59, 130, 246, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--info, #3b82f6);">
+                <p style="margin: 0; color: var(--gray-700, #374151); font-size: 0.9rem; line-height: 1.6;">
+                  <strong style="color: var(--info, #3b82f6); display: block; margin-bottom: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Comment utiliser cette section :
+                  </strong>
+                  Définissez les notes minimales qui déclenchent une appréciation spécifique du conseil de classe. 
+                  Par exemple, si vous définissez "≥ 12" avec l'appréciation "Encouragements", tous les élèves ayant une moyenne générale 
+                  supérieure ou égale à 12 recevront cette appréciation sur leur bulletin. Vous pouvez ajouter plusieurs appréciations 
+                  pour différents seuils (ex: ≥ 14 "Félicitations", ≥ 16 "Tableau d'honneur").
+                </p>
+              </div>
 
               <div class="ranges-container" id="conseil-container" data-next-index="{% if conseil_ranges %}{{ conseil_ranges|length }}{% else %}1{% endif %}">
                 {% if conseil_ranges %}
@@ -211,9 +185,17 @@
                 </button>
               </div>
 
-              <p class="form-help">
-                Définissez les intervalles de moyennes et les appréciations correspondantes (ex: 10-12 Passable, 12-14 Assez bien).
-              </p>
+              <div class="info-box" style="background: var(--info-light, rgba(59, 130, 246, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--info, #3b82f6);">
+                <p style="margin: 0; color: var(--gray-700, #374151); font-size: 0.9rem; line-height: 1.6;">
+                  <strong style="color: var(--info, #3b82f6); display: block; margin-bottom: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Comment utiliser cette section :
+                  </strong>
+                  Définissez les intervalles de moyennes et les appréciations correspondantes pour chaque matière. 
+                  Par exemple : "De 10 à 12" avec l'appréciation "Passable", "De 12 à 14" avec "Assez bien", etc. 
+                  Ces appréciations seront automatiquement affichées sur les bulletins en fonction de la moyenne de l'élève dans chaque matière. 
+                  Assurez-vous que les intervalles se suivent sans chevauchement (ex: 0-10, 10-12, 12-14, 14-16, 16-20).
+                </p>
+              </div>
 
               <div class="ranges-container" id="ranges-container" data-next-index="{% if matiere_ranges %}{{ matiere_ranges|length }}{% else %}1{% endif %}">
                 {% if matiere_ranges %}

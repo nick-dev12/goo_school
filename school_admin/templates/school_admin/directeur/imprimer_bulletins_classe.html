@@ -7,7 +7,7 @@
     <title>Impression - Bulletins de {{ classe.nom }} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.2" />
   </head>
   <body>
     {% for item in bulletins_data %}
@@ -289,15 +289,13 @@
                 <th>Appréciation générale</th>
                 <td colspan="3">
                   {% if bulletin.complement_info.appreciation_generale %}
-                    <span class="appreciation-text">{{ bulletin.complement_info.appreciation_generale }}</span>
-                  {% if bulletin.complement_info.appreciation_generale_source == 'initiale' %}
-                      <span class="appreciation-origin">Initiale</span>
+                    {% if bulletin.complement_info.moyenne_generale_validee %}
+                      <span class="periode-validee">{{ bulletin.complement_info.appreciation_generale }}</span>
+                    {% else %}
+                      <span class="periode-non-validee">{{ bulletin.complement_info.appreciation_generale }}</span>
                     {% endif %}
                   {% else %}
                     —
-                  {% endif %}
-                  {% if bulletin.complement_info.statut_conseil_label %}
-                    <div class="statut-conseil">{{ bulletin.complement_info.statut_conseil_label }}</div>
                   {% endif %}
                 </td>
               </tr>
@@ -305,9 +303,14 @@
                 <tr>
                   <th>Décision du conseil</th>
                   <td colspan="3">
-                    <span class="appreciation-text">{{ bulletin.complement_info.decision_conseil }}</span>
-                    {% if bulletin.complement_info.decision_conseil_source == 'initiale' %}
-                      <span class="appreciation-origin">Initiale</span>
+                    {% if bulletin.complement_info.moyenne_annuelle is not None and bulletin.complement_info.moyenne_passage is not None %}
+                      {% if bulletin.complement_info.moyenne_annuelle >= bulletin.complement_info.moyenne_passage %}
+                        <span class="decision-admis">{{ bulletin.complement_info.decision_conseil }}</span>
+                      {% else %}
+                        <span class="decision-redouble">{{ bulletin.complement_info.decision_conseil }}</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="appreciation-text">{{ bulletin.complement_info.decision_conseil }}</span>
                     {% endif %}
                   </td>
                 </tr>

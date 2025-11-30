@@ -53,6 +53,13 @@ def inscription_compte_user(request):
     return render(request, 'school_admin/inscription.html', context)
 
 
+def politiques_utilisation(request):
+    """
+    Affiche la page des politiques d'utilisation et de confidentialité
+    """
+    return render(request, 'school_admin/politiques_utilisation.html')
+
+
 def connexion_compte_user(request):
     """
     Gère la connexion d'un utilisateur (public)

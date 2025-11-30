@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+<!DOCTYPE html>µ
+{% load static %}
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -10,19 +11,20 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    {% load static %}
+
+    <link
+    rel="stylesheet"
+    href="{% static 'school_admin/css/connexion_admin.css' %}?v=1.0.7"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
     <!-- PWA Meta Tags -->
     {% include 'school_admin/partials/pwa_meta.html' %}
   </head>
   <body>
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/connexion_admin.css' %}?v=1.0.3"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+   
 
     <!-- Background Pattern -->
     <div class="background-pattern">
@@ -42,8 +44,7 @@
         <div class="welcome-content">
           <div class="school-logo">
             <div class="logo-container">
-              <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria Logo" style="height: 180px; width: auto;">
-              <div class="logo-glow"></div>
+              <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Aria Logo" class="main-logo">
             </div>
           </div>
           <h1 class="welcome-title">
@@ -79,8 +80,29 @@
           <div class="header-icon">
             <i class="fas fa-sign-in-alt"></i>
           </div>
+          <div class="header-icon-logo">
+            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Aria Logo" class="header-logo-img">
+          </div>
           <h2>Connexion</h2>
-          <p>Accédez à votre espace personnel</p>
+          <p class="header-subtitle-desktop">Accédez à votre espace personnel</p>
+          <div class="header-user-types">
+            <div class="header-user-type">
+              <i class="fas fa-user-graduate"></i>
+              <span>Élèves</span>
+            </div>
+            <div class="header-user-type">
+              <i class="fas fa-users"></i>
+              <span>Parents</span>
+            </div>
+            <div class="header-user-type">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Enseignants</span>
+            </div>
+            <div class="header-user-type">
+              <i class="fas fa-user-tie"></i>
+              <span>Administration</span>
+            </div>
+          </div>
         </div>
 
         <div class="card-body">
@@ -98,7 +120,7 @@
               <div
                 class="form-group {% if field_errors.email %}has-error{% endif %}"
               >
-                <label for="mail">Email</label>
+                <label for="mail">Email ou identifiant</label>
                 <div class="input-container">
                   <i class="fas fa-user input-icon"></i>
                   <input
@@ -131,6 +153,27 @@
                 </div>
                 {% if field_errors.password %}
                 <span class="error-message">{{ field_errors.password }}</span>
+                {% endif %}
+              </div>
+
+              <div class="form-group {% if field_errors.conditions_acceptees %}has-error{% endif %}">
+                <div class="checkbox-container">
+                  <input
+                    type="checkbox"
+                    id="conditions_acceptees"
+                    name="conditions_acceptees"
+                    required
+                    {% if form_data.conditions_acceptees %}checked{% endif %}
+                  />
+                  <label for="conditions_acceptees">
+                    J'accepte la 
+                    <a href="{% url 'school_admin:politiques_utilisation' %}" target="_blank" class="link-politique">
+                      politique d'utilisation et la politique de confidentialité
+                    </a>
+                  </label>
+                </div>
+                {% if field_errors.conditions_acceptees %}
+                <span class="error-message">{{ field_errors.conditions_acceptees }}</span>
                 {% endif %}
               </div>
 

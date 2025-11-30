@@ -49,6 +49,8 @@ class AuthenticationMiddleware:
             reverse('school_admin:firebase_messaging_sw'),
             reverse('school_admin:prof_connexion_otp'),
             reverse('school_admin:password_reset_request'),
+            reverse('school_admin:politiques_utilisation'),
+            reverse('school_admin:verifier_bulletin_qr'),
             # Ajouter d'autres URLs publiques si nécessaire
         ]
 
@@ -70,6 +72,8 @@ class AuthenticationMiddleware:
             or request.path.startswith('/static/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
             or request.path.startswith('/password-reset/')  # Pages de réinitialisation de mot de passe
+            or request.path.startswith('/politiques-utilisation/')  # Page des politiques d'utilisation
+            or request.path.startswith('/bulletins/verifier/')  # Page de vérification de bulletin (accessible via QR code)
         ):
             return self.get_response(request)
         
@@ -79,6 +83,8 @@ class AuthenticationMiddleware:
             or request.path in technical_urls
             or request.path.startswith('/password-reset/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
+            or request.path.startswith('/politiques-utilisation/')  # Page des politiques d'utilisation
+            or request.path.startswith('/bulletins/verifier/')  # Page de vérification de bulletin (accessible via QR code)
         )
         
         if not request.user.is_authenticated and not is_public_path:
@@ -129,9 +135,11 @@ class AuthenticationMiddleware:
                 if not annee_active:
                     return redirect('directeur:creer_annee_scolaire_obligatoire')
                 
-                # Définir la session active dans la session utilisateur
-                request.session['annee_scolaire_consultee_id'] = annee_active.id
-                request.session['school_year_id'] = annee_active.id
+                # Définir la session active dans la session utilisateur seulement si pas déjà définie
+                # (pour ne pas écraser une session consultée explicitement sélectionnée)
+                if not request.session.get('annee_scolaire_consultee_id'):
+                    request.session['annee_scolaire_consultee_id'] = annee_active.id
+                    request.session['school_year_id'] = annee_active.id
                 
                 return redirect('directeur:dashboard_directeur')
             
@@ -216,13 +224,24 @@ class SessionActiveMiddleware:
                             return redirect('directeur:creer_annee_scolaire_obligatoire')
                     
                     # Si une année active existe, définir automatiquement la session
-                    # Pour les directeurs ET les professeurs
+                    # IMPORTANT: Pour les directeurs, ne PAS écraser la session consultée
+                    # s'ils ont explicitement sélectionné une session différente
                     if annee_active:
-                        if not request.session.get('annee_scolaire_consultee_id') or \
-                           request.session.get('annee_scolaire_consultee_id') != annee_active.id:
-                            request.session['annee_scolaire_consultee_id'] = annee_active.id
-                            request.session['school_year_id'] = annee_active.id
-                            set_session_consultee(request, annee_active)
+                        # Pour les directeurs, respecter leur choix de session consultée
+                        if isinstance(request.user, Etablissement):
+                            # Si le directeur n'a pas encore de session consultée, utiliser la session active
+                            if not request.session.get('annee_scolaire_consultee_id'):
+                                request.session['annee_scolaire_consultee_id'] = annee_active.id
+                                request.session['school_year_id'] = annee_active.id
+                                set_session_consultee(request, annee_active)
+                            # Sinon, laisser la session consultée telle quelle (ne pas l'écraser)
+                        else:
+                            # Pour les autres utilisateurs (professeurs, etc.), utiliser toujours la session active
+                            if not request.session.get('annee_scolaire_consultee_id') or \
+                               request.session.get('annee_scolaire_consultee_id') != annee_active.id:
+                                request.session['annee_scolaire_consultee_id'] = annee_active.id
+                                request.session['school_year_id'] = annee_active.id
+                                set_session_consultee(request, annee_active)
             
             except Exception as e:
                 # En cas d'erreur, continuer normalement

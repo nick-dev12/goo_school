@@ -40,6 +40,7 @@ urlpatterns = [
     path('annees-scolaires/<int:annee_id>/desactiver/', desactiver_annee_scolaire, name='desactiver_annee_scolaire'),
     path('annees-scolaires/<int:annee_id>/modifier/', modifier_annee_scolaire, name='modifier_annee_scolaire'),
     path('annees-scolaires/<int:annee_id>/', detail_annee_scolaire, name='detail_annee_scolaire'),
+    path('changer-session/', changer_session_directeur, name='changer_session_directeur'),
     
     # API pour les détails des notes
     path('api/details-notes-matiere/', api_details_notes_matiere, name='api_details_notes_matiere'),

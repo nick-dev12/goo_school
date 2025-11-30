@@ -270,6 +270,64 @@ body {
   display: none;
 }
 
+/* Sélecteur de session */
+.session-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.session-selector-form {
+  margin: 0;
+  padding: 0;
+}
+
+.session-selector {
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  background-color: var(--white);
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 12px;
+  min-width: 180px;
+}
+
+.session-selector:hover {
+  border-color: var(--directeur-primary);
+  background-color: var(--gray-50);
+}
+
+.session-selector:focus {
+  outline: none;
+  border-color: var(--directeur-primary);
+  box-shadow: 0 0 0 3px var(--directeur-primary-light);
+}
+
+.session-indicator {
+  color: var(--warning);
+  font-size: 1rem;
+  cursor: help;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 /* Welcome Banner - COMPACT VERSION */
 .welcome-banner {
   background: var(--gradient-header);
@@ -398,7 +456,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 1rem 2rem;
+  padding: 0.5rem 1rem;
   background-color: rgb(0, 119, 255);
   border: 1px solid var(--gray-300);
   border-radius: var(--radius);

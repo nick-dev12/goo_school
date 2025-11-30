@@ -67,6 +67,7 @@ urlpatterns =[
     # Authentification
     path('inscription/', views.inscription_compte_user, name='inscription_compte_user'),
     path('connexion/', views.connexion_compte_user, name='connexion_compte_user'),
+    path('politiques-utilisation/', views.politiques_utilisation, name='politiques_utilisation'),
     path('password-reset/', views.password_reset_request, name='password_reset_request'),
     path('password-reset/verify/<str:identifier>/<str:user_type>/', views.password_reset_verify, name='password_reset_verify'),
     path('password-reset/professeur/verify/<str:matricule>/', views.password_reset_professeur_verify, name='password_reset_professeur_verify'),

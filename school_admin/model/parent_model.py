@@ -97,6 +97,13 @@ class Parent(AbstractUser):
     password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
     password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
     
+    # Acceptation des conditions d'utilisation
+    conditions_acceptees = models.BooleanField(
+        default=False,
+        verbose_name="Conditions acceptées",
+        help_text="Indique si le parent a accepté les conditions d'utilisation et la politique de confidentialité"
+    )
+    
     # Configuration de l'authentification
     USERNAME_FIELD = 'matricule_parental'
     REQUIRED_FIELDS = ['nom', 'prenom', 'email']

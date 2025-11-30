@@ -7,7 +7,7 @@
     <title>Impression - Bulletin de {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.2" />
   </head>
   <body>
     <div class="print-container">
@@ -286,31 +286,34 @@
           </tr>
           <tr>
             <th>Appréciation générale</th>
-          <td colspan="3">
-            {% if complement_info.appreciation_generale %}
-              <span class="appreciation-text">{{ complement_info.appreciation_generale }}</span>
-              {% if complement_info.appreciation_generale_source == 'initiale' %}
-                <span class="appreciation-origin">Initiale</span>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
-            {% if complement_info.statut_conseil_label %}
-              <div class="statut-conseil">{{ complement_info.statut_conseil_label }}</div>
-            {% endif %}
-          </td>
-          </tr>
-        {% if complement_info.decision_conseil %}
-          <tr>
-            <th>Décision du conseil</th>
             <td colspan="3">
-              <span class="appreciation-text">{{ complement_info.decision_conseil }}</span>
-              {% if complement_info.decision_conseil_source == 'initiale' %}
-                <span class="appreciation-origin">Initiale</span>
+              {% if complement_info.appreciation_generale %}
+                {% if complement_info.moyenne_generale_validee %}
+                  <span class="periode-validee">{{ complement_info.appreciation_generale }}</span>
+                {% else %}
+                  <span class="periode-non-validee">{{ complement_info.appreciation_generale }}</span>
+                {% endif %}
+              {% else %}
+                —
               {% endif %}
             </td>
           </tr>
-        {% endif %}
+          {% if complement_info.decision_conseil %}
+            <tr>
+              <th>Décision du conseil</th>
+              <td colspan="3">
+                {% if complement_info.moyenne_annuelle is not None and complement_info.moyenne_passage is not None %}
+                  {% if complement_info.moyenne_annuelle >= complement_info.moyenne_passage %}
+                    <span class="decision-admis">{{ complement_info.decision_conseil }}</span>
+                  {% else %}
+                    <span class="decision-redouble">{{ complement_info.decision_conseil }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="appreciation-text">{{ complement_info.decision_conseil }}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
         </table>
       </section>
 

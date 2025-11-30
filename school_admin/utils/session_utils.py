@@ -62,12 +62,16 @@ def set_session_consultee(request, annee_scolaire):
     
     Args:
         request: La requête HTTP
-        annee_scolaire (AnneeScolaire): La session à consulter
+        annee_scolaire (AnneeScolaire|None): La session à consulter (None pour réinitialiser)
     """
     if annee_scolaire:
         request.session['annee_scolaire_consultee_id'] = annee_scolaire.pk
+        # Marquer la session comme modifiée pour forcer la sauvegarde
+        request.session.modified = True
     else:
-        request.session.pop('annee_scolaire_consultee_id', None)
+        if 'annee_scolaire_consultee_id' in request.session:
+            del request.session['annee_scolaire_consultee_id']
+            request.session.modified = True
 
 
 def filter_by_session(queryset, annee_scolaire):

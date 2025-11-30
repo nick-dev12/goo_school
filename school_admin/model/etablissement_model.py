@@ -132,6 +132,13 @@ class Etablissement(AbstractUser):
     password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
     password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
     
+    # Acceptation des conditions d'utilisation
+    conditions_acceptees = models.BooleanField(
+        default=False,
+        verbose_name="Conditions acceptées",
+        help_text="Indique si l'établissement a accepté les conditions d'utilisation et la politique de confidentialité"
+    )
+    
     # Redéfinir les champs groups et user_permissions avec des related_name uniques
     groups = models.ManyToManyField(
         'auth.Group',

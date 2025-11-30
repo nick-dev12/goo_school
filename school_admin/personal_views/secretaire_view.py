@@ -16,7 +16,7 @@ from ..model.inscription_eleve_model import InscriptionEleve
 from ..model.inscription_parent_model import InscriptionParent
 from ..model.facturation_model import Facturation
 from ..model.ponderation_model import Ponderation
-from ..utils.session_utils import get_session_active
+from ..utils.session_utils import get_session_active, get_session_consultee
 
 
 def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
@@ -238,8 +238,12 @@ def dashboard_secretaire(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    # Si c'est un directeur, utiliser la session consultée, sinon la session active
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True)
@@ -331,7 +335,11 @@ def inscription_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     if not annee_scolaire_active:
         messages.error(
             request,
@@ -688,8 +696,11 @@ def liste_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.warning(request, "Aucune année scolaire active. Les élèves affichés ne sont pas filtrés par session.")
@@ -726,9 +737,12 @@ def cartes_identite_eleves(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
 
-    # Récupérer l'année scolaire active
-    from ..utils.session_utils import get_session_active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    from ..utils.session_utils import get_session_active, get_session_consultee, get_session_consultee
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
 
     classes_grouped, stats_generales = _build_classes_grouped_data(etablissement, annee_scolaire_active)
 
@@ -774,9 +788,12 @@ def carte_identite_eleve(request, eleve_id):
         except RuntimeError as qr_error:
             messages.warning(request, f"QR code indisponible : {qr_error}")
 
-    # Récupérer l'année scolaire active
-    from ..utils.session_utils import get_session_active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    from ..utils.session_utils import get_session_active, get_session_consultee, get_session_consultee
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     # Déterminer l'année scolaire à afficher
     annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
@@ -814,10 +831,12 @@ def cartes_identite_classe(request, classe_id):
         messages.error(request, "Classe introuvable ou non autorisée.")
         return redirect('secretaire:cartes_identite_eleves')
 
-    # Récupérer l'année scolaire active
-    from ..utils.session_utils import get_session_active
+    # Récupérer l'année scolaire active ou consultée
     from ..model.inscription_eleve_model import InscriptionEleve
-    annee_scolaire_active = get_session_active(request, etablissement)
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'imprimer les cartes d'identité.")
@@ -830,7 +849,7 @@ def cartes_identite_classe(request, classe_id):
         etablissement=etablissement
     ).values_list('eleve_id', flat=True)
     
-    from django.db.models import Lower
+    from django.db.models.functions import Lower
     eleves_queryset = Eleve.objects.filter(
         id__in=eleves_ids_inscrits,
         classe=classe,
@@ -1014,8 +1033,11 @@ def detail_eleve(request, eleve_id):
         except RuntimeError as qr_error:
             messages.warning(request, f"QR code indisponible : {qr_error}")
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.warning(request, "Aucune année scolaire active. Les données affichées ne sont pas filtrées par session.")
@@ -1727,8 +1749,11 @@ def transfer_eleve(request, eleve_id):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.error(
@@ -1853,8 +1878,11 @@ def gestion_classes(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     # Récupérer les classes de l'établissement
     classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
@@ -1938,11 +1966,14 @@ def detail_classe(request, classe_id):
         messages.error(request, "Classe non trouvée.")
         return redirect('secretaire:gestion_classes')
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     # Récupérer les élèves de la classe filtrés par année scolaire active
-    from django.db.models import Lower
+    from django.db.models.functions import Lower
     if annee_scolaire_active:
         # Filtrer via InscriptionEleve pour l'année scolaire active
         eleves_ids_inscrits = InscriptionEleve.objects.filter(
@@ -2016,10 +2047,13 @@ def imprimer_liste_eleves(request, classe_id):
         messages.error(request, "Classe non trouvée.")
         return redirect('secretaire:gestion_classes')
     
-    # Récupérer l'année scolaire active
-    from ..utils.session_utils import get_session_active
+    # Récupérer l'année scolaire active ou consultée
+    from ..utils.session_utils import get_session_active, get_session_consultee, get_session_consultee
     from ..model.inscription_eleve_model import InscriptionEleve
-    annee_scolaire_active = get_session_active(request, etablissement)
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'imprimer la liste des élèves.")
@@ -2033,7 +2067,7 @@ def imprimer_liste_eleves(request, classe_id):
     ).values_list('eleve_id', flat=True)
     
     # Récupérer les élèves de la classe filtrés par année scolaire active
-    from django.db.models import Lower
+    from django.db.models.functions import Lower
     eleves = Eleve.objects.filter(
         id__in=eleves_ids_inscrits,
         classe=classe,
@@ -2234,8 +2268,11 @@ def synchroniser_facturation(request):
         messages.error(request, "Aucun établissement associé à votre compte.")
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de synchroniser la facturation.")
@@ -2323,9 +2360,12 @@ def get_notes_detail_matiere(request, eleve_id, matiere_id):
     if etablissement.type_etablissement not in ['lycée', 'collège', 'collège_lycée']:
         return JsonResponse({'error': 'Cette fonctionnalité est réservée aux établissements secondaires'}, status=403)
     
-    # Récupérer l'année scolaire active
-    from ..utils.session_utils import get_session_active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    from ..utils.session_utils import get_session_active, get_session_consultee, get_session_consultee
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     try:
         eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
@@ -2466,8 +2506,11 @@ def soumettre_sanction_directeur(request):
     from ..model.sanction_model import Sanction
     from django.shortcuts import get_object_or_404
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, etablissement)
+    # Récupérer l'année scolaire active ou consultée
+    if isinstance(user, Etablissement):
+        annee_scolaire_active = get_session_consultee(request, etablissement)
+    else:
+        annee_scolaire_active = get_session_active(request, etablissement)
     
     if not annee_scolaire_active:
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une sanction.")

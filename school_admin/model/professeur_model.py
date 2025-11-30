@@ -99,6 +99,13 @@ class Professeur(AbstractUser):
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     
+    # Acceptation des conditions d'utilisation
+    conditions_acceptees = models.BooleanField(
+        default=False,
+        verbose_name="Conditions acceptées",
+        help_text="Indique si le professeur a accepté les conditions d'utilisation et la politique de confidentialité"
+    )
+    
     USERNAME_FIELD = 'numero_employe'
     REQUIRED_FIELDS = ['nom', 'prenom', 'telephone', 'matiere_principale', 'niveau_enseignement']
     

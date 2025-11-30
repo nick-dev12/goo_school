@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Politique d'utilisation et de confidentialité - Aria</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #7c3aed;
+            --accent: #ef4444;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --info: #8b5cf6;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --text-primary: var(--gray-800);
+            --text-secondary: var(--gray-600);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color:rgb(238, 238, 238);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: var(--white);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 2.5rem 2rem;
+        }
+
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-title i {
+            font-size: 1.25rem;
+        }
+
+        .section-content {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .section-content p {
+            margin-bottom: 1rem;
+        }
+
+        .section-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .subsection {
+            margin-top: 1.5rem;
+            padding-left: 1.5rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .subsection-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .subsection-content {
+            font-size: 0.9375rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .subsection-content ul {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .subsection-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight-box {
+            background: var(--gray-50);
+            border-left: 4px solid var(--primary);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .highlight-box strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .footer-actions {
+            padding: 2rem;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+
+            .header {
+                padding: 2rem 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .content {
+                padding: 2rem 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+            }
+
+            .subsection {
+                padding-left: 1rem;
+            }
+
+            .footer-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.125rem;
+            }
+
+            .section-content {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>Politique d'utilisation et de confidentialité</h1>
+                <p>Conditions générales d'utilisation de la plateforme Aria</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-file-contract"></i>
+                    1. Objet et champ d'application
+                </h2>
+                <div class="section-content">
+                    <p>
+                        Les présentes conditions d'utilisation ont pour but de définir les règles d'accès, d'utilisation et de sécurité de l'application de gestion administrative des écoles (ci-après « l'Application »).
+                    </p>
+                    <p>
+                        Elles s'appliquent à l'ensemble des utilisateurs : direction, enseignants, élèves, parents d'élèves et tout autre intervenant autorisé.
+                    </p>
+                    <div class="highlight-box">
+                        <strong>Important :</strong> L'accès à l'Application implique l'acceptation pleine et entière des présentes conditions.
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-users"></i>
+                    2. Rôles et responsabilités des utilisateurs
+                </h2>
+                <div class="section-content">
+                    <div class="subsection">
+                        <h3 class="subsection-title">a) Direction de l'établissement</h3>
+                        <div class="subsection-content">
+                            <ul>
+                                <li>Gère les comptes des enseignants, élèves et parents.</li>
+                                <li>Assure la véracité et la mise à jour des données administratives.</li>
+                                <li>Supervise la sécurité et la confidentialité des informations.</li>
+                                <li>Ne doit pas communiquer ses identifiants à un tiers.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title">b) Enseignants</h3>
+                        <div class="subsection-content">
+                            <ul>
+                                <li>Utilisent l'Application uniquement pour leurs activités pédagogiques.</li>
+                                <li>S'engagent à enregistrer les notes, devoirs et commentaires avec exactitude et respect.</li>
+                                <li>Respectent la confidentialité des informations concernant les élèves.</li>
+                                <li>Ne publient aucun contenu inapproprié, diffamatoire ou non lié à l'enseignement.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title">c) Élèves</h3>
+                        <div class="subsection-content">
+                            <ul>
+                                <li>Utilisent leur compte uniquement à des fins scolaires.</li>
+                                <li>S'interdisent toute tentative d'accès non autorisé aux données d'autrui.</li>
+                                <li>Respectent les consignes et les devoirs affichés dans l'Application.</li>
+                                <li>Signalent toute anomalie à l'administration.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title">d) Parents d'élèves</h3>
+                        <div class="subsection-content">
+                            <ul>
+                                <li>Ont accès exclusivement aux informations concernant leur(s) enfant(s).</li>
+                                <li>S'engagent à utiliser l'Application pour le suivi scolaire et le paiement des frais uniquement.</li>
+                                <li>S'interdisent toute diffusion ou capture d'écran des informations privées d'autres utilisateurs.</li>
+                                <li>Sont responsables de la mise à jour de leurs informations personnelles (adresse, contact, etc.).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title">e) Autres acteurs externes (prestataires, support technique, etc.)</h3>
+                        <div class="subsection-content">
+                            <ul>
+                                <li>Interviennent uniquement dans le cadre de leur mission et sous autorisation écrite de la direction.</li>
+                                <li>S'engagent à respecter la confidentialité et la protection des données traitées.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-lock"></i>
+                    3. Confidentialité et protection des données
+                </h2>
+                <div class="section-content">
+                    <p>
+                        Toutes les données personnelles (élèves, parents, enseignants) sont strictement confidentielles.
+                    </p>
+                    <p>
+                        L'Application s'engage à ne pas vendre, louer ni partager ces données sans autorisation.
+                    </p>
+                    <p>
+                        Chaque utilisateur est responsable de la protection de son mot de passe.
+                    </p>
+                    <div class="highlight-box">
+                        <strong>En cas de perte ou de soupçon d'accès frauduleux,</strong> l'utilisateur doit immédiatement en informer l'administrateur.
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-shield-alt"></i>
+                    4. Sécurité et bon usage de la plateforme
+                </h2>
+                <div class="section-content">
+                    <p>
+                        L'utilisateur s'engage à utiliser l'Application de manière éthique et respectueuse.
+                    </p>
+                    <p>
+                        Tout acte de piratage, de falsification de notes ou de paiement frauduleux est strictement interdit.
+                    </p>
+                    <p>
+                        L'administration se réserve le droit de suspendre ou supprimer tout compte en cas de non-respect des présentes conditions.
+                    </p>
+                    <p>
+                        Les données doivent être consultées exclusivement à des fins scolaires et administratives.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    5. Limitation de responsabilité
+                </h2>
+                <div class="section-content">
+                    <p>
+                        L'éditeur de l'Application ne saurait être tenu responsable des erreurs de saisie, des coupures réseau ou des pertes de données dues à une mauvaise utilisation.
+                    </p>
+                    <p>
+                        L'Application est fournie "en l'état" et peut faire l'objet de mises à jour pour améliorer les fonctionnalités ou la sécurité.
+                    </p>
+                    <p>
+                        L'utilisateur accepte que certaines fonctionnalités puissent être temporairement suspendues pour maintenance.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-check-circle"></i>
+                    6. Acceptation et modification des conditions
+                </h2>
+                <div class="section-content">
+                    <p>
+                        L'utilisation de l'Application vaut acceptation sans réserve des présentes conditions.
+                    </p>
+                    <p>
+                        L'éditeur se réserve le droit de modifier les conditions d'utilisation à tout moment, les utilisateurs en seront informés via l'Application.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-actions">
+            <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i>
+                Retour à la connexion
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+

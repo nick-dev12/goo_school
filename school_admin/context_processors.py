@@ -128,3 +128,36 @@ def periode_active(request) -> Dict:
     return {
         'periode_active': SimpleLazyObject(_get_periode),
     }
+
+
+def session_directeur(request) -> Dict:
+    """Retourne les informations de session pour le directeur connecté."""
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
+        return {}
+    
+    # Vérifier si l'utilisateur est un établissement (directeur)
+    if not hasattr(user, 'directeur_prenom'):
+        return {}
+    
+    etablissement = user
+    
+    def _get_session_consultee():
+        from school_admin.utils.session_utils import get_session_consultee
+        return get_session_consultee(request, etablissement)
+    
+    def _get_session_active():
+        from school_admin.utils.session_utils import get_session_active
+        return get_session_active(request, etablissement)
+    
+    def _get_toutes_sessions():
+        from school_admin.model.annee_scolaire_model import AnneeScolaire
+        return list(AnneeScolaire.objects.filter(
+            etablissement=etablissement
+        ).order_by('-date_debut'))
+    
+    return {
+        'annee_scolaire_active': SimpleLazyObject(_get_session_consultee),
+        'annee_scolaire_reellement_active': SimpleLazyObject(_get_session_active),
+        'toutes_annees_scolaires': SimpleLazyObject(_get_toutes_sessions),
+    }

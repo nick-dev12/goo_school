@@ -69,10 +69,80 @@ android {
     
     // Personnaliser le nom du fichier APK
     applicationVariants.all {
-        outputs.all {
+        val variant = this
+        variant.outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "ARIA_APP.apk"
+            // Ne renommer que les APK (les AAB sont gérés par la tâche ci-dessous)
+            if (output.outputFile?.extension == "apk") {
+                val outputFileName = when {
+                    variant.buildType.name == "release" -> "ARIA_APP.apk"
+                    else -> "ARIA_APP-debug.apk"
+                }
+                output.outputFileName = outputFileName
+            }
         }
+    }
+    
+    // Configuration spécifique pour les AAB (Android App Bundle)
+    bundle {
+        language {
+            enableSplit = false
+        }
+        density {
+            enableSplit = false
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+}
+
+// Tâche pour renommer le fichier AAB après génération
+afterEvaluate {
+    // Pour la version release
+    tasks.findByName("bundleRelease")?.let { bundleTask ->
+        val renameTask = tasks.create("renameReleaseAAB") {
+            doLast {
+                val bundleDir = file("${project.buildDir}/outputs/bundle/release")
+                val originalFile = file("${bundleDir}/app-release.aab")
+                val renamedFile = file("${bundleDir}/ARIA_APP.aab")
+                
+                if (originalFile.exists()) {
+                    if (renamedFile.exists()) {
+                        renamedFile.delete()
+                    }
+                    originalFile.renameTo(renamedFile)
+                    println("✅ Fichier AAB renommé: ${originalFile.name} -> ${renamedFile.name}")
+                } else {
+                    println("⚠️  Fichier AAB non trouvé: ${originalFile.absolutePath}")
+                }
+            }
+        }
+        renameTask.dependsOn(bundleTask)
+        bundleTask.finalizedBy(renameTask)
+    }
+    
+    // Pour la version debug
+    tasks.findByName("bundleDebug")?.let { bundleTask ->
+        val renameTask = tasks.create("renameDebugAAB") {
+            doLast {
+                val bundleDir = file("${project.buildDir}/outputs/bundle/debug")
+                val originalFile = file("${bundleDir}/app-debug.aab")
+                val renamedFile = file("${bundleDir}/ARIA_APP-debug.aab")
+                
+                if (originalFile.exists()) {
+                    if (renamedFile.exists()) {
+                        renamedFile.delete()
+                    }
+                    originalFile.renameTo(renamedFile)
+                    println("✅ Fichier AAB renommé: ${originalFile.name} -> ${renamedFile.name}")
+                } else {
+                    println("⚠️  Fichier AAB non trouvé: ${originalFile.absolutePath}")
+                }
+            }
+        }
+        renameTask.dependsOn(bundleTask)
+        bundleTask.finalizedBy(renameTask)
     }
 }
 

@@ -60,6 +60,14 @@ def politiques_utilisation(request):
     return render(request, 'school_admin/politiques_utilisation.html')
 
 
+def suppression_compte(request):
+    """
+    Affiche la page de demande de suppression de compte et de données
+    Page publique accessible sans authentification
+    """
+    return render(request, 'school_admin/suppression_compte.html')
+
+
 def connexion_compte_user(request):
     """
     Gère la connexion d'un utilisateur (public)

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demande de suppression de compte - Aria</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #7c3aed;
+            --accent: #ef4444;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --info: #8b5cf6;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --text-primary: var(--gray-800);
+            --text-secondary: var(--gray-600);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: rgb(238, 238, 238);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: var(--white);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 2.5rem 2rem;
+        }
+
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-title i {
+            font-size: 1.25rem;
+        }
+
+        .section-content {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .section-content p {
+            margin-bottom: 1rem;
+        }
+
+        .section-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-content ol,
+        .section-content ul {
+            margin-left: 1.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-content li {
+            margin-bottom: 0.75rem;
+        }
+
+        .section-content ul ul {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight-box {
+            background: var(--gray-50);
+            border-left: 4px solid var(--accent);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .highlight-box strong {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(29, 78, 216, 0.1));
+            border-left: 4px solid var(--primary);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .info-box strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .footer-actions {
+            padding: 2rem;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+
+            .header {
+                padding: 2rem 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .content {
+                padding: 2rem 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+            }
+
+            .footer-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.125rem;
+            }
+
+            .section-content {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-icon">
+                    <i class="fas fa-user-times"></i>
+                </div>
+                <h1>Demande de suppression de compte et de données</h1>
+                <p>Application Aria - Gestion Scolaire</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Procédure de suppression de compte
+                </h2>
+                <div class="section-content">
+                    <p>
+                        Dans l'application <strong>Aria</strong>, les comptes utilisateurs (élèves, parents, enseignants) 
+                        sont créés et gérés par les établissements scolaires. Les utilisateurs ne peuvent 
+                        pas supprimer directement leurs comptes depuis l'application.
+                    </p>
+                    
+                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-top: 1.5rem; margin-bottom: 1rem;">
+                        Comment demander la suppression de votre compte ?
+                    </h3>
+                    <ol>
+                        <li>
+                            <strong>Contactez votre établissement scolaire</strong> : 
+                            Adressez-vous à l'administration de votre établissement (directeur, secrétaire) 
+                            pour formuler votre demande de suppression de compte.
+                        </li>
+                        <li>
+                            <strong>Fournissez les informations nécessaires</strong> :
+                            <ul>
+                                <li>Votre nom complet</li>
+                                <li>Votre matricule ou identifiant</li>
+                                <li>Votre adresse email associée au compte</li>
+                                <li>La raison de votre demande</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Confirmation</strong> : 
+                            L'établissement traitera votre demande et vous confirmera la suppression 
+                            dans un délai raisonnable (généralement sous 30 jours).
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-trash-alt"></i>
+                    Données supprimées
+                </h2>
+                <div class="section-content">
+                    <p>Lors de la suppression de votre compte, les données suivantes seront supprimées :</p>
+                    <ul>
+                        <li><strong>Informations personnelles</strong> : nom, prénom, email, téléphone, adresse</li>
+                        <li><strong>Identifiants de connexion</strong> : nom d'utilisateur, mot de passe (hashé)</li>
+                        <li><strong>Préférences utilisateur</strong> : paramètres personnalisés, préférences d'affichage</li>
+                        <li><strong>Tokens de notification push</strong> : identifiants FCM pour les notifications</li>
+                        <li><strong>Données stockées localement</strong> : données en cache sur l'appareil mobile</li>
+                        <li><strong>Sessions actives</strong> : toutes les sessions de connexion seront invalidées</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-archive"></i>
+                    Données conservées
+                </h2>
+                <div class="section-content">
+                    <p>
+                        Certaines données peuvent être conservées par l'établissement pour des raisons 
+                        légales et administratives :
+                    </p>
+                    <ul>
+                        <li>
+                            <strong>Bulletins de notes et relevés</strong> : 
+                            Conservés selon les obligations légales de l'établissement (généralement 5 à 10 ans)
+                        </li>
+                        <li>
+                            <strong>Historique académique</strong> : 
+                            Conservé pour les archives scolaires et les certificats de scolarité
+                        </li>
+                        <li>
+                            <strong>Documents administratifs</strong> : 
+                            Conservés selon les réglementations en vigueur (attestations, certificats)
+                        </li>
+                        <li>
+                            <strong>Données financières</strong> : 
+                            Conservées pour les obligations comptables et fiscales (factures, paiements)
+                        </li>
+                    </ul>
+                    <div class="info-box">
+                        <strong>Note importante :</strong> La durée de conservation des données administratives 
+                        est déterminée par la réglementation en vigueur dans votre pays et les politiques 
+                        de votre établissement. Ces données sont conservées uniquement à des fins légales 
+                        et administratives, et ne seront pas utilisées à d'autres fins.
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-envelope"></i>
+                    Contact
+                </h2>
+                <div class="section-content">
+                    <p>
+                        Pour toute question concernant la suppression de votre compte ou la gestion 
+                        de vos données personnelles, vous pouvez :
+                    </p>
+                    <ul>
+                        <li><strong>Contacter directement votre établissement scolaire</strong> : 
+                            Adressez-vous à l'administration de votre établissement pour toute demande</li>
+                        <li><strong>Consulter la politique de confidentialité</strong> : 
+                            Consultez notre <a href="{% url 'school_admin:politiques_utilisation' %}" class="link">politique de confidentialité</a> 
+                            pour plus d'informations sur la gestion des données</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    <i class="fas fa-gavel"></i>
+                    Droit à l'oubli
+                </h2>
+                <div class="section-content">
+                    <p>
+                        Conformément au RGPD (Règlement Général sur la Protection des Données) et aux 
+                        réglementations en vigueur, vous avez le droit de demander la suppression de 
+                        vos données personnelles.
+                    </p>
+                    <p>
+                        Cependant, dans le contexte d'une application de gestion scolaire, certaines 
+                        données doivent être conservées pour des raisons légales et administratives, 
+                        notamment :
+                    </p>
+                    <ul>
+                        <li>Les obligations légales de conservation des archives scolaires</li>
+                        <li>Les obligations comptables et fiscales</li>
+                        <li>Les besoins de certification et d'attestation</li>
+                    </ul>
+                    <div class="highlight-box">
+                        <strong>Important :</strong> La suppression de votre compte n'entraîne pas 
+                        nécessairement la suppression de toutes vos données. Les données conservées 
+                        pour des raisons légales resteront archivées conformément à la réglementation 
+                        en vigueur.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-actions">
+            <a href="{% url 'school_admin:politiques_utilisation' %}" class="btn btn-secondary">
+                <i class="fas fa-file-contract"></i>
+                Politique de confidentialité
+            </a>
+            <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i>
+                Retour à la connexion
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+

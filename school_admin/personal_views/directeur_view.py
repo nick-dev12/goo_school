@@ -1502,6 +1502,12 @@ def notes_et_resultats(request):
                 
                 eleves_data.append(eleve_info)
             
+            # Trier par nom (ordre alphabétique) pour le primaire
+            eleves_data.sort(key=lambda x: (
+                x['eleve'].nom.lower() if x['eleve'].nom else '',
+                x['eleve'].prenom.lower() if x['eleve'].prenom else ''
+            ))
+            
             classe_info = {
                 'classe': classe,
                 'eleves_data': eleves_data,
@@ -1573,8 +1579,13 @@ def notes_et_resultats(request):
                     if moyennes_valides else None
                 )
             
-            # Trier par moyenne décroissante (None en dernier)
-            eleves_data.sort(key=lambda x: (x['moyenne_tri'] is None, -x['moyenne_tri'] if x['moyenne_tri'] is not None else 0))
+            # Trier d'abord par nom (ordre alphabétique), puis par moyenne décroissante (None en dernier)
+            eleves_data.sort(key=lambda x: (
+                x['eleve'].nom.lower() if x['eleve'].nom else '',
+                x['eleve'].prenom.lower() if x['eleve'].prenom else '',
+                x['moyenne_tri'] is None,
+                -x['moyenne_tri'] if x['moyenne_tri'] is not None else 0
+            ))
             
             classe_info = {
                 'classe': classe,

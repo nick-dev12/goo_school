@@ -1,11 +1,11 @@
 /* 
 * Gestion des Bulletins - Design System
-* Styles pour la page de gestion des bulletins et notes
+* Version 1.2.0 - Optimisé pour responsive et design épuré
 */
 
-/* Configuration typographique responsive - Base */
+/* Configuration typographique responsive - Base réduite */
 html {
-  font-size: 16px; /* Base pour desktop */
+  font-size: 14px; /* Base réduite pour desktop */
 }
 
 /* Variables CSS - Respectant le code couleur de l'application */
@@ -20,12 +20,6 @@ html {
   --warning: #fbbf24;
   --info: #8b5cf6;
   
-  /* Gradient Colors */
-  --gradient-blue: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  --gradient-purple: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  --gradient-green: linear-gradient(135deg, #10b981, #059669);
-  --gradient-orange: linear-gradient(135deg, #f59e0b, #d97706);
-
   /* Neutral Colors */
   --white: #ffffff;
   --gray-50: #f9fafb;
@@ -43,144 +37,300 @@ html {
   --text-primary: var(--gray-800);
   --text-secondary: var(--gray-600);
   
-  /* Spacing */
-  --spacing-1: 0.25rem;
-  --spacing-2: 0.5rem;
-  --spacing-3: 0.75rem;
-  --spacing-4: 1rem;
-  --spacing-5: 1.25rem;
-  --spacing-6: 1.5rem;
-  --spacing-8: 2rem;
-  --spacing-16: 4rem;
+  /* Spacing réduit */
+  --spacing-1: 0.2rem;
+  --spacing-2: 0.4rem;
+  --spacing-3: 0.6rem;
+  --spacing-4: 0.8rem;
+  --spacing-5: 1rem;
+  --spacing-6: 1.2rem;
+  --spacing-8: 1.6rem;
+  --spacing-16: 3rem;
 
-  /* Font Sizes */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 1.875rem;
+  /* Font Sizes réduits */
+  --font-size-xs: 0.7rem;
+  --font-size-sm: 0.8rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-2xl: 1.25rem;
+  --font-size-3xl: 1.5rem;
 
   /* Border Radius */
-  --border-radius: 0.375rem;
-  --border-radius-lg: 0.75rem;
-  --border-radius-xl: 1rem;
+  --border-radius: 0.3rem;
+  --border-radius-lg: 0.5rem;
+  --border-radius-xl: 0.75rem;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-subtle: 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 2px 4px -1px rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 8px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 8px -2px rgba(0, 0, 0, 0.1);
 
   /* Transitions */
   --transition: all 0.2s ease;
 }
 
-/* Typographie responsive */
+/* Typographie responsive réduite */
 h1 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
 }
 
 h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-h3 {
   font-size: 1.25rem;
   font-weight: 600;
 }
 
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
 p {
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
 @media (max-width: 1024px) {
   html {
-    font-size: 15px;
+    font-size: 13px;
   }
   
-  h1 { font-size: 1.875rem; }
-  h2 { font-size: 1.375rem; }
-  h3 { font-size: 1.125rem; }
+  h1 { font-size: 1.375rem; }
+  h2 { font-size: 1.125rem; }
+  h3 { font-size: 1rem; }
 }
 
 @media (max-width: 768px) {
   html {
-    font-size: 14px;
+    font-size: 12px;
   }
   
-  h1 { font-size: 1.75rem; }
-  h2 { font-size: 1.25rem; }
-  h3 { font-size: 1rem; }
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1rem; }
+  h3 { font-size: 0.9rem; }
 }
 
+/* Container */
+.container {
+  padding: var(--spacing-4);
+}
+
+.page-header {
+  margin-bottom: var(--spacing-4);
+}
+
+.page-title {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-2);
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.page-actions {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-3);
+}
+
+/* ===== BOUTONS REDESSINÉS - SANS DÉGRADÉ, ÉLÉGANTS ===== */
+.btn-primary,
+.btn-outline,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-lg);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background-color: var(--white);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline:hover {
+  background-color: var(--primary);
+  color: var(--white);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  border-color: var(--gray-300);
+}
+
+.btn-secondary:hover {
+  background-color: var(--gray-200);
+  border-color: var(--gray-400);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-publish {
+  background-color: var(--success);
+  color: var(--white);
+  border-color: var(--success);
+}
+
+.btn-publish:hover:not([disabled]) {
+  background-color: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-publish[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--gray-400);
+  border-color: var(--gray-400);
+}
+
+.btn-visibility {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-action-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--border-radius);
+  background-color: var(--primary);
+  color: var(--white);
+  text-decoration: none;
+  transition: var(--transition);
+  font-size: 0.75rem;
+}
+
+.btn-action-small:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-outline,
+  .btn-secondary {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    gap: 0.4rem;
+  }
+  
+  .page-actions {
+    flex-direction: column;
+  }
+  
+  .page-actions a,
+  .page-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===== ONGLETS PÉRIODES ===== */
 .period-tabs {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: nowrap; /* Scroll horizontal sur mobile */
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  overflow-y: hidden;
+  padding-bottom: 0.4rem;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .period-tab {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  padding: 0.75rem 1rem;
+  gap: 0.3rem;
+  padding: 0.6rem 0.8rem;
   background: var(--white);
-  border: 2px solid var(--gray-200);
-  border-radius: 12px;
+  border: 1.5px solid var(--gray-200);
+  flex-shrink: 0;
+  white-space: nowrap;
+  border-radius: var(--border-radius-lg);
   text-decoration: none;
   color: var(--gray-700);
-  min-width: 160px;
-  flex-shrink: 0;
+  min-width: 140px;
   transition: var(--transition);
-  box-shadow: var(--shadow-subtle);
+  box-shadow: var(--shadow-sm);
 }
 
 .period-tab:hover {
   border-color: var(--primary);
-  box-shadow: var(--shadow-card);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .period-tab.active {
   border-color: var(--primary);
-  background: var(--primary-light);
-  color: var(--directeur-primary);
-  box-shadow: var(--shadow-card);
+  background-color: var(--primary);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
 }
 
 .period-tab.active .period-status-chip {
-  background: var(--directeur-primary);
+  background-color: rgba(255, 255, 255, 0.2);
   color: var(--white);
 }
 
 .period-name {
   font-weight: 600;
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
 }
 
 .period-meta {
-  font-size: var(--font-size-xs);
+  font-size: 0.7rem;
   color: var(--gray-500);
+}
+
+.period-tab.active .period-meta {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .period-status-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
-  font-size: var(--font-size-xs);
+  font-size: 0.65rem;
   font-weight: 600;
   width: fit-content;
   text-transform: uppercase;
@@ -202,111 +352,114 @@ p {
   color: #6b21a8;
 }
 
+/* ===== OVERVIEW CARDS ===== */
 .bulletins-overview {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 1.25rem;
-  margin-bottom: 1.875rem;
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
 }
 
 .overview-card {
   background: var(--white);
-  border-radius: 14px;
-  padding: 1.25rem;
+  border-radius: var(--border-radius-lg);
+  padding: 0.8rem 1rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   justify-content: center;
   box-shadow: var(--shadow-card);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  max-width: 280px;
+  transition: var(--transition);
+  max-width: 200px;
+  flex: 1 1 auto;
+  min-width: 140px;
 }
 
 .overview-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-card-hover);
 }
 
 .overview-icon {
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 14px;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--border-radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--white);
-  font-size: 1.25rem;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
 .overview-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
+  gap: 0.2rem;
 }
 
 .overview-label {
-  font-size: 0.8125rem; /* ~13px */
+  font-size: 0.7rem;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  margin: 5px;
 }
 
 .overview-value {
-  font-size: 1.5rem; /* ~24px */
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
+/* ===== PROGRESS BAR ===== */
 .bulletin-progress-wrapper {
   background: var(--white);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: var(--border-radius-lg);
+  padding: 0.8rem 1rem;
   box-shadow: var(--shadow-subtle);
-  margin-top: 20px;
+  margin-top: 1rem;
 }
 
 .progress-bar {
   width: 100%;
-  height: 12px;
+  height: 8px;
   border-radius: 999px;
   background: var(--gray-200);
   overflow: hidden;
 }
 
 .progress-bar.small {
-  height: 8px;
+  height: 6px;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--gradient-blue);
+  background-color: var(--primary);
   border-radius: inherit;
   transition: width 0.4s ease;
 }
 
 .progress-meta {
-  margin-top: 12px;
+  margin-top: 0.6rem;
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
 .progress-meta .last-update {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.4rem;
 }
 
 .bulletin-actions {
-  margin-top: 20px;
+  margin-top: 1rem;
   display: flex;
-  gap: 12px;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
@@ -314,33 +467,276 @@ p {
   margin: 0;
 }
 
-.students-section {
-  margin-top: var(--spacing-8);
+/* ===== ONGLETS PRINCIPAUX (NIVEAUX) ===== */
+.tabs-container {
+  background: var(--white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: var(--spacing-4);
+}
+
+.tabs-header {
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  padding: var(--spacing-3);
+}
+
+.tabs-nav {
+  display: flex;
+  gap: var(--spacing-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  padding-bottom: var(--spacing-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.tab-button {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 160px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tab-button:hover {
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-button.active {
+  background: var(--white);
+  box-shadow: var(--shadow-md);
+  border: 1.5px solid var(--primary);
+}
+
+.tab-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.tab-icon {
+  width: 32px;
+  height: 32px;
+  background-color: var(--primary);
+  color: var(--white);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.tab-button.active .tab-icon {
+  background-color: var(--primary);
+}
+
+.tab-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tab-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.tab-subtitle {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.tab-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.students-count {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.students-label {
+  font-size: 0.65rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabs-content {
+  padding: var(--spacing-4);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .tabs-header {
+    padding: var(--spacing-2);
+  }
+  
+  .tabs-nav {
+    gap: var(--spacing-1);
+  }
+  
+  .tab-button {
+    min-width: 120px;
+    padding: var(--spacing-2) var(--spacing-3);
+  }
+  
+  .tab-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  
+  .tab-title {
+    font-size: 0.75rem;
+  }
+  
+  .tab-subtitle {
+    font-size: 0.65rem;
+  }
+  
+  .students-count {
+    font-size: 0.75rem;
+  }
+  
+  .students-label {
+    font-size: 0.6rem;
+  }
+  
+  .tabs-content {
+    padding: var(--spacing-3);
+  }
+}
+
+/* ===== ONGLETS PAR CLASSE ===== */
+.classes-subtabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+  padding: 0.4rem;
+  background: #f8fafc;
+  border-radius: var(--border-radius-lg);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.classe-subtab-btn {
+  padding: 0.4rem 0.7rem;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+  min-width: 90px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.classe-subtab-btn:hover {
+  border-color: var(--primary);
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.classe-subtab-btn.active {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.classe-name {
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.classe-count {
+  font-size: 0.65rem;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+.classe-subtab-btn.active .classe-name,
+.classe-subtab-btn.active .classe-count {
+  color: white;
+}
+
+.classe-subtab-content {
+  display: none;
+}
+
+.classe-subtab-content.active {
+  display: block;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-6);
-  padding-bottom: var(--spacing-4);
-  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1.5px solid var(--gray-200);
 }
 
 .section-title {
-  font-size: var(--font-size-xl);
+  font-size: 1rem;
   font-weight: 600;
   color: var(--gray-900);
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .section-title i {
   color: var(--primary);
 }
 
-/* ===== TABLEAU DES ÉLÈVES - RESPONSIVE SELON BONNES PRATIQUES ===== */
+/* ===== TABLEAU DES ÉLÈVES - RESPONSIVE OPTIMISÉ ===== */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -352,23 +748,10 @@ p {
   box-shadow: var(--shadow-sm);
 }
 
-/* Indicateur visuel de scroll */
-
-
-@media (max-width: 1024px) {
-  .table-responsive::after {
-    opacity: 1;
-  }
-}
-
 .students-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-sm); /* ~14px desktop */
-}
-
-/* Avec moyennes calculées */
-.students-table.with-moyennes {
+  font-size: 0.875rem; /* 14px desktop */
 }
 
 .students-table thead {
@@ -376,27 +759,27 @@ p {
 }
 
 .students-table th {
-  padding: var(--spacing-5) var(--spacing-6);
+  padding: 0.6rem 0.8rem;
   text-align: left;
   font-weight: 600;
-  font-size: var(--font-size-sm);
+  font-size: 0.75rem;
   color: var(--gray-700);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 2px solid var(--gray-200);
+  border-bottom: 1.5px solid var(--gray-200);
   white-space: nowrap;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .students-table th.checkbox-header {
   text-align: center;
-  min-width: 50px;
-  width: 50px;
+  min-width: 40px;
+  width: 40px;
 }
 
 .students-table th.actions-header {
   text-align: right;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .students-table tbody tr {
@@ -413,17 +796,17 @@ p {
 }
 
 .students-table td {
-  padding: var(--spacing-4) var(--spacing-6);
-  font-size: var(--font-size-sm);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.875rem;
   color: var(--gray-700);
   vertical-align: middle;
   white-space: wrap;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .students-table td.checkbox-cell {
   text-align: center;
-  width: 50px;
+  width: 40px;
 }
 
 .students-table td.actions-cell {
@@ -433,17 +816,10 @@ p {
 .students-table td.student-cell {
   white-space: normal;
   min-width: 120px;
-}
-
-
-
-/* Styles pour les cellules du tableau */
-.students-table td.student-cell {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0.4rem;
   flex-direction: row;
-  min-width: 120px;
 }
 
 .student-visibility-toggle {
@@ -454,22 +830,22 @@ p {
 }
 
 .bulletin-toggle {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
   accent-color: var(--primary);
 }
 
 .student-avatar-small {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  width: 28px;
+  height: 28px;
+  background-color: var(--primary);
   color: var(--white);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-sm);
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 
@@ -478,35 +854,43 @@ p {
   min-width: 0;
 }
 
+.student-name-full {
+  display: inline;
+}
+
+.student-name-mobile {
+  display: none;
+}
+
 .student-name {
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--gray-900);
   line-height: 1.2;
 }
 
 .student-email {
-  font-size: var(--font-size-xs);
+  font-size: 0.7rem;
   color: var(--gray-500);
   line-height: 1.2;
 }
 
 .student-number {
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
   color: var(--primary);
   font-weight: 500;
 }
 
 .status-badge {
-  padding: var(--spacing-1) var(--spacing-2);
+  padding: 0.25rem 0.5rem;
   border-radius: var(--border-radius);
-  font-size: var(--font-size-xs);
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.4rem;
 }
 
 .status-validé {
@@ -534,161 +918,14 @@ p {
   color: var(--gray-700);
 }
 
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-16) var(--spacing-8);
-  background: var(--gray-50);
-  border-radius: var(--border-radius-xl);
-  border: 2px dashed var(--gray-300);
-}
-
-.empty-icon {
-  width: 80px;
-  height: 80px;
-  background: var(--gray-200);
-  color: var(--gray-400);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-3xl);
-  margin: 0 auto var(--spacing-4);
-}
-
-.empty-title {
-  font-size: var(--font-size-xl);
-  font-weight: 600;
-  color: var(--gray-700);
-  margin-bottom: var(--spacing-2);
-}
-
-.empty-description {
-  font-size: var(--font-size-base);
-  color: var(--gray-500);
-  margin-bottom: var(--spacing-6);
-}
-
-.btn-outline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 16px !important;
-  border: 2px solid var(--directeur-primary);
-  color: var(--white);
-  border-radius: 10px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  background-color: #4b5563;
-  text-decoration: none;
-  cursor: pointer;
-  max-width: 300px;
-  font-size: 13px;
-}
-
-.bulletin-actions .btn-outline:hover {
-  background: var(--directeur-primary);
-  color: var(--white);
-}
-
-.bulletin-actions .btn-publish {
-  background-color: #048a37;
-  color: var(--white);
-}
-
-.bulletin-actions .btn-publish[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-  box-shadow: none;
-  background-color: #626363;
-  transform: none;
-}
-
-.periods-section {
-  margin-top: 24px;
-}
-
-.periods-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 18px;
-}
-
-.period-card {
-  background: var(--white);
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: var(--shadow-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.period-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.period-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.period-status {
-  font-size: 11px;
-  text-transform: uppercase;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.period-status-en_cours {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success);
-}
-
-.period-status-a_venir {
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--primary);
-}
-
-.period-status-terminee {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--accent);
-}
-
-.period-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.period-footer {
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.actions-header {
-  text-align: right;
-}
-
-.actions-cell {
-  justify-content: flex-end;
-}
-
-/* Styles pour la moyenne générale */
 .moyenne-value {
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--border-radius);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.3rem;
 }
 
 .moyenne-reussie {
@@ -712,19 +949,18 @@ p {
   font-weight: 500;
 }
 
-/* Styles pour le rang */
 .rang-value {
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--primary);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.4rem;
 }
 
 .rang-value i {
   color: #fbbf24;
-  font-size: 16px;
+  font-size: 0.875rem;
 }
 
 .rang-absence {
@@ -738,18 +974,52 @@ p {
   font-weight: 500;
 }
 
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-8) var(--spacing-4);
+  background: var(--gray-50);
+  border-radius: var(--border-radius-xl);
+  border: 2px dashed var(--gray-300);
+}
+
+.empty-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--gray-200);
+  color: var(--gray-400);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto var(--spacing-3);
+}
+
+.empty-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--spacing-2);
+}
+
+.empty-description {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  margin-bottom: var(--spacing-4);
+}
+
 .students-visibility-form {
-  margin-top: var(--spacing-4);
+  margin-top: var(--spacing-3);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 
 .students-visibility-info {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
   color: var(--gray-600);
 }
 
@@ -763,7 +1033,7 @@ p {
 
 .visibility-warning {
   margin: var(--spacing-1) 0 0 0;
-  font-size: var(--font-size-xs);
+  font-size: 0.7rem;
   color: var(--warning);
   display: flex;
   align-items: center;
@@ -779,53 +1049,264 @@ p {
   justify-content: flex-end;
 }
 
-.btn-visibility {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.periods-section {
+  margin-top: 1.2rem;
 }
 
-/* Media query pour tablette - ajustements mineurs */
-@media (max-width: 1200px) {
-  .student-name {
-    font-size: var(--font-size-xs);
+.periods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.8rem;
+}
+
+.period-card {
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  padding: 0.8rem;
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.period-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.period-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.period-status {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.period-status-en_cours {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.period-status-a_venir {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+}
+
+.period-status-terminee {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--accent);
+}
+
+.period-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.period-footer {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ===== RESPONSIVE MOBILE - IMPORTANT ===== */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-3);
   }
   
-  .student-email {
-    font-size: 0.625rem; /* ~10px */
+  .page-title {
+    font-size: 1.25rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.8rem;
+  }
+  
+  .period-tabs {
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .period-tab {
+    min-width: 120px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  
+  .period-name {
+    font-size: 0.75rem;
+  }
+  
+  .period-meta {
+    font-size: 0.65rem;
+  }
+  
+  .overview-card {
+    padding: 0.6rem 0.8rem;
+    min-width: 120px;
+  }
+  
+  .overview-value {
+    font-size: 1rem;
+  }
+  
+  .overview-label {
+    font-size: 0.65rem;
+  }
+  
+  .classes-subtabs {
+    gap: 0.3rem;
+    padding: 0.3rem;
+  }
+  
+  .classe-subtab-btn {
+    min-width: 80px;
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .classe-name {
+    font-size: 0.7rem;
+  }
+  
+  .classe-count {
+    font-size: 0.6rem;
+  }
+  
+  /* IMPORTANT: Texte du tableau à 12px sur mobile */
+  .students-table {
+    font-size: 12px !important; /* 12px comme demandé */
+  }
+  
+  .students-table th {
+    font-size: 11px !important;
+    padding: 0.5rem 0.6rem;
+    min-width: 80px;
+  }
+  
+  .students-table td {
+    font-size: 12px !important; /* 12px comme demandé */
+    padding: 0.5rem 0.6rem;
+    min-width: 80px;
+  }
+  
+  .student-name {
+    font-size: 12px !important; /* 12px comme demandé */
   }
   
   .student-number {
-    font-size: var(--font-size-xs);
+    font-size: 11px !important;
   }
   
   .status-badge {
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-1) var(--spacing-2);
+    font-size: 10px !important;
+    padding: 0.2rem 0.4rem;
   }
-}
-
-/* Media query pour mobile */
-@media (max-width: 768px) {
+  
+  .moyenne-value {
+    font-size: 11px !important;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .rang-value {
+    font-size: 11px !important;
+  }
+  
+  .student-avatar-small {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+  }
+  
+  .btn-action-small {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+  }
+  
+  .bulletin-toggle {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .student-name-full {
+    display: none;
+  }
+  
+  .student-name-mobile {
+    display: inline;
+  }
+  
   .progress-meta {
     flex-direction: column;
-    gap: 0.375rem;
+    gap: 0.3rem;
     align-items: flex-start;
+    font-size: 0.7rem;
   }
 
   .bulletin-actions {
     flex-direction: column;
+    gap: 0.5rem;
   }
   
-  .students-table td.student-cell {
-    align-items: center;
+  .section-title {
+    font-size: 0.9rem;
   }
-
-  .student-name {
-    font-size: 14px !important;
+  
+  .periods-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  
+  .period-card {
+    padding: 0.6rem;
   }
 }
 
-
-
-
+@media (max-width: 480px) {
+  html {
+    font-size: 11px;
+  }
+  
+  .container {
+    padding: var(--spacing-2);
+  }
+  
+  .page-title {
+    font-size: 1.1rem;
+  }
+  
+  .overview-card {
+    min-width: 100px;
+    padding: 0.5rem 0.6rem;
+  }
+  
+  .overview-value {
+    font-size: 0.9rem;
+  }
+  
+  /* IMPORTANT: Texte du tableau à 12px sur très petits écrans aussi */
+  .students-table {
+    font-size: 12px !important;
+  }
+  
+  .students-table th,
+  .students-table td {
+    font-size: 12px !important;
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .student-name {
+    font-size: 12px !important;
+  }
+}

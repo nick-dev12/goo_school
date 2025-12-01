@@ -19,7 +19,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.0.1"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.1.0"
     />
   </head>
   <body>
@@ -131,13 +131,6 @@
                 <div class="tab-panel {% if forloop.first %}active{% endif %}" id="category-{{ categorie }}">
                   <!-- En-tête de la catégorie -->
                   <div class="category-header">
-                    <div class="category-info">
-                      <h3 class="category-title">
-                        <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
-                        {{ categorie }}
-                      </h3>
-                      <p class="category-subtitle">{{ data.classes|length }} classe{{ data.classes|length|pluralize }}</p>
-                    </div>
                     <div class="category-stats">
                       <div class="stat-item">
                         <span class="stat-number">{{ data.total_eleves }}</span>

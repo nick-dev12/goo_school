@@ -338,6 +338,8 @@ p {
     background: #f8fafc;
     border-bottom: 2px solid #e2e8f0;
     overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
 }
@@ -358,6 +360,7 @@ p {
     transition: var(--transition);
     min-width: 140px;
     flex-shrink: 0;
+    white-space: nowrap;
     font-size: 0.875rem; /* ~14px desktop */
 }
 
@@ -687,8 +690,10 @@ p {
     background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
     border-radius: 8px;
     overflow-x: auto;
-    flex-wrap: wrap;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 }
 
 @media (max-width: 768px) {
@@ -712,6 +717,7 @@ p {
     align-items: center;
     min-width: 80px;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -2666,16 +2672,43 @@ p {
     }
     
     .tabs-nav {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
     
     .tab-btn {
-        min-width: auto;
+        min-width: 100px;
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
     }
     
     .classes-subtabs,
     .mois-tabs {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    
+    .classe-subtab-btn,
+    .mois-tab-btn {
+        min-width: 80px;
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .classe-name,
+    .mois-tab-btn span {
+        font-size: 0.7rem;
+    }
+    
+    .classe-count {
+        font-size: 0.6rem;
     }
     
     .presence-results-table {

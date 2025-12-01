@@ -1075,7 +1075,11 @@ body {
   gap: 0.5rem;
   border-bottom: 2px solid var(--border-color);
   margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .tab-item {
@@ -1094,6 +1098,8 @@ body {
   gap: 0.5rem;
   position: relative;
   bottom: -2px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tab-item i {

@@ -226,6 +226,10 @@ body {
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-light);
   overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .tab-btn {
@@ -835,11 +839,25 @@ textarea.form-control {
   margin-bottom: var(--space-6);
 }
 
+.niveau-tabs-nav,
+.type-tabs-nav {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
 .niveau-tabs-nav {
   display: flex;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
-  flex-wrap: wrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .niveau-tab-btn {
@@ -852,6 +870,8 @@ textarea.form-control {
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 0.875rem;
+  flex-shrink: 0;
+  white-space: nowrap;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
@@ -1170,7 +1190,11 @@ textarea.form-control {
   display: flex;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
-  flex-wrap: wrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .type-tab-btn {
@@ -1183,6 +1207,8 @@ textarea.form-control {
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 0.875rem;
+  flex-shrink: 0;
+  white-space: nowrap;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);

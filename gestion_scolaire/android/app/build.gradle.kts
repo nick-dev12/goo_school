@@ -157,7 +157,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-messaging")
     
-    // Google Play Core (requis pour éviter les erreurs R8 avec Flutter)
-    add("implementation", "com.google.android.play:core:1.10.3")
-    add("implementation", "com.google.android.play:core-ktx:1.8.1")
+    // Note: Google Play Core a été supprimé car incompatible avec SDK 34 (Android 14)
+    // Ces dépendances n'étaient pas nécessaires pour le fonctionnement de l'application
 }

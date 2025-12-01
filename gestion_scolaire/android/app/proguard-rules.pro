@@ -53,13 +53,17 @@
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -dontwarn com.dexterous.flutterlocalnotifications.**
 
-# Google Play Core (maintenant inclus comme dépendance)
--keep class com.google.android.play.core.** { *; }
--keep class com.google.android.play.core.splitcompat.** { *; }
--keep class com.google.android.play.core.splitinstall.** { *; }
--keep class com.google.android.play.core.tasks.** { *; }
+# Google Play Core supprimé - incompatible avec SDK 34
+# Flutter référence ces classes mais nous ne les utilisons pas (pas de téléchargement dynamique)
+# Ignorer les avertissements pour les classes Play Core manquantes
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
 
 # Flutter Play Store Split (composants différés)
+# Conserver la classe Flutter mais ignorer les dépendances Play Core manquantes
 -keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
--keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
 

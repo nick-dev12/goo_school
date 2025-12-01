@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
 <body>
@@ -103,12 +103,6 @@
             {% for categorie, data in classes_grouped.items %}
                 <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
                     
-                    <!-- Info catégorie -->
-                    <div class="category-info">
-                        <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
-                        <p>{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }} - {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</p>
-                    </div>
-
                     <!-- Sous-onglets par classe -->
                     <div class="classes-subtabs">
                         {% for classe_data in data.classes %}
@@ -318,7 +312,7 @@
                                                                         <div class="eleve-avatar">
                                                                             <i class="fas fa-user"></i>
                                                                         </div>
-                                                                        <span class="eleve-nom">{{ eleve_data.eleve.nom_complet }}</span>
+                                                                        <span class="eleve-nom">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</span>
                                                                     </div>
                                                                 </td>
                                                                 <td class="matricule-cell">{{ eleve_data.eleve.numero_eleve }}</td>
@@ -434,7 +428,7 @@
                                                                     <i class="fas fa-user"></i>
                                                                 </div>
                                                                 <div>
-                                                                    <div class="presence-card-name">{{ eleve_data.eleve.nom_complet }}</div>
+                                                                    <div class="presence-card-name">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</div>
                                                                     <div class="presence-card-matricule">{{ eleve_data.eleve.numero_eleve }}</div>
                                                                 </div>
                                                             </div>

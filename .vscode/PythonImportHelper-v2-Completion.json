@@ -8024,6 +8024,14 @@
         "documentation": {}
     },
     {
+        "label": "template",
+        "importPath": "django",
+        "description": "django",
+        "isExtraImport": true,
+        "detail": "django",
+        "documentation": {}
+    },
+    {
         "label": "BaseCommand",
         "importPath": "django.core.management.base",
         "description": "django.core.management.base",
@@ -15503,6 +15511,33 @@
         "description": "school_admin.signals.examen_signals",
         "peekOfCode": "def creer_notes_pour_session(session):\n    \"\"\"\n    Créer les notes d'examen pour tous les élèves des classes de la session,\n    pour toutes les matières de la session.\n    Règle : UNE note d'examen par (eleve, session, matiere)\n    \"\"\"\n    # Récupérer toutes les classes et matières de la session\n    classes = session.classes.all()\n    matieres = session.matieres.all()\n    # Si pas de classes ou pas de matières, ne rien faire",
         "detail": "school_admin.signals.examen_signals",
+        "documentation": {}
+    },
+    {
+        "label": "premier_nom",
+        "kind": 2,
+        "importPath": "school_admin.templatetags.eleve_filters",
+        "description": "school_admin.templatetags.eleve_filters",
+        "peekOfCode": "def premier_nom(value):\n    \"\"\"\n    Extrait le premier nom d'une chaîne de noms.\n    Exemple: \"Dupont Martin\" -> \"Dupont\"\n    \"\"\"\n    if not value:\n        return \"\"\n    return value.split()[0] if value.split() else \"\"\n@register.filter\ndef premier_prenom(value):",
+        "detail": "school_admin.templatetags.eleve_filters",
+        "documentation": {}
+    },
+    {
+        "label": "premier_prenom",
+        "kind": 2,
+        "importPath": "school_admin.templatetags.eleve_filters",
+        "description": "school_admin.templatetags.eleve_filters",
+        "peekOfCode": "def premier_prenom(value):\n    \"\"\"\n    Extrait le premier prénom d'une chaîne de prénoms.\n    Exemple: \"Jean Pierre\" -> \"Jean\"\n    \"\"\"\n    if not value:\n        return \"\"\n    return value.split()[0] if value.split() else \"\"",
+        "detail": "school_admin.templatetags.eleve_filters",
+        "documentation": {}
+    },
+    {
+        "label": "register",
+        "kind": 5,
+        "importPath": "school_admin.templatetags.eleve_filters",
+        "description": "school_admin.templatetags.eleve_filters",
+        "peekOfCode": "register = template.Library()\n@register.filter\ndef premier_nom(value):\n    \"\"\"\n    Extrait le premier nom d'une chaîne de noms.\n    Exemple: \"Dupont Martin\" -> \"Dupont\"\n    \"\"\"\n    if not value:\n        return \"\"\n    return value.split()[0] if value.split() else \"\"",
+        "detail": "school_admin.templatetags.eleve_filters",
         "documentation": {}
     },
     {

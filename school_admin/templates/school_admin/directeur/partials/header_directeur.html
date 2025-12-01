@@ -4,7 +4,7 @@
   href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.2">
 <!-- Messages Template -->
 {% include 'school_admin/partials/messages.html' %}
-<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.2" />
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
 
 
 <div class="dashboard">
@@ -18,28 +18,6 @@
       </div>
 
       <div class="header-right">
-       
-
-        <!-- Sélecteur de session -->
-        <div class="session-selector-container">
-          <form method="post" action="{% url 'directeur:changer_session_directeur' %}?next={{ request.path }}" class="session-selector-form">
-            {% csrf_token %}
-            <select name="session_id" id="sessionSelector" class="session-selector" onchange="this.form.submit()" title="Changer de session">
-              <option value="">Session active ({{ annee_scolaire_reellement_active.libelle|default:"Aucune" }})</option>
-              {% for annee in toutes_annees_scolaires %}
-                <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
-                  {{ annee.libelle }}{% if annee.est_active %} (Active){% endif %}
-                </option>
-              {% endfor %}
-            </select>
-          </form>
-          {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
-            <span class="session-indicator" title="Vous consultez une session différente de la session active">
-              <i class="fas fa-info-circle"></i>
-            </span>
-          {% endif %}
-        </div>
-
         <a href="{% url 'directeur:notifications_directeur' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
           {% if notifications_directeur_non_lues > 0 %}
@@ -69,20 +47,45 @@
         <p class="banner-subtitle">
           {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
         </p>
+        <!-- Sélecteur de session intégré -->
+        <div class="banner-session-selector">
+          <form method="post" action="{% url 'directeur:changer_session_directeur' %}?next={{ request.path }}" class="session-selector-form">
+            {% csrf_token %}
+            <label for="sessionSelector" class="session-label">
+              <i class="fas fa-calendar-alt"></i>
+              <span>Session :</span>
+            </label>
+            <select name="session_id" id="sessionSelector" class="banner-session-select" onchange="this.form.submit()" title="Changer de session">
+              <option value="">Session active ({{ annee_scolaire_reellement_active.libelle|default:"Aucune" }})</option>
+              {% for annee in toutes_annees_scolaires %}
+                <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
+                  {{ annee.libelle }}{% if annee.est_active %} (Active){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+            {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
+              <span class="banner-session-indicator" title="Vous consultez une session différente de la session active">
+                <i class="fas fa-info-circle"></i>
+              </span>
+            {% endif %}
+          </form>
+        </div>
       </div>
-      <!-- Bouton d'installation PWA -->
-      <button id="pwa-install-btn" class="welcome-action pwa-install-btn" style="display: none;" aria-label="Installer l'application">
-        <i class="fas fa-download"></i>
-        <span>Installer</span>
-      </button>
-      <a
-        href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
-        class="welcome-action logout-link"
-        aria-label="Se déconnecter"
-      >
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Déconnexion</span>
-      </a>
+      <div class="banner-actions">
+        <!-- Bouton d'installation PWA -->
+        <button id="pwa-install-btn" class="welcome-action pwa-install-btn" style="display: none;" aria-label="Installer l'application">
+          <i class="fas fa-download"></i>
+          <span>Installer</span>
+        </button>
+        <a
+          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
+          class="welcome-action logout-link"
+          aria-label="Se déconnecter"
+        >
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Déconnexion</span>
+        </a>
+      </div>
     </section>
 
     <!-- Bouton Retour -->

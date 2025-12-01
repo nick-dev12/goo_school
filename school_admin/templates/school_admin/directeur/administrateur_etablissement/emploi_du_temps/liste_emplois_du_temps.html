@@ -20,7 +20,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}?v=1.0.0"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}?v=1.1.0"
     />
   </head>
   <body>
@@ -180,16 +180,6 @@
                 <div class="tab-panel {% if forloop.first %}active{% endif %}" id="panel-{{ categorie|slugify }}">
                   <!-- En-tête de la catégorie -->
                   <div class="category-header">
-                    <div class="category-info">
-                      <h3 class="category-title">
-                        <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
-                        {{ categorie }}
-                      </h3>
-                      <p class="category-subtitle">
-                        {{ data.total_classes }} classe{{ data.total_classes|pluralize }} - 
-                        {{ data.classes_avec_edt }} avec emploi du temps
-                      </p>
-                    </div>
                     <div class="category-stats-mini">
                       <div class="stat-mini stat-mini-success">
                         <i class="fas fa-check"></i>

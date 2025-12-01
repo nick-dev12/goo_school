@@ -301,7 +301,11 @@ body {
   display: flex;
   gap: var(--spacing-2);
   overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
   padding-bottom: var(--spacing-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .tab-button {
@@ -312,6 +316,8 @@ body {
   cursor: pointer;
   transition: var(--transition);
   min-width: 200px;
+  flex-shrink: 0;
+  white-space: nowrap;
   text-align: left;
 }
 
@@ -735,6 +741,26 @@ body {
   line-height: 1.2;
 }
 
+/* Affichage responsive des noms */
+.student-name-full {
+  display: inline;
+}
+
+.student-name-mobile {
+  display: none;
+}
+
+/* Sur mobile, afficher uniquement le premier nom et prénom */
+@media (max-width: 768px) {
+  .student-name-full {
+    display: none;
+  }
+  
+  .student-name-mobile {
+    display: inline;
+  }
+}
+
 .student-email {
   font-size: var(--font-size-xs);
   color: var(--gray-500);
@@ -1142,13 +1168,43 @@ body {
   }
   
   .tabs-nav {
-    flex-direction: column;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-direction: row;
     gap: var(--spacing-2);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
   
   .tab-button {
-    min-width: auto;
-    padding: var(--spacing-3);
+    min-width: 120px;
+    padding: var(--spacing-3) var(--spacing-4);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  .classes-subtabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .classe-subtab-btn {
+    min-width: 90px;
+    padding: 0.5rem 0.75rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  .classe-name {
+    font-size: 0.75rem;
+  }
+  
+  .classe-count {
+    font-size: 0.65rem;
   }
   
   .tab-icon {
@@ -1332,6 +1388,42 @@ body {
   
   .stat-item {
     min-width: 60px;
+  }
+  
+  .tabs-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-direction: row;
+  }
+  
+  .tab-button {
+    min-width: 100px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  .classes-subtabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  .classe-subtab-btn {
+    min-width: 80px;
+    padding: 0.4rem 0.6rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  .classe-name {
+    font-size: 0.7rem;
+  }
+  
+  .classe-count {
+    font-size: 0.6rem;
   }
   
   .stat-label {
@@ -1518,7 +1610,10 @@ body {
   background: #f8fafc;
   border-radius: 12px;
   overflow-x: auto;
-  flex-wrap: wrap;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .classe-subtab-btn {
@@ -1533,6 +1628,8 @@ body {
   gap: 4px;
   align-items: center;
   min-width: 120px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .classe-subtab-btn:hover {

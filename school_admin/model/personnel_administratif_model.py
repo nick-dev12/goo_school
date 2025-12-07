@@ -51,7 +51,7 @@ class PersonnelAdministratif(AbstractUser):
     # Informations personnelles
     nom = models.CharField(max_length=100, verbose_name="Nom")
     prenom = models.CharField(max_length=100, verbose_name="Prénom")
-    email = models.EmailField(unique=True, verbose_name="Email professionnel")
+    email = models.EmailField(unique=True, blank=True, null=True, verbose_name="Email professionnel")
     telephone = models.CharField(max_length=20, verbose_name="Téléphone")
 
     # Informations professionnelles
@@ -89,7 +89,7 @@ class PersonnelAdministratif(AbstractUser):
     # Configuration d'authentification
     username = models.CharField(unique=True, max_length=100, verbose_name="Nom d'utilisateur")
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['nom', 'prenom', 'email']
+    REQUIRED_FIELDS = ['nom', 'prenom']
     
     # Ajouter les champs password et is_active pour l'authentification
     password = models.CharField(max_length=128, verbose_name="Mot de passe")

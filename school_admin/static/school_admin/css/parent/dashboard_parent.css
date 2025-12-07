@@ -262,10 +262,29 @@ body {
 }
 
 .btn-notifications .badge {
-    background: rgba(255, 255, 255, 0.25);
+    background: #ef4444;
+    color: white;
     padding: 0.25rem 0.625rem;
-    border-radius: 0.75rem;
-    font-size: 0.85em;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.375rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .fcm-success-message {
@@ -737,9 +756,7 @@ body {
     transition: opacity 0.4s ease;
 }
 
-.enfant-card:hover .enfant-avatar {
-    transform: rotate(360deg) scale(1.15);
-}
+
 
 .enfant-card:hover .enfant-avatar::after {
     opacity: 1;
@@ -1205,12 +1222,12 @@ body {
     }
 
     .welcome-banner {
-        padding: 2rem 1.25rem;
+        padding: 1rem 1rem;
     }
 
     /* H2 mobile */
     .welcome-banner h2 {
-        font-size: 1.75rem; /* 28px mobile */
+        font-size: 1.25rem; /* 20px mobile */
     }
 
     .welcome-banner h2 i {
@@ -1332,17 +1349,17 @@ body {
     }
 
     .welcome-banner {
-        padding: 1.5rem 1rem;
+        padding: 1rem 1rem;
     }
 
     /* H2 mobile très petit */
     .welcome-banner h2 {
-        font-size: 1.5rem; /* 24px mobile très petit */
+        font-size: 1rem; /* 16px mobile très petit */
         flex-direction: column;
     }
 
     .welcome-banner h2 i {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
     }
 
     /* H3 mobile très petit */

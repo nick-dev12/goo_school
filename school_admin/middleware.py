@@ -163,9 +163,9 @@ class AuthenticationMiddleware:
                 
                 return redirect('enseignant:dashboard_enseignant')
             
-            # Si c'est un PersonnelAdministratif, rediriger vers le dashboard personnel
+            # Si c'est un PersonnelAdministratif, rediriger vers le dashboard du directeur (même interface mais avec restrictions)
             elif isinstance(request.user, PersonnelAdministratif):
-                return redirect('personnel_administratif:dashboard_personnel_administratif')
+                return redirect('directeur:dashboard_directeur')
             
             # Si c'est un Eleve, rediriger vers le dashboard élève
             elif isinstance(request.user, Eleve):

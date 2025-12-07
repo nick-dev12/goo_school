@@ -21,62 +21,100 @@
         </a>
       </div>
       <div class="header-title">
-        <h1>Profil de l'établissement</h1>
-        <p>Visualisez et mettez à jour les informations de votre établissement.</p>
+        <h1>{% if is_personnel_administratif %}Mon Profil{% else %}Profil de l'établissement{% endif %}</h1>
+        <p>{% if is_personnel_administratif %}Visualisez et mettez à jour vos informations personnelles.{% else %}Visualisez et mettez à jour les informations de votre établissement.{% endif %}</p>
       </div>
     </header>
 
     <section class="overview-card">
       <div class="overview-left">
-        <div class="overview-logo">
-          {% if etablissement.logo %}
-            <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
-          {% else %}
+        {% if is_personnel_administratif %}
+          <div class="overview-logo">
             <div class="overview-logo-placeholder">
-              <i class="fas fa-school"></i>
+              <i class="fas fa-user"></i>
             </div>
-          {% endif %}
-        </div>
-        <div class="overview-info">
-          <h2>{{ etablissement.nom }}</h2>
-          <p class="overview-type">{{ etablissement.get_type_etablissement_display }}</p>
-          <div class="overview-meta">
-            <span><i class="fas fa-map-marker-alt"></i> {{ etablissement.ville }}, {{ etablissement.pays }}</span>
-            <span><i class="fas fa-envelope"></i> {{ etablissement.email }}</span>
-            {% if etablissement.telephone %}
-              <span><i class="fas fa-phone"></i> {{ etablissement.telephone }}</span>
+          </div>
+          <div class="overview-info">
+            <h2>{{ personnel.prenom }} {{ personnel.nom }}</h2>
+            <p class="overview-type">{{ personnel.get_fonction_display }}</p>
+            <div class="overview-meta">
+              <span><i class="fas fa-envelope"></i> {{ personnel.email }}</span>
+              {% if personnel.telephone %}
+                <span><i class="fas fa-phone"></i> {{ personnel.telephone }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="overview-logo">
+            {% if etablissement.logo %}
+              <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
+            {% else %}
+              <div class="overview-logo-placeholder">
+                <i class="fas fa-school"></i>
+              </div>
             {% endif %}
           </div>
-        </div>
+          <div class="overview-info">
+            <h2>{{ etablissement.nom }}</h2>
+            <p class="overview-type">{{ etablissement.get_type_etablissement_display }}</p>
+            <div class="overview-meta">
+              <span><i class="fas fa-map-marker-alt"></i> {{ etablissement.ville }}, {{ etablissement.pays }}</span>
+              <span><i class="fas fa-envelope"></i> {{ etablissement.email }}</span>
+              {% if etablissement.telephone %}
+                <span><i class="fas fa-phone"></i> {{ etablissement.telephone }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
       </div>
       <div class="overview-right">
-        <div class="overview-director">
-          <h3>Responsable</h3>
-          <p>{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}</p>
-          <span class="director-contact"><i class="fas fa-at"></i> {{ etablissement.directeur_email }}</span>
-          {% if etablissement.directeur_telephone %}
-            <span class="director-contact"><i class="fas fa-mobile-alt"></i> {{ etablissement.directeur_telephone }}</span>
-          {% endif %}
-        </div>
-        <div class="overview-stats">
-          <div class="stat-tag">
-            <span class="stat-label">Code établissement</span>
-            <span class="stat-value">{{ etablissement.code_etablissement }}</span>
+        {% if is_personnel_administratif %}
+          <div class="overview-director">
+            <h3>Établissement</h3>
+            <p>{{ etablissement.nom }}</p>
+            <span class="director-contact"><i class="fas fa-map-marker-alt"></i> {{ etablissement.ville }}, {{ etablissement.pays }}</span>
           </div>
-          <div class="stat-tag">
-            <span class="stat-label">Compte</span>
-            <span class="stat-value">{{ etablissement.username }}</span>
+          <div class="overview-stats">
+            <div class="stat-tag">
+              <span class="stat-label">Identifiant</span>
+              <span class="stat-value">{{ personnel.username }}</span>
+            </div>
+            <div class="stat-tag">
+              <span class="stat-label">Numéro employé</span>
+              <span class="stat-value">{{ personnel.numero_employe }}</span>
+            </div>
           </div>
-        </div>
+        {% else %}
+          <div class="overview-director">
+            <h3>Responsable</h3>
+            <p>{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}</p>
+            <span class="director-contact"><i class="fas fa-at"></i> {{ etablissement.directeur_email }}</span>
+            {% if etablissement.directeur_telephone %}
+              <span class="director-contact"><i class="fas fa-mobile-alt"></i> {{ etablissement.directeur_telephone }}</span>
+            {% endif %}
+          </div>
+          <div class="overview-stats">
+            <div class="stat-tag">
+              <span class="stat-label">Code établissement</span>
+              <span class="stat-value">{{ etablissement.code_etablissement }}</span>
+            </div>
+            <div class="stat-tag">
+              <span class="stat-label">Compte</span>
+              <span class="stat-value">{{ etablissement.username }}</span>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </section>
 
     <section class="tabs-section">
       <div class="tabs-bar" role="tablist">
-        <button class="tab-link {% if active_tab == 'informations' %}active{% endif %}" data-target="#tab-informations" data-tab="informations" type="button">Informations générales</button>
+        <button class="tab-link {% if active_tab == 'informations' %}active{% endif %}" data-target="#tab-informations" data-tab="informations" type="button">Informations {% if is_personnel_administratif %}personnelles{% else %}générales{% endif %}</button>
+        {% if is_directeur %}
         <button class="tab-link {% if active_tab == 'logo' %}active{% endif %}" data-target="#tab-logo" data-tab="logo" type="button">Logo</button>
         <button class="tab-link {% if active_tab == 'modules' %}active{% endif %}" data-target="#tab-modules" data-tab="modules" type="button">Modules activés</button>
         <button class="tab-link {% if active_tab == 'facturation' %}active{% endif %}" data-target="#tab-facturation" data-tab="facturation" type="button">Facturation</button>
+        {% endif %}
         <button class="tab-link {% if active_tab == 'securite' %}active{% endif %}" data-target="#tab-securite" data-tab="securite" type="button">Sécurité</button>
       </div>
 
@@ -87,69 +125,93 @@
             <input type="hidden" name="form_type" value="update_information">
             <input type="hidden" name="active_tab" value="informations" id="active_tab_input">
 
-            <div class="form-block">
-              <h3>Établissement</h3>
-              <div class="form-row">
-                <label for="nom">Nom*</label>
-                <input type="text" id="nom" name="nom" value="{{ etablissement.nom }}" required>
-              </div>
-              <div class="form-row">
-                <label for="type_etablissement">Type*</label>
-                <select id="type_etablissement" name="type_etablissement" required>
-                  {% for value, label in etablissement.TYPE_CHOICES %}
-                    <option value="{{ value }}" {% if etablissement.type_etablissement == value %}selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="form-row">
-                <label for="adresse">Adresse*</label>
-                <input type="text" id="adresse" name="adresse" value="{{ etablissement.adresse }}" required>
-              </div>
-              <div class="form-row-inline">
-                <div class="form-column">
-                  <label for="ville">Ville*</label>
-                  <input type="text" id="ville" name="ville" value="{{ etablissement.ville }}" required>
+            {% if is_personnel_administratif %}
+              <div class="form-block">
+                <h3>Informations personnelles</h3>
+                <div class="form-row-inline">
+                  <div class="form-column">
+                    <label for="prenom">Prénom*</label>
+                    <input type="text" id="prenom" name="prenom" value="{{ personnel.prenom }}" required>
+                  </div>
+                  <div class="form-column">
+                    <label for="nom">Nom*</label>
+                    <input type="text" id="nom" name="nom" value="{{ personnel.nom }}" required>
+                  </div>
                 </div>
-                <div class="form-column">
-                  <label for="pays">Pays*</label>
-                  <input type="text" id="pays" name="pays" value="{{ etablissement.pays }}" required>
+                <div class="form-row">
+                  <label for="email">Email*</label>
+                  <input type="email" id="email" name="email" value="{{ personnel.email }}" required>
+                </div>
+                <div class="form-row">
+                  <label for="telephone">Téléphone</label>
+                  <input type="text" id="telephone" name="telephone" value="{{ personnel.telephone|default:'' }}">
                 </div>
               </div>
-            </div>
+            {% else %}
+              <div class="form-block">
+                <h3>Établissement</h3>
+                <div class="form-row">
+                  <label for="nom">Nom*</label>
+                  <input type="text" id="nom" name="nom" value="{{ etablissement.nom }}" required>
+                </div>
+                <div class="form-row">
+                  <label for="type_etablissement">Type*</label>
+                  <select id="type_etablissement" name="type_etablissement" required>
+                    {% for value, label in etablissement.TYPE_CHOICES %}
+                      <option value="{{ value }}" {% if etablissement.type_etablissement == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="adresse">Adresse*</label>
+                  <input type="text" id="adresse" name="adresse" value="{{ etablissement.adresse }}" required>
+                </div>
+                <div class="form-row-inline">
+                  <div class="form-column">
+                    <label for="ville">Ville*</label>
+                    <input type="text" id="ville" name="ville" value="{{ etablissement.ville }}" required>
+                  </div>
+                  <div class="form-column">
+                    <label for="pays">Pays*</label>
+                    <input type="text" id="pays" name="pays" value="{{ etablissement.pays }}" required>
+                  </div>
+                </div>
+              </div>
 
-            <div class="form-block">
-              <h3>Contact</h3>
-              <div class="form-row">
-                <label for="email">Email*</label>
-                <input type="email" id="email" name="email" value="{{ etablissement.email }}" required>
+              <div class="form-block">
+                <h3>Contact</h3>
+                <div class="form-row">
+                  <label for="email">Email*</label>
+                  <input type="email" id="email" name="email" value="{{ etablissement.email }}" required>
+                </div>
+                <div class="form-row">
+                  <label for="telephone">Téléphone</label>
+                  <input type="text" id="telephone" name="telephone" value="{{ etablissement.telephone|default:'' }}">
+                </div>
               </div>
-              <div class="form-row">
-                <label for="telephone">Téléphone</label>
-                <input type="text" id="telephone" name="telephone" value="{{ etablissement.telephone|default:'' }}">
-              </div>
-            </div>
 
-            <div class="form-block">
-              <h3>Directeur</h3>
-              <div class="form-row-inline">
-                <div class="form-column">
-                  <label for="directeur_prenom">Prénom*</label>
-                  <input type="text" id="directeur_prenom" name="directeur_prenom" value="{{ etablissement.directeur_prenom }}" required>
+              <div class="form-block">
+                <h3>Directeur</h3>
+                <div class="form-row-inline">
+                  <div class="form-column">
+                    <label for="directeur_prenom">Prénom*</label>
+                    <input type="text" id="directeur_prenom" name="directeur_prenom" value="{{ etablissement.directeur_prenom }}" required>
+                  </div>
+                  <div class="form-column">
+                    <label for="directeur_nom">Nom*</label>
+                    <input type="text" id="directeur_nom" name="directeur_nom" value="{{ etablissement.directeur_nom }}" required>
+                  </div>
                 </div>
-                <div class="form-column">
-                  <label for="directeur_nom">Nom*</label>
-                  <input type="text" id="directeur_nom" name="directeur_nom" value="{{ etablissement.directeur_nom }}" required>
+                <div class="form-row">
+                  <label for="directeur_email">Email*</label>
+                  <input type="email" id="directeur_email" name="directeur_email" value="{{ etablissement.directeur_email }}" required>
+                </div>
+                <div class="form-row">
+                  <label for="directeur_telephone">Téléphone</label>
+                  <input type="text" id="directeur_telephone" name="directeur_telephone" value="{{ etablissement.directeur_telephone|default:'' }}">
                 </div>
               </div>
-              <div class="form-row">
-                <label for="directeur_email">Email*</label>
-                <input type="email" id="directeur_email" name="directeur_email" value="{{ etablissement.directeur_email }}" required>
-              </div>
-              <div class="form-row">
-                <label for="directeur_telephone">Téléphone</label>
-                <input type="text" id="directeur_telephone" name="directeur_telephone" value="{{ etablissement.directeur_telephone|default:'' }}">
-              </div>
-            </div>
+            {% endif %}
 
             <div class="form-actions">
               <button type="submit" class="btn-primary">
@@ -160,6 +222,7 @@
           </form>
         </div>
 
+        {% if is_directeur %}
         <div class="tab-panel {% if active_tab == 'logo' %}active{% endif %}" id="tab-logo" role="tabpanel">
           <div class="logo-panel">
             <div class="logo-preview" id="logo-preview">
@@ -201,7 +264,9 @@
             </div>
           </div>
         </div>
+        {% endif %}
 
+        {% if is_directeur %}
         <div class="tab-panel {% if active_tab == 'modules' %}active{% endif %}" id="tab-modules" role="tabpanel">
           <div class="modules-wrapper">
             {% for label, actif in modules_config %}
@@ -218,7 +283,9 @@
             {% endfor %}
           </div>
         </div>
+        {% endif %}
 
+        {% if is_directeur %}
         <div class="tab-panel {% if active_tab == 'facturation' %}active{% endif %}" id="tab-facturation" role="tabpanel">
           <div class="facturation-card">
             <div class="facturation-row">
@@ -253,6 +320,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
 
         <div class="tab-panel {% if active_tab == 'securite' %}active{% endif %}" id="tab-securite" role="tabpanel">
           <div class="security-panel">

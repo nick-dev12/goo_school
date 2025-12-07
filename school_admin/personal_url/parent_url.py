@@ -26,6 +26,7 @@ urlpatterns = [
         parent_view.marquer_notification_parent,
         name='marquer_notification_parent'
     ),
+    path('parent/notifications/<int:notification_id>/click/', parent_view.notification_parent_click, name='notification_parent_click'),
     path('parent/notifications/', parent_view.notifications_parent, name='notifications_parent'),
     
     # Déconnexion

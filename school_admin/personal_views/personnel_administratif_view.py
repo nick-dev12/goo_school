@@ -11,42 +11,15 @@ from ..model.etablissement_model import Etablissement
 def dashboard_personnel_administratif(request):
     """
     Dashboard pour le personnel administratif
+    Redirige vers le dashboard du directeur avec restrictions selon les permissions
     """
     # Vérifier que l'utilisateur est du personnel administratif
     if not isinstance(request.user, PersonnelAdministratif):
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
     
-    personnel = request.user
-    etablissement = personnel.etablissement
-    
-    # Statistiques du personnel
-    stats = {
-        'nom_complet': personnel.nom_complet,
-        'fonction': personnel.get_fonction_display(),
-        'etablissement': etablissement.nom,
-        'date_creation': personnel.date_creation,
-        'actif': personnel.actif,
-        'numero_employe': personnel.numero_employe,
-    }
-    
-    # Statistiques de l'établissement
-    etablissement_stats = {
-        'nom': etablissement.nom,
-        'type': etablissement.get_type_etablissement_display(),
-        'code': etablissement.code_etablissement,
-        'ville': etablissement.ville,
-        'pays': etablissement.pays,
-    }
-    
-    context = {
-        'personnel': personnel,
-        'etablissement': etablissement,
-        'stats': stats,
-        'etablissement_stats': etablissement_stats,
-    }
-    
-    return render(request, 'school_admin/personnel_administratif/dashboard_personnel_administratif.html', context)
+    # Rediriger vers le dashboard du directeur (même interface mais avec restrictions)
+    return redirect('directeur:dashboard_directeur')
 
 
 @login_required

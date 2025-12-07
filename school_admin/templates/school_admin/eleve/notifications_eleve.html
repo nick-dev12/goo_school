@@ -114,6 +114,21 @@
         opacity: 0.85;
       }
 
+      .notification-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.12),
+          0 6px 8px -3px rgba(0, 0, 0, 0.05);
+      }
+
+      .notification-link {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .notification-link:hover {
+        text-decoration: none;
+      }
+
       .card-header {
         display: flex;
         align-items: center;
@@ -186,32 +201,41 @@
       {% if notifications %}
         <div class="notifications-list">
           {% for notification in notifications %}
-            <article class="notification-card {% if not notification.lu %}unread{% else %}read{% endif %}">
-              <div class="card-header">
-                <i class="fas fa-bell"></i>
-                {{ notification.titre }}
-                {% if not notification.lu %}
-                  <span style="margin-left: auto; background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Nouveau</span>
-                {% endif %}
-              </div>
-              <div class="card-meta">
-                <span>
-                  <i class="far fa-clock"></i>
-                  {{ notification.date_creation|date:"d/m/Y H:i" }}
-                </span>
-                <span>
-                  <i class="fas fa-tag"></i>
-                  {{ notification.get_type_notification_display }}
-                </span>
-                {% if notification.lu and notification.date_lecture %}
-                  <span style="color: var(--gray-400);">
-                    <i class="fas fa-check-circle"></i>
-                    Lu le {{ notification.date_lecture|date:"d/m/Y H:i" }}
+            {% with redirect_url=notification.donnees.redirect_url|default:"" %}
+            <a href="{% url 'eleve:notification_eleve_click' notification.id %}" class="notification-link" style="text-decoration: none; color: inherit; display: block;">
+              <article class="notification-card {% if not notification.lu %}unread{% else %}read{% endif %}" style="cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                <div class="card-header">
+                  <i class="fas fa-bell"></i>
+                  {{ notification.titre }}
+                  {% if not notification.lu %}
+                    <span style="margin-left: auto; background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Nouveau</span>
+                  {% endif %}
+                </div>
+                <div class="card-meta">
+                  <span>
+                    <i class="far fa-clock"></i>
+                    {{ notification.date_creation|date:"d/m/Y H:i" }}
                   </span>
+                  <span>
+                    <i class="fas fa-tag"></i>
+                    {{ notification.get_type_notification_display }}
+                  </span>
+                  {% if notification.lu and notification.date_lecture %}
+                    <span style="color: var(--gray-400);">
+                      <i class="fas fa-check-circle"></i>
+                      Lu le {{ notification.date_lecture|date:"d/m/Y H:i" }}
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="card-body">{{ notification.message }}</div>
+                {% if redirect_url %}
+                  <div style="margin-top: 10px; font-size: 12px; color: var(--primary);">
+                    <i class="fas fa-arrow-right"></i> Cliquez pour voir les détails
+                  </div>
                 {% endif %}
-              </div>
-              <div class="card-body">{{ notification.message }}</div>
-            </article>
+              </article>
+            </a>
+            {% endwith %}
           {% endfor %}
         </div>
       {% else %}

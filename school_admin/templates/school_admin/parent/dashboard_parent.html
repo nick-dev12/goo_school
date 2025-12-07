@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.0"
+        href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.1"
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/parent/nav_parent.css' %}?v=1.0.0"
+        href="{% static 'school_admin/css/parent/nav_parent.css' %}?v=1.0.1"
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/parent/dashboard_parent.css' %}?v=1.0.0"
+        href="{% static 'school_admin/css/parent/dashboard_parent.css' %}?v=1.0.3"
     />
 </head>
 <body>
@@ -62,7 +62,6 @@
             </div>
         </div>
 
-        {% include 'school_admin/parent/partials/annee_scolaire_badge.html' %}
 
         {% include 'school_admin/parent/partials/navigation_panel.html' %}
 
@@ -94,7 +93,6 @@
         <!-- Message de bienvenue -->
         <div class="welcome-banner">
             <h2>
-                <i class="fas fa-hand-sparkles"></i>
                 Bienvenue {{ parent.prenom }} !
             </h2>
         </div>
@@ -206,44 +204,20 @@
                             Matricule de l'élève
                         </label>
                         <input type="text" name="matricule_eleve" class="form-input" 
-                               placeholder="Ex: BP2025-001" 
+                               placeholder="Ex: BD345843" 
                                value="{{ form_data.matricule_eleve|default:'' }}" required>
                         <div class="form-help">Le matricule unique de votre enfant</div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">
-                            <i class="fas fa-chalkboard"></i>
-                            Classe de l'élève
+                            <i class="fas fa-lock"></i>
+                            Mot de passe de l'élève
                         </label>
-                        <input type="text" name="classe_eleve" class="form-input" 
-                               placeholder="Ex: CE1 - A ou 6eme A" 
-                               value="{{ form_data.classe_eleve|default:'' }}" required>
-                        <div class="form-help">La classe actuelle de votre enfant</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-user-check"></i>
-                            Nom ou prénom du parent inscripteur
-                        </label>
-                        <input type="text" name="nom_parent_inscripteur" class="form-input" 
-                               placeholder="Ex: Dupont ou Marie" 
-                               value="{{ form_data.nom_parent_inscripteur|default:'' }}" required>
-                        <div class="form-help">Pour vérifier que vous êtes bien le parent de cet enfant</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-heart"></i>
-                            Votre lien avec l'enfant
-                        </label>
-                        <select name="type_lien" class="form-select" required>
-                            <option value="">-- Sélectionnez --</option>
-                            <option value="pere" {% if form_data.type_lien == 'pere' %}selected{% endif %}>Père</option>
-                            <option value="mere" {% if form_data.type_lien == 'mere' %}selected{% endif %}>Mère</option>
-                            <option value="tuteur" {% if form_data.type_lien == 'tuteur' %}selected{% endif %}>Tuteur/Tutrice</option>
-                        </select>
+                        <input type="password" name="mot_de_passe_eleve" class="form-input" 
+                               placeholder="Entrez le mot de passe de l'enfant" 
+                               required>
+                        <div class="form-help">Le mot de passe de connexion de votre enfant</div>
                     </div>
                 </div>
 
@@ -251,7 +225,7 @@
                     <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-paper-plane"></i>
-                        Envoyer la demande
+                        Lier l'enfant
                     </button>
                 </div>
             </form>

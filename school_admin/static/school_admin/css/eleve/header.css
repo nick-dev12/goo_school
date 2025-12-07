@@ -235,19 +235,32 @@ body {
 
 .notification-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  background-color: var(--warning);
+  top: -4px;
+  right: -4px;
+  background-color: #ef4444;
   color: white;
-  font-size: 0.65rem; /* Smaller font */
-  width: 16px; /* Smaller badge */
-  height: 16px; /* Smaller badge */
+  font-size: 0.7rem;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid white;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: pulse-badge 2s infinite;
+  z-index: 10;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .header-profile {

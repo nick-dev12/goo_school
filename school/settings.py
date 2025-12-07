@@ -101,6 +101,7 @@ TEMPLATES = [
                 'school_admin.context_processors.notifications_directeur',
                 'school_admin.context_processors.periode_active',
                 'school_admin.context_processors.session_directeur',
+                'school_admin.utils.context_processors.permissions',
             ],
         },
     },

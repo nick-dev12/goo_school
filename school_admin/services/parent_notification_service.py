@@ -18,6 +18,56 @@ logger = logging.getLogger(__name__)
 
 
 class ParentNotificationService:
+    """
+    Service centralisant la construction et l'envoi des notifications destinées aux parents.
+    """
+    
+    @staticmethod
+    def _get_redirect_url(type_notification: str, payload: Optional[dict] = None, eleve: Optional[Eleve] = None) -> str:
+        """
+        Génère l'URL de redirection appropriée selon le type de notification pour les parents.
+        
+        Args:
+            type_notification: Le type de notification (evaluation, note, bulletin, etc.)
+            payload: Les données de la notification (peut contenir des IDs spécifiques)
+            eleve: L'élève concerné (pour les redirections vers le dashboard enfant)
+        
+        Returns:
+            L'URL de redirection appropriée
+        """
+        try:
+            if type_notification == "evaluation":
+                # Rediriger vers le dashboard enfant (qui affiche les devoirs)
+                if eleve:
+                    return reverse("school_admin:dashboard_enfant", kwargs={"eleve_id": eleve.id})
+                return reverse("school_admin:dashboard_parent")
+            elif type_notification == "note":
+                # Rediriger vers le dashboard enfant (qui affiche les notes)
+                if eleve:
+                    return reverse("school_admin:dashboard_enfant", kwargs={"eleve_id": eleve.id})
+                return reverse("school_admin:dashboard_parent")
+            elif type_notification == "bulletin":
+                # Rediriger vers le dashboard enfant (qui affiche le bulletin)
+                if eleve:
+                    return reverse("school_admin:dashboard_enfant", kwargs={"eleve_id": eleve.id})
+                return reverse("school_admin:dashboard_parent")
+            elif type_notification == "presence":
+                # Rediriger vers le dashboard enfant (qui affiche les présences)
+                if eleve:
+                    return reverse("school_admin:dashboard_enfant", kwargs={"eleve_id": eleve.id})
+                return reverse("school_admin:dashboard_parent")
+            elif type_notification == "sanction":
+                # Rediriger vers le dashboard enfant (qui affiche les sanctions)
+                if eleve:
+                    return reverse("school_admin:dashboard_enfant", kwargs={"eleve_id": eleve.id})
+                return reverse("school_admin:dashboard_parent")
+            else:
+                # Par défaut, rediriger vers le dashboard parent
+                return reverse("school_admin:dashboard_parent")
+        except Exception:
+            # En cas d'erreur, retourner l'URL par défaut
+            return "/parent/dashboard/"
+    
     """Service utilitaire pour notifier les parents au sujet de leurs enfants."""
 
     @staticmethod
@@ -103,6 +153,14 @@ class ParentNotificationService:
         if not parents:
             return {"created": 0, "push": None}
 
+        # Générer l'URL de redirection appropriée selon le type de notification
+        redirect_url = cls._get_redirect_url(type_notification, payload, eleve)
+        
+        # Ajouter l'URL de redirection au payload
+        payload_with_url = payload.copy() if payload else {}
+        payload_with_url['redirect_url'] = redirect_url
+        payload_with_url['url'] = redirect_url
+
         notifications = []
         for parent in parents:
             notification = NotificationParent.objects.create(
@@ -111,25 +169,15 @@ class ParentNotificationService:
                 titre=titre,
                 message=message,
                 type_notification=type_notification,
-                donnees=payload or {},
+                donnees=payload_with_url,
                 date_evenement=timezone.now(),
                 source_object=source,
             )
             notifications.append(notification)
 
-        default_redirect_url = None
-        try:
-            default_redirect_url = reverse('school_admin:notifications_parent')
-        except Exception:
-            default_redirect_url = '/parent/notifications/'
-
-        payload_with_url = payload.copy() if payload else {}
-        payload_with_url.setdefault('redirect_url', default_redirect_url)
-        payload_with_url.setdefault('url', default_redirect_url)
-
         pushdata_with_url = push_data.copy() if push_data else {}
-        pushdata_with_url.setdefault('redirect_url', default_redirect_url)
-        pushdata_with_url.setdefault('url', default_redirect_url)
+        pushdata_with_url['redirect_url'] = redirect_url
+        pushdata_with_url['url'] = redirect_url
 
         push_result = None
         if push_title and push_body:

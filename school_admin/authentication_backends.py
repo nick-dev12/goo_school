@@ -41,34 +41,33 @@ class MultiUserBackend(BaseBackend):
         Cette optimisation réduit le nombre de requêtes SQL de 6 à 1 dans la plupart des cas.
         
         Patterns détectés :
-        - Professeurs : BP629344 (2 lettres + 6 chiffres) - stocké dans username
-        - Élèves : BP2025006, LO2025001 (2-3 lettres suivies de chiffres, format année)
-        - Parents : BPP2025001, LOP2025001 (3 lettres dont la dernière est P, suivies de chiffres)
+        - Parents : BDP345843 (2 lettres + P + 6 chiffres = 9 caractères)
+        - Professeurs : BP629344 (2 lettres + 6 chiffres = 8 caractères) - stocké dans username
+        - Élèves : BD345843 (2 lettres + 6 chiffres = 8 caractères)
         - Établissements/CompteUser : email (contient @) ou username personnalisé
+        
+        Note: Les élèves et professeurs ont le même format (2 lettres + 6 chiffres),
+        mais ils sont dans des tables différentes, donc on vérifiera dans les deux si nécessaire.
         """
         if not username:
             return None
         
         username_upper = username.upper().strip()
         
-        # Détection des professeurs (format: BP629344 - 2 lettres + 6 chiffres)
+        # Détection des parents (format: BDP345843 - 2 lettres + P + 6 chiffres = 9 caractères)
+        # Pattern: exactement 2 lettres + P + 6 chiffres
+        if len(username_upper) == 9 and username_upper[:2].isalpha() and username_upper[2] == 'P' and username_upper[3:].isdigit() and len(username_upper[3:]) == 6:
+            return 'parent'
+        
+        # Détection des professeurs (format: BP629344 - 2 lettres + 6 chiffres = 8 caractères)
         # Pattern: exactement 2 lettres suivies de 6 chiffres
         if len(username_upper) == 8 and username_upper[:2].isalpha() and username_upper[2:].isdigit() and len(username_upper[2:]) == 6:
             return 'professeur'
         
-        # Détection des parents (format: BPP2025001, LOP2025001, etc.)
-        # Pattern: 3 lettres dont la dernière est P, suivies de chiffres
-        if len(username_upper) >= 7 and username_upper[:3].isalpha() and username_upper[3:].isdigit() and username_upper[2] == 'P':
-            return 'parent'
-        
-        # Détection des élèves (format: BP2025006, LO2025001, etc.)
-        # Pattern: 2-3 lettres suivies de chiffres (mais pas le format professeur 2+6)
-        if len(username_upper) >= 6 and username_upper[:2].isalpha() and username_upper[2:].isdigit():
-            # Exclure le format professeur (2 lettres + 6 chiffres exactement)
-            if not (len(username_upper) == 8 and len(username_upper[2:]) == 6):
-                # Exclure aussi les parents (3 lettres avec P)
-                if not (len(username_upper) >= 7 and username_upper[:3].isalpha() and username_upper[2] == 'P'):
-                    return 'eleve'
+        # Détection des élèves (format: BD345843 - 2 lettres + 6 chiffres = 8 caractères)
+        # Pattern: exactement 2 lettres suivies de 6 chiffres (même format que professeur)
+        # On retourne None pour vérifier dans toutes les tables car le format est identique aux professeurs
+        # La vérification se fera dans l'ordre: professeur puis élève
         
         # Détection des emails (Établissements ou CompteUser)
         if '@' in username:
@@ -94,17 +93,7 @@ class MultiUserBackend(BaseBackend):
         detected_type = self._detect_user_type_from_username(username)
         
         # Si le type est détecté, vérifier uniquement dans cette table (OPTIMISATION)
-        if detected_type == 'eleve':
-            try:
-                eleve = Eleve.objects.get(username=username)
-                if eleve.check_password(password) and eleve.actif:
-                    eleve._auth_user_type = 'eleve'
-                    return eleve
-            except Eleve.DoesNotExist:
-                pass
-            return None  # Si l'élève n'est pas trouvé, arrêter ici
-        
-        elif detected_type == 'parent':
+        if detected_type == 'parent':
             try:
                 parent = Parent.objects.get(matricule_parental=username)
                 if parent.check_password(password) and parent.is_active:
@@ -113,6 +102,37 @@ class MultiUserBackend(BaseBackend):
             except Parent.DoesNotExist:
                 pass
             return None  # Si le parent n'est pas trouvé, arrêter ici
+        
+        elif detected_type == 'professeur':
+            # Vérifier d'abord les professeurs, puis les élèves (même format)
+            try:
+                from .model.professeur_model import Professeur
+                professeur = Professeur.objects.get(username=username)
+                if professeur.check_password(password) and professeur.actif:
+                    professeur._auth_user_type = 'professeur'
+                    return professeur
+            except Professeur.DoesNotExist:
+                pass
+            # Si ce n'est pas un professeur, vérifier si c'est un élève
+            try:
+                eleve = Eleve.objects.get(username=username)
+                if eleve.check_password(password) and eleve.actif:
+                    eleve._auth_user_type = 'eleve'
+                    return eleve
+            except Eleve.DoesNotExist:
+                pass
+            return None  # Si ni professeur ni élève trouvé, arrêter ici
+        
+        elif detected_type == 'eleve':
+            # Ce cas ne devrait plus arriver avec le nouveau format, mais on le garde pour compatibilité
+            try:
+                eleve = Eleve.objects.get(username=username)
+                if eleve.check_password(password) and eleve.actif:
+                    eleve._auth_user_type = 'eleve'
+                    return eleve
+            except Eleve.DoesNotExist:
+                pass
+            return None  # Si l'élève n'est pas trouvé, arrêter ici
         
         elif detected_type == 'email_based':
             # Pour les emails, vérifier d'abord Etablissement, puis CompteUser
@@ -133,17 +153,6 @@ class MultiUserBackend(BaseBackend):
                 pass
             return None  # Si aucun n'est trouvé, arrêter ici
         
-        # Si le type est détecté comme professeur, vérifier uniquement dans cette table
-        if detected_type == 'professeur':
-            try:
-                professeur = Professeur.objects.get(username=username)
-                if professeur.check_password(password) and professeur.actif:
-                    professeur._auth_user_type = 'professeur'
-                    return professeur
-            except Professeur.DoesNotExist:
-                pass
-            return None  # Si le professeur n'est pas trouvé, arrêter ici
-        
         # Si le type n'est pas détecté, vérifier dans toutes les tables (fallback)
         # Ordre optimisé selon la fréquence d'utilisation
         
@@ -151,6 +160,7 @@ class MultiUserBackend(BaseBackend):
         # SECTION 1: PROFESSEURS (le plus fréquent)
         # ==========================================
         try:
+            from .model.professeur_model import Professeur
             professeur = Professeur.objects.get(username=username)
             if professeur.check_password(password) and professeur.actif:
                 professeur._auth_user_type = 'professeur'

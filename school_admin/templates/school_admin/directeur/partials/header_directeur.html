@@ -31,11 +31,25 @@
         </button>
 
         <div class="header-profile">
-          <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
-          <div class="header-user-info">
-            <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-            <div class="header-user-role">Directeur</div>
-          </div>
+          {% if is_directeur %}
+            <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
+            <div class="header-user-info">
+              <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
+              <div class="header-user-role">Directeur</div>
+            </div>
+          {% elif is_personnel_administratif and personnel %}
+            <div class="header-avatar">{{ personnel.prenom|first|upper }}{{ personnel.nom|first|upper }}</div>
+            <div class="header-user-info">
+              <div class="header-user-name">{{ personnel.prenom }} {{ personnel.nom }}</div>
+              <div class="header-user-role">{{ personnel.get_fonction_display }}</div>
+            </div>
+          {% else %}
+            <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
+            <div class="header-user-info">
+              <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
+              <div class="header-user-role">Directeur</div>
+            </div>
+          {% endif %}
         </div>
       </div>
     </header>
@@ -43,9 +57,21 @@
     <!-- Welcome Banner -->
     <section class="welcome-banner">
       <div class="banner-content">
-        <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
+        {% if is_directeur %}
+          <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
+        {% elif is_personnel_administratif and personnel %}
+          <h1 class="banner-title">Bienvenue, {{ personnel.prenom }} {{ personnel.nom }}</h1>
+        {% else %}
+          <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
+        {% endif %}
         <p class="banner-subtitle">
-          {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
+          {% if is_directeur %}
+            {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
+          {% elif is_personnel_administratif and personnel %}
+            {{ personnel.etablissement.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
+          {% else %}
+            {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
+          {% endif %}
         </p>
         <!-- Sélecteur de session intégré -->
         <div class="banner-session-selector">
@@ -116,6 +142,9 @@
       <div class="nav-cards-row nav-cards-compact">
 
 
+        {% load permissions_tags %}
+        {% check_permission request.user "administrative_voir" as can_view_administrative %}
+        {% if can_view_administrative or is_directeur %}
         <a href="{% url 'directeur:gestion_administrative' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-red">
             <i class="fas fa-file-alt"></i>
@@ -125,6 +154,9 @@
             <p>Gestion des administrations</p>
           </div>
         </a>
+        {% endif %}
+        {% check_permission request.user "annonces_voir" as can_view_annonces %}
+        {% if can_view_annonces or is_directeur %}
         <a href="{% url 'directeur:annonces_directeur' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-bullhorn"></i>
@@ -134,17 +166,9 @@
             <p>Communiquer les actualités</p>
           </div>
         </a>
-
-        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-cyan">
-            <i class="fas fa-user-cog"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>Profil établissement</h3>
-            <p>Paramètres et informations clés</p>
-          </div>
-        </a>
-
+        {% endif %}
+        {% check_permission request.user "examens_voir" as can_view_examens %}
+        {% if can_view_examens or is_directeur %}
         <a href="{% url 'directeur:gestion_examens' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-orange">
             <i class="fas fa-clipboard-list"></i>
@@ -154,14 +178,14 @@
             <p>Planifier et suivre les sessions</p>
           </div>
         </a>
-
-        <a href="{% url 'directeur:facturation_directeur' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-credit-card"></i>
+        {% endif %}
+        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card nav-link-complementary">
+          <div class="nav-card-icon neo-cyan">
+            <i class="fas fa-user-cog"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Facturation</h3>
-            <p>Suivre la situation financière</p>
+            <h3>Profil</h3>
+            <p>Paramètres et informations</p>
           </div>
         </a>
       </div>
@@ -171,3 +195,36 @@
 
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
+<script>
+  // Mettre à jour le compteur de notifications depuis le localStorage si disponible
+  document.addEventListener('DOMContentLoaded', function() {
+    const storedCount = localStorage.getItem('notifications_directeur_non_lues');
+    if (storedCount !== null) {
+      const count = parseInt(storedCount, 10);
+      const notificationBadge = document.querySelector('.header-button[aria-label="Notifications"] .notification-badge');
+      const notificationButton = document.querySelector('.header-button[aria-label="Notifications"]');
+      
+      if (notificationBadge) {
+        if (count > 0) {
+          notificationBadge.textContent = count;
+          notificationBadge.style.display = 'inline-block';
+        } else {
+          notificationBadge.style.display = 'none';
+          notificationBadge.textContent = '0';
+        }
+      } else if (notificationButton && count > 0) {
+        // Créer le badge s'il n'existe pas et qu'il y a des notifications
+        const badge = document.createElement('span');
+        badge.className = 'notification-badge';
+        badge.textContent = count;
+        notificationButton.appendChild(badge);
+      } else if (notificationButton && count === 0) {
+        // S'assurer que le badge est masqué s'il existe
+        const existingBadge = notificationButton.querySelector('.notification-badge');
+        if (existingBadge) {
+          existingBadge.style.display = 'none';
+        }
+      }
+    }
+  });
+</script>

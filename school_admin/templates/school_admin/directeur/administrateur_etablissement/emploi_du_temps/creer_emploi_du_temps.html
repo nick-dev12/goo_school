@@ -15,7 +15,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
     />
     <link
       rel="stylesheet"
@@ -25,14 +25,7 @@
   <body>
     <!-- Header -->
     {% if user.is_authenticated %}
-        {% if user.directeur_prenom %}
-            {% include 'school_admin/directeur/partials/header_directeur.html' %}
-        {% else %}
-            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
-        {% endif %}
-    {% else %}
-        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
-    {% endif %}
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content Container -->
     <div class="content-container">

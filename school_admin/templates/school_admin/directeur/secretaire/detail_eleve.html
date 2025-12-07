@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load pagination_tags %}
+{% load permissions_tags %}
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +17,7 @@
   />
   <link
     rel="stylesheet"
-    href="{% static 'school_admin/css/directeur/header_secretaire.css' %}"
+    href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
   />
   <link
     rel="stylesheet"
@@ -30,18 +31,168 @@
     rel="stylesheet"
     href="{% static 'school_admin/css/partials/messages.css' %}"
   />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+  <!-- intl-tel-input CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
+  <style>
+    .country-search-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    
+    .country-search-icon {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray-400);
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    #nationalite_search {
+      width: 100%;
+      padding-right: 45px;
+    }
+    
+    .country-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--gray-300);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: var(--shadow-lg);
+      margin-top: -1px;
+    }
+    
+    .country-dropdown-item {
+      padding: 12px 15px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .country-dropdown-item:last-child {
+      border-bottom: none;
+    }
+    
+    .country-dropdown-item:hover,
+    .country-dropdown-item.highlighted {
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    .country-dropdown-item.no-results {
+      padding: 15px;
+      text-align: center;
+      color: var(--gray-500);
+      cursor: default;
+      font-style: italic;
+    }
+    
+    .country-dropdown-item.no-results:hover {
+      background-color: white;
+    }
+    
+    .country-select-hidden {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .country-dropdown::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .country-dropdown::-webkit-scrollbar-track {
+      background: var(--gray-100);
+      border-radius: 4px;
+    }
+    
+    .country-dropdown::-webkit-scrollbar-thumb {
+      background: var(--gray-400);
+      border-radius: 4px;
+    }
+    
+    .country-dropdown::-webkit-scrollbar-thumb:hover {
+      background: var(--gray-500);
+    }
+    
+    #nationalite_search.has-value {
+      border-color: var(--primary);
+    }
+    
+    .edit-form-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .edit-form-content {
+      background: white;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 1200px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 0;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .edit-form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gradient-header);
+      color: white;
+      border-radius: 16px 16px 0 0;
+    }
+    
+    .edit-form-header h3 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .edit-form-header .btn-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    
+    .edit-form-header .btn-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
-  {% if user.is_authenticated %}
-        {% if user.directeur_prenom %}
-            {% include 'school_admin/directeur/partials/header_directeur.html' %}
-        {% else %}
-            {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
-        {% endif %}
-    {% else %}
-        {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
-    {% endif %}
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
   <!-- Main Content -->
     <div class="content-container">
@@ -144,18 +295,24 @@
               <i class="fas fa-graduation-cap"></i>
               Académique
             </button>
+            {% if can_view_presences %}
             <button class="tab-button" onclick="showTab('presences')">
               <i class="fas fa-clipboard-check"></i>
               Présences
             </button>
+            {% endif %}
+            {% if can_view_notes %}
             <button class="tab-button" onclick="showTab('notes')">
               <i class="fas fa-chart-line"></i>
               Notes
             </button>
+            {% endif %}
+            {% if can_view_sanctions %}
             <button class="tab-button" onclick="showTab('sanctions')">
               <i class="fas fa-gavel"></i>
               Sanctions
             </button>
+            {% endif %}
             <button class="tab-button" onclick="showTab('qrcode')">
               <i class="fas fa-id-card"></i>
               Carte d'identité
@@ -418,6 +575,7 @@
           </div>
 
           <!-- Presences Tab -->
+          {% if can_view_presences %}
           <div id="presences-tab" class="tab-panel">
             <div class="info-section">
               <h3 class="section-title">
@@ -533,8 +691,10 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
 
           <!-- Notes Tab -->
+          {% if can_view_notes %}
           <div id="notes-tab" class="tab-panel">
             {% if is_secondaire %}
             <div class="info-section">
@@ -977,8 +1137,10 @@
             </div>
             {% endif %}
           </div>
+          {% endif %}
 
           <!-- Sanctions Tab -->
+          {% if can_view_sanctions %}
           <div id="sanctions-tab" class="tab-panel">
             <div class="info-section">
               <h3 class="section-title">
@@ -1070,6 +1232,7 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
 
           <!-- Carte d'identité Tab -->
           <div id="qrcode-tab" class="tab-panel">
@@ -1429,553 +1592,270 @@
               <i class="fas fa-times"></i>
             </button>
           </div>
-          <form method="POST" class="edit-form">
-            {% csrf_token %}
-          
-          <!-- Personal Information -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <i class="fas fa-user"></i>
-              Informations personnelles
-            </h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label" for="nom">Nom de famille <span class="required-label">*</span></label>
-                <input
-                  type="text"
-                  id="nom"
-                  name="nom"
-                  class="form-input {% if field_errors.nom %}error{% endif %}"
-                  value="{{ form_data.nom }}"
-                  required
-                />
-                {% if field_errors.nom %}
-                  <span class="error-message">{{ field_errors.nom }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="prenom">Prénom <span class="required-label">*</span></label>
-                <input
-                  type="text"
-                  id="prenom"
-                  name="prenom"
-                  class="form-input {% if field_errors.prenom %}error{% endif %}"
-                  value="{{ form_data.prenom }}"
-                  required
-                />
-                {% if field_errors.prenom %}
-                  <span class="error-message">{{ field_errors.prenom }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="date_naissance">Date de naissance <span class="required-label">*</span></label>
-                <input
-                  type="date"
-                  id="date_naissance"
-                  name="date_naissance"
-                  class="form-input {% if field_errors.date_naissance %}error{% endif %}"
-                  value="{{ form_data.date_naissance }}"
-                  required
-                />
-                {% if field_errors.date_naissance %}
-                  <span class="error-message">{{ field_errors.date_naissance }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="lieu_naissance">Lieu de naissance <span class="required-label">*</span></label>
-                <input
-                  type="text"
-                  id="lieu_naissance"
-                  name="lieu_naissance"
-                  class="form-input {% if field_errors.lieu_naissance %}error{% endif %}"
-                  value="{{ form_data.lieu_naissance }}"
-                  required
-                />
-                {% if field_errors.lieu_naissance %}
-                  <span class="error-message">{{ field_errors.lieu_naissance }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="sexe">Sexe <span class="required-label">*</span></label>
-                <select
-                  id="sexe"
-                  name="sexe"
-                  class="form-select {% if field_errors.sexe %}error{% endif %}"
-                  required
-                >
-                  <option value="">Sélectionner le sexe</option>
-                  <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
-                  <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
-                </select>
-                {% if field_errors.sexe %}
-                  <span class="error-message">{{ field_errors.sexe }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="nationalite">Nationalité <span class="required-label">*</span></label>
-                <input
-                  type="text"
-                  id="nationalite"
-                  name="nationalite"
-                  class="form-input {% if field_errors.nationalite %}error{% endif %}"
-                  value="{{ form_data.nationalite }}"
-                  required
-                />
-                {% if field_errors.nationalite %}
-                  <span class="error-message">{{ field_errors.nationalite }}</span>
-                {% endif %}
-              </div>
-            </div>
+          <div class="form-container-modern" style="padding: 0; background: transparent;">
+            {% include 'school_admin/directeur/secretaire/partials/formulaire_modification_eleve.html' %}
           </div>
-
-          <!-- Contact Information -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <i class="fas fa-address-book"></i>
-              Informations de contact
-            </h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label" for="adresse">Adresse</label>
-                <textarea
-                  id="adresse"
-                  name="adresse"
-                  class="form-textarea {% if field_errors.adresse %}error{% endif %}"
-                  rows="3"
-                >{{ form_data.adresse }}</textarea>
-                {% if field_errors.adresse %}
-                  <span class="error-message">{{ field_errors.adresse }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="telephone">Téléphone</label>
-                <input
-                  type="tel"
-                  id="telephone"
-                  name="telephone"
-                  class="form-input {% if field_errors.telephone %}error{% endif %}"
-                  value="{{ form_data.telephone }}"
-                />
-                {% if field_errors.telephone %}
-                  <span class="error-message">{{ field_errors.telephone }}</span>
-                {% endif %}
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  class="form-input {% if field_errors.email %}error{% endif %}"
-                  value="{{ form_data.email }}"
-                />
-                {% if field_errors.email %}
-                  <span class="error-message">{{ field_errors.email }}</span>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-
-          <!-- Responsible Information -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <i class="fas fa-users"></i>
-              Informations du responsable
-            </h3>
-            
-            <div class="form-group">
-              <label class="form-label">Type de responsable <span class="required-label">*</span></label>
-              <div class="radio-group">
-                <label class="radio-option">
-                  <input
-                    type="radio"
-                    name="type_responsable"
-                    value="parents"
-                    {% if form_data.type_responsable == 'parents' %}checked{% endif %}
-                    onchange="toggleResponsableFields()"
-                  />
-                  <span class="radio-label">Parents</span>
-                </label>
-                <label class="radio-option">
-                  <input
-                    type="radio"
-                    name="type_responsable"
-                    value="tuteur"
-                    {% if form_data.type_responsable == 'tuteur' %}checked{% endif %}
-                    onchange="toggleResponsableFields()"
-                  />
-                  <span class="radio-label">Tuteur légal</span>
-                </label>
-              </div>
-              {% if field_errors.type_responsable %}
-                <span class="error-message">{{ field_errors.type_responsable }}</span>
-              {% endif %}
-            </div>
-
-            <!-- Parents Fields -->
-            <div id="parents-fields" class="responsable-section" style="{% if form_data.type_responsable != 'parents' %}display: none;{% endif %}">
-              <h4 class="subsection-title">Informations des Parents</h4>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label class="form-label" for="nom_pere">Nom du père <span class="required-label">*</span></label>
-                  <input
-                    type="text"
-                    id="nom_pere"
-                    name="nom_pere"
-                    class="form-input {% if field_errors.nom_pere %}error{% endif %}"
-                    value="{{ form_data.nom_pere }}"
-                  />
-                  {% if field_errors.nom_pere %}
-                    <span class="error-message">{{ field_errors.nom_pere }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="nom_mere">Nom de la mère <span class="optional-label">(optionnel si père renseigné)</span></label>
-                  <input
-                    type="text"
-                    id="nom_mere"
-                    name="nom_mere"
-                    class="form-input {% if field_errors.nom_mere %}error{% endif %}"
-                    value="{{ form_data.nom_mere }}"
-                  />
-                  {% if field_errors.nom_mere %}
-                    <span class="error-message">{{ field_errors.nom_mere }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="telephone_pere">Téléphone du père <span class="required-label">*</span></label>
-                  <input
-                    type="tel"
-                    id="telephone_pere"
-                    name="telephone_pere"
-                    class="form-input {% if field_errors.telephone_pere %}error{% endif %}"
-                    value="{{ form_data.telephone_pere }}"
-                  />
-                  {% if field_errors.telephone_pere %}
-                    <span class="error-message">{{ field_errors.telephone_pere }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="telephone_mere">Téléphone de la mère <span class="optional-label">(optionnel si père renseigné)</span></label>
-                  <input
-                    type="tel"
-                    id="telephone_mere"
-                    name="telephone_mere"
-                    class="form-input {% if field_errors.telephone_mere %}error{% endif %}"
-                    value="{{ form_data.telephone_mere }}"
-                  />
-                  {% if field_errors.telephone_mere %}
-                    <span class="error-message">{{ field_errors.telephone_mere }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="email_pere">Email du père <span class="optional-label">(optionnel)</span></label>
-                  <input
-                    type="email"
-                    id="email_pere"
-                    name="email_pere"
-                    class="form-input {% if field_errors.email_pere %}error{% endif %}"
-                    value="{{ form_data.email_pere }}"
-                  />
-                  {% if field_errors.email_pere %}
-                    <span class="error-message">{{ field_errors.email_pere }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="email_mere">Email de la mère <span class="optional-label">(optionnel)</span></label>
-                  <input
-                    type="email"
-                    id="email_mere"
-                    name="email_mere"
-                    class="form-input {% if field_errors.email_mere %}error{% endif %}"
-                    value="{{ form_data.email_mere }}"
-                  />
-                  {% if field_errors.email_mere %}
-                    <span class="error-message">{{ field_errors.email_mere }}</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-
-            <!-- Tuteur Fields -->
-            <div id="tuteur-fields" class="responsable-section" style="{% if form_data.type_responsable != 'tuteur' %}display: none;{% endif %}">
-              <h4 class="subsection-title">Informations du Tuteur Légal</h4>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_nom">Nom du tuteur <span class="required-label">*</span></label>
-                  <input
-                    type="text"
-                    id="tuteur_nom"
-                    name="tuteur_nom"
-                    class="form-input {% if field_errors.tuteur_nom %}error{% endif %}"
-                    value="{{ form_data.tuteur_nom }}"
-                  />
-                  {% if field_errors.tuteur_nom %}
-                    <span class="error-message">{{ field_errors.tuteur_nom }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_prenom">Prénom du tuteur <span class="required-label">*</span></label>
-                  <input
-                    type="text"
-                    id="tuteur_prenom"
-                    name="tuteur_prenom"
-                    class="form-input {% if field_errors.tuteur_prenom %}error{% endif %}"
-                    value="{{ form_data.tuteur_prenom }}"
-                  />
-                  {% if field_errors.tuteur_prenom %}
-                    <span class="error-message">{{ field_errors.tuteur_prenom }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_telephone">Téléphone du tuteur <span class="required-label">*</span></label>
-                  <input
-                    type="tel"
-                    id="tuteur_telephone"
-                    name="tuteur_telephone"
-                    class="form-input {% if field_errors.tuteur_telephone %}error{% endif %}"
-                    value="{{ form_data.tuteur_telephone }}"
-                  />
-                  {% if field_errors.tuteur_telephone %}
-                    <span class="error-message">{{ field_errors.tuteur_telephone }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_email">Email du tuteur <span class="optional-label">(optionnel)</span></label>
-                  <input
-                    type="email"
-                    id="tuteur_email"
-                    name="tuteur_email"
-                    class="form-input {% if field_errors.tuteur_email %}error{% endif %}"
-                    value="{{ form_data.tuteur_email }}"
-                  />
-                  {% if field_errors.tuteur_email %}
-                    <span class="error-message">{{ field_errors.tuteur_email }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_adresse">Adresse du tuteur <span class="required-label">*</span></label>
-                  <textarea
-                    id="tuteur_adresse"
-                    name="tuteur_adresse"
-                    class="form-textarea {% if field_errors.tuteur_adresse %}error{% endif %}"
-                    rows="3"
-                  >{{ form_data.tuteur_adresse }}</textarea>
-                  {% if field_errors.tuteur_adresse %}
-                    <span class="error-message">{{ field_errors.tuteur_adresse }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_profession">Profession du tuteur</label>
-                  <input
-                    type="text"
-                    id="tuteur_profession"
-                    name="tuteur_profession"
-                    class="form-input {% if field_errors.tuteur_profession %}error{% endif %}"
-                    value="{{ form_data.tuteur_profession }}"
-                  />
-                  {% if field_errors.tuteur_profession %}
-                    <span class="error-message">{{ field_errors.tuteur_profession }}</span>
-                  {% endif %}
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="tuteur_lien">Lien avec l'élève <span class="required-label">*</span></label>
-                  <select
-                    id="tuteur_lien"
-                    name="tuteur_lien"
-                    class="form-select {% if field_errors.tuteur_lien %}error{% endif %}"
-                  >
-                    <option value="">Sélectionner le lien</option>
-                    <option value="grand_parent" {% if form_data.tuteur_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
-                    <option value="oncle_tante" {% if form_data.tuteur_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
-                    <option value="frere_soeur" {% if form_data.tuteur_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
-                    <option value="autre" {% if form_data.tuteur_lien == 'autre' %}selected{% endif %}>Autre</option>
-                  </select>
-                  {% if field_errors.tuteur_lien %}
-                    <span class="error-message">{{ field_errors.tuteur_lien }}</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Documents -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <i class="fas fa-file-alt"></i>
-              Documents fournis
-            </h3>
-            <div class="documents-grid">
-              <div class="document-category">
-                <h4 class="category-title">Documents d'identité</h4>
-                <div class="checkbox-group">
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_acte_naissance"
-                      value="true"
-                      {% if form_data.document_acte_naissance %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Acte de naissance</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_cni"
-                      value="true"
-                      {% if form_data.document_cni %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">CNI</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_passeport"
-                      value="true"
-                      {% if form_data.document_passeport %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Passeport</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div class="document-category">
-                <h4 class="category-title">Documents scolaires</h4>
-                <div class="checkbox-group">
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_bulletin_precedent"
-                      value="true"
-                      {% if form_data.document_bulletin_precedent %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Bulletin précédent</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_certificat_scolarite"
-                      value="true"
-                      {% if form_data.document_certificat_scolarite %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Certificat de scolarité</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_livret_scolaire"
-                      value="true"
-                      {% if form_data.document_livret_scolaire %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Livret scolaire</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div class="document-category">
-                <h4 class="category-title">Documents médicaux</h4>
-                <div class="checkbox-group">
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_certificat_medical"
-                      value="true"
-                      {% if form_data.document_certificat_medical %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Certificat médical</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_carnet_vaccination"
-                      value="true"
-                      {% if form_data.document_carnet_vaccination %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Carnet de vaccination</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_assurance_maladie"
-                      value="true"
-                      {% if form_data.document_assurance_maladie %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Assurance maladie</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div class="document-category">
-                <h4 class="category-title">Documents administratifs</h4>
-                <div class="checkbox-group">
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_justificatif_domicile"
-                      value="true"
-                      {% if form_data.document_justificatif_domicile %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Justificatif de domicile</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_photo_identite"
-                      value="true"
-                      {% if form_data.document_photo_identite %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Photo d'identité</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input
-                      type="checkbox"
-                      name="document_autorisation_parentale"
-                      value="true"
-                      {% if form_data.document_autorisation_parentale %}checked{% endif %}
-                    />
-                    <span class="checkbox-label">Autorisation parentale</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Form Actions -->
-          <div class="form-actions">
-            <button type="button" class="btn-secondary" onclick="toggleEditForm()">
-              <i class="fas fa-times"></i>
-              Annuler
-            </button>
-            <button type="submit" class="btn-primary">
-              <i class="fas fa-save"></i>
-              Sauvegarder les modifications
-            </button>
-          </div>
-          </form>
         </div>
       </div>
-    </div>
 
+  <!-- Scripts pour le formulaire de modification -->
+  <!-- intl-tel-input JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+  
   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.querySelector("#modificationForm");
+      
+      // Fonctionnalité de recherche de pays (identique à inscription_eleves.html)
+      const countrySearchInput = document.getElementById('nationalite_search');
+      const countrySelect = document.getElementById('nationalite');
+      const countryDropdown = document.getElementById('country_dropdown');
+      let highlightedIndex = -1;
+      let filteredCountries = [];
+      
+      function normalizeString(str) {
+        if (!str) return '';
+        return str
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim();
+      }
+      
+      if (countrySearchInput && countrySelect && countryDropdown) {
+        const allCountries = Array.from(countrySelect.options).slice(1).map(option => {
+          const text = option.textContent.trim();
+          return {
+            value: option.value,
+            text: text,
+            searchText: normalizeString(text)
+          };
+        });
+        
+        if (countrySelect.value) {
+          const selectedOption = Array.from(countrySelect.options).find(opt => opt.value === countrySelect.value);
+          if (selectedOption) {
+            countrySearchInput.value = selectedOption.textContent.trim();
+            countrySearchInput.classList.add('has-value');
+          }
+        }
+        
+        function filterCountries(searchTerm) {
+          const normalizedTerm = normalizeString(searchTerm);
+          
+          if (normalizedTerm === '') {
+            filteredCountries = [];
+            countryDropdown.style.display = 'none';
+            return;
+          }
+          
+          filteredCountries = allCountries.filter(country => 
+            country.searchText.includes(normalizedTerm)
+          ).slice(0, 20);
+          
+          renderDropdown();
+        }
+        
+        function renderDropdown() {
+          countryDropdown.innerHTML = '';
+          
+          if (filteredCountries.length === 0) {
+            countryDropdown.innerHTML = '<div class="country-dropdown-item no-results">Aucun pays trouvé</div>';
+            countryDropdown.style.display = 'block';
+            return;
+          }
+          
+          filteredCountries.forEach((country, index) => {
+            const item = document.createElement('div');
+            item.className = 'country-dropdown-item';
+            item.textContent = country.text;
+            item.dataset.value = country.value;
+            item.dataset.index = index;
+            
+            item.addEventListener('click', function() {
+              selectCountry(country.value, country.text);
+            });
+            
+            item.addEventListener('mouseenter', function() {
+              highlightItem(index);
+            });
+            
+            countryDropdown.appendChild(item);
+          });
+          
+          countryDropdown.style.display = 'block';
+          highlightedIndex = -1;
+        }
+        
+        function selectCountry(value, text) {
+          countrySearchInput.value = text;
+          countrySelect.value = value;
+          countryDropdown.style.display = 'none';
+          countrySearchInput.classList.add('has-value');
+          highlightedIndex = -1;
+          countrySelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        function highlightItem(index) {
+          const items = countryDropdown.querySelectorAll('.country-dropdown-item:not(.no-results)');
+          items.forEach((item, i) => {
+            if (i === index) {
+              item.classList.add('highlighted');
+            } else {
+              item.classList.remove('highlighted');
+            }
+          });
+          highlightedIndex = index;
+        }
+        
+        countrySearchInput.addEventListener('input', function(e) {
+          const searchTerm = e.target.value;
+          filterCountries(searchTerm);
+          
+          if (searchTerm === '') {
+            countrySelect.value = '';
+            countrySearchInput.classList.remove('has-value');
+          }
+        });
+        
+        countrySearchInput.addEventListener('focus', function() {
+          if (filteredCountries.length > 0 || countrySearchInput.value.trim() !== '') {
+            filterCountries(countrySearchInput.value);
+          }
+        });
+        
+        document.addEventListener('click', function(e) {
+          if (!countrySearchInput.contains(e.target) && !countryDropdown.contains(e.target)) {
+            countryDropdown.style.display = 'none';
+          }
+        });
+        
+        countrySearchInput.addEventListener('keydown', function(e) {
+          const items = countryDropdown.querySelectorAll('.country-dropdown-item:not(.no-results)');
+          
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (items.length > 0) {
+              highlightedIndex = (highlightedIndex + 1) % items.length;
+              highlightItem(highlightedIndex);
+              items[highlightedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (items.length > 0) {
+              highlightedIndex = highlightedIndex <= 0 ? items.length - 1 : highlightedIndex - 1;
+              highlightItem(highlightedIndex);
+              items[highlightedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          } else if (e.key === 'Enter' && highlightedIndex >= 0 && filteredCountries[highlightedIndex]) {
+            e.preventDefault();
+            const country = filteredCountries[highlightedIndex];
+            selectCountry(country.value, country.text);
+          } else if (e.key === 'Escape') {
+            countryDropdown.style.display = 'none';
+            highlightedIndex = -1;
+          }
+        });
+        
+        form.addEventListener('submit', function(e) {
+          if (!countrySelect.value || countrySelect.value === '') {
+            e.preventDefault();
+            countrySearchInput.focus();
+            countrySearchInput.classList.add('input-error');
+            return false;
+          }
+        });
+      }
+      
+      // Initialisation intl-tel-input pour le téléphone du parent
+      const parentPhoneInput = document.querySelector("#parent_telephone");
+      const parentPhoneFullInput = document.querySelector("#parent_telephone_full");
+      const parentPhoneError = document.querySelector("#parent-phone-error");
+      
+      if (parentPhoneInput) {
+        const itiParent = window.intlTelInput(parentPhoneInput, {
+          utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js",
+          separateDialCode: true,
+          initialCountry: "auto",
+          preferredCountries: ["sn", "ci", "cm", "fr"],
+          geoIpLookup: function(callback) {
+            fetch("https://ipapi.co/json")
+              .then(function(res) {
+                return res.json();
+              })
+              .then(function(data) {
+                callback(data.country_code);
+              })
+              .catch(function() {
+                callback("sn");
+              });
+          },
+          nationalMode: false,
+          autoFormat: true,
+          autoPlaceholder: "aggressive"
+        });
+        
+        parentPhoneInput.addEventListener('blur', function() {
+          if (parentPhoneInput.value.trim()) {
+            if (itiParent.isValidNumber()) {
+              parentPhoneError.style.display = 'none';
+              parentPhoneInput.classList.remove('input-error');
+              parentPhoneFullInput.value = itiParent.getNumber();
+            } else {
+              parentPhoneError.textContent = 'Numéro de téléphone invalide.';
+              parentPhoneError.style.display = 'block';
+              parentPhoneError.style.color = '#ef4444';
+              parentPhoneInput.classList.add('input-error');
+              parentPhoneFullInput.value = '';
+            }
+          }
+        });
+        
+        parentPhoneInput.addEventListener('input', function() {
+          parentPhoneError.style.display = 'none';
+          parentPhoneInput.classList.remove('input-error');
+        });
+        
+        form.addEventListener('submit', function(e) {
+          if (parentPhoneInput.value.trim()) {
+            if (itiParent.isValidNumber()) {
+              parentPhoneFullInput.value = itiParent.getNumber();
+              parentPhoneInput.value = itiParent.getNumber();
+            } else {
+              e.preventDefault();
+              parentPhoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
+              parentPhoneError.style.display = 'block';
+              parentPhoneError.style.color = '#ef4444';
+              parentPhoneInput.classList.add('input-error');
+              parentPhoneInput.focus();
+              return false;
+            }
+          }
+        });
+        
+        if (parentPhoneInput.value) {
+          try {
+            itiParent.setNumber(parentPhoneInput.value);
+            parentPhoneFullInput.value = itiParent.getNumber();
+          } catch (e) {
+            console.log('Erreur lors du formatage du numéro existant:', e);
+          }
+        }
+      }
+      
+      // Gestion du chargement du formulaire
+      form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('.btn-submit-modern');
+        const btnText = submitBtn.querySelector('span');
+        const btnLoading = submitBtn.querySelector('.btn-loading');
+        
+        btnText.style.display = 'none';
+        btnLoading.style.display = 'inline-block';
+        submitBtn.disabled = true;
+      });
+    });
+    
     function toggleEditForm() {
       const form = document.getElementById('editForm');
       const toggleBtn = document.querySelector('.btn-toggle-form');

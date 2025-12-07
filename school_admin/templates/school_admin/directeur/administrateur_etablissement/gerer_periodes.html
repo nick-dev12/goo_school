@@ -7,7 +7,7 @@
     <title>Gestion des Périodes - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_administrateur_etablissement.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}" />
     <style>
         .periode-actions {
@@ -175,15 +175,7 @@
 </head>
 <body>
     <!-- Header -->
-    {% if user.is_authenticated %}
-        {% if user.directeur_prenom %}
-            {% include 'school_admin/directeur/partials/header_directeur.html' %}
-        {% else %}
-            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
-        {% endif %}
-    {% else %}
-        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
-    {% endif %}
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
     <div class="main-content-container">

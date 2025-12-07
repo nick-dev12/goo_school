@@ -20,6 +20,47 @@ class EleveNotificationService:
     """Service utilitaire pour notifier les élèves."""
 
     @staticmethod
+    def _get_redirect_url(type_notification: str, payload: Optional[dict] = None) -> str:
+        """
+        Génère l'URL de redirection appropriée selon le type de notification.
+        
+        Args:
+            type_notification: Le type de notification (evaluation, note, bulletin, etc.)
+            payload: Les données de la notification (peut contenir des IDs spécifiques)
+        
+        Returns:
+            L'URL de redirection appropriée
+        """
+        try:
+            if type_notification == "evaluation":
+                # Rediriger vers la page des devoirs
+                return reverse("eleve:devoirs_eleve")
+            elif type_notification == "note":
+                # Rediriger vers la page des notes et évaluations
+                return reverse("eleve:notes_evaluations")
+            elif type_notification == "bulletin":
+                # Rediriger vers la page du bulletin
+                return reverse("eleve:bulletin_eleve")
+            elif type_notification == "annonce":
+                # Rediriger vers la page des annonces
+                return reverse("eleve:annonces_eleve")
+            elif type_notification == "sanction":
+                # Rediriger vers la page des sanctions
+                return reverse("eleve:sanctions_eleve")
+            elif type_notification == "presence":
+                # Rediriger vers la page des absences et retards
+                return reverse("eleve:absences_retards")
+            elif type_notification == "convocation":
+                # Rediriger vers la page des convocations
+                return reverse("eleve:convocations_eleve")
+            else:
+                # Par défaut, rediriger vers la page des notifications
+                return reverse("eleve:notifications_eleve")
+        except Exception:
+            # En cas d'erreur, retourner l'URL par défaut
+            return "/eleve/notifications/"
+
+    @staticmethod
     def _sanitize_for_json(value: Union[dict, list, tuple, set, Decimal, datetime, date, object]):
         """
         Convertit récursivement les structures de données pour les rendre compatibles JSON.
@@ -56,6 +97,14 @@ class EleveNotificationService:
             return {"created": 0, "push": None}
 
         raw_payload = payload.copy() if payload else {}
+        
+        # Générer l'URL de redirection appropriée selon le type de notification
+        redirect_url = cls._get_redirect_url(type_notification, raw_payload)
+        
+        # Ajouter l'URL de redirection au payload
+        raw_payload["redirect_url"] = redirect_url
+        raw_payload["url"] = redirect_url
+        
         notification_payload = cls._sanitize_for_json(raw_payload)
 
         notification = NotificationEleve.objects.create(
@@ -67,20 +116,15 @@ class EleveNotificationService:
             source_object=source,
             date_evenement=timezone.now(),
         )
-
-        try:
-            default_redirect_url = reverse("eleve:notifications_eleve")
-        except Exception:
-            default_redirect_url = "/eleve/notifications/"
-
+        
         payload_with_url = raw_payload.copy()
-        payload_with_url.setdefault("redirect_url", default_redirect_url)
-        payload_with_url.setdefault("url", default_redirect_url)
+        payload_with_url["redirect_url"] = redirect_url
+        payload_with_url["url"] = redirect_url
         payload_with_url = cls._sanitize_for_json(payload_with_url)
 
         pushdata_with_url = push_data.copy() if push_data else {}
-        pushdata_with_url.setdefault("redirect_url", default_redirect_url)
-        pushdata_with_url.setdefault("url", default_redirect_url)
+        pushdata_with_url["redirect_url"] = redirect_url
+        pushdata_with_url["url"] = redirect_url
         pushdata_with_url = cls._sanitize_for_json(pushdata_with_url)
 
         push_result = None

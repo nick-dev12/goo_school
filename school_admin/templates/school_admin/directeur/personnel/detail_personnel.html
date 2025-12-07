@@ -1,342 +1,819 @@
 <!DOCTYPE html>
 {% load static %}
+{% load permissions_tags %}
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Détails du Personnel - {{ personnel.nom_complet }}</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-
-    <link
-      href="{% static 'school_admin/css/directeur/detail_personnel.css' %}"
-      rel="stylesheet"
-    />
+    <title>{{ personnel.nom_complet }} - Détails Personnel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_personnel.css' %}?v=1.1.2" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_professeur.css' %}?v=1.1.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1" />
   </head>
   <body>
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
-    <div class="personnel-page-container">
-      <div class="personnel-header-section">
-        <div class="personnel-header-content">
-          <div class="personnel-title-section">
-            <h1 class="personnel-main-title">
-              <i class="fas fa-user"></i>
-              Détails du Personnel
-            </h1>
-            <p class="personnel-subtitle">
-              Informations complètes sur {{ personnel.nom_complet }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Contenu principal -->
-      <div class="detail-content-container">
-        <!-- Carte principale du personnel -->
-        <div class="personnel-main-card">
-          <div class="personnel-card-header">
-            <div class="personnel-avatar">
-              {% if personnel.photo %}
-              <img
-                src="{{ personnel.photo.url }}"
-                alt="{{ personnel.nom_complet }}"
-                class="avatar-image"
-              />
-              {% else %}
-              <div class="avatar-placeholder">
-                <i class="fas fa-user"></i>
-              </div>
-              {% endif %}
+    <div class="main-content-container">
+        <!-- Page Header avec actions -->
+        <div class="page-header">
+            <div class="header-left">
+                <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour à la liste</span>
+                </a>
+                <div class="page-title-section">
+                    <h1 class="page-title">
+                        <i class="fas fa-user-tie"></i>
+                        {{ personnel.nom_complet }}
+                    </h1>
+                    <p class="page-subtitle">
+                        {{ personnel.get_fonction_display }} • {{ personnel.etablissement.nom }}
+                    </p>
+                </div>
             </div>
-            <div class="personnel-info">
-              <h2 class="personnel-name">{{ personnel.nom_complet }}</h2>
-              <p class="personnel-role">{{ personnel.get_fonction_display }}</p>
-              <div class="role-badge role-{{ personnel.fonction }}">
-                <i
-                  class="fas fa-{% if personnel.fonction == 'secretaire' %}user-tie{% elif personnel.fonction == 'surveillant_general' %}shield-alt{% elif personnel.fonction == 'censeur' %}graduation-cap{% elif personnel.fonction == 'administrateur' %}cogs{% else %}user{% endif %}"
-                ></i>
-                <span>{{ personnel.get_fonction_display }}</span>
-              </div>
+            <div class="header-actions">
+                <button type="button" class="btn-action btn-primary" onclick="toggleFormModifier()">
+                    <i class="fas fa-edit"></i>
+                    <span id="btnModifierText">Modifier</span>
+                </button>
+                <a href="{% url 'personnel:toggle_actif' personnel.id %}" class="btn-action {% if personnel.actif %}btn-danger{% else %}btn-success{% endif %}">
+                    <i class="fas fa-{% if personnel.actif %}pause{% else %}play{% endif %}"></i>
+                    <span>{% if personnel.actif %}Désactiver{% else %}Activer{% endif %}</span>
+                </a>
             </div>
-            <div class="personnel-status">
-              <div
-                class="status-badge status-{% if personnel.actif %}active{% else %}inactive{% endif %}"
-              >
-                <i
-                  class="fas fa-{% if personnel.actif %}check-circle{% else %}times-circle{% endif %}"
-                ></i>
-                <span>
-                  {% if personnel.actif %}Actif{% else %}Inactif{% endif%}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <!-- Statistiques rapides -->
-        <div class="personnel-stats-section">
-          <div class="stats-grid">
-            <div class="stat-card stat-primary">
-              <div class="stat-icon">
-                <i class="fas fa-id-badge"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">
-                  {{ personnel.numero_employe|default:"N/A" }}
-                </div>
-                <div class="stat-label">Numéro Employé</div>
-              </div>
-            </div>
-            <div class="stat-card stat-success">
-              <div class="stat-icon">
-                <i class="fas fa-calendar-check"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">
-                  {{ personnel.date_creation|timesince }}
-                </div>
-                <div class="stat-label">Dans l'équipe</div>
-              </div>
-            </div>
-            <div class="stat-card stat-info">
-              <div class="stat-icon">
-                <i class="fas fa-building"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">
-                  {{ personnel.etablissement.nom|truncatechars:15 }}
-                </div>
-                <div class="stat-label">Établissement</div>
-              </div>
-            </div>
-            <div class="stat-card stat-warning">
-              <div class="stat-icon">
-                <i class="fas fa-tasks"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">
-                  {{ personnel.get_responsabilites|length }}
-                </div>
-                <div class="stat-label">Responsabilités</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Informations détaillées -->
-        <div class="personnel-details-section">
-          <div class="details-grid">
-            <!-- Informations personnelles -->
-            <div class="detail-card">
-              <div class="detail-card-header">
-                <h3><i class="fas fa-user"></i> Informations Personnelles</h3>
-              </div>
-              <div class="detail-card-body">
-                <div class="detail-item">
-                  <i class="fas fa-envelope"></i>
-                  <span class="detail-label">Email :</span>
-                  <span class="detail-value">{{ personnel.email }}</span>
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-phone"></i>
-                  <span class="detail-label">Téléphone :</span>
-                  <span class="detail-value">{{ personnel.telephone }}</span>
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-id-badge"></i>
-                  <span class="detail-label">Initiales :</span>
-                  <span class="detail-value">{{ personnel.initiales }}</span>
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-user-tag"></i>
-                  <span class="detail-label">Username :</span>
-                  <span class="detail-value">{{ personnel.username }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Informations professionnelles -->
-            <div class="detail-card">
-              <div class="detail-card-header">
-                <h3>
-                  <i class="fas fa-briefcase"></i> Informations Professionnelles
-                </h3>
-              </div>
-              <div class="detail-card-body">
-                <div class="detail-item">
-                  <i class="fas fa-building"></i>
-                  <span class="detail-label">Établissement :</span>
-                  <span class="detail-value"
-                    >{{ personnel.etablissement.nom }}</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-tag"></i>
-                  <span class="detail-label">Fonction :</span>
-                  <span class="detail-value"
-                    >{{ personnel.get_fonction_display }}</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-calendar-plus"></i>
-                  <span class="detail-label">Date de création :</span>
-                  <span class="detail-value"
-                    >{{ personnel.date_creation|date:"d/m/Y" }}</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-clock"></i>
-                  <span class="detail-label">Dernière modification :</span>
-                  <span class="detail-value"
-                    >{{ personnel.date_modification|date:"d/m/Y à H:i" }}</span
-                  >
-                </div>
-              </div>
-            </div>
-            
-            <!-- Informations de connexion -->
-            <div class="detail-card connexion-card">
-              <div class="detail-card-header">
-                <h3>
-                  <i class="fas fa-key"></i> Informations de Connexion
-                </h3>
-              </div>
-              <div class="detail-card-body">
-                <div class="detail-item">
-                  <i class="fas fa-user"></i>
-                  <span class="detail-label">Nom d'utilisateur :</span>
-                  <span class="detail-value">{{ personnel.username }}</span>
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-envelope"></i>
-                  <span class="detail-label">Email de connexion :</span>
-                  <span class="detail-value">{{ personnel.email }}</span>
-                </div>
-                <div class="detail-item password-item">
-                  <i class="fas fa-lock"></i>
-                  <span class="detail-label">Mot de passe provisoire :</span>
-                  <span class="detail-value password-value">
-                    <code id="password-text">{{ personnel.mot_de_passe_provisoire }}</code>
-                    <button class="btn-copy" onclick="copierMotDePasse()" title="Copier le mot de passe">
-                      <i class="fas fa-copy"></i>
+        <!-- Formulaire de modification (masqué par défaut) -->
+        <div id="formModifierPersonnelContainer" style="display: none; margin: 20px 0;">
+            <div class="form-modifier-wrapper">
+                <div class="form-modifier-header">
+                    <h2>
+                        <i class="fas fa-user-edit"></i>
+                        Modifier le Personnel
+                    </h2>
+                    <button type="button" class="btn-close-form" onclick="toggleFormModifier()">
+                        <i class="fas fa-times"></i>
                     </button>
-                  </span>
                 </div>
-                <div class="detail-item">
-                  <i class="fas fa-id-card"></i>
-                  <span class="detail-label">Numéro d'employé :</span>
-                  <span class="detail-value">{{ personnel.numero_employe }}</span>
-                </div>
-                <div class="alert alert-info mt-3">
-                  <i class="fas fa-info-circle"></i>
-                  L'utilisateur doit utiliser son email et le mot de passe provisoire pour se connecter. 
-                  Il est fortement recommandé de changer ce mot de passe après la première connexion.
-                </div>
-              </div>
+                
+                <form id="formModifierPersonnel" method="post" action="{% url 'personnel:modifier_personnel' personnel.id %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-modifier-body">
+                        <!-- Messages d'erreur -->
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if field_errors_modifier %}
+                            <div class="alert alert-danger">
+                                <strong>Erreurs détectées :</strong>
+                                <ul>
+                                    {% for field, errors in field_errors_modifier.items %}
+                                        {% for error in errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Informations personnelles -->
+                        <div class="form-section">
+                            <h3 class="section-title-form">
+                                <i class="fas fa-user"></i>
+                                Informations Personnelles
+                            </h3>
+                            
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="nom_modifier" class="form-label">
+                                        Nom <span class="required">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           id="nom_modifier" 
+                                           name="nom" 
+                                           class="form-input" 
+                                           required
+                                           value="{% if form_data_modifier.nom %}{{ form_data_modifier.nom }}{% else %}{{ personnel.nom }}{% endif %}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="prenom_modifier" class="form-label">
+                                        Prénom <span class="required">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           id="prenom_modifier" 
+                                           name="prenom" 
+                                           class="form-input" 
+                                           required
+                                           value="{% if form_data_modifier.prenom %}{{ form_data_modifier.prenom }}{% else %}{{ personnel.prenom }}{% endif %}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="email_modifier" class="form-label">
+                                        Email <span class="required">*</span>
+                                    </label>
+                                    <input type="email" 
+                                           id="email_modifier" 
+                                           name="email" 
+                                           class="form-input" 
+                                           required
+                                           value="{% if form_data_modifier.email %}{{ form_data_modifier.email }}{% else %}{{ personnel.email }}{% endif %}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="telephone_modifier" class="form-label">
+                                        Téléphone <span class="required">*</span>
+                                    </label>
+                                    <input type="tel" 
+                                           id="telephone_modifier" 
+                                           name="telephone" 
+                                           class="form-input" 
+                                           required
+                                           value="{% if form_data_modifier.telephone %}{{ form_data_modifier.telephone }}{% else %}{{ personnel.telephone }}{% endif %}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Fonction -->
+                        <div class="form-section">
+                            <h3 class="section-title-form">
+                                <i class="fas fa-briefcase"></i>
+                                Fonction
+                            </h3>
+                            
+                            <div class="form-group">
+                                <label for="fonction_modifier" class="form-label">
+                                    Fonction <span class="required">*</span>
+                                </label>
+                                <select id="fonction_modifier" 
+                                        name="fonction" 
+                                        class="form-input" 
+                                        required
+                                        onchange="updatePermissionsByFunctionModifier()">
+                                    <option value="">Sélectionnez une fonction</option>
+                                    {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
+                                        {% for code, label in fonctions_disponibles %}
+                                            <option value="{{ code }}" {% if form_data_modifier.fonction == code or not form_data_modifier and personnel.fonction == code %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Autorisations -->
+                        <div class="form-section">
+                            <h3 class="section-title-form">
+                                <i class="fas fa-key"></i>
+                                Autorisations
+                            </h3>
+                            
+                            <div class="permissions-container-form">
+                                {% for category, permissions in permissions_par_categorie.items %}
+                                    <div class="permission-category-form">
+                                        <h4 class="permission-category-title-form">
+                                            <i class="fas fa-folder"></i>
+                                            {{ category }}
+                                        </h4>
+                                        <div class="permissions-grid-form">
+                                            {% for perm in permissions %}
+                                                <div class="permission-item-form">
+                                                    <label class="permission-checkbox-form">
+                                                        <input type="checkbox" 
+                                                               name="permission_{{ perm.key }}" 
+                                                               id="permission_{{ perm.key }}_modifier"
+                                                               value="on"
+                                                               {% if perm.key in permissions_combinees %}checked{% endif %}>
+                                                        <span class="permission-label-form">{{ perm.label }}</span>
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-modifier-footer">
+                        <button type="button" class="btn-form btn-cancel" onclick="toggleFormModifier()">
+                            <i class="fas fa-times"></i>
+                            Annuler
+                        </button>
+                        <button type="submit" class="btn-form btn-submit">
+                            <i class="fas fa-save"></i>
+                            Enregistrer les modifications
+                        </button>
+                    </div>
+                </form>
             </div>
-          </div>
         </div>
 
-        <!-- Responsabilités -->
-        <div class="responsabilites-section">
-          <div class="responsabilites-card">
-            <div class="responsabilites-header">
-              <h3><i class="fas fa-tasks"></i> Responsabilités et Missions</h3>
+        <!-- Status Badge -->
+        <div class="status-badge-container">
+            <div class="status-badge {% if personnel.actif %}active{% else %}inactive{% endif %}">
+                <span class="status-dot"></span>
+                <span class="status-text">{% if personnel.actif %}Actif{% else %}Inactif{% endif %}</span>
             </div>
-            <div class="responsabilites-body">
-              <ul class="responsabilites-list">
-                {% for responsabilite in personnel.get_responsabilites %}
-                <li class="responsabilite-item">
-                  <i class="fas fa-check-circle"></i>
-                  <span>{{ responsabilite }}</span>
-                </li>
-                {% empty %}
-                <li class="no-responsabilites">
-                  <i class="fas fa-info-circle"></i>
-                  <span>Aucune responsabilité spécifiée</span>
-                </li>
-                {% endfor %}
-              </ul>
+            <div class="employee-number">
+                <i class="fas fa-id-card"></i>
+                <span>{{ personnel.numero_employe|default:"N/A" }}</span>
             </div>
-          </div>
+            <div class="employee-username">
+                <i class="fas fa-user"></i>
+                <span>{{ personnel.username }}</span>
+            </div>
         </div>
 
-        <!-- Actions -->
-        <div class="personnel-actions-section">
-          <div class="actions-container">
-            <a
-              href="{% url 'personnel:liste_personnel' %}"
-              class="btn-action btn-back"
-            >
-              <i class="fas fa-arrow-left"></i>
-              <span>Retour à la liste</span>
-            </a>
-            <a
-              href="{% url 'personnel:toggle_actif' personnel.id %}"
-              class="btn-action btn-toggle {% if personnel.actif %}active{% endif %}"
-            >
-              <i
-                class="fas fa-{% if personnel.actif %}pause{% else %}play{% endif %}"
-              ></i>
-              <span>
-                {% if personnel.actif %}Désactiver{% else %}Activer{% endif%}
-              </span>
-            </a>
-          </div>
+        <!-- Système d'onglets -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <a href="?onglet=informations" class="tab-item {% if onglet_actif == 'informations' or not onglet_actif %}active{% endif %}">
+                    <i class="fas fa-user"></i>
+                    <span>Informations</span>
+                </a>
+                <a href="?onglet=connexion" class="tab-item {% if onglet_actif == 'connexion' %}active{% endif %}">
+                    <i class="fas fa-key"></i>
+                    <span>Connexion</span>
+                </a>
+                <a href="?onglet=autorisations" class="tab-item {% if onglet_actif == 'autorisations' %}active{% endif %}">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Autorisations</span>
+                </a>
+            </div>
+
+            <div class="tabs-content">
+                <!-- ONGLET 1: INFORMATIONS -->
+                {% if onglet_actif == 'informations' or not onglet_actif %}
+                    <div class="tab-panel active">
+                        <!-- Format professionnel : Tableau d'informations -->
+                        <div class="info-table-container">
+                            <!-- Section : Informations Personnelles -->
+                            <div class="info-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-user"></i>
+                                    Informations Personnelles
+                                </h3>
+                                <table class="info-table">
+                                    <tr>
+                                        <td class="info-label-cell">Nom complet</td>
+                                        <td class="info-value-cell">{{ personnel.nom }} {{ personnel.prenom }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Email</td>
+                                        <td class="info-value-cell">
+                                            <a href="mailto:{{ personnel.email }}" class="link-email">{{ personnel.email }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Téléphone</td>
+                                        <td class="info-value-cell">
+                                            <a href="tel:{{ personnel.telephone }}" class="link-phone">{{ personnel.telephone }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Initiales</td>
+                                        <td class="info-value-cell">{{ personnel.initiales }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Section : Informations Professionnelles -->
+                            <div class="info-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-briefcase"></i>
+                                    Informations Professionnelles
+                                </h3>
+                                <table class="info-table">
+                                    <tr>
+                                        <td class="info-label-cell">Fonction</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-matiere">{{ personnel.get_fonction_display }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Établissement</td>
+                                        <td class="info-value-cell">{{ personnel.etablissement.nom }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Type d'établissement</td>
+                                        <td class="info-value-cell">{{ personnel.etablissement.get_type_etablissement_display }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Numéro d'employé</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-employee">{{ personnel.numero_employe|default:"N/A" }}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Section : Informations Administratives -->
+                            <div class="info-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-building"></i>
+                                    Informations Administratives
+                                </h3>
+                                <table class="info-table">
+                                    <tr>
+                                        <td class="info-label-cell">Date de création</td>
+                                        <td class="info-value-cell">{{ personnel.date_creation|date:"d/m/Y à H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Dernière modification</td>
+                                        <td class="info-value-cell">{{ personnel.date_modification|date:"d/m/Y à H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Dernière connexion</td>
+                                        <td class="info-value-cell">
+                                            {% if personnel.last_login %}
+                                                {{ personnel.last_login|date:"d/m/Y à H:i" }}
+                                            {% else %}
+                                                <span class="text-muted">Jamais connecté</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">Statut</td>
+                                        <td class="info-value-cell">
+                                            <span class="badge-status {% if personnel.actif %}active{% else %}inactive{% endif %}">
+                                                {% if personnel.actif %}Actif{% else %}Inactif{% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- ONGLET 2: CONNEXION -->
+                {% if onglet_actif == 'connexion' %}
+                    <div class="tab-panel active">
+                        <div class="detail-card full-width">
+                            <div class="card-header">
+                                <div class="card-icon connexion">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <h2 class="card-title">Informations de Connexion</h2>
+                            </div>
+                            <div class="card-content">
+                                {% if personnel.mot_de_passe_provisoire %}
+                                    <div class="alert alert-warning connexion-alert">
+                                        <div class="alert-icon">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="alert-content">
+                                            <h4>Mot de passe provisoire actif</h4>
+                                            <p>Le membre du personnel utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="connexion-info-grid">
+                                        <div class="connexion-item">
+                                            <div class="connexion-label">
+                                                <i class="fas fa-id-card"></i>
+                                                <span>Identifiant de connexion</span>
+                                            </div>
+                                            <div class="connexion-value">
+                                                <code class="connexion-code">{{ personnel.username }}</code>
+                                                <button class="btn-copy" onclick="copyToClipboard('{{ personnel.username }}')" title="Copier l'identifiant">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="connexion-item">
+                                            <div class="connexion-label">
+                                                <i class="fas fa-lock"></i>
+                                                <span>Mot de passe provisoire</span>
+                                            </div>
+                                            <div class="connexion-value">
+                                                <code class="connexion-code password-code">{{ personnel.mot_de_passe_provisoire }}</code>
+                                                <button class="btn-copy" onclick="copyToClipboard('{{ personnel.mot_de_passe_provisoire }}')" title="Copier le mot de passe">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="connexion-instructions">
+                                        <div class="instruction-icon">
+                                            <i class="fas fa-info-circle"></i>
+                                        </div>
+                                        <div class="instruction-content">
+                                            <h5>Instructions de première connexion</h5>
+                                            <ol>
+                                                <li>Utilisez l'identifiant de connexion et le mot de passe provisoire ci-dessus</li>
+                                                <li>Vous serez invité à changer votre mot de passe après la connexion</li>
+                                                <li>Conservez ces informations en lieu sûr jusqu'à la première connexion</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-info connexion-alert">
+                                        <div class="alert-icon">
+                                            <i class="fas fa-info-circle"></i>
+                                        </div>
+                                        <div class="alert-content">
+                                            <h4>Mot de passe personnalisé</h4>
+                                            <p>Le membre du personnel a déjà changé son mot de passe provisoire.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="connexion-info-grid">
+                                        <div class="connexion-item">
+                                            <div class="connexion-label">
+                                                <i class="fas fa-id-card"></i>
+                                                <span>Identifiant de connexion</span>
+                                            </div>
+                                            <div class="connexion-value">
+                                                <code class="connexion-code">{{ personnel.username }}</code>
+                                                <button class="btn-copy" onclick="copyToClipboard('{{ personnel.username }}')" title="Copier l'identifiant">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- ONGLET 3: AUTORISATIONS -->
+                {% if onglet_actif == 'autorisations' %}
+                    <div class="tab-panel active">
+                        <div class="detail-card full-width">
+                            <div class="card-header">
+                                <div class="card-icon autorisations">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <h2 class="card-title">Autorisations et Permissions</h2>
+                            </div>
+                            <div class="card-content">
+                                <div class="permissions-overview">
+                                    <div class="permission-summary">
+                                        <div class="summary-item">
+                                            <span class="summary-label">Fonction</span>
+                                            <span class="summary-value">{{ personnel.get_fonction_display }}</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">Permissions actives</span>
+                                            <span class="summary-value">{{ user_permissions|length }} permission(s)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="permissions-list-container">
+                                    {% for category_name, category_perms in permissions_par_categorie.items %}
+                                        <div class="permission-category-detail">
+                                            <h4 class="category-title">
+                                                <i class="fas fa-folder"></i>
+                                                {{ category_name }}
+                                            </h4>
+                                            <div class="permissions-list">
+                                                {% for perm in category_perms %}
+                                                    {% if perm.key in user_permissions %}
+                                                        <div class="permission-item-detail active">
+                                                            <div class="permission-icon">
+                                                                <i class="fas fa-check-circle"></i>
+                                                            </div>
+                                                            <div class="permission-content">
+                                                                <span class="permission-name">{{ perm.label }}</span>
+                                                                <small class="permission-desc">{{ perm.description }}</small>
+                                                            </div>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="permission-item-detail inactive">
+                                                            <div class="permission-icon">
+                                                                <i class="fas fa-times-circle"></i>
+                                                            </div>
+                                                            <div class="permission-content">
+                                                                <span class="permission-name">{{ perm.label }}</span>
+                                                                <small class="permission-desc">{{ perm.description }}</small>
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
-      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      function copierMotDePasse() {
-        const passwordText = document.getElementById('password-text').innerText;
-        navigator.clipboard.writeText(passwordText).then(() => {
-          // Animation de succès
-          const btn = event.currentTarget;
-          const originalHTML = btn.innerHTML;
-          btn.innerHTML = '<i class="fas fa-check"></i>';
-          btn.classList.add('success');
-          
-          // Afficher un message de succès temporaire
-          const alertDiv = document.createElement('div');
-          alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
-          alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
-          alertDiv.innerHTML = `
-            <i class="fas fa-check-circle"></i>
-            Mot de passe copié dans le presse-papiers !
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          `;
-          document.body.appendChild(alertDiv);
-          
-          // Retourner à l'état initial après 2 secondes
-          setTimeout(() => {
-            btn.innerHTML = originalHTML;
-            btn.classList.remove('success');
-          }, 2000);
-          
-          // Supprimer l'alerte après 3 secondes
-          setTimeout(() => {
-            alertDiv.remove();
-          }, 3000);
-        }).catch(err => {
-          console.error('Erreur lors de la copie : ', err);
-          alert('Impossible de copier le mot de passe. Veuillez le sélectionner manuellement.');
-        });
-      }
+        function toggleFormModifier() {
+            const container = document.getElementById('formModifierPersonnelContainer');
+            const btnText = document.getElementById('btnModifierText');
+            
+            if (container.style.display === 'none' || !container.style.display) {
+                container.style.display = 'block';
+                if (btnText) btnText.textContent = 'Annuler';
+                // Scroll vers le formulaire
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                container.style.display = 'none';
+                if (btnText) btnText.textContent = 'Modifier';
+            }
+        }
+
+        // Afficher automatiquement le formulaire s'il y a des erreurs
+        {% if field_errors_modifier %}
+            document.addEventListener('DOMContentLoaded', function() {
+                toggleFormModifier();
+            });
+        {% endif %}
+
+        function updatePermissionsByFunctionModifier() {
+            const fonctionSelect = document.getElementById('fonction_modifier');
+            if (!fonctionSelect) return;
+            
+            const fonction = fonctionSelect.value;
+            if (!fonction) return;
+            
+            fetch('{% url "personnel:get_permissions" %}?fonction=' + fonction, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Décocher toutes les permissions
+                    document.querySelectorAll('#formModifierPersonnelContainer input[type="checkbox"][name^="permission_"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    
+                    // Cocher les permissions par défaut
+                    data.permissions.forEach(perm => {
+                        const checkbox = document.getElementById(`permission_${perm}_modifier`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la récupération des permissions:', error);
+            });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Animation de succès
+                const btn = event.currentTarget;
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.add('success');
+                
+                // Afficher un message de succès temporaire
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    Copié dans le presse-papiers !
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(alertDiv);
+                
+                // Retourner à l'état initial après 2 secondes
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('success');
+                }, 2000);
+                
+                // Supprimer l'alerte après 3 secondes
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 3000);
+            }).catch(err => {
+                console.error('Erreur lors de la copie : ', err);
+                alert('Impossible de copier. Veuillez sélectionner manuellement.');
+            });
+        }
+
+        function openModalModifierPersonnel() {
+            const container = document.getElementById('modalContainerModifier');
+            if (!container) return;
+            
+            // Charger le modal via AJAX
+            fetch('{% url "personnel:modifier_personnel" personnel.id %}', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    container.innerHTML = data.html;
+                    const modal = document.getElementById('modalModifierPersonnel');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+                        initModalModifierEvents();
+                    }
+                } else {
+                    alert('Erreur lors du chargement du formulaire de modification.');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur lors du chargement du formulaire de modification.');
+            });
+        }
+
+        function closeModalModifierPersonnel() {
+            const modal = document.getElementById('modalModifierPersonnel');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+                const container = document.getElementById('modalContainerModifier');
+                if (container) {
+                    container.innerHTML = '';
+                }
+            }
+        }
+
+        function initModalModifierEvents() {
+            const modal = document.getElementById('modalModifierPersonnel');
+            if (!modal) return;
+            
+            // Bouton de fermeture (croix)
+            const btnClose = document.getElementById('btnCloseModalModifier');
+            if (btnClose) {
+                btnClose.addEventListener('click', closeModalModifierPersonnel);
+            }
+            
+            // Bouton Annuler
+            const btnCancel = document.getElementById('btnCancelModalModifier');
+            if (btnCancel) {
+                btnCancel.addEventListener('click', closeModalModifierPersonnel);
+            }
+            
+            // Fermer en cliquant sur l'overlay
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModalModifierPersonnel();
+                }
+            });
+            
+            // Fermer avec la touche Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.style.display === 'flex') {
+                    closeModalModifierPersonnel();
+                }
+            });
+            
+            // Mettre à jour les permissions quand la fonction change
+            const fonctionSelect = document.getElementById('fonction_modifier');
+            if (fonctionSelect) {
+                fonctionSelect.addEventListener('change', updatePermissionsByFunctionModifier);
+            }
+            
+            // Gestion de la soumission du formulaire
+            const form = document.getElementById('formModifierPersonnel');
+            if (form) {
+                let isSubmitting = false;
+                
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (isSubmitting) {
+                        return false;
+                    }
+                    isSubmitting = true;
+                    
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Modification en cours...';
+                    }
+                    
+                    const errorsDiv = document.getElementById('modalErrorsModifier');
+                    if (errorsDiv) {
+                        errorsDiv.style.display = 'none';
+                        errorsDiv.innerHTML = '';
+                    }
+                    
+                    document.querySelectorAll('.error-message-modal').forEach(span => {
+                        span.textContent = '';
+                        span.style.display = 'none';
+                    });
+                    
+                    const formData = new FormData(this);
+                    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json();
+                        } else {
+                            throw new Error('La réponse n\'est pas au format JSON.');
+                        }
+                    })
+                    .then(data => {
+                        isSubmitting = false;
+                        
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Modifier';
+                        }
+                        
+                        if (data.success) {
+                            alert(data.message);
+                            closeModalModifierPersonnel();
+                            window.location.reload();
+                        } else {
+                            if (errorsDiv) {
+                                errorsDiv.style.display = 'block';
+                                errorsDiv.innerHTML = '<strong>Erreurs détectées :</strong><ul>' + 
+                                    Object.values(data.errors || {}).map(err => `<li>${Array.isArray(err) ? err[0] : err}</li>`).join('') + 
+                                    '</ul>';
+                            }
+                            Object.keys(data.errors || {}).forEach(field => {
+                                const errorSpan = document.getElementById(`error_${field}_modifier`);
+                                if (errorSpan) {
+                                    const errorValue = data.errors[field];
+                                    errorSpan.textContent = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+                                    errorSpan.style.display = 'block';
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        isSubmitting = false;
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Modifier';
+                        }
+                        console.error('Erreur:', error);
+                        alert('Une erreur est survenue lors de la modification.');
+                    });
+                });
+            }
+        }
+
+        function updatePermissionsByFunctionModifier() {
+            const fonctionSelect = document.getElementById('fonction_modifier');
+            if (!fonctionSelect) return;
+            
+            const fonction = fonctionSelect.value;
+            if (!fonction) return;
+            
+            fetch('{% url "personnel:get_permissions" %}?fonction=' + fonction, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelectorAll('input[type="checkbox"][name^="permission_"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    
+                    data.permissions.forEach(perm => {
+                        const checkbox = document.getElementById(`permission_${perm}_modifier`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la récupération des permissions:', error);
+            });
+        }
     </script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

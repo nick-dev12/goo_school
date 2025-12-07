@@ -18,19 +18,22 @@ from ..model.classe_model import Classe
 from ..model.matiere_model import Matiere
 from ..model.professeur_model import Professeur
 from ..model.salle_model import Salle
+from ..utils.decorators_permissions import require_permission
 
 
 @login_required
+@require_permission('examens_voir')
 def gestion_examens(request):
     """
     Page principale de gestion des examens avec onglets par période et groupes de classes
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    from ..utils.decorators_permissions import _get_user_etablissement
+    result = _get_user_etablissement(request, 'examens_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..utils.session_utils import get_session_active
     
     # Récupérer l'année scolaire active
@@ -187,16 +190,18 @@ def gestion_examens(request):
 
 
 @login_required
+@require_permission('examens_voir')
 def emploi_du_temps_examens(request):
     """
     Page d'emploi du temps des examens avec affichage en grille comme un emploi du temps classique
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    from ..utils.decorators_permissions import _get_user_etablissement
+    result = _get_user_etablissement(request, 'examens_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..utils.session_utils import get_session_active
     
     # Récupérer l'année scolaire active
@@ -387,6 +392,7 @@ def emploi_du_temps_examens(request):
     professeurs = Professeur.objects.filter(etablissement=etablissement, actif=True).order_by('nom', 'prenom')
     salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
     
+    from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'etablissement': etablissement,
         'grille_emploi': grille_emploi,
@@ -398,22 +404,27 @@ def emploi_du_temps_examens(request):
         'professeurs': professeurs,
         'salles': salles,
         'annee_scolaire_active': annee_scolaire_active,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/emploi_du_temps_examens.html', context)
 
 
 @login_required
+@require_permission('examens_voir')
 def configurer_creneaux_examen(request, session_id):
     """
     Page de configuration des créneaux pour une session d'examen spécifique
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    from ..utils.decorators_permissions import _get_user_etablissement
+    result = _get_user_etablissement(request, 'examens_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
     from ..utils.session_utils import get_session_active
     
@@ -543,16 +554,18 @@ def configurer_creneaux_examen(request, session_id):
 
 
 @login_required
+@require_permission('examens_voir')
 def modifier_session_examen(request, session_id):
     """
     Modifier une session d'examen existante
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    from ..utils.decorators_permissions import _get_user_etablissement
+    result = _get_user_etablissement(request, 'examens_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
     
     if request.method == 'POST':
@@ -623,16 +636,18 @@ def modifier_session_examen(request, session_id):
 
 
 @login_required
+@require_permission('examens_voir')
 def supprimer_session_examen(request, session_id):
     """
     Supprimer une session d'examen et tous ses créneaux associés (CASCADE)
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    from ..utils.decorators_permissions import _get_user_etablissement
+    result = _get_user_etablissement(request, 'examens_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     
     try:
         session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)

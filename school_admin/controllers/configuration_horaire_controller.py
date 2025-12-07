@@ -187,6 +187,8 @@ class ConfigurationHoraireController:
         context = {
             'etablissement': etablissement,
             'personnel': personnel,
+            'is_directeur': isinstance(request.user, Etablissement),
+            'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
             'configuration': configuration,
             'form_data': form_data,
             'field_errors': field_errors,
@@ -362,6 +364,8 @@ class ConfigurationHoraireController:
         context = {
             'etablissement': etablissement,
             'personnel': personnel,
+            'is_directeur': isinstance(request.user, Etablissement),
+            'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
             'configuration': configuration,
             'periodes': periodes,
             'annee_scolaire_active': annee_scolaire_active,

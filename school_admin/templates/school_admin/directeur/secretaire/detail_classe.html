@@ -14,21 +14,14 @@
     {% load static %}
     
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_secretaire.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_classe.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
 <body>
     <!-- Header -->
     {% if user.is_authenticated %}
-        {% if user.directeur_prenom %}
-            {% include 'school_admin/directeur/partials/header_directeur.html' %}
-        {% else %}
-            {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
-        {% endif %}
-    {% else %}
-        {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
-    {% endif %}
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
     
     <!-- Messages -->
     {% include 'school_admin/partials/messages.html' %}

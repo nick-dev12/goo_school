@@ -1,7 +1,7 @@
 """
 Vues pour l'espace élève
 """
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Count
@@ -2938,6 +2938,38 @@ def notifications_eleve(request):
         'school_admin/eleve/notifications_eleve.html',
         context,
     )
+
+
+def notification_eleve_click(request, notification_id):
+    """
+    Gère le clic sur une notification : marque comme lue et redirige vers la page appropriée.
+    """
+    eleve, est_parent = get_eleve_from_request(request)
+    
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    # Récupérer la notification
+    notification = get_object_or_404(NotificationEleve, id=notification_id, eleve=eleve)
+    
+    # Marquer la notification comme lue
+    if not notification.lu:
+        notification.marquer_comme_lue()
+    
+    # Récupérer l'URL de redirection depuis les données de la notification
+    redirect_url = notification.donnees.get('redirect_url') if notification.donnees else None
+    
+    # Si pas d'URL dans les données, générer selon le type
+    if not redirect_url:
+        from school_admin.services.eleve_notification_service import EleveNotificationService
+        redirect_url = EleveNotificationService._get_redirect_url(
+            notification.type_notification,
+            notification.donnees
+        )
+    
+    # Rediriger vers l'URL appropriée
+    return redirect(redirect_url)
 
 
 def historique_annees_eleve(request):

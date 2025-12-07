@@ -304,6 +304,9 @@ def dashboard_secretaire(request):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'stats': stats,
         'etablissement_stats': etablissement_stats,
         'dashboard_stats': dashboard_stats,
@@ -317,13 +320,19 @@ def dashboard_secretaire(request):
 @login_required
 def inscription_eleves(request):
     """
-    Page d'inscription des élèves pour le secrétaire ou le directeur
+    Page d'inscription des élèves pour le secrétaire ou le directeur ou le personnel avec permission
     """
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
-    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur soit un personnel avec la permission
+    from ..utils.decorators_permissions import check_permission
+    
+    if isinstance(user, PersonnelAdministratif):
+        # Vérifier la permission d'inscription ou être secrétaire principal
+        if not check_permission(user, 'eleves_inscrire') and user.fonction != 'secretaire_principal':
+            messages.error(request, "Vous n'avez pas la permission d'inscrire des élèves.")
+            return redirect('directeur:dashboard_directeur')
         etablissement = user.etablissement
     elif isinstance(user, Etablissement):
         etablissement = user
@@ -665,6 +674,9 @@ def inscription_eleves(request):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classes': classes,
         'form_data': form_data,
         'field_errors': field_errors,
@@ -683,8 +695,14 @@ def liste_eleves(request):
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
-    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur soit un personnel avec la permission
+    from ..utils.decorators_permissions import check_permission
+    
+    if isinstance(user, PersonnelAdministratif):
+        # Vérifier la permission de voir la liste des élèves
+        if not check_permission(user, 'eleves_liste'):
+            messages.error(request, "Vous n'avez pas la permission de voir la liste des élèves.")
+            return redirect('directeur:dashboard_directeur')
         etablissement = user.etablissement
     elif isinstance(user, Etablissement):
         etablissement = user
@@ -710,6 +728,9 @@ def liste_eleves(request):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classes_grouped': classes_grouped,
         'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
@@ -749,6 +770,9 @@ def cartes_identite_eleves(request):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classes_grouped': classes_grouped,
         'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
@@ -800,6 +824,9 @@ def carte_identite_eleve(request, eleve_id):
     
     context = {
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'eleve': eleve,
         'annee_scolaire': annee_scolaire_libelle,
         'annee_scolaire_active': annee_scolaire_active,
@@ -876,6 +903,9 @@ def cartes_identite_classe(request, classe_id):
 
     context = {
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classe': classe,
         'eleves': eleves,
         'annee_scolaire': annee_scolaire_libelle,
@@ -987,6 +1017,9 @@ def reçu_inscription_eleve(request, eleve_id):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'etablissement_info': etablissement_info,
         'eleve': eleve,
         'eleve_info': eleve_info,
@@ -1003,14 +1036,31 @@ def detail_eleve(request, eleve_id):
     """
     Page de détails d'un élève avec formulaire de modification (secrétaire ou directeur)
     """
+    # Import explicite pour éviter les problèmes de scope
+    # InscriptionEleve et InscriptionParent sont déjà importés en haut du fichier
+    from ..model.inscription_eleve_model import InscriptionEleve as InscriptionEleveModel
+    from ..model.inscription_parent_model import InscriptionParent as InscriptionParentModel
+    
+    # Utiliser les alias pour éviter les conflits
+    InscriptionEleve = InscriptionEleveModel
+    InscriptionParent = InscriptionParentModel
+    
     # Récupérer l'utilisateur connecté
     user = request.user
     
-    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
-    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
-        etablissement = user.etablissement
-    elif isinstance(user, Etablissement):
+    # Vérifier que l'utilisateur est soit un directeur soit un personnel avec la permission eleves_detail
+    from ..utils.decorators_permissions import check_permission
+    
+    if isinstance(user, Etablissement):
         etablissement = user
+    elif isinstance(user, PersonnelAdministratif):
+        # Recharger le personnel depuis la base de données pour avoir les permissions à jour
+        user.refresh_from_db()
+        # Vérifier la permission eleves_detail
+        if not check_permission(user, 'eleves_detail'):
+            messages.error(request, "Accès non autorisé. Vous n'avez pas la permission d'accéder aux détails des élèves.")
+            return redirect('directeur:dashboard_directeur')
+        etablissement = user.etablissement
     else:
         messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
         return redirect('school_admin:connexion_compte_user')
@@ -1548,10 +1598,14 @@ def detail_eleve(request, eleve_id):
                 'adresse': request.POST.get('adresse', '').strip(),
                 'telephone': request.POST.get('telephone', '').strip(),
                 'email': request.POST.get('email', '').strip(),
+                'classe': request.POST.get('classe', ''),
+                'date_inscription': request.POST.get('date_inscription', ''),
+                'statut': request.POST.get('statut', ''),
                 # Champs parent/tuteur
                 'parent_nom': request.POST.get('parent_nom', '').strip(),
                 'parent_prenom': request.POST.get('parent_prenom', '').strip(),
-                'parent_telephone': request.POST.get('parent_telephone', '').strip(),
+                # Pour le téléphone parent, utiliser le numéro formaté (parent_telephone_full) s'il existe, sinon utiliser parent_telephone
+                'parent_telephone': request.POST.get('parent_telephone_full', '').strip() or request.POST.get('parent_telephone', '').strip(),
                 'parent_email': request.POST.get('parent_email', '').strip(),
                 'parent_adresse': request.POST.get('parent_adresse', '').strip(),
                 'parent_profession': request.POST.get('parent_profession', '').strip(),
@@ -1576,6 +1630,7 @@ def detail_eleve(request, eleve_id):
 
             # Validation
             is_valid = True
+            inscription_date_obj = None
 
             # Champs obligatoires
             required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite']
@@ -1591,7 +1646,7 @@ def detail_eleve(request, eleve_id):
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                     is_valid = False
 
-            # Validation des dates
+            # Validation de la date de naissance
             if form_data['date_naissance']:
                 try:
                     birth_date = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
@@ -1601,6 +1656,32 @@ def detail_eleve(request, eleve_id):
                 except ValueError:
                     field_errors['date_naissance'] = "Format de date invalide."
                     is_valid = False
+
+            # Validation de la date d'inscription
+            if form_data['date_inscription']:
+                try:
+                    inscription_date = datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date()
+                    inscription_date_obj = inscription_date
+                    if inscription_date > date.today():
+                        field_errors['date_inscription'] = "La date d'inscription ne peut pas être dans le futur."
+                        is_valid = False
+                except ValueError:
+                    field_errors['date_inscription'] = "Format de date invalide."
+                    is_valid = False
+
+            # Validation de la classe
+            classe_obj = None
+            if form_data['classe']:
+                try:
+                    classe_obj = Classe.objects.get(id=form_data['classe'], etablissement=etablissement)
+                except Classe.DoesNotExist:
+                    field_errors['classe'] = "La classe sélectionnée n'existe pas."
+                    is_valid = False
+
+            # Validation du statut
+            if form_data['statut'] and form_data['statut'] not in ['nouvelle', 'transfert', 'reinscription']:
+                field_errors['statut'] = "Le type d'inscription sélectionné n'est pas valide."
+                is_valid = False
 
             # Validation des emails
             if form_data['email'] and '@' not in form_data['email']:
@@ -1612,23 +1693,35 @@ def detail_eleve(request, eleve_id):
                 field_errors['parent_email'] = "L'adresse email du parent/tuteur n'est pas valide."
                 is_valid = False
 
+            # Validation du lien parent/tuteur
+            if form_data['parent_lien'] and form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
+                field_errors['parent_lien'] = "Le lien avec l'élève sélectionné n'est pas valide."
+                is_valid = False
 
             # Si tout est valide, sauvegarder les modifications
             if is_valid:
                 try:
                     with transaction.atomic():
-                        # Mettre à jour les informations de base
+                        # Mettre à jour les informations de base de l'élève
                         eleve.nom = form_data['nom']
                         eleve.prenom = form_data['prenom']
                         eleve.date_naissance = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
                         eleve.lieu_naissance = form_data['lieu_naissance']
                         eleve.sexe = form_data['sexe']
                         eleve.nationalite = form_data['nationalite']
-                        eleve.adresse = form_data['adresse']
-                        eleve.telephone = form_data['telephone']
-                        eleve.email = form_data['email']
+                        eleve.adresse = form_data['adresse'] if form_data['adresse'] else None
+                        eleve.telephone = form_data['telephone'] if form_data['telephone'] else None
+                        eleve.email = form_data['email'] if form_data['email'] else None
 
-                        # Mettre à jour les informations parent/tuteur
+                        # Mettre à jour la classe et le statut si fournis
+                        if classe_obj:
+                            eleve.classe = classe_obj
+                        if form_data['date_inscription']:
+                            eleve.date_inscription = inscription_date_obj
+                        if form_data['statut']:
+                            eleve.statut = form_data['statut']
+
+                        # Mettre à jour les informations parent/tuteur dans l'élève
                         eleve.parent_nom = form_data['parent_nom']
                         eleve.parent_prenom = form_data['parent_prenom']
                         eleve.parent_telephone = form_data['parent_telephone']
@@ -1651,8 +1744,134 @@ def detail_eleve(request, eleve_id):
                         eleve.document_photo_identite = form_data['document_photo_identite']
                         eleve.document_autorisation_parentale = form_data['document_autorisation_parentale']
 
-                        # Sauvegarder
+                        # Sauvegarder l'élève
                         eleve.save()
+
+                        # Mettre à jour ou créer le compte Parent
+                        from ..model.parent_model import Parent
+                        from ..model.lien_familial_model import LienFamilial
+                        
+                        # Vérifier si un parent avec ce téléphone existe déjà
+                        parent_existant = None
+                        if form_data['parent_telephone']:
+                            parent_existant = Parent.objects.filter(
+                                telephone=form_data['parent_telephone'],
+                                etablissement=etablissement
+                            ).first()
+                        
+                        if parent_existant:
+                            # Utiliser le parent existant et mettre à jour ses informations
+                            parent = parent_existant
+                            parent.nom = form_data['parent_nom']
+                            parent.prenom = form_data['parent_prenom']
+                            parent.telephone = form_data['parent_telephone']
+                            parent.email = form_data['parent_email'] if form_data['parent_email'] else ''
+                            parent.adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else ''
+                            parent.profession = form_data['parent_profession'] if form_data['parent_profession'] else ''
+                            # Mettre à jour le type_parent selon le lien
+                            if form_data['parent_lien'] in ['mere', 'pere', 'tuteur']:
+                                parent.type_parent = form_data['parent_lien']
+                            else:
+                                parent.type_parent = 'tuteur'
+                            parent.save()
+                        else:
+                            # Créer un nouveau compte parent si nécessaire
+                            matricule_parent = Parent.generer_matricule_parent(etablissement)
+                            mot_de_passe_parent = Parent.generer_mot_de_passe()
+                            
+                            parent = Parent(
+                                matricule_parental=matricule_parent,
+                                type_parent=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                                nom=form_data['parent_nom'],
+                                prenom=form_data['parent_prenom'],
+                                telephone=form_data['parent_telephone'],
+                                email=form_data['parent_email'] if form_data['parent_email'] else '',
+                                adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
+                                profession=form_data['parent_profession'] if form_data['parent_profession'] else '',
+                                etablissement=etablissement,
+                                mot_de_passe_provisoire=mot_de_passe_parent,
+                                mot_de_passe_modifie=False,
+                                username=matricule_parent,
+                                is_active=True,
+                                is_staff=False,
+                                is_superuser=False,
+                            )
+                            parent.set_password(mot_de_passe_parent)
+                            parent.save()
+                        
+                        # Créer ou mettre à jour le lien familial
+                        lien_familial, created = LienFamilial.objects.update_or_create(
+                            parent=parent,
+                            eleve=eleve,
+                            defaults={
+                                'type_lien': form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                                'statut': 'valide',
+                                'est_inscripteur': True,
+                                'actif': True,
+                            }
+                        )
+                        
+                        # Mettre à jour ou créer InscriptionEleve pour l'année scolaire active
+                        if annee_scolaire_active:
+                            inscription_eleve, _ = InscriptionEleve.objects.update_or_create(
+                                eleve=eleve,
+                                annee_scolaire=annee_scolaire_active,
+                                defaults={
+                                    'nom': form_data['nom'],
+                                    'prenom': form_data['prenom'],
+                                    'date_naissance': datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date(),
+                                    'lieu_naissance': form_data['lieu_naissance'],
+                                    'sexe': form_data['sexe'],
+                                    'nationalite': form_data['nationalite'],
+                                    'adresse': form_data['adresse'] if form_data['adresse'] else None,
+                                    'telephone': form_data['telephone'] if form_data['telephone'] else None,
+                                    'email': form_data['email'] if form_data['email'] else None,
+                                    'numero_eleve': eleve.numero_eleve,
+                                    'matricule_eleve': eleve.matricule_eleve,
+                                    'etablissement': etablissement,
+                                    'classe': classe_obj if classe_obj else eleve.classe,
+                                    'date_inscription': inscription_date_obj if inscription_date_obj else eleve.date_inscription,
+                                    'statut': form_data['statut'] if form_data['statut'] else eleve.statut,
+                                    'parent_nom': form_data['parent_nom'],
+                                    'parent_prenom': form_data['parent_prenom'],
+                                    'parent_telephone': form_data['parent_telephone'],
+                                    'parent_email': form_data['parent_email'] if form_data['parent_email'] else None,
+                                    'parent_adresse': form_data['parent_adresse'] if form_data['parent_adresse'] else None,
+                                    'parent_profession': form_data['parent_profession'] if form_data['parent_profession'] else None,
+                                    'parent_lien': form_data['parent_lien'],
+                                    'document_acte_naissance': form_data['document_acte_naissance'],
+                                    'document_cni': form_data['document_cni'],
+                                    'document_passeport': form_data['document_passeport'],
+                                    'document_bulletin_precedent': form_data['document_bulletin_precedent'],
+                                    'document_certificat_scolarite': form_data['document_certificat_scolarite'],
+                                    'document_livret_scolaire': form_data['document_livret_scolaire'],
+                                    'document_certificat_medical': form_data['document_certificat_medical'],
+                                    'document_carnet_vaccination': form_data['document_carnet_vaccination'],
+                                    'document_assurance_maladie': form_data['document_assurance_maladie'],
+                                    'document_justificatif_domicile': form_data['document_justificatif_domicile'],
+                                    'document_photo_identite': form_data['document_photo_identite'],
+                                    'document_autorisation_parentale': form_data['document_autorisation_parentale'],
+                                }
+                            )
+                            
+                            # Mettre à jour ou créer InscriptionParent pour l'année scolaire active
+                            type_parent = parent.type_parent if parent.type_parent in ['mere', 'pere', 'tuteur'] else 'tuteur'
+                            inscription_parent, _ = InscriptionParent.objects.update_or_create(
+                                parent=parent,
+                                annee_scolaire=annee_scolaire_active,
+                                defaults={
+                                    'nom': parent.nom,
+                                    'prenom': parent.prenom,
+                                    'telephone': parent.telephone,
+                                    'email': parent.email,
+                                    'type_parent': type_parent,
+                                    'adresse': parent.adresse,
+                                    'profession': parent.profession,
+                                    'etablissement': etablissement,
+                                    'matricule_parental': parent.matricule_parental,
+                                    'date_inscription': inscription_date_obj if inscription_date_obj else eleve.date_inscription,
+                                }
+                            )
 
                         messages.success(request, f"Les informations de {eleve.prenom} {eleve.nom} ont été mises à jour avec succès !")
                         return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
@@ -1661,43 +1880,132 @@ def detail_eleve(request, eleve_id):
                     field_errors['__all__'] = f"Une erreur est survenue lors de la modification: {str(e)}. Veuillez réessayer."
                     is_valid = False
     else:
-        # Remplir le formulaire avec les données actuelles de l'élève
-        form_data = {
-            'nom': eleve.nom,
-            'prenom': eleve.prenom,
-            'date_naissance': eleve.date_naissance.strftime('%Y-%m-%d') if eleve.date_naissance else '',
-            'lieu_naissance': eleve.lieu_naissance,
-            'sexe': eleve.sexe,
-            'nationalite': eleve.nationalite,
-            'adresse': eleve.adresse,
-            'telephone': eleve.telephone,
-            'email': eleve.email,
-            # Champs parent/tuteur
-            'parent_nom': eleve.parent_nom,
-            'parent_prenom': eleve.parent_prenom,
-            'parent_telephone': eleve.parent_telephone,
-            'parent_email': eleve.parent_email,
-            'parent_adresse': eleve.parent_adresse,
-            'parent_profession': eleve.parent_profession,
-            'parent_lien': eleve.parent_lien,
-            # Documents
-            'document_acte_naissance': eleve.document_acte_naissance,
-            'document_cni': eleve.document_cni,
-            'document_passeport': eleve.document_passeport,
-            'document_bulletin_precedent': eleve.document_bulletin_precedent,
-            'document_certificat_scolarite': eleve.document_certificat_scolarite,
-            'document_livret_scolaire': eleve.document_livret_scolaire,
-            'document_certificat_medical': eleve.document_certificat_medical,
-            'document_carnet_vaccination': eleve.document_carnet_vaccination,
-            'document_assurance_maladie': eleve.document_assurance_maladie,
-            'document_justificatif_domicile': eleve.document_justificatif_domicile,
-            'document_photo_identite': eleve.document_photo_identite,
-            'document_autorisation_parentale': eleve.document_autorisation_parentale,
-        }
+        # Remplir le formulaire avec les données depuis InscriptionEleve et InscriptionParent (priorité)
+        # Si pas d'inscription pour l'année active, utiliser les données de l'élève
+        inscription_eleve_data = None
+        inscription_parent_data = None
+        
+        # Récupérer les données d'inscription pour l'année scolaire active
+        if annee_scolaire_active:
+            try:
+                inscription_eleve_data = InscriptionEleve.objects.get(
+                    eleve=eleve,
+                    annee_scolaire=annee_scolaire_active,
+                    etablissement=etablissement
+                )
+            except InscriptionEleve.DoesNotExist:
+                inscription_eleve_data = None
+            
+            # Récupérer les données du parent depuis InscriptionParent
+            if parent_inscripteur:
+                try:
+                    inscription_parent_data = InscriptionParent.objects.get(
+                        parent=parent_inscripteur,
+                        annee_scolaire=annee_scolaire_active,
+                        etablissement=etablissement
+                    )
+                except InscriptionParent.DoesNotExist:
+                    inscription_parent_data = None
+        
+        # Utiliser les données d'inscription si disponibles, sinon utiliser les données de l'élève
+        if inscription_eleve_data:
+            form_data = {
+                'nom': inscription_eleve_data.nom,
+                'prenom': inscription_eleve_data.prenom,
+                'date_naissance': inscription_eleve_data.date_naissance.strftime('%Y-%m-%d') if inscription_eleve_data.date_naissance else '',
+                'lieu_naissance': inscription_eleve_data.lieu_naissance or '',
+                'sexe': inscription_eleve_data.sexe,
+                'nationalite': inscription_eleve_data.nationalite or '',
+                'adresse': inscription_eleve_data.adresse or '',
+                'telephone': inscription_eleve_data.telephone or '',
+                'email': inscription_eleve_data.email or '',
+                'classe': inscription_eleve_data.classe.id if inscription_eleve_data.classe else '',
+                'date_inscription': inscription_eleve_data.date_inscription.strftime('%Y-%m-%d') if inscription_eleve_data.date_inscription else '',
+                'statut': inscription_eleve_data.statut,
+                # Champs parent/tuteur depuis InscriptionEleve
+                'parent_nom': inscription_eleve_data.parent_nom or '',
+                'parent_prenom': inscription_eleve_data.parent_prenom or '',
+                'parent_telephone': inscription_eleve_data.parent_telephone or '',
+                'parent_email': inscription_eleve_data.parent_email or '',
+                'parent_adresse': inscription_eleve_data.parent_adresse or '',
+                'parent_profession': inscription_eleve_data.parent_profession or '',
+                'parent_lien': inscription_eleve_data.parent_lien or '',
+                # Documents depuis InscriptionEleve
+                'document_acte_naissance': inscription_eleve_data.document_acte_naissance,
+                'document_cni': inscription_eleve_data.document_cni,
+                'document_passeport': inscription_eleve_data.document_passeport,
+                'document_bulletin_precedent': inscription_eleve_data.document_bulletin_precedent,
+                'document_certificat_scolarite': inscription_eleve_data.document_certificat_scolarite,
+                'document_livret_scolaire': inscription_eleve_data.document_livret_scolaire,
+                'document_certificat_medical': inscription_eleve_data.document_certificat_medical,
+                'document_carnet_vaccination': inscription_eleve_data.document_carnet_vaccination,
+                'document_assurance_maladie': inscription_eleve_data.document_assurance_maladie,
+                'document_justificatif_domicile': inscription_eleve_data.document_justificatif_domicile,
+                'document_photo_identite': inscription_eleve_data.document_photo_identite,
+                'document_autorisation_parentale': inscription_eleve_data.document_autorisation_parentale,
+            }
+            
+            # Si on a aussi les données du parent depuis InscriptionParent, les utiliser pour compléter
+            if inscription_parent_data:
+                form_data['parent_nom'] = inscription_parent_data.nom or form_data['parent_nom']
+                form_data['parent_prenom'] = inscription_parent_data.prenom or form_data['parent_prenom']
+                form_data['parent_telephone'] = inscription_parent_data.telephone or form_data['parent_telephone']
+                form_data['parent_email'] = inscription_parent_data.email or form_data['parent_email']
+                form_data['parent_adresse'] = inscription_parent_data.adresse or form_data['parent_adresse']
+                form_data['parent_profession'] = inscription_parent_data.profession or form_data['parent_profession']
+        else:
+            # Utiliser les données de l'élève si pas d'inscription
+            form_data = {
+                'nom': eleve.nom,
+                'prenom': eleve.prenom,
+                'date_naissance': eleve.date_naissance.strftime('%Y-%m-%d') if eleve.date_naissance else '',
+                'lieu_naissance': eleve.lieu_naissance or '',
+                'sexe': eleve.sexe,
+                'nationalite': eleve.nationalite or '',
+                'adresse': eleve.adresse or '',
+                'telephone': eleve.telephone or '',
+                'email': eleve.email or '',
+                'classe': eleve.classe.id if eleve.classe else '',
+                'date_inscription': eleve.date_inscription.strftime('%Y-%m-%d') if eleve.date_inscription else '',
+                'statut': eleve.statut,
+                # Champs parent/tuteur
+                'parent_nom': eleve.parent_nom or '',
+                'parent_prenom': eleve.parent_prenom or '',
+                'parent_telephone': eleve.parent_telephone or '',
+                'parent_email': eleve.parent_email or '',
+                'parent_adresse': eleve.parent_adresse or '',
+                'parent_profession': eleve.parent_profession or '',
+                'parent_lien': eleve.parent_lien or '',
+                # Documents
+                'document_acte_naissance': eleve.document_acte_naissance,
+                'document_cni': eleve.document_cni,
+                'document_passeport': eleve.document_passeport,
+                'document_bulletin_precedent': eleve.document_bulletin_precedent,
+                'document_certificat_scolarite': eleve.document_certificat_scolarite,
+                'document_livret_scolaire': eleve.document_livret_scolaire,
+                'document_certificat_medical': eleve.document_certificat_medical,
+                'document_carnet_vaccination': eleve.document_carnet_vaccination,
+                'document_assurance_maladie': eleve.document_assurance_maladie,
+                'document_justificatif_domicile': eleve.document_justificatif_domicile,
+                'document_photo_identite': eleve.document_photo_identite,
+                'document_autorisation_parentale': eleve.document_autorisation_parentale,
+            }
+    
+    # Récupérer la liste des pays pour le select
+    try:
+        pays_list = [(code, str(nom)) for code, nom in countries]
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erreur lors de la récupération des pays: {str(e)}")
+        pays_list = []
     
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'eleve': eleve_display,  # Utiliser le proxy avec la classe et le statut de l'année scolaire active
         'classes': classes,
         'form_data': form_data,
@@ -1722,6 +2030,11 @@ def detail_eleve(request, eleve_id):
         'parent_inscripteur': parent_inscripteur,
         'lien_inscripteur': lien_inscripteur,
         'annee_scolaire_active': annee_scolaire_active,
+        'pays_list': pays_list,
+        # Permissions pour masquer les onglets
+        'can_view_presences': isinstance(user, Etablissement) or (isinstance(user, PersonnelAdministratif) and check_permission(user, 'presences_detail')),
+        'can_view_notes': isinstance(user, Etablissement) or (isinstance(user, PersonnelAdministratif) and check_permission(user, 'notes_detail')),
+        'can_view_sanctions': isinstance(user, Etablissement) or (isinstance(user, PersonnelAdministratif) and check_permission(user, 'sanctions_detail')),
     }
     
     return render(request, 'school_admin/directeur/secretaire/detail_eleve.html', context)
@@ -1930,6 +2243,9 @@ def gestion_classes(request):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classes_data': classes_data,
         'stats_classes': stats_classes,
         'annee_scolaire_active': annee_scolaire_active,
@@ -2009,6 +2325,9 @@ def detail_classe(request, classe_id):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classe': classe,
         'eleves': eleves,
         'stats_classe': stats_classe,
@@ -2100,6 +2419,9 @@ def imprimer_liste_eleves(request, classe_id):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'etablissement_info': etablissement_info,
         'classe': classe,
         'classe_info': classe_info,
@@ -2172,6 +2494,9 @@ def desactiver_eleve(request, eleve_id):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'eleve': eleve,
     }
     
@@ -2241,6 +2566,9 @@ def supprimer_eleve(request, eleve_id):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'eleve': eleve,
     }
     
@@ -2318,6 +2646,9 @@ def synchroniser_facturation(request):
     context = {
         'user': user,
         'etablissement': etablissement,
+        'is_directeur': isinstance(user, Etablissement),
+        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
+        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'eleves_actifs': eleves_actifs,
         'montant_par_eleve': montant_par_eleve,
         'montant_total_calcule': montant_total_calcule,

@@ -13,15 +13,7 @@
 </head>
 <body>
     <!-- Header -->
-    {% if user.is_authenticated %}
-        {% if user.directeur_prenom %}
-            {% include 'school_admin/directeur/partials/header_directeur.html' %}
-        {% else %}
-            {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
-        {% endif %}
-    {% else %}
-        {% include 'school_admin/directeur/administrateur_etablissement/partials/header_administrateur_etablissement.html' %}
-    {% endif %}
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
     <div class="main-content-container">

@@ -565,6 +565,14 @@
         "documentation": {}
     },
     {
+        "label": "messages",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
         "label": "admin",
         "importPath": "django.contrib",
         "description": "django.contrib",
@@ -2487,22 +2495,6 @@
         "documentation": {}
     },
     {
-        "label": "render",
-        "importPath": "django.shortcuts",
-        "description": "django.shortcuts",
-        "isExtraImport": true,
-        "detail": "django.shortcuts",
-        "documentation": {}
-    },
-    {
-        "label": "redirect",
-        "importPath": "django.shortcuts",
-        "description": "django.shortcuts",
-        "isExtraImport": true,
-        "detail": "django.shortcuts",
-        "documentation": {}
-    },
-    {
         "label": "get_object_or_404",
         "importPath": "django.shortcuts",
         "description": "django.shortcuts",
@@ -2575,6 +2567,30 @@
         "documentation": {}
     },
     {
+        "label": "get_object_or_404",
+        "importPath": "django.shortcuts",
+        "description": "django.shortcuts",
+        "isExtraImport": true,
+        "detail": "django.shortcuts",
+        "documentation": {}
+    },
+    {
+        "label": "render",
+        "importPath": "django.shortcuts",
+        "description": "django.shortcuts",
+        "isExtraImport": true,
+        "detail": "django.shortcuts",
+        "documentation": {}
+    },
+    {
+        "label": "redirect",
+        "importPath": "django.shortcuts",
+        "description": "django.shortcuts",
+        "isExtraImport": true,
+        "detail": "django.shortcuts",
+        "documentation": {}
+    },
+    {
         "label": "render",
         "importPath": "django.shortcuts",
         "description": "django.shortcuts",
@@ -2608,6 +2624,14 @@
     },
     {
         "label": "get_object_or_404",
+        "importPath": "django.shortcuts",
+        "description": "django.shortcuts",
+        "isExtraImport": true,
+        "detail": "django.shortcuts",
+        "documentation": {}
+    },
+    {
+        "label": "redirect",
         "importPath": "django.shortcuts",
         "description": "django.shortcuts",
         "isExtraImport": true,
@@ -6833,6 +6857,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -7701,6 +7741,14 @@
         "documentation": {}
     },
     {
+        "label": "render_to_string",
+        "importPath": "django.template.loader",
+        "description": "django.template.loader",
+        "isExtraImport": true,
+        "detail": "django.template.loader",
+        "documentation": {}
+    },
+    {
         "label": "countries",
         "importPath": "django_countries",
         "description": "django_countries",
@@ -7993,6 +8041,14 @@
     },
     {
         "label": "forms",
+        "importPath": "django",
+        "description": "django",
+        "isExtraImport": true,
+        "detail": "django",
+        "documentation": {}
+    },
+    {
+        "label": "template",
         "importPath": "django",
         "description": "django",
         "isExtraImport": true,
@@ -9151,6 +9207,22 @@
         "documentation": {}
     },
     {
+        "label": "wraps",
+        "importPath": "functools",
+        "description": "functools",
+        "isExtraImport": true,
+        "detail": "functools",
+        "documentation": {}
+    },
+    {
+        "label": "wraps",
+        "importPath": "functools",
+        "description": "functools",
+        "isExtraImport": true,
+        "detail": "functools",
+        "documentation": {}
+    },
+    {
         "label": "UserAdmin",
         "importPath": "django.contrib.auth.admin",
         "description": "django.contrib.auth.admin",
@@ -9172,14 +9244,6 @@
         "description": "django.utils.functional",
         "isExtraImport": true,
         "detail": "django.utils.functional",
-        "documentation": {}
-    },
-    {
-        "label": "wraps",
-        "importPath": "functools",
-        "description": "functools",
-        "isExtraImport": true,
-        "detail": "functools",
         "documentation": {}
     },
     {
@@ -10334,7 +10398,7 @@
         "kind": 2,
         "importPath": "school_admin.controllers.examen_controller",
         "description": "school_admin.controllers.examen_controller",
-        "peekOfCode": "def gestion_examens(request):\n    \"\"\"\n    Page principale de gestion des examens avec onglets par période et groupes de classes\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active",
+        "peekOfCode": "def gestion_examens(request):\n    \"\"\"\n    Page principale de gestion des examens avec onglets par période et groupes de classes\n    \"\"\"\n    from ..utils.decorators_permissions import _get_user_etablissement\n    result = _get_user_etablissement(request, 'examens_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.controllers.examen_controller",
         "documentation": {}
     },
@@ -10343,7 +10407,7 @@
         "kind": 2,
         "importPath": "school_admin.controllers.examen_controller",
         "description": "school_admin.controllers.examen_controller",
-        "peekOfCode": "def emploi_du_temps_examens(request):\n    \"\"\"\n    Page d'emploi du temps des examens avec affichage en grille comme un emploi du temps classique\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active",
+        "peekOfCode": "def emploi_du_temps_examens(request):\n    \"\"\"\n    Page d'emploi du temps des examens avec affichage en grille comme un emploi du temps classique\n    \"\"\"\n    from ..utils.decorators_permissions import _get_user_etablissement\n    result = _get_user_etablissement(request, 'examens_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.controllers.examen_controller",
         "documentation": {}
     },
@@ -10352,7 +10416,7 @@
         "kind": 2,
         "importPath": "school_admin.controllers.examen_controller",
         "description": "school_admin.controllers.examen_controller",
-        "peekOfCode": "def configurer_creneaux_examen(request, session_id):\n    \"\"\"\n    Page de configuration des créneaux pour une session d'examen spécifique\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)",
+        "peekOfCode": "def configurer_creneaux_examen(request, session_id):\n    \"\"\"\n    Page de configuration des créneaux pour une session d'examen spécifique\n    \"\"\"\n    from ..utils.decorators_permissions import _get_user_etablissement\n    result = _get_user_etablissement(request, 'examens_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.controllers.examen_controller",
         "documentation": {}
     },
@@ -10361,7 +10425,7 @@
         "kind": 2,
         "importPath": "school_admin.controllers.examen_controller",
         "description": "school_admin.controllers.examen_controller",
-        "peekOfCode": "def modifier_session_examen(request, session_id):\n    \"\"\"\n    Modifier une session d'examen existante\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)",
+        "peekOfCode": "def modifier_session_examen(request, session_id):\n    \"\"\"\n    Modifier une session d'examen existante\n    \"\"\"\n    from ..utils.decorators_permissions import _get_user_etablissement\n    result = _get_user_etablissement(request, 'examens_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.controllers.examen_controller",
         "documentation": {}
     },
@@ -10370,7 +10434,7 @@
         "kind": 2,
         "importPath": "school_admin.controllers.examen_controller",
         "description": "school_admin.controllers.examen_controller",
-        "peekOfCode": "def supprimer_session_examen(request, session_id):\n    \"\"\"\n    Supprimer une session d'examen et tous ses créneaux associés (CASCADE)\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    try:",
+        "peekOfCode": "def supprimer_session_examen(request, session_id):\n    \"\"\"\n    Supprimer une session d'examen et tous ses créneaux associés (CASCADE)\n    \"\"\"\n    from ..utils.decorators_permissions import _get_user_etablissement\n    result = _get_user_etablissement(request, 'examens_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.controllers.examen_controller",
         "documentation": {}
     },
@@ -12184,6 +12248,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0177_make_email_optional_personnel",
+        "description": "school_admin.migrations.0177_make_email_optional_personnel",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0176_remove_standardsreussite_appreciation_conseil_and_more'),\n    ]\n    operations = [\n        migrations.AlterField(\n            model_name='personneladministratif',\n            name='email',\n            field=models.EmailField(blank=True, max_length=254, null=True, unique=True, verbose_name='Email professionnel'),\n        ),",
+        "detail": "school_admin.migrations.0177_make_email_optional_personnel",
+        "documentation": {}
+    },
+    {
         "label": "AffectationProfesseur",
         "kind": 6,
         "importPath": "school_admin.model.affectation_model",
@@ -12926,7 +12999,7 @@
         "kind": 5,
         "importPath": "school_admin.personal_url.personnel_url",
         "description": "school_admin.personal_url.personnel_url",
-        "peekOfCode": "app_name = 'personnel'\nurlpatterns = [\n    path('personnel/', PersonnelController.liste_personnel, name='liste_personnel'),\n    path('personnel/ajouter/', PersonnelController.ajouter_personnel, name='ajouter_personnel'),\n    path('personnel/<int:personnel_id>/', PersonnelController.detail_personnel, name='detail_personnel'),\n    path('personnel/<int:personnel_id>/toggle/', PersonnelController.toggle_actif, name='toggle_actif'),\n]",
+        "peekOfCode": "app_name = 'personnel'\nurlpatterns = [\n    path('personnel/', PersonnelController.liste_personnel, name='liste_personnel'),\n    path('personnel/ajouter/', PersonnelController.ajouter_personnel, name='ajouter_personnel'),\n    path('personnel/get-permissions/', PersonnelController.get_permissions_par_fonction, name='get_permissions'),\n    path('personnel/<int:personnel_id>/', PersonnelController.detail_personnel, name='detail_personnel'),\n    path('personnel/<int:personnel_id>/modifier/', PersonnelController.modifier_personnel, name='modifier_personnel'),\n    path('personnel/<int:personnel_id>/toggle/', PersonnelController.toggle_actif, name='toggle_actif'),\n]",
         "detail": "school_admin.personal_url.personnel_url",
         "documentation": {}
     },
@@ -12935,7 +13008,7 @@
         "kind": 5,
         "importPath": "school_admin.personal_url.personnel_url",
         "description": "school_admin.personal_url.personnel_url",
-        "peekOfCode": "urlpatterns = [\n    path('personnel/', PersonnelController.liste_personnel, name='liste_personnel'),\n    path('personnel/ajouter/', PersonnelController.ajouter_personnel, name='ajouter_personnel'),\n    path('personnel/<int:personnel_id>/', PersonnelController.detail_personnel, name='detail_personnel'),\n    path('personnel/<int:personnel_id>/toggle/', PersonnelController.toggle_actif, name='toggle_actif'),\n]",
+        "peekOfCode": "urlpatterns = [\n    path('personnel/', PersonnelController.liste_personnel, name='liste_personnel'),\n    path('personnel/ajouter/', PersonnelController.ajouter_personnel, name='ajouter_personnel'),\n    path('personnel/get-permissions/', PersonnelController.get_permissions_par_fonction, name='get_permissions'),\n    path('personnel/<int:personnel_id>/', PersonnelController.detail_personnel, name='detail_personnel'),\n    path('personnel/<int:personnel_id>/modifier/', PersonnelController.modifier_personnel, name='modifier_personnel'),\n    path('personnel/<int:personnel_id>/toggle/', PersonnelController.toggle_actif, name='toggle_actif'),\n]",
         "detail": "school_admin.personal_url.personnel_url",
         "documentation": {}
     },
@@ -13529,7 +13602,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def dashboard_directeur(request):\n    \"\"\"\n    Vue du tableau de bord pour les directeurs d'établissement\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    # Récupérer les informations de l'établissement\n    etablissement = request.user\n    from ..model.classe_model import Classe",
+        "peekOfCode": "def dashboard_directeur(request):\n    \"\"\"\n    Vue du tableau de bord pour les directeurs d'établissement et le personnel administratif\n    Le personnel administratif accède à la même interface mais avec des restrictions selon ses permissions\n    \"\"\"\n    from ..model.personnel_administratif_model import PersonnelAdministratif\n    from ..utils.permissions_personnel import get_permissions_personnel, has_permission\n    # Vérifier que l'utilisateur est soit un établissement soit un personnel administratif\n    if isinstance(request.user, Etablissement):\n        etablissement = request.user",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13556,7 +13629,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def gestion_pedagogique(request):\n    \"\"\"\n    Vue de la page de gestion pédagogique pour les directeurs d'établissement\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active",
+        "peekOfCode": "def gestion_pedagogique(request):\n    \"\"\"\n    Vue de la page de gestion pédagogique pour les directeurs d'établissement et le personnel administratif\n    \"\"\"\n    # Vérifier que l'utilisateur a accès (au moins une permission pédagogique)\n    user = request.user\n    if isinstance(user, Etablissement):\n        etablissement = user\n        is_directeur = True\n        personnel = None",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13565,7 +13638,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def gestion_eleves(request):\n    \"\"\"\n    Vue de la page de gestion des élèves pour les directeurs d'établissement\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
+        "peekOfCode": "def gestion_eleves(request):\n    \"\"\"\n    Vue de la page de gestion des élèves pour les directeurs d'établissement et le personnel administratif\n    \"\"\"\n    # Vérifier que l'utilisateur a accès\n    result = _get_user_etablissement(request, 'eleves_liste')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13574,7 +13647,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def liste_reinscription_eleves(request):\n    \"\"\"\n    Liste des élèves éligibles à la réinscription\n    Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
+        "peekOfCode": "def liste_reinscription_eleves(request):\n    \"\"\"\n    Liste des élèves éligibles à la réinscription\n    Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active\n    \"\"\"\n    result = _get_user_etablissement(request, 'eleves_reinscrire')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13583,7 +13656,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def reinscription_eleve(request, eleve_id):\n    \"\"\"\n    Formulaire de réinscription pour un élève spécifique\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    annee_scolaire_active = _get_session_directeur(request, etablissement)\n    if not annee_scolaire_active:",
+        "peekOfCode": "def reinscription_eleve(request, eleve_id):\n    \"\"\"\n    Formulaire de réinscription pour un élève spécifique\n    \"\"\"\n    result = _get_user_etablissement(request, 'eleves_reinscrire')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    annee_scolaire_active = _get_session_directeur(request, etablissement)",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13592,7 +13665,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def notes_et_resultats(request):\n    \"\"\"\n    Page de visualisation des notes et résultats par classe et par matière\n    Adaptée pour le primaire et le collège/lycée\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user",
+        "peekOfCode": "def notes_et_resultats(request):\n    \"\"\"\n    Page de visualisation des notes et résultats par classe et par matière\n    Adaptée pour le primaire et le collège/lycée\n    \"\"\"\n    result = _get_user_etablissement(request, 'notes_liste')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13601,7 +13674,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def justifications_notes_directeur(request):\n    \"\"\"\n    Liste et traitement des demandes de justification de notes transmises par les enseignants.\n    \"\"\"\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.classe_model import Classe\n    from ..utils.session_utils import get_session_active",
+        "peekOfCode": "def justifications_notes_directeur(request):\n    \"\"\"\n    Liste et traitement des demandes de justification de notes transmises par les enseignants.\n    \"\"\"\n    result = _get_user_etablissement(request, 'notes_justifications_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.classe_model import Classe",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13610,7 +13683,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def bulletins_notes(request):\n    \"\"\"Synthèse des bulletins par classe avec regroupement par niveau.\"\"\"\n    from collections import OrderedDict\n    import re\n    from django.db.models import Max\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active",
+        "peekOfCode": "def bulletins_notes(request):\n    \"\"\"Synthèse des bulletins par classe avec regroupement par niveau.\"\"\"\n    result = _get_user_etablissement(request, 'bulletins_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from collections import OrderedDict\n    import re\n    from django.db.models import Max",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13745,7 +13818,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def gestion_etablissement(request):\n    \"\"\"\n    Vue de la page de gestion de l'établissement pour les directeurs d'établissement\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..utils.session_utils import get_session_active\n    # Récupérer l'année scolaire active",
+        "peekOfCode": "def gestion_etablissement(request):\n    \"\"\"\n    Vue de la page de gestion de l'établissement pour les directeurs d'établissement et le personnel administratif\n    \"\"\"\n    # Vérifier que l'utilisateur a accès\n    result = _get_user_etablissement(request, 'etablissement_profil')\n    if result[0] is None:\n        messages.error(request, \"Vous n'avez pas l'autorisation d'accéder à cette fonctionnalité.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -13790,7 +13863,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def gestion_administrative(request):\n    \"\"\"\n    Page de gestion administrative pour les directeurs\n    Génération de documents administratifs (certificats, attestations, etc.)\n    \"\"\"\n    # Vérifier que l'utilisateur est un directeur\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user",
+        "peekOfCode": "def gestion_administrative(request):\n    \"\"\"\n    Page de gestion administrative pour les directeurs et le personnel administratif\n    Génération de documents administratifs (certificats, attestations, etc.)\n    \"\"\"\n    result = _get_user_etablissement(request, 'administrative_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14015,7 +14088,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def annonces_directeur(request):\n    \"\"\"\n    Vue pour la gestion des annonces par le directeur\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def annonces_directeur(request):\n    \"\"\"\n    Vue pour la gestion des annonces par le directeur\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14024,7 +14097,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def creer_annonce(request):\n    \"\"\"\n    Vue pour créer une nouvelle annonce\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def creer_annonce(request):\n    \"\"\"\n    Vue pour créer une nouvelle annonce\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14033,7 +14106,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def modifier_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour modifier une annonce existante\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def modifier_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour modifier une annonce existante\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14042,7 +14115,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def apercu_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour prévisualiser une annonce avant publication\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def apercu_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour prévisualiser une annonce avant publication\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14051,7 +14124,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def imprimer_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour imprimer une annonce avec un design professionnel\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def imprimer_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour imprimer une annonce avec un design professionnel\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14060,7 +14133,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def publier_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour publier une annonce en brouillon\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def publier_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour publier une annonce en brouillon\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14069,7 +14142,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def archiver_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour archiver une annonce publiée\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def archiver_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour archiver une annonce publiée\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14078,7 +14151,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def supprimer_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour supprimer définitivement une annonce\n    \"\"\"\n    # Vérifier que l'utilisateur connecté est bien un établissement\n    if not isinstance(request.user, Etablissement):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    from ..model.annonce_model import Annonce",
+        "peekOfCode": "def supprimer_annonce(request, annonce_id):\n    \"\"\"\n    Vue pour supprimer définitivement une annonce\n    \"\"\"\n    result = _get_user_etablissement(request, 'annonces_voir')\n    if result[0] is None:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('directeur:dashboard_directeur')\n    etablissement, is_directeur, personnel = result\n    from ..model.annonce_model import Annonce",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14087,7 +14160,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def profil_etablissement(request):\n    \"\"\"Page de profil et de configuration de l'établissement.\"\"\"\n    if not isinstance(request.user, Etablissement):\n        return redirect('school_admin:connexion_compte_user')\n    etablissement = request.user\n    success_message = None\n    # Récupérer l'onglet actif depuis POST ou GET\n    active_tab = request.POST.get('active_tab') or request.GET.get('tab', 'informations')\n    if request.method == 'POST':\n        form_type = request.POST.get('form_type')",
+        "peekOfCode": "def profil_etablissement(request):\n    \"\"\"Page de profil et de configuration de l'établissement.\"\"\"\n    from ..model.personnel_administratif_model import PersonnelAdministratif\n    user = request.user\n    is_personnel = isinstance(user, PersonnelAdministratif)\n    is_directeur = isinstance(user, Etablissement)\n    # Si c'est un membre du personnel, on affiche ses informations personnelles\n    if is_personnel:\n        personnel = user\n        etablissement = personnel.etablissement",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -14295,6 +14368,15 @@
         "importPath": "school_admin.personal_views.eleve_view",
         "description": "school_admin.personal_views.eleve_view",
         "peekOfCode": "def notifications_eleve(request):\n    \"\"\"Affiche les notifications reçues par l'élève.\"\"\"\n    eleve, est_parent = get_eleve_from_request(request)\n    if not eleve:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    # Récupérer l'année scolaire active\n    annee_scolaire_active = None\n    if eleve.etablissement:\n        annee_scolaire_active = get_session_active(request, eleve.etablissement)",
+        "detail": "school_admin.personal_views.eleve_view",
+        "documentation": {}
+    },
+    {
+        "label": "notification_eleve_click",
+        "kind": 2,
+        "importPath": "school_admin.personal_views.eleve_view",
+        "description": "school_admin.personal_views.eleve_view",
+        "peekOfCode": "def notification_eleve_click(request, notification_id):\n    \"\"\"\n    Gère le clic sur une notification : marque comme lue et redirige vers la page appropriée.\n    \"\"\"\n    eleve, est_parent = get_eleve_from_request(request)\n    if not eleve:\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    # Récupérer la notification\n    notification = get_object_or_404(NotificationEleve, id=notification_id, eleve=eleve)",
         "detail": "school_admin.personal_views.eleve_view",
         "documentation": {}
     },
@@ -15068,7 +15150,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.parent_view",
         "description": "school_admin.personal_views.parent_view",
-        "peekOfCode": "def demande_liaison_enfant(request):\n    \"\"\"\n    Traite la demande de liaison d'un parent avec un enfant\n    Système de 3 tentatives maximum avec blocage automatique\n    Évite les doublons en mettant à jour la demande existante\n    \"\"\"\n    if not isinstance(request.user, Parent):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    if request.method != 'POST':",
+        "peekOfCode": "def demande_liaison_enfant(request):\n    \"\"\"\n    Traite la demande de liaison d'un parent avec un enfant\n    Système simplifié : vérification uniquement du matricule et du mot de passe\n    Blocage après 5 tentatives échouées pour ce matricule spécifique (tous parents confondus)\n    \"\"\"\n    if not isinstance(request.user, Parent):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    if request.method != 'POST':",
         "detail": "school_admin.personal_views.parent_view",
         "documentation": {}
     },
@@ -15087,6 +15169,15 @@
         "importPath": "school_admin.personal_views.parent_view",
         "description": "school_admin.personal_views.parent_view",
         "peekOfCode": "def notifications_parent(request):\n    \"\"\"Affichage dédié des notifications parentales; purge après consultation.\"\"\"\n    if not isinstance(request.user, Parent):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    parent = request.user\n    liens_valides = (\n        LienFamilial.objects.filter(\n            parent=parent,\n            statut='valide',",
+        "detail": "school_admin.personal_views.parent_view",
+        "documentation": {}
+    },
+    {
+        "label": "notification_parent_click",
+        "kind": 2,
+        "importPath": "school_admin.personal_views.parent_view",
+        "description": "school_admin.personal_views.parent_view",
+        "peekOfCode": "def notification_parent_click(request, notification_id):\n    \"\"\"\n    Gère le clic sur une notification parent : marque comme lue et redirige vers la page appropriée.\n    \"\"\"\n    if not isinstance(request.user, Parent):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    parent = request.user\n    # Récupérer la notification\n    notification = get_object_or_404(NotificationParent, id=notification_id, parent=parent)",
         "detail": "school_admin.personal_views.parent_view",
         "documentation": {}
     },
@@ -15122,7 +15213,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.personnel_administratif_view",
         "description": "school_admin.personal_views.personnel_administratif_view",
-        "peekOfCode": "def dashboard_personnel_administratif(request):\n    \"\"\"\n    Dashboard pour le personnel administratif\n    \"\"\"\n    # Vérifier que l'utilisateur est du personnel administratif\n    if not isinstance(request.user, PersonnelAdministratif):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    personnel = request.user\n    etablissement = personnel.etablissement",
+        "peekOfCode": "def dashboard_personnel_administratif(request):\n    \"\"\"\n    Dashboard pour le personnel administratif\n    Redirige vers le dashboard du directeur avec restrictions selon les permissions\n    \"\"\"\n    # Vérifier que l'utilisateur est du personnel administratif\n    if not isinstance(request.user, PersonnelAdministratif):\n        messages.error(request, \"Accès non autorisé.\")\n        return redirect('school_admin:connexion_compte_user')\n    # Rediriger vers le dashboard du directeur (même interface mais avec restrictions)",
         "detail": "school_admin.personal_views.personnel_administratif_view",
         "documentation": {}
     },
@@ -15167,7 +15258,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.secretaire_view",
         "description": "school_admin.personal_views.secretaire_view",
-        "peekOfCode": "def inscription_eleves(request):\n    \"\"\"\n    Page d'inscription des élèves pour le secrétaire ou le directeur\n    \"\"\"\n    # Récupérer l'utilisateur connecté\n    user = request.user\n    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur\n    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':\n        etablissement = user.etablissement\n    elif isinstance(user, Etablissement):",
+        "peekOfCode": "def inscription_eleves(request):\n    \"\"\"\n    Page d'inscription des élèves pour le secrétaire ou le directeur ou le personnel avec permission\n    \"\"\"\n    # Récupérer l'utilisateur connecté\n    user = request.user\n    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur soit un personnel avec la permission\n    from ..utils.decorators_permissions import check_permission\n    if isinstance(user, PersonnelAdministratif):\n        # Vérifier la permission d'inscription ou être secrétaire principal",
         "detail": "school_admin.personal_views.secretaire_view",
         "documentation": {}
     },
@@ -15176,7 +15267,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.secretaire_view",
         "description": "school_admin.personal_views.secretaire_view",
-        "peekOfCode": "def liste_eleves(request):\n    \"\"\"\n    Page de liste des élèves inscrits par classe\n    \"\"\"\n    # Récupérer l'utilisateur connecté\n    user = request.user\n    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur\n    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':\n        etablissement = user.etablissement\n    elif isinstance(user, Etablissement):",
+        "peekOfCode": "def liste_eleves(request):\n    \"\"\"\n    Page de liste des élèves inscrits par classe\n    \"\"\"\n    # Récupérer l'utilisateur connecté\n    user = request.user\n    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur soit un personnel avec la permission\n    from ..utils.decorators_permissions import check_permission\n    if isinstance(user, PersonnelAdministratif):\n        # Vérifier la permission de voir la liste des élèves",
         "detail": "school_admin.personal_views.secretaire_view",
         "documentation": {}
     },
@@ -15221,7 +15312,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.secretaire_view",
         "description": "school_admin.personal_views.secretaire_view",
-        "peekOfCode": "def detail_eleve(request, eleve_id):\n    \"\"\"\n    Page de détails d'un élève avec formulaire de modification (secrétaire ou directeur)\n    \"\"\"\n    # Récupérer l'utilisateur connecté\n    user = request.user\n    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur\n    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':\n        etablissement = user.etablissement\n    elif isinstance(user, Etablissement):",
+        "peekOfCode": "def detail_eleve(request, eleve_id):\n    \"\"\"\n    Page de détails d'un élève avec formulaire de modification (secrétaire ou directeur)\n    \"\"\"\n    # Import explicite pour éviter les problèmes de scope\n    # InscriptionEleve et InscriptionParent sont déjà importés en haut du fichier\n    from ..model.inscription_eleve_model import InscriptionEleve as InscriptionEleveModel\n    from ..model.inscription_parent_model import InscriptionParent as InscriptionParentModel\n    # Utiliser les alias pour éviter les conflits\n    InscriptionEleve = InscriptionEleveModel",
         "detail": "school_admin.personal_views.secretaire_view",
         "documentation": {}
     },
@@ -15356,7 +15447,7 @@
         "kind": 6,
         "importPath": "school_admin.services.eleve_notification_service",
         "description": "school_admin.services.eleve_notification_service",
-        "peekOfCode": "class EleveNotificationService:\n    \"\"\"Service utilitaire pour notifier les élèves.\"\"\"\n    @staticmethod\n    def _sanitize_for_json(value: Union[dict, list, tuple, set, Decimal, datetime, date, object]):\n        \"\"\"\n        Convertit récursivement les structures de données pour les rendre compatibles JSON.\n        \"\"\"\n        if isinstance(value, Decimal):\n            return float(value)\n        if isinstance(value, (datetime, date)):",
+        "peekOfCode": "class EleveNotificationService:\n    \"\"\"Service utilitaire pour notifier les élèves.\"\"\"\n    @staticmethod\n    def _get_redirect_url(type_notification: str, payload: Optional[dict] = None) -> str:\n        \"\"\"\n        Génère l'URL de redirection appropriée selon le type de notification.\n        Args:\n            type_notification: Le type de notification (evaluation, note, bulletin, etc.)\n            payload: Les données de la notification (peut contenir des IDs spécifiques)\n        Returns:",
         "detail": "school_admin.services.eleve_notification_service",
         "documentation": {}
     },
@@ -15365,7 +15456,7 @@
         "kind": 5,
         "importPath": "school_admin.services.eleve_notification_service",
         "description": "school_admin.services.eleve_notification_service",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nclass EleveNotificationService:\n    \"\"\"Service utilitaire pour notifier les élèves.\"\"\"\n    @staticmethod\n    def _sanitize_for_json(value: Union[dict, list, tuple, set, Decimal, datetime, date, object]):\n        \"\"\"\n        Convertit récursivement les structures de données pour les rendre compatibles JSON.\n        \"\"\"\n        if isinstance(value, Decimal):\n            return float(value)",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nclass EleveNotificationService:\n    \"\"\"Service utilitaire pour notifier les élèves.\"\"\"\n    @staticmethod\n    def _get_redirect_url(type_notification: str, payload: Optional[dict] = None) -> str:\n        \"\"\"\n        Génère l'URL de redirection appropriée selon le type de notification.\n        Args:\n            type_notification: Le type de notification (evaluation, note, bulletin, etc.)\n            payload: Les données de la notification (peut contenir des IDs spécifiques)",
         "detail": "school_admin.services.eleve_notification_service",
         "documentation": {}
     },
@@ -15446,7 +15537,7 @@
         "kind": 6,
         "importPath": "school_admin.services.parent_notification_service",
         "description": "school_admin.services.parent_notification_service",
-        "peekOfCode": "class ParentNotificationService:\n    \"\"\"Service utilitaire pour notifier les parents au sujet de leurs enfants.\"\"\"\n    @staticmethod\n    def _get_parents_for_eleve(eleve: Eleve) -> Sequence[Parent]:\n        \"\"\"Retourne la liste des parents actifs et validés liés à un élève.\"\"\"\n        if eleve is None:\n            return []\n        parents_set = set()\n        liens = LienFamilial.objects.select_related(\"parent\").filter(\n            eleve=eleve,",
+        "peekOfCode": "class ParentNotificationService:\n    \"\"\"\n    Service centralisant la construction et l'envoi des notifications destinées aux parents.\n    \"\"\"\n    @staticmethod\n    def _get_redirect_url(type_notification: str, payload: Optional[dict] = None, eleve: Optional[Eleve] = None) -> str:\n        \"\"\"\n        Génère l'URL de redirection appropriée selon le type de notification pour les parents.\n        Args:\n            type_notification: Le type de notification (evaluation, note, bulletin, etc.)",
         "detail": "school_admin.services.parent_notification_service",
         "documentation": {}
     },
@@ -15455,7 +15546,7 @@
         "kind": 5,
         "importPath": "school_admin.services.parent_notification_service",
         "description": "school_admin.services.parent_notification_service",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nclass ParentNotificationService:\n    \"\"\"Service utilitaire pour notifier les parents au sujet de leurs enfants.\"\"\"\n    @staticmethod\n    def _get_parents_for_eleve(eleve: Eleve) -> Sequence[Parent]:\n        \"\"\"Retourne la liste des parents actifs et validés liés à un élève.\"\"\"\n        if eleve is None:\n            return []\n        parents_set = set()\n        liens = LienFamilial.objects.select_related(\"parent\").filter(",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nclass ParentNotificationService:\n    \"\"\"\n    Service centralisant la construction et l'envoi des notifications destinées aux parents.\n    \"\"\"\n    @staticmethod\n    def _get_redirect_url(type_notification: str, payload: Optional[dict] = None, eleve: Optional[Eleve] = None) -> str:\n        \"\"\"\n        Génère l'URL de redirection appropriée selon le type de notification pour les parents.\n        Args:",
         "detail": "school_admin.services.parent_notification_service",
         "documentation": {}
     },
@@ -15766,6 +15857,51 @@
         "documentation": {}
     },
     {
+        "label": "has_perm",
+        "kind": 2,
+        "importPath": "school_admin.templatetags.permissions_tags",
+        "description": "school_admin.templatetags.permissions_tags",
+        "peekOfCode": "def has_perm(user, permission_key):\n    \"\"\"\n    Vérifie si un utilisateur a une permission donnée\n    Usage dans template: {% if user|has_perm:\"eleves_liste\" %}\n    \"\"\"\n    if not user or not user.is_authenticated:\n        return False\n    # Si c'est un établissement (directeur), il a toutes les permissions\n    if isinstance(user, Etablissement):\n        return True",
+        "detail": "school_admin.templatetags.permissions_tags",
+        "documentation": {}
+    },
+    {
+        "label": "check_permission",
+        "kind": 2,
+        "importPath": "school_admin.templatetags.permissions_tags",
+        "description": "school_admin.templatetags.permissions_tags",
+        "peekOfCode": "def check_permission(user, permission_key):\n    \"\"\"\n    Vérifie si un utilisateur a une permission donnée\n    Usage dans template: {% check_permission user \"eleves_liste\" as can_view_eleves %}\n    \"\"\"\n    if not user or not user.is_authenticated:\n        return False\n    # Si c'est un établissement (directeur), il a toutes les permissions\n    if isinstance(user, Etablissement):\n        return True",
+        "detail": "school_admin.templatetags.permissions_tags",
+        "documentation": {}
+    },
+    {
+        "label": "is_directeur",
+        "kind": 2,
+        "importPath": "school_admin.templatetags.permissions_tags",
+        "description": "school_admin.templatetags.permissions_tags",
+        "peekOfCode": "def is_directeur(user):\n    \"\"\"\n    Vérifie si l'utilisateur est un directeur (établissement)\n    Usage dans template: {% is_directeur user as is_dir %}\n    \"\"\"\n    return isinstance(user, Etablissement)\n@register.simple_tag\ndef is_personnel_administratif(user):\n    \"\"\"\n    Vérifie si l'utilisateur est un personnel administratif",
+        "detail": "school_admin.templatetags.permissions_tags",
+        "documentation": {}
+    },
+    {
+        "label": "is_personnel_administratif",
+        "kind": 2,
+        "importPath": "school_admin.templatetags.permissions_tags",
+        "description": "school_admin.templatetags.permissions_tags",
+        "peekOfCode": "def is_personnel_administratif(user):\n    \"\"\"\n    Vérifie si l'utilisateur est un personnel administratif\n    Usage dans template: {% is_personnel_administratif user as is_pers %}\n    \"\"\"\n    return isinstance(user, PersonnelAdministratif)",
+        "detail": "school_admin.templatetags.permissions_tags",
+        "documentation": {}
+    },
+    {
+        "label": "register",
+        "kind": 5,
+        "importPath": "school_admin.templatetags.permissions_tags",
+        "description": "school_admin.templatetags.permissions_tags",
+        "peekOfCode": "register = template.Library()\n@register.filter\ndef has_perm(user, permission_key):\n    \"\"\"\n    Vérifie si un utilisateur a une permission donnée\n    Usage dans template: {% if user|has_perm:\"eleves_liste\" %}\n    \"\"\"\n    if not user or not user.is_authenticated:\n        return False\n    # Si c'est un établissement (directeur), il a toutes les permissions",
+        "detail": "school_admin.templatetags.permissions_tags",
+        "documentation": {}
+    },
+    {
         "label": "arrondir_note_intelligemment",
         "kind": 2,
         "importPath": "school_admin.utils.calcul_moyennes_primaire",
@@ -15835,6 +15971,96 @@
         "description": "school_admin.utils.calcul_moyennes_primaire",
         "peekOfCode": "def get_repartition_moyennes_classe(classe, matiere, periode):\n    \"\"\"\n    Calcule la répartition des moyennes par catégorie pour une classe.\n    Args:\n        classe: Instance de la classe\n        matiere: Instance de la matière\n        periode: Instance de la période scolaire\n    Returns:\n        dict: Répartition par catégorie\n    \"\"\"",
         "detail": "school_admin.utils.calcul_moyennes_primaire",
+        "documentation": {}
+    },
+    {
+        "label": "permissions",
+        "kind": 2,
+        "importPath": "school_admin.utils.context_processors",
+        "description": "school_admin.utils.context_processors",
+        "peekOfCode": "def permissions(request):\n    \"\"\"\n    Ajoute les permissions de l'utilisateur au contexte de tous les templates\n    \"\"\"\n    user = request.user\n    # Si l'utilisateur n'est pas authentifié, retourner un contexte vide\n    if not user or not user.is_authenticated:\n        return {\n            'user_permissions': [],\n            'user_has_permission': lambda perm: False,",
+        "detail": "school_admin.utils.context_processors",
+        "documentation": {}
+    },
+    {
+        "label": "require_permission",
+        "kind": 2,
+        "importPath": "school_admin.utils.decorators_permissions",
+        "description": "school_admin.utils.decorators_permissions",
+        "peekOfCode": "def require_permission(permission_key):\n    \"\"\"\n    Décorateur pour vérifier qu'un utilisateur a une permission donnée\n    \"\"\"\n    def decorator(view_func):\n        @wraps(view_func)\n        def wrapper(request, *args, **kwargs):\n            user = request.user\n            # Si c'est un établissement (directeur), il a toutes les permissions\n            if isinstance(user, Etablissement):",
+        "detail": "school_admin.utils.decorators_permissions",
+        "documentation": {}
+    },
+    {
+        "label": "check_permission",
+        "kind": 2,
+        "importPath": "school_admin.utils.decorators_permissions",
+        "description": "school_admin.utils.decorators_permissions",
+        "peekOfCode": "def check_permission(user, permission_key):\n    \"\"\"\n    Vérifie si un utilisateur a une permission donnée\n    Retourne True si l'utilisateur a la permission, False sinon\n    \"\"\"\n    # Si c'est un établissement (directeur), il a toutes les permissions\n    if isinstance(user, Etablissement):\n        return True\n    # Si c'est un personnel administratif, vérifier la permission\n    if isinstance(user, PersonnelAdministratif):",
+        "detail": "school_admin.utils.decorators_permissions",
+        "documentation": {}
+    },
+    {
+        "label": "get_user_permissions",
+        "kind": 2,
+        "importPath": "school_admin.utils.decorators_permissions",
+        "description": "school_admin.utils.decorators_permissions",
+        "peekOfCode": "def get_user_permissions(user):\n    \"\"\"\n    Retourne toutes les permissions d'un utilisateur\n    \"\"\"\n    from .permissions_personnel import get_permissions_personnel\n    return get_permissions_personnel(user)\ndef _get_user_etablissement(request, required_permission=None):\n    \"\"\"\n    Fonction utilitaire pour récupérer l'établissement et vérifier les permissions\n    Retourne (etablissement, is_directeur, personnel) ou None si accès refusé",
+        "detail": "school_admin.utils.decorators_permissions",
+        "documentation": {}
+    },
+    {
+        "label": "get_permissions_par_fonction",
+        "kind": 2,
+        "importPath": "school_admin.utils.permissions_personnel",
+        "description": "school_admin.utils.permissions_personnel",
+        "peekOfCode": "def get_permissions_par_fonction(fonction):\n    \"\"\"\n    Retourne la liste des permissions par défaut pour une fonction donnée\n    \"\"\"\n    permissions = PERMISSIONS_PAR_FONCTION.get(fonction, [])\n    # Filtrer les chaînes vides\n    return [p for p in permissions if p]\ndef get_permissions_disponibles():\n    \"\"\"\n    Retourne toutes les permissions disponibles organisées par catégorie",
+        "detail": "school_admin.utils.permissions_personnel",
+        "documentation": {}
+    },
+    {
+        "label": "get_permissions_disponibles",
+        "kind": 2,
+        "importPath": "school_admin.utils.permissions_personnel",
+        "description": "school_admin.utils.permissions_personnel",
+        "peekOfCode": "def get_permissions_disponibles():\n    \"\"\"\n    Retourne toutes les permissions disponibles organisées par catégorie\n    \"\"\"\n    permissions_par_categorie = {}\n    for key, perm in PERMISSIONS_DISPONIBLES.items():\n        category = perm['category']\n        if category not in permissions_par_categorie:\n            permissions_par_categorie[category] = []\n        permissions_par_categorie[category].append({",
+        "detail": "school_admin.utils.permissions_personnel",
+        "documentation": {}
+    },
+    {
+        "label": "has_permission",
+        "kind": 2,
+        "importPath": "school_admin.utils.permissions_personnel",
+        "description": "school_admin.utils.permissions_personnel",
+        "peekOfCode": "def has_permission(personnel, permission_key):\n    \"\"\"\n    Vérifie si un membre du personnel a une permission donnée\n    \"\"\"\n    if not personnel or not hasattr(personnel, 'permissions'):\n        return False\n    # Si c'est un établissement (directeur), il a toutes les permissions\n    from ..model.etablissement_model import Etablissement\n    if isinstance(personnel, Etablissement):\n        return True",
+        "detail": "school_admin.utils.permissions_personnel",
+        "documentation": {}
+    },
+    {
+        "label": "get_permissions_personnel",
+        "kind": 2,
+        "importPath": "school_admin.utils.permissions_personnel",
+        "description": "school_admin.utils.permissions_personnel",
+        "peekOfCode": "def get_permissions_personnel(personnel):\n    \"\"\"\n    Retourne toutes les permissions d'un membre du personnel (défaut + personnalisées)\n    \"\"\"\n    if not personnel:\n        return []\n    # Si c'est un établissement (directeur), retourner toutes les permissions\n    from ..model.etablissement_model import Etablissement\n    if isinstance(personnel, Etablissement):\n        return list(PERMISSIONS_DISPONIBLES.keys())",
+        "detail": "school_admin.utils.permissions_personnel",
+        "documentation": {}
+    },
+    {
+        "label": "PERMISSIONS_DISPONIBLES",
+        "kind": 5,
+        "importPath": "school_admin.utils.permissions_personnel",
+        "description": "school_admin.utils.permissions_personnel",
+        "peekOfCode": "PERMISSIONS_DISPONIBLES = {\n    # Gestion des élèves\n    'eleves_liste': {\n        'label': 'Voir la liste des élèves',\n        'description': 'Accès à la liste complète des élèves de l\\'établissement',\n        'category': 'Élèves'\n    },\n    'eleves_detail': {\n        'label': 'Voir les détails d\\'un élève',\n        'description': 'Accès aux informations détaillées d\\'un élève',",
+        "detail": "school_admin.utils.permissions_personnel",
+        "documentation": {}
+    },
+    {
+        "label": "PERMISSIONS_PAR_FONCTION",
+        "kind": 5,
+        "importPath": "school_admin.utils.permissions_personnel",
+        "description": "school_admin.utils.permissions_personnel",
+        "peekOfCode": "PERMISSIONS_PAR_FONCTION = {\n    # Direction\n    'directeur_adjoint_primaire': [\n        'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_inscrire', 'eleves_transferer',\n        'notes_liste', 'notes_detail', 'notes_justifications_voir',\n        'presences_liste', 'presences_detail',\n        'sanctions_liste', 'sanctions_detail', 'sanctions_creer', 'sanctions_modifier',\n        'classes_liste', 'classes_detail', 'classes_modifier',\n        'professeurs_liste', 'professeurs_detail',\n        'personnel_liste', 'personnel_detail',",
+        "detail": "school_admin.utils.permissions_personnel",
         "documentation": {}
     },
     {

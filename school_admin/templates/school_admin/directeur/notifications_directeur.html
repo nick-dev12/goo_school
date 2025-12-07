@@ -259,6 +259,50 @@
         </div>
       {% endif %}
     </div>
+
+    <script>
+      // Mettre à jour le compteur de notifications dans le header après le chargement de la page
+      document.addEventListener('DOMContentLoaded', function() {
+        // Le nombre de notifications non lues après marquage (depuis le contexte)
+        const notificationsNonLues = {{ notifications_directeur_non_lues|default:0 }};
+        
+        // Stocker le nouveau compteur dans le localStorage pour qu'il soit disponible sur les autres pages
+        localStorage.setItem('notifications_directeur_non_lues', notificationsNonLues.toString());
+        
+        // Mettre à jour le badge dans le header si présent sur cette page
+        updateNotificationBadge(notificationsNonLues);
+        
+        // Fonction pour mettre à jour le badge de notification
+        function updateNotificationBadge(count) {
+          const notificationBadge = document.querySelector('.header-button[aria-label="Notifications"] .notification-badge');
+          const notificationButton = document.querySelector('.header-button[aria-label="Notifications"]');
+          
+          if (notificationBadge) {
+            if (count > 0) {
+              notificationBadge.textContent = count;
+              notificationBadge.style.display = 'inline-block';
+            } else {
+              notificationBadge.style.display = 'none';
+              notificationBadge.textContent = '0';
+            }
+          } else if (notificationButton) {
+            if (count > 0) {
+              // Créer le badge s'il n'existe pas
+              const badge = document.createElement('span');
+              badge.className = 'notification-badge';
+              badge.textContent = count;
+              notificationButton.appendChild(badge);
+            } else {
+              // S'assurer que le badge est masqué s'il existe
+              const existingBadge = notificationButton.querySelector('.notification-badge');
+              if (existingBadge) {
+                existingBadge.style.display = 'none';
+              }
+            }
+          }
+        }
+      });
+    </script>
   </body>
 </html>
 

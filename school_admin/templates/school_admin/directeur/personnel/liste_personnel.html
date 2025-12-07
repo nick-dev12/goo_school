@@ -15,12 +15,18 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.1"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/liste_personnel.css' %}?v=1.1.0"
+      href="{% static 'school_admin/css/directeur/liste_personnel.css' %}?v=1.1.1"
     />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1"
+    />
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
   </head>
   <body>
     <!-- Header -->
@@ -44,10 +50,190 @@
             <i class="fas fa-chalkboard-teacher"></i>
             <span>Ajouter un professeur</span>
           </a>
-          <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add btn-secondary">
+          <button type="button" class="btn-add btn-secondary" onclick="toggleFormAjouter()">
             <i class="fas fa-user-tie"></i>
-            <span>Ajouter du personnel</span>
-          </a>
+            <span id="btnAjouterText">Ajouter du personnel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulaire d'ajout de personnel (masqué par défaut) -->
+      <div id="formAjouterPersonnelContainer" style="display: none;">
+        <div class="form-ajouter-wrapper">
+          <div class="form-ajouter-header">
+            <h2>
+              <i class="fas fa-user-plus"></i>
+              Ajouter un Membre du Personnel
+            </h2>
+            <button type="button" class="btn-close-form" onclick="toggleFormAjouter()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <form id="formAjouterPersonnel" method="post" action="{% url 'personnel:ajouter_personnel' %}">
+            {% csrf_token %}
+            
+            <div class="form-ajouter-body">
+              <!-- Messages d'erreur -->
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+              
+              {% if field_errors %}
+                <div class="alert alert-danger">
+                  <strong>Erreurs détectées :</strong>
+                  <ul>
+                    {% for field, errors in field_errors.items %}
+                      {% for error in errors %}
+                        <li>{{ error }}</li>
+                      {% endfor %}
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+              
+              <!-- Informations personnelles -->
+              <div class="form-section">
+                <h3 class="section-title-form">
+                  <i class="fas fa-user"></i>
+                  Informations Personnelles
+                </h3>
+                
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="nom" class="form-label">
+                      Nom <span class="required">*</span>
+                    </label>
+                    <input type="text" 
+                           id="nom" 
+                           name="nom" 
+                           class="form-input" 
+                           required
+                           value="{{ form_data.nom|default:'' }}">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="prenom" class="form-label">
+                      Prénom <span class="required">*</span>
+                    </label>
+                    <input type="text" 
+                           id="prenom" 
+                           name="prenom" 
+                           class="form-input" 
+                           required
+                           value="{{ form_data.prenom|default:'' }}">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="email" class="form-label">
+                      Email
+                      <span class="label-optional" style="font-weight: normal; color: var(--gray-500); font-size: 0.75rem;">(Facultatif)</span>
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-input" 
+                           value="{{ form_data.email|default:'' }}"
+                           placeholder="Ex: nom.prenom@email.com">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="telephone" class="form-label">
+                      Téléphone <span class="required">*</span>
+                    </label>
+                    <input type="tel" 
+                           id="telephone" 
+                           name="telephone" 
+                           class="form-input" 
+                           required
+                           value="{{ form_data.telephone|default:'' }}">
+                    <input type="hidden" name="telephone_full" id="telephone_full">
+                    <small class="form-text" id="phone-error" style="color: #dc3545; display: none; font-size: 0.75rem; margin-top: 4px;"></small>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Fonction -->
+              <div class="form-section">
+                <h3 class="section-title-form">
+                  <i class="fas fa-briefcase"></i>
+                  Fonction
+                </h3>
+                
+                <div class="form-group">
+                  <label for="fonction" class="form-label">
+                    Fonction <span class="required">*</span>
+                  </label>
+                  <select id="fonction" 
+                          name="fonction" 
+                          class="form-input" 
+                          required
+                          onchange="updatePermissionsByFunction()">
+                    <option value="">Sélectionnez une fonction</option>
+                    {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
+                      {% for code, label in fonctions_disponibles %}
+                        <option value="{{ code }}" {% if form_data.fonction == code %}selected{% endif %}>
+                          {{ label }}
+                        </option>
+                      {% endfor %}
+                    {% else %}
+                      <option value="" disabled style="color: red;">
+                        ⚠ Aucune fonction disponible pour "{{ etablissement.get_type_etablissement_display }}"
+                      </option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Autorisations -->
+              <div class="form-section">
+                <h3 class="section-title-form">
+                  <i class="fas fa-key"></i>
+                  Autorisations
+                </h3>
+                
+                <div class="permissions-container-form">
+                  {% for category, permissions in permissions_par_categorie.items %}
+                    <div class="permission-category-form">
+                      <h4 class="permission-category-title-form">
+                        <i class="fas fa-folder"></i>
+                        {{ category }}
+                      </h4>
+                      <div class="permissions-grid-form">
+                        {% for perm in permissions %}
+                          <div class="permission-item-form">
+                            <label class="permission-checkbox-form">
+                              <input type="checkbox" 
+                                     name="permission_{{ perm.key }}" 
+                                     id="permission_{{ perm.key }}"
+                                     value="on"
+                                     {% if perm.key in permissions_defaut %}checked{% endif %}>
+                              <span class="permission-label-form">{{ perm.label }}</span>
+                            </label>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-ajouter-footer">
+              <button type="button" class="btn-form btn-cancel" onclick="toggleFormAjouter()">
+                <i class="fas fa-times"></i>
+                Annuler
+              </button>
+              <button type="submit" class="btn-form btn-submit">
+                <i class="fas fa-save"></i>
+                Ajouter le personnel
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -218,7 +404,176 @@
     </div>
 
     <!-- Scripts -->
+    <!-- intl-tel-input JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    
     <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}"></script>
+    <script>
+      function toggleFormAjouter() {
+        const container = document.getElementById('formAjouterPersonnelContainer');
+        const btnText = document.getElementById('btnAjouterText');
+        
+        if (container.style.display === 'none' || !container.style.display) {
+          container.style.display = 'block';
+          if (btnText) btnText.textContent = 'Annuler';
+          // Scroll vers le formulaire
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          container.style.display = 'none';
+          if (btnText) btnText.textContent = 'Ajouter du personnel';
+        }
+      }
+
+      // Afficher automatiquement le formulaire s'il y a des erreurs
+      {% if field_errors %}
+        document.addEventListener('DOMContentLoaded', function() {
+          toggleFormAjouter();
+        });
+      {% endif %}
+
+      function updatePermissionsByFunction() {
+        const fonctionSelect = document.getElementById('fonction');
+        if (!fonctionSelect) return;
+        
+        const fonction = fonctionSelect.value;
+        if (!fonction) return;
+        
+        fetch('{% url "personnel:get_permissions" %}?fonction=' + fonction, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Décocher toutes les permissions
+            document.querySelectorAll('#formAjouterPersonnelContainer input[type="checkbox"][name^="permission_"]').forEach(cb => {
+              cb.checked = false;
+            });
+            
+            // Cocher les permissions par défaut
+            data.permissions.forEach(perm => {
+              const checkbox = document.getElementById(`permission_${perm}`);
+              if (checkbox) {
+                checkbox.checked = true;
+              }
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Erreur lors de la récupération des permissions:', error);
+        });
+      }
+
+      // Initialisation de intl-tel-input pour le téléphone
+      document.addEventListener('DOMContentLoaded', function() {
+        const phoneInput = document.querySelector("#telephone");
+        const phoneFullInput = document.querySelector("#telephone_full");
+        const phoneError = document.querySelector("#phone-error");
+        const form = document.getElementById("formAjouterPersonnel");
+        
+        if (!phoneInput || !form) return;
+        
+        // Initialisation de intl-tel-input
+        const iti = window.intlTelInput(phoneInput, {
+          utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js",
+          separateDialCode: true,
+          initialCountry: "auto",
+          preferredCountries: ["sn", "ci", "cm", "fr"],
+          geoIpLookup: function(callback) {
+            fetch("https://ipapi.co/json")
+              .then(function(res) {
+                return res.json();
+              })
+              .then(function(data) {
+                callback(data.country_code);
+              })
+              .catch(function() {
+                callback("sn");
+              });
+          },
+          nationalMode: false,
+          autoFormat: true,
+          autoPlaceholder: "aggressive"
+        });
+        
+        // Validation en temps réel
+        phoneInput.addEventListener('blur', function() {
+          if (phoneInput.value.trim()) {
+            if (iti.isValidNumber()) {
+              phoneError.style.display = 'none';
+              phoneError.textContent = '';
+              phoneInput.classList.remove('is-invalid');
+              phoneFullInput.value = iti.getNumber();
+            } else {
+              const errorCode = iti.getValidationError();
+              let errorMessage = 'Numéro de téléphone invalide.';
+              
+              switch(errorCode) {
+                case window.intlTelInputUtils.validationError.TOO_SHORT:
+                  errorMessage = 'Le numéro de téléphone est trop court.';
+                  break;
+                case window.intlTelInputUtils.validationError.TOO_LONG:
+                  errorMessage = 'Le numéro de téléphone est trop long.';
+                  break;
+                case window.intlTelInputUtils.validationError.INVALID_COUNTRY_CODE:
+                  errorMessage = 'Code pays invalide.';
+                  break;
+                case window.intlTelInputUtils.validationError.INVALID_LENGTH:
+                  errorMessage = 'Longueur du numéro invalide.';
+                  break;
+                case window.intlTelInputUtils.validationError.NOT_A_NUMBER:
+                  errorMessage = 'Ceci n\'est pas un numéro de téléphone valide.';
+                  break;
+              }
+              
+              phoneError.textContent = errorMessage;
+              phoneError.style.display = 'block';
+              phoneInput.classList.add('is-invalid');
+              phoneFullInput.value = '';
+            }
+          }
+        });
+        
+        // Réinitialiser l'erreur quand l'utilisateur tape
+        phoneInput.addEventListener('input', function() {
+          phoneError.style.display = 'none';
+          phoneInput.classList.remove('is-invalid');
+        });
+        
+        // Récupérer le numéro formaté avant la soumission du formulaire
+        form.addEventListener('submit', function(e) {
+          if (phoneInput.value.trim()) {
+            if (iti.isValidNumber()) {
+              // Remplir le champ hidden avec le numéro au format E.164
+              phoneFullInput.value = iti.getNumber();
+              // Optionnel : remplir aussi le champ visible avec le numéro formaté
+              phoneInput.value = iti.getNumber();
+            } else {
+              // Empêcher la soumission si le numéro n'est pas valide
+              e.preventDefault();
+              phoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
+              phoneError.style.display = 'block';
+              phoneInput.classList.add('is-invalid');
+              phoneInput.focus();
+              return false;
+            }
+          }
+        });
+        
+        // Si une valeur existe déjà, la formater
+        if (phoneInput.value) {
+          try {
+            iti.setNumber(phoneInput.value);
+            phoneFullInput.value = iti.getNumber();
+          } catch (e) {
+            console.log('Erreur lors du formatage du numéro existant:', e);
+          }
+        }
+      });
+    </script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

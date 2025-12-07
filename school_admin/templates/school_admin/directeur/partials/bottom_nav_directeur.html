@@ -1,4 +1,5 @@
 {% load static %}
+{% load permissions_tags %}
 <link
   rel="stylesheet"
   href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.3"
@@ -16,6 +17,10 @@
         <span class="label">Accueil</span>
       </a>
     </li>
+    {% check_permission request.user "classes_liste" as can_view_classes %}
+    {% check_permission request.user "professeurs_liste" as can_view_professeurs %}
+    {% check_permission request.user "personnel_liste" as can_view_personnel %}
+    {% if can_view_classes or can_view_professeurs or can_view_personnel or is_directeur %}
     <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_etablissement' or request.resolver_match.url_name == 'liste_salles' or request.resolver_match.url_name == 'liste_affectations' or request.resolver_match.url_name == 'liste_classes' or request.resolver_match.url_name == 'configuration_horaires' or request.resolver_match.url_name == 'liste_professeurs' or request.resolver_match.url_name == 'liste_personnel' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_etablissement' %}">
         <span class="icon-wrapper icon-etablissement"
@@ -24,6 +29,10 @@
         <span class="label">Établissement</span>
       </a>
     </li>
+    {% endif %}
+    {% check_permission request.user "notes_liste" as can_view_notes %}
+    {% check_permission request.user "presences_liste" as can_view_presences %}
+    {% if can_view_notes or can_view_presences or is_directeur %}
     <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_pedagogique' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'configuration_moyennes_generales' or request.resolver_match.url_name == 'configuration_standards_reussite' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_pedagogique' %}">
         <span class="icon-wrapper icon-pedagogie"
@@ -32,6 +41,9 @@
         <span class="label">Pédagogie</span>
       </a>
     </li>
+    {% endif %}
+    {% check_permission request.user "eleves_liste" as can_view_eleves %}
+    {% if can_view_eleves or is_directeur %}
     <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_eleves' or request.resolver_match.url_name == 'demandes_liaison_liste' or request.resolver_match.url_name == 'bulletins_notes' or request.resolver_match.url_name == 'voir_bulletin_eleve' or request.resolver_match.url_name == 'attestation_reussite_liste' or request.resolver_match.url_name == 'attestation_conduite_liste' or request.resolver_match.url_name == 'certificat_scolarite_liste' or request.resolver_match.url_name == 'certificat_radiation_liste' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_eleves' %}">
         <span class="icon-wrapper icon-eleves"
@@ -40,6 +52,9 @@
         <span class="label">Élèves</span>
       </a>
     </li>
+    {% endif %}
+    {% check_permission request.user "administrative_voir" as can_view_administrative %}
+    {% if can_view_administrative or is_directeur %}
     <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_administrative' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'certificat_scolarite_liste' or request.resolver_match.url_name == 'certificat_radiation_liste' or request.resolver_match.url_name == 'attestation_reussite_liste' or request.resolver_match.url_name == 'attestation_conduite_liste' or request.resolver_match.url_name == 'fiche_inscription_liste' %}active{% endif %}">
       <a class="bouton-none" href="{% url 'directeur:gestion_administrative' %}">
         <span class="icon-wrapper icon-administration"
@@ -48,6 +63,9 @@
         <span class="label">Administration</span>
       </a>
     </li>
+    {% endif %}
+    {% check_permission request.user "annonces_voir" as can_view_annonces %}
+    {% if can_view_annonces or is_directeur %}
     <li
       class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'annonces_directeur' %}active{% endif %}"
     >
@@ -58,6 +76,9 @@
         <span class="label">Annonces</span>
       </a>
     </li>
+    {% endif %}
+    {% check_permission request.user "examens_voir" as can_view_examens %}
+    {% if can_view_examens or is_directeur %}
     <li
       class="bottom-nav-item nav-item-extra nav-item-complementary {% if request.resolver_match.url_name == 'gestion_examens' or request.resolver_match.url_name == 'emploi_du_temps_examens' or request.resolver_match.url_name == 'configurer_creneaux_examen' or request.resolver_match.url_name == 'modifier_session_examen' or request.resolver_match.url_name == 'supprimer_session_examen' %}active{% endif %}"
     >
@@ -68,16 +89,7 @@
         <span class="label">Examens</span>
       </a>
     </li>
-    <li
-      class="bottom-nav-item nav-item-extra nav-item-complementary {% if request.resolver_match.url_name == 'facturation_directeur' %}active{% endif %}"
-    >
-      <a href="{% url 'directeur:facturation_directeur' %}">
-        <span class="icon-wrapper icon-facturation"
-          ><i class="fas fa-credit-card"></i
-        ></span>
-        <span class="label">Facturation</span>
-      </a>
-    </li>
+    {% endif %}
     <li
     class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'profil_etablissement' %}active{% endif %}"
   >

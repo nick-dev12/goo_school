@@ -1,0 +1,399 @@
+<!-- Modal pour ajouter un membre du personnel -->
+<div class="modal-overlay" id="modalAjouterPersonnel">
+  <div class="modal-container modal-compact">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="fas fa-user-plus"></i>
+        Ajouter un Membre du Personnel
+      </h2>
+      <button type="button" class="modal-close" id="btnCloseModal" aria-label="Fermer">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <form id="formAjouterPersonnel" method="post" action="{% url 'personnel:ajouter_personnel' %}">
+      {% csrf_token %}
+      
+      <div class="modal-body">
+        <!-- Messages d'erreur -->
+        <div id="modalErrors" class="alert alert-danger" style="display: none;"></div>
+        
+        <!-- Informations personnelles -->
+        <div class="form-section-modal">
+          <h3 class="section-title-modal">
+            <i class="fas fa-user"></i>
+            Informations Personnelles
+          </h3>
+          
+          <div class="form-grid-modal">
+            <div class="form-group-modal">
+              <label for="nom" class="form-label-modal">
+                Nom <span class="required">*</span>
+              </label>
+              <input type="text" 
+                     id="nom" 
+                     name="nom" 
+                     class="form-input-modal" 
+                     required
+                     value="{{ form_data.nom|default:'' }}">
+              <span class="error-message-modal" id="error_nom"></span>
+            </div>
+            
+            <div class="form-group-modal">
+              <label for="prenom" class="form-label-modal">
+                Prénom <span class="required">*</span>
+              </label>
+              <input type="text" 
+                     id="prenom" 
+                     name="prenom" 
+                     class="form-input-modal" 
+                     required
+                     value="{{ form_data.prenom|default:'' }}">
+              <span class="error-message-modal" id="error_prenom"></span>
+            </div>
+            
+            <div class="form-group-modal">
+              <label for="email" class="form-label-modal">
+                Email <span class="required">*</span>
+              </label>
+              <input type="email" 
+                     id="email" 
+                     name="email" 
+                     class="form-input-modal" 
+                     required
+                     value="{{ form_data.email|default:'' }}">
+              <span class="error-message-modal" id="error_email"></span>
+            </div>
+            
+            <div class="form-group-modal">
+              <label for="telephone" class="form-label-modal">
+                Téléphone <span class="required">*</span>
+              </label>
+              <input type="tel" 
+                     id="telephone" 
+                     name="telephone" 
+                     class="form-input-modal" 
+                     required
+                     value="{{ form_data.telephone|default:'' }}">
+              <span class="error-message-modal" id="error_telephone"></span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Fonction -->
+        <div class="form-section-modal">
+          <h3 class="section-title-modal">
+            <i class="fas fa-briefcase"></i>
+            Fonction
+          </h3>
+          
+          <div class="form-group-modal">
+            <label for="fonction" class="form-label-modal">
+              Fonction <span class="required">*</span>
+            </label>
+            <select id="fonction" 
+                    name="fonction" 
+                    class="form-input-modal" 
+                    required>
+              <option value="">Sélectionnez une fonction</option>
+              {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
+                {% for code, label in fonctions_disponibles %}
+                  <option value="{{ code }}" {% if form_data.fonction == code %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              {% else %}
+                <option value="" disabled style="color: red;">
+                  ⚠ Aucune fonction disponible pour "{{ etablissement.get_type_etablissement_display }}" ({{ etablissement.type_etablissement }})
+                </option>
+              {% endif %}
+            </select>
+            {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
+              <small class="form-help-modal">
+                {{ fonctions_disponibles|length }} fonction(s) disponible(s) pour {{ etablissement.get_type_etablissement_display }}
+              </small>
+            {% else %}
+              <small class="form-help-modal" style="color: var(--accent, #ef4444);">
+                ⚠ Aucune fonction configurée pour ce type d'établissement. Contactez l'administrateur.
+              </small>
+            {% endif %}
+            <span class="error-message-modal" id="error_fonction"></span>
+          </div>
+        </div>
+        
+        <!-- Autorisations -->
+        <div class="form-section-modal">
+          <h3 class="section-title-modal">
+            <i class="fas fa-key"></i>
+            Autorisations
+          </h3>
+          
+          <div class="permissions-container">
+            {% for category, permissions in permissions_par_categorie.items %}
+              <div class="permission-category">
+                <h4 class="permission-category-title">
+                  <i class="fas fa-folder"></i>
+                  {{ category }}
+                </h4>
+                <div class="permissions-grid">
+                  {% for perm in permissions %}
+                    <div class="permission-item">
+                      <label class="permission-checkbox">
+                        <input type="checkbox" 
+                               name="permission_{{ perm.key }}" 
+                               id="permission_{{ perm.key }}"
+                               value="on"
+                               {% if perm.key in permissions_defaut %}checked{% endif %}>
+                        <div class="permission-info">
+                          <span class="permission-label">{{ perm.label }}</span>
+                        </div>
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-modal btn-cancel" id="btnCancelModal">
+          <i class="fas fa-times"></i>
+          Annuler
+        </button>
+        <button type="submit" class="btn-modal btn-submit">
+          <i class="fas fa-save"></i>
+          Ajouter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  
+  // Fonction pour fermer le modal
+  function closeModalPersonnel() {
+    const modal = document.getElementById('modalAjouterPersonnel');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      // Réinitialiser le formulaire
+      const form = document.getElementById('formAjouterPersonnel');
+      if (form) {
+        form.reset();
+        // Masquer les erreurs
+        document.querySelectorAll('.error-message-modal').forEach(el => {
+          el.style.display = 'none';
+          el.textContent = '';
+        });
+        const errorsDiv = document.getElementById('modalErrors');
+        if (errorsDiv) {
+          errorsDiv.style.display = 'none';
+          errorsDiv.innerHTML = '';
+        }
+      }
+    }
+  }
+  
+  // Fonction pour mettre à jour les permissions selon la fonction sélectionnée
+  function updatePermissionsByFunction() {
+    const fonctionSelect = document.getElementById('fonction');
+    if (!fonctionSelect) return;
+    
+    const fonction = fonctionSelect.value;
+    if (!fonction) return;
+    
+    fetch(`{% url 'personnel:get_permissions' %}?fonction=${fonction}`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Décocher toutes les permissions
+        document.querySelectorAll('input[type="checkbox"][name^="permission_"]').forEach(cb => {
+          cb.checked = false;
+        });
+        
+        // Cocher les permissions par défaut
+        data.permissions.forEach(perm => {
+          const checkbox = document.getElementById(`permission_${perm}`);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la récupération des permissions:', error);
+    });
+  }
+  
+  // Attacher les événements une fois le modal chargé
+  function initModalEvents() {
+    const modal = document.getElementById('modalAjouterPersonnel');
+    if (!modal) return;
+    
+    // Bouton de fermeture (croix)
+    const btnClose = document.getElementById('btnCloseModal');
+    if (btnClose) {
+      btnClose.addEventListener('click', closeModalPersonnel);
+    }
+    
+    // Bouton Annuler
+    const btnCancel = document.getElementById('btnCancelModal');
+    if (btnCancel) {
+      btnCancel.addEventListener('click', closeModalPersonnel);
+    }
+    
+    // Fermer en cliquant sur l'overlay
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeModalPersonnel();
+      }
+    });
+    
+    // Fermer avec la touche Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        closeModalPersonnel();
+      }
+    });
+    
+    // Mettre à jour les permissions quand la fonction change
+    const fonctionSelect = document.getElementById('fonction');
+    if (fonctionSelect) {
+      fonctionSelect.addEventListener('change', updatePermissionsByFunction);
+    }
+    
+    // Gestion de la soumission du formulaire
+    const form = document.getElementById('formAjouterPersonnel');
+    if (form) {
+      // Empêcher la double soumission
+      let isSubmitting = false;
+      
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Empêcher la double soumission
+        if (isSubmitting) {
+          return false;
+        }
+        isSubmitting = true;
+        
+        // Désactiver le bouton de soumission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Ajout en cours...';
+        }
+        
+        // Réinitialiser les erreurs précédentes
+        const errorsDiv = document.getElementById('modalErrors');
+        if (errorsDiv) {
+          errorsDiv.style.display = 'none';
+          errorsDiv.innerHTML = '';
+        }
+        
+        // Réinitialiser les erreurs de champs
+        document.querySelectorAll('.error-message-modal').forEach(span => {
+          span.textContent = '';
+          span.style.display = 'none';
+        });
+        
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          }
+        })
+        .then(response => {
+          // Vérifier si la réponse est JSON
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return response.json();
+          } else {
+            // Si ce n'est pas du JSON, c'est probablement une redirection HTML
+            throw new Error('La réponse n\'est pas au format JSON. Vérifiez que la requête est bien AJAX.');
+          }
+        })
+        .then(data => {
+          isSubmitting = false;
+          
+          // Réactiver le bouton
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Ajouter';
+          }
+          
+          if (data.success) {
+            // Afficher un message de succès
+            alert(data.message);
+            // Fermer le modal
+            closeModalPersonnel();
+            // Recharger la page pour voir le nouveau personnel
+            window.location.reload();
+          } else {
+            // Afficher les erreurs
+            if (errorsDiv) {
+              errorsDiv.style.display = 'block';
+              const errorsList = Object.values(data.errors || {}).map(err => {
+                const errorMsg = Array.isArray(err) ? err[0] : err;
+                return `<li>${errorMsg}</li>`;
+              }).join('');
+              errorsDiv.innerHTML = '<strong>Erreurs détectées :</strong><ul>' + errorsList + '</ul>';
+            }
+            
+            // Afficher les erreurs de champs
+            Object.keys(data.errors || {}).forEach(field => {
+              const errorSpan = document.getElementById(`error_${field}`);
+              if (errorSpan) {
+                const errorValue = data.errors[field];
+                errorSpan.textContent = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+                errorSpan.style.display = 'block';
+              }
+            });
+          }
+        })
+        .catch(error => {
+          isSubmitting = false;
+          
+          // Réactiver le bouton
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Ajouter';
+          }
+          
+          console.error('Erreur:', error);
+          alert('Une erreur est survenue lors de l\'ajout du personnel. Veuillez réessayer.');
+        });
+        
+        return false;
+      });
+    }
+  }
+  
+  // Initialiser les événements immédiatement ou après un court délai
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initModalEvents);
+  } else {
+    // Le DOM est déjà chargé
+    setTimeout(initModalEvents, 100);
+  }
+  
+  // Exposer la fonction globalement pour les appels externes
+  window.closeModalPersonnel = closeModalPersonnel;
+  window.updatePermissionsByFunction = updatePermissionsByFunction;
+})();
+</script>
+

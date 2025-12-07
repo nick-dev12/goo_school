@@ -37,9 +37,29 @@ from ..model.classe_model import Classe
 from ..model.parent_model import Parent
 from django.db.models.functions import Lower
 from ..utils.session_utils import get_session_active, get_session_consultee
+from ..utils.decorators_permissions import check_permission, require_permission
+from ..model.personnel_administratif_model import PersonnelAdministratif
 from django.db.models import Q
 from django.db import transaction
 from datetime import datetime, date
+
+
+def _get_user_etablissement(request, required_permission=None):
+    """
+    Helper pour récupérer l'établissement de l'utilisateur et vérifier les permissions
+    Retourne (etablissement, is_directeur, personnel) ou None si accès refusé
+    """
+    user = request.user
+    
+    if isinstance(user, Etablissement):
+        return user, True, None
+    elif isinstance(user, PersonnelAdministratif):
+        # Vérifier la permission si nécessaire
+        if required_permission and not check_permission(user, required_permission):
+            return None, False, None
+        return user.etablissement, False, user
+    
+    return None, False, None
 
 
 def _get_session_directeur(request, etablissement):
@@ -466,14 +486,28 @@ def _apply_standards_to_bulletin(matieres_table, moyenne_generale, appreciation_
 @login_required
 def dashboard_directeur(request):
     """
-    Vue du tableau de bord pour les directeurs d'établissement
+    Vue du tableau de bord pour les directeurs d'établissement et le personnel administratif
+    Le personnel administratif accède à la même interface mais avec des restrictions selon ses permissions
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+    from ..utils.permissions_personnel import get_permissions_personnel, has_permission
+    
+    # Vérifier que l'utilisateur est soit un établissement soit un personnel administratif
+    if isinstance(request.user, Etablissement):
+        etablissement = request.user
+        is_directeur = True
+        personnel = None
+        user_permissions = None  # Le directeur a toutes les permissions
+    elif isinstance(request.user, PersonnelAdministratif):
+        personnel = request.user
+        etablissement = personnel.etablissement
+        is_directeur = False
+        user_permissions = get_permissions_personnel(personnel)
+    else:
         return redirect('school_admin:connexion_compte_user')
     
-    # Récupérer les informations de l'établissement
-    etablissement = request.user
+    if not etablissement:
+        return redirect('school_admin:connexion_compte_user')
     from ..model.classe_model import Classe
     from ..model.personnel_administratif_model import PersonnelAdministratif
     from ..model.professeur_model import Professeur
@@ -697,6 +731,71 @@ def dashboard_directeur(request):
         lu=False,
     ).count()
     
+    # === HISTORIQUE DES DERNIÈRES ACTIVITÉS ===
+    from ..model.presence_model import SoumissionListePresence, Presence
+    from ..model.releve_notes_model import ReleveNotes
+    from ..model.sanction_model import Sanction
+    
+    # 1. Dernières soumissions de listes de présence (max 4)
+    dernieres_soumissions_presence_qs = SoumissionListePresence.objects.filter(
+        etablissement=etablissement
+    ).select_related('professeur', 'classe', 'matiere')
+    
+    if annee_scolaire_active:
+        dernieres_soumissions_presence_qs = dernieres_soumissions_presence_qs.filter(
+            annee_scolaire=annee_scolaire_active
+        )
+    
+    dernieres_soumissions_presence = dernieres_soumissions_presence_qs.order_by('-date_soumission')[:4]
+    
+    # Enrichir avec les statistiques de présence/absence pour chaque soumission
+    dernieres_soumissions_presence_enrichies = []
+    for soumission in dernieres_soumissions_presence:
+        # Récupérer les présences pour cette classe, date et matière
+        presences_qs = Presence.objects.filter(
+            classe=soumission.classe,
+            date=soumission.date,
+            etablissement=etablissement
+        )
+        if soumission.matiere:
+            presences_qs = presences_qs.filter(matiere=soumission.matiere)
+        if annee_scolaire_active:
+            presences_qs = presences_qs.filter(annee_scolaire=annee_scolaire_active)
+        
+        nombre_presents = presences_qs.filter(statut='present').count()
+        nombre_absents = presences_qs.filter(statut__in=['absent', 'absent_justifie']).count()
+        
+        dernieres_soumissions_presence_enrichies.append({
+            'soumission': soumission,
+            'nombre_presents': nombre_presents,
+            'nombre_absents': nombre_absents,
+        })
+    
+    # 2. Derniers relevés de notes soumis (max 4)
+    derniers_releves_notes_qs = ReleveNotes.objects.filter(
+        etablissement=etablissement,
+        soumis=True
+    ).select_related('professeur', 'classe', 'matiere', 'periode_scolaire')
+    
+    if annee_scolaire_active:
+        derniers_releves_notes_qs = derniers_releves_notes_qs.filter(
+            annee_scolaire=annee_scolaire_active
+        )
+    
+    derniers_releves_notes = derniers_releves_notes_qs.order_by('-date_soumission')[:4]
+    
+    # 3. Dernières sanctions données (max 4)
+    dernieres_sanctions_qs = Sanction.objects.filter(
+        etablissement=etablissement
+    ).select_related('eleve', 'classe', 'professeur')
+    
+    if annee_scolaire_active:
+        dernieres_sanctions_qs = dernieres_sanctions_qs.filter(
+            annee_scolaire=annee_scolaire_active
+        )
+    
+    dernieres_sanctions = dernieres_sanctions_qs.order_by('-date_sanction', '-date_creation')[:4]
+    
     # Récupérer toutes les années scolaires de l'établissement pour le sélecteur
     toutes_annees_scolaires = AnneeScolaire.objects.filter(
         etablissement=etablissement
@@ -709,6 +808,12 @@ def dashboard_directeur(request):
         'annee_scolaire_active': annee_scolaire_active,  # Session consultée par le directeur
         'annee_scolaire_reellement_active': annee_scolaire_reellement_active,  # Session réellement active
         'toutes_annees_scolaires': toutes_annees_scolaires,  # Toutes les sessions pour le sélecteur
+        
+        # Informations sur l'utilisateur et ses permissions
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': not is_directeur,
+        'personnel': personnel if not is_directeur else None,
+        'user_permissions': user_permissions if not is_directeur else None,  # Liste des permissions (None = toutes)
         
         # Statistiques principales
         'stats': {
@@ -732,6 +837,11 @@ def dashboard_directeur(request):
         'dernieres_moyennes': dernieres_moyennes,
         'dernieres_evaluations': dernieres_evaluations,
         'notifications_directeur_non_lues': notifications_non_lues,
+        
+        # Historique des dernières activités
+        'dernieres_soumissions_presence': dernieres_soumissions_presence_enrichies,
+        'derniers_releves_notes': derniers_releves_notes,
+        'dernieres_sanctions': dernieres_sanctions,
     }
     
     return render(request, 'school_admin/directeur/dashboard_directeur.html', context)
@@ -892,13 +1002,26 @@ def facturation_directeur(request):
 @login_required
 def gestion_pedagogique(request):
     """
-    Vue de la page de gestion pédagogique pour les directeurs d'établissement
+    Vue de la page de gestion pédagogique pour les directeurs d'établissement et le personnel administratif
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    # Vérifier que l'utilisateur a accès (au moins une permission pédagogique)
+    user = request.user
+    if isinstance(user, Etablissement):
+        etablissement = user
+        is_directeur = True
+        personnel = None
+    elif isinstance(user, PersonnelAdministratif):
+        # Vérifier au moins une permission pédagogique
+        has_notes = check_permission(user, 'notes_liste')
+        has_presences = check_permission(user, 'presences_liste')
+        if not (has_notes or has_presences):
+            messages.error(request, "Vous n'avez pas la permission d'accéder à cette page.")
+            return redirect('directeur:dashboard_directeur')
+        etablissement = user.etablissement
+        is_directeur = False
+        personnel = user
+    else:
         return redirect('school_admin:connexion_compte_user')
-    
-    etablissement = request.user
     from ..utils.session_utils import get_session_active
     
     # Récupérer l'année scolaire active
@@ -915,12 +1038,15 @@ def gestion_pedagogique(request):
 @login_required
 def gestion_eleves(request):
     """
-    Vue de la page de gestion des élèves pour les directeurs d'établissement
+    Vue de la page de gestion des élèves pour les directeurs d'établissement et le personnel administratif
     """
-    if not isinstance(request.user, Etablissement):
+    # Vérifier que l'utilisateur a accès
+    result = _get_user_etablissement(request, 'eleves_liste')
+    if result[0] is None:
+        messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..utils.session_utils import get_session_active
     
     # Récupérer l'année scolaire active
@@ -935,16 +1061,19 @@ def gestion_eleves(request):
 
 
 @login_required
+@login_required
+@require_permission('eleves_reinscrire')
 def liste_reinscription_eleves(request):
     """
     Liste des élèves éligibles à la réinscription
     Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active
     """
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'eleves_reinscrire')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     annee_scolaire_active = _get_session_directeur(request, etablissement)
     
     if not annee_scolaire_active:
@@ -1034,15 +1163,17 @@ def liste_reinscription_eleves(request):
 
 
 @login_required
+@require_permission('eleves_reinscrire')
 def reinscription_eleve(request, eleve_id):
     """
     Formulaire de réinscription pour un élève spécifique
     """
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'eleves_reinscrire')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     annee_scolaire_active = _get_session_directeur(request, etablissement)
     
     if not annee_scolaire_active:
@@ -1373,17 +1504,19 @@ def reinscription_eleve(request, eleve_id):
 
 
 @login_required
+@login_required
+@require_permission('notes_liste')
 def notes_et_resultats(request):
     """
     Page de visualisation des notes et résultats par classe et par matière
     Adaptée pour le primaire et le collège/lycée
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'notes_liste')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.classe_model import Classe
     from ..model.eleve_model import Eleve
     from ..model.evaluation_model import Note, Evaluation
@@ -1613,15 +1746,18 @@ def notes_et_resultats(request):
 
 
 @login_required
+@login_required
+@require_permission('notes_justifications_voir')
 def justifications_notes_directeur(request):
     """
     Liste et traitement des demandes de justification de notes transmises par les enseignants.
     """
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'notes_justifications_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
+        return redirect('directeur:dashboard_directeur')
+    
+    etablissement, is_directeur, personnel = result
     from ..model.classe_model import Classe
     from ..utils.session_utils import get_session_active
     from django.db import transaction
@@ -1838,23 +1974,28 @@ def justifications_notes_directeur(request):
         'demandes_grouped': demandes_grouped,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': not is_directeur,
+        'personnel': personnel,
     }
 
     return render(request, 'school_admin/directeur/justifications_notes.html', context)
 
 
 @login_required
+@login_required
+@require_permission('bulletins_voir')
 def bulletins_notes(request):
     """Synthèse des bulletins par classe avec regroupement par niveau."""
+    result = _get_user_etablissement(request, 'bulletins_voir')
+    if result[0] is None:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('directeur:dashboard_directeur')
+    
+    etablissement, is_directeur, personnel = result
     from collections import OrderedDict
     import re
     from django.db.models import Max
-
-    if not isinstance(request.user, Etablissement):
-        messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     from ..utils.session_utils import get_session_active
 
     # Récupérer l'année scolaire active
@@ -4859,15 +5000,19 @@ def justifier_absence_directeur(request):
 
 
 @login_required
+@login_required
 def gestion_etablissement(request):
     """
-    Vue de la page de gestion de l'établissement pour les directeurs d'établissement
+    Vue de la page de gestion de l'établissement pour les directeurs d'établissement et le personnel administratif
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
-        return redirect('school_admin:connexion_compte_user')
+    # Vérifier que l'utilisateur a accès
+    result = _get_user_etablissement(request, 'etablissement_profil')
+    if result[0] is None:
+        messages.error(request, "Vous n'avez pas l'autorisation d'accéder à cette fonctionnalité.")
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
+    
     from ..utils.session_utils import get_session_active
     
     # Récupérer l'année scolaire active
@@ -4876,6 +5021,8 @@ def gestion_etablissement(request):
     context = {
         'etablissement': etablissement,
         'annee_scolaire_active': annee_scolaire_active,
+        'is_directeur': is_directeur,
+        'personnel': personnel,
     }
    
     return render(request, 'school_admin/directeur/gestion_etablissement.html', context)
@@ -5034,7 +5181,44 @@ def gestion_periodes_scolaires(request):
             messages.error(request, "Période introuvable.")
             return redirect('directeur:gestion_periodes_scolaires')
         except ValidationError as e:
-            messages.error(request, f"Erreur de validation : {e}")
+            # Extraire le message d'erreur de manière lisible (sans les détails techniques)
+            error_message = "Une erreur s'est produite lors de la validation."
+            
+            # Django ValidationError avec message_dict (erreurs par champ)
+            if hasattr(e, 'message_dict') and e.message_dict:
+                # Récupérer tous les messages d'erreur de tous les champs
+                error_messages = []
+                for field_errors in e.message_dict.values():
+                    for error in field_errors:
+                        error_messages.append(str(error))
+                if error_messages:
+                    # Prendre le premier message (le plus important)
+                    error_message = error_messages[0]
+            # Django ValidationError avec message (message simple)
+            elif hasattr(e, 'message') and e.message:
+                error_message = str(e.message)
+            # Django ValidationError avec messages (liste de messages)
+            elif hasattr(e, 'messages') and e.messages:
+                error_message = str(e.messages[0])
+            # Fallback : essayer d'extraire le message depuis la représentation string
+            else:
+                error_str = str(e)
+                # Nettoyer le message en enlevant les caractères techniques
+                # Si le message contient des guillemets, extraire le contenu
+                if "'" in error_str or '"' in error_str:
+                    # Chercher le contenu entre guillemets (prendre le dernier segment entre guillemets)
+                    parts = error_str.split("'")
+                    if len(parts) >= 2:
+                        # Prendre l'avant-dernier segment (le message)
+                        error_message = parts[-2] if len(parts) > 2 else parts[-1]
+                    else:
+                        parts = error_str.split('"')
+                        if len(parts) >= 2:
+                            error_message = parts[-2] if len(parts) > 2 else parts[-1]
+                else:
+                    error_message = error_str.strip("'\"[]")
+            
+            messages.error(request, error_message)
             return redirect('directeur:gestion_periodes_scolaires')
         except Exception as e:
             messages.error(request, f"Erreur lors du traitement de la période : {str(e)}")
@@ -5082,6 +5266,7 @@ def gestion_periodes_scolaires(request):
 
 
 @login_required
+@login_required
 def api_details_notes_matiere(request):
     """
     API pour récupérer les détails des notes d'une matière pour une classe
@@ -5095,10 +5280,23 @@ def api_details_notes_matiere(request):
     from ..model.note_primaire_model import NotePrimaire, MoyenneMatierePrimaire
     from ..model.evaluation_primaire_model import EvaluationPrimaire
     from ..model.note_examen_model import NoteExamen
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+    from ..utils.decorators_permissions import check_permission
     
     # Vérifier que c'est une requête AJAX
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'success': False, 'message': 'Requête invalide'}, status=400)
+    
+    # Vérifier les permissions
+    user = request.user
+    if isinstance(user, Etablissement):
+        etablissement = user
+    elif isinstance(user, PersonnelAdministratif):
+        if not check_permission(user, 'notes_detail'):
+            return JsonResponse({'success': False, 'message': 'Accès non autorisé'}, status=403)
+        etablissement = user.etablissement
+    else:
+        return JsonResponse({'success': False, 'message': 'Accès non autorisé'}, status=403)
     
     # Récupérer les paramètres
     classe_id = request.GET.get('classe_id')
@@ -5110,13 +5308,13 @@ def api_details_notes_matiere(request):
     
     try:
         # Récupérer les objets
-        classe = Classe.objects.get(id=classe_id)
-        matiere = Matiere.objects.get(nom=matiere_nom, etablissement=classe.etablissement)
-        periode = PeriodeScolaire.objects.get(id=periode_id)
+        classe = Classe.objects.get(id=classe_id, etablissement=etablissement)
+        matiere = Matiere.objects.get(nom=matiere_nom, etablissement=etablissement)
+        periode = PeriodeScolaire.objects.get(id=periode_id, etablissement=etablissement)
         
         # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
-        annee_scolaire_active = get_session_active(request, classe.etablissement)
-        eleves = _get_eleves_classe_par_inscription(classe, classe.etablissement, annee_scolaire_active)
+        annee_scolaire_active = get_session_active(request, etablissement)
+        eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
         
         eleves_data = []
         for eleve in eleves:
@@ -5214,6 +5412,7 @@ def api_details_notes_matiere(request):
 
 
 @login_required
+@login_required
 def api_details_notes_matiere_secondaire(request):
     """
     API pour récupérer les détails des notes d'une matière pour une classe (SECONDAIRE)
@@ -5228,16 +5427,23 @@ def api_details_notes_matiere_secondaire(request):
     from ..model.evaluation_model import Note
     from ..model.note_examen_model import NoteExamen
     from ..model.moyenne_model import Moyenne
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+    from ..utils.decorators_permissions import check_permission
     
     # Vérifier que c'est une requête AJAX
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'success': False, 'message': 'Requête invalide'}, status=400)
     
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    # Vérifier les permissions
+    user = request.user
+    if isinstance(user, Etablissement):
+        etablissement = user
+    elif isinstance(user, PersonnelAdministratif):
+        if not check_permission(user, 'notes_detail'):
+            return JsonResponse({'success': False, 'message': 'Accès non autorisé'}, status=403)
+        etablissement = user.etablissement
+    else:
         return JsonResponse({'success': False, 'message': 'Accès non autorisé'}, status=403)
-    
-    etablissement = request.user
     
     # Vérifier que c'est un établissement secondaire (inclure toutes les variantes)
     est_secondaire = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
@@ -5579,17 +5785,20 @@ def imprimer_releve_notes(request, classe_id):
 
 
 @login_required
+@login_required
+@login_required
+@require_permission('administrative_voir')
 def gestion_administrative(request):
     """
-    Page de gestion administrative pour les directeurs
+    Page de gestion administrative pour les directeurs et le personnel administratif
     Génération de documents administratifs (certificats, attestations, etc.)
     """
-    # Vérifier que l'utilisateur est un directeur
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'administrative_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..utils.session_utils import get_session_active
     
     # Récupérer l'année scolaire active
@@ -5598,6 +5807,9 @@ def gestion_administrative(request):
     context = {
         'etablissement': etablissement,
         'annee_scolaire_active': annee_scolaire_active,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': not is_directeur,
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/gestion_administrative.html', context)
@@ -7139,16 +7351,18 @@ def desapprouver_demande_liaison(request, demande_id):
 
 
 @login_required
+@login_required
+@require_permission('annonces_voir')
 def annonces_directeur(request):
     """
     Vue pour la gestion des annonces par le directeur
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     from ..utils.session_utils import get_session_active
     
@@ -7181,6 +7395,7 @@ def annonces_directeur(request):
     annonces_brouillon = annonces.filter(statut='brouillon').count()
     annonces_archivees = annonces.filter(statut='archivee').count()
     
+    from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'annonces': annonces,
         'total_annonces': total_annonces,
@@ -7189,6 +7404,10 @@ def annonces_directeur(request):
         'annonces_archivees': annonces_archivees,
         'statut_filtre': statut_filtre,
         'annee_scolaire_active': annee_scolaire_active,
+        'etablissement': etablissement,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/annonces/liste_annonces.html', context)
@@ -7199,12 +7418,12 @@ def creer_annonce(request):
     """
     Vue pour créer une nouvelle annonce
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     from ..utils.session_utils import get_session_active
     
@@ -7264,9 +7483,14 @@ def creer_annonce(request):
     if not annee_scolaire_active:
         messages.warning(request, "Aucune année scolaire active. L'annonce sera créée sans référence à une session spécifique.")
     
+    from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'destinataires_choices': Annonce.DESTINATAIRES_CHOICES,
         'annee_scolaire_active': annee_scolaire_active,
+        'etablissement': etablissement,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/annonces/creer_annonce.html', context)
@@ -7277,12 +7501,12 @@ def modifier_annonce(request, annonce_id):
     """
     Vue pour modifier une annonce existante
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     
     # Récupérer l'annonce
@@ -7343,9 +7567,14 @@ def modifier_annonce(request, annonce_id):
             return redirect('directeur:modifier_annonce', annonce_id=annonce_id)
     
     # GET : Afficher le formulaire
+    from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'annonce': annonce,
         'destinataires_choices': Annonce.DESTINATAIRES_CHOICES,
+        'etablissement': etablissement,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/annonces/modifier_annonce.html', context)
@@ -7356,12 +7585,12 @@ def apercu_annonce(request, annonce_id):
     """
     Vue pour prévisualiser une annonce avant publication
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     
     # Récupérer l'annonce
@@ -7372,8 +7601,13 @@ def apercu_annonce(request, annonce_id):
         actif=True
     )
     
+    from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'annonce': annonce,
+        'etablissement': etablissement,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/annonces/apercu_annonce.html', context)
@@ -7384,12 +7618,12 @@ def imprimer_annonce(request, annonce_id):
     """
     Vue pour imprimer une annonce avec un design professionnel
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     from datetime import date
     
@@ -7411,11 +7645,15 @@ def imprimer_annonce(request, annonce_id):
     }
     date_formatee = f"{aujourdhui.day} {mois_fr[aujourdhui.month]} {aujourdhui.year}"
     
+    from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'annonce': annonce,
         'etablissement': etablissement,
         'date_formatee': date_formatee,
         'aujourdhui': aujourdhui,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+        'personnel': personnel,
     }
     
     return render(request, 'school_admin/directeur/annonces/imprimer_annonce.html', context)
@@ -7426,12 +7664,12 @@ def publier_annonce(request, annonce_id):
     """
     Vue pour publier une annonce en brouillon
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     
     if request.method == 'POST':
@@ -7459,12 +7697,12 @@ def archiver_annonce(request, annonce_id):
     """
     Vue pour archiver une annonce publiée
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     
     if request.method == 'POST':
@@ -7492,12 +7730,12 @@ def supprimer_annonce(request, annonce_id):
     """
     Vue pour supprimer définitivement une annonce
     """
-    # Vérifier que l'utilisateur connecté est bien un établissement
-    if not isinstance(request.user, Etablissement):
+    result = _get_user_etablissement(request, 'annonces_voir')
+    if result[0] is None:
         messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
+        return redirect('directeur:dashboard_directeur')
     
-    etablissement = request.user
+    etablissement, is_directeur, personnel = result
     from ..model.annonce_model import Annonce
     
     if request.method == 'POST':
@@ -7531,10 +7769,21 @@ def supprimer_annonce(request, annonce_id):
 @login_required
 def profil_etablissement(request):
     """Page de profil et de configuration de l'établissement."""
-    if not isinstance(request.user, Etablissement):
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+    
+    user = request.user
+    is_personnel = isinstance(user, PersonnelAdministratif)
+    is_directeur = isinstance(user, Etablissement)
+    
+    # Si c'est un membre du personnel, on affiche ses informations personnelles
+    if is_personnel:
+        personnel = user
+        etablissement = personnel.etablissement
+    elif is_directeur:
+        etablissement = user
+        personnel = None
+    else:
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     success_message = None
     
     # Récupérer l'onglet actif depuis POST ou GET
@@ -7572,28 +7821,36 @@ def profil_etablissement(request):
                 success_message = "Informations mises à jour avec succès."
 
         elif form_type == 'update_logo':
-            logo_file = request.FILES.get('logo')
-            if logo_file:
-                max_size_bytes = 20 * 1024 * 1024  # 20 MB
-                if logo_file.size > max_size_bytes:
-                    messages.error(request, "Le fichier sélectionné dépasse la taille maximale autorisée de 20 Mo.")
-                else:
-                    if etablissement.logo:
-                        etablissement.logo.delete(save=False)
-                    etablissement.logo = logo_file
-                    etablissement.save(update_fields=['logo', 'date_modification'])
-                    success_message = "Logo mis à jour avec succès."
+            # Seul le directeur peut modifier le logo
+            if not is_directeur:
+                messages.error(request, "Vous n'avez pas l'autorisation de modifier le logo.")
             else:
-                messages.error(request, "Veuillez sélectionner un fichier image valide pour le logo.")
+                logo_file = request.FILES.get('logo')
+                if logo_file:
+                    max_size_bytes = 20 * 1024 * 1024  # 20 MB
+                    if logo_file.size > max_size_bytes:
+                        messages.error(request, "Le fichier sélectionné dépasse la taille maximale autorisée de 20 Mo.")
+                    else:
+                        if etablissement.logo:
+                            etablissement.logo.delete(save=False)
+                        etablissement.logo = logo_file
+                        etablissement.save(update_fields=['logo', 'date_modification'])
+                        success_message = "Logo mis à jour avec succès."
+                else:
+                    messages.error(request, "Veuillez sélectionner un fichier image valide pour le logo.")
 
         elif form_type == 'delete_logo':
-            if etablissement.logo:
-                etablissement.logo.delete(save=False)
-                etablissement.logo = None
-                etablissement.save(update_fields=['logo', 'date_modification'])
-                success_message = "Logo supprimé avec succès."
+            # Seul le directeur peut supprimer le logo
+            if not is_directeur:
+                messages.error(request, "Vous n'avez pas l'autorisation de supprimer le logo.")
             else:
-                messages.info(request, "Aucun logo n'est actuellement défini.")
+                if etablissement.logo:
+                    etablissement.logo.delete(save=False)
+                    etablissement.logo = None
+                    etablissement.save(update_fields=['logo', 'date_modification'])
+                    success_message = "Logo supprimé avec succès."
+                else:
+                    messages.info(request, "Aucun logo n'est actuellement défini.")
 
         elif form_type == 'update_password':
             current_password = request.POST.get('current_password', '').strip()
@@ -7620,49 +7877,69 @@ def profil_etablissement(request):
             if validation_errors:
                 for error in validation_errors:
                     messages.error(request, error)
-            # Vérifier le mot de passe actuel seulement si toutes les validations précédentes sont passées
-            elif not etablissement.check_password(current_password):
-                messages.error(request, "Le mot de passe actuel est incorrect.")
             else:
-                # Toutes les validations sont passées, changer le mot de passe
-                etablissement.set_password(new_password)
-                etablissement.save()
-                # Maintenir la session active après changement de mot de passe
-                from django.contrib.auth import update_session_auth_hash
-                update_session_auth_hash(request, etablissement)
-                success_message = "Mot de passe mis à jour avec succès."
+                # Gérer le changement de mot de passe pour directeur ou personnel
+                if is_personnel:
+                    # Vérifier le mot de passe actuel
+                    if not personnel.check_password(current_password):
+                        messages.error(request, "Le mot de passe actuel est incorrect.")
+                    else:
+                        # Changer le mot de passe
+                        personnel.set_password(new_password)
+                        personnel.save()
+                        # Maintenir la session active après changement de mot de passe
+                        from django.contrib.auth import update_session_auth_hash
+                        update_session_auth_hash(request, personnel)
+                        success_message = "Mot de passe mis à jour avec succès."
+                elif is_directeur:
+                    # Vérifier le mot de passe actuel
+                    if not etablissement.check_password(current_password):
+                        messages.error(request, "Le mot de passe actuel est incorrect.")
+                    else:
+                        # Changer le mot de passe
+                        etablissement.set_password(new_password)
+                        etablissement.save()
+                        # Maintenir la session active après changement de mot de passe
+                        from django.contrib.auth import update_session_auth_hash
+                        update_session_auth_hash(request, etablissement)
+                        success_message = "Mot de passe mis à jour avec succès."
 
         if success_message:
             messages.success(request, success_message)
         # Rediriger vers l'onglet actif
         return redirect(f"{reverse('directeur:profil_etablissement')}?tab={active_tab}")
 
-    modules_config = [
-        ("Gestion des élèves", etablissement.module_gestion_eleves),
-        ("Notes et évaluations", etablissement.module_notes_evaluations),
-        ("Emploi du temps", etablissement.module_emploi_temps),
-        ("Transport scolaire", etablissement.module_transport_scolaire),
-        ("Comptabilité", etablissement.module_comptabilite),
-        ("Gestion du personnel", etablissement.module_gestion_personnel),
-        ("Censeurs", etablissement.module_censeurs),
-        ("Surveillance et sécurité", etablissement.module_surveillance),
-        ("Gestion de la cantine", etablissement.module_cantine),
-        ("Gestion de la bibliothèque", etablissement.module_bibliotheque),
-        ("Communication parents", etablissement.module_communication),
-        ("Orientation scolaire", etablissement.module_orientation),
-        ("Suivi médical", etablissement.module_sante),
-        ("Activités extra-scolaires", etablissement.module_activites),
-        ("Formation continue", etablissement.module_formation),
-    ]
+    # Les modules et la facturation ne sont visibles que pour le directeur
+    modules_config = []
+    facturation = {}
+    
+    if is_directeur:
+        modules_config = [
+            ("Gestion des élèves", etablissement.module_gestion_eleves),
+            ("Notes et évaluations", etablissement.module_notes_evaluations),
+            ("Emploi du temps", etablissement.module_emploi_temps),
+            ("Transport scolaire", etablissement.module_transport_scolaire),
+            ("Comptabilité", etablissement.module_comptabilite),
+            ("Gestion du personnel", etablissement.module_gestion_personnel),
+            ("Censeurs", etablissement.module_censeurs),
+            ("Surveillance et sécurité", etablissement.module_surveillance),
+            ("Gestion de la cantine", etablissement.module_cantine),
+            ("Gestion de la bibliothèque", etablissement.module_bibliotheque),
+            ("Communication parents", etablissement.module_communication),
+            ("Orientation scolaire", etablissement.module_orientation),
+            ("Suivi médical", etablissement.module_sante),
+            ("Activités extra-scolaires", etablissement.module_activites),
+            ("Formation continue", etablissement.module_formation),
+        ]
 
-    facturation = {
-        'type': etablissement.type_facturation,
-        'montant_par_eleve': etablissement.montant_par_eleve,
-        'montant_total_facturation': etablissement.montant_total_facturation,
-        'statut': etablissement.statut_paiement,
-        'date_derniere_facturation': etablissement.date_derniere_facturation,
-        'nombre_eleves_factures': etablissement.nombre_eleves_factures,
-    }
+        facturation = {
+            'type': etablissement.type_facturation,
+            'montant_par_eleve': etablissement.montant_par_eleve,
+            'montant_total_facturation': etablissement.montant_total_facturation,
+            'statut': etablissement.statut_paiement,
+            'date_derniere_facturation': etablissement.date_derniere_facturation,
+            'nombre_eleves_factures': etablissement.nombre_eleves_factures,
+        }
 
     context = {
         'etablissement': etablissement,
@@ -7670,6 +7947,9 @@ def profil_etablissement(request):
         'facturation': facturation,
         'devise_etablissement': getattr(etablissement, 'devise', None),
         'active_tab': active_tab,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': is_personnel,
+        'personnel': personnel,
     }
 
     return render(request, 'school_admin/directeur/mon_profil_etablissement.html', context)

@@ -8,7 +8,7 @@
     {% include 'school_admin/partials/pwa_meta.html' %}
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.0"
+      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
@@ -161,7 +161,162 @@
         </div>
       </div>
 
-      
+      <!-- Historique des dernières activités -->
+      <div class="historique-activites">
+        <h2 class="section-title">
+          <i class="fas fa-history"></i>
+          Historique des dernières activités
+        </h2>
+
+        <div class="activites-grid">
+          <!-- Section Absences -->
+          <div class="activite-section">
+            <div class="activite-header">
+              <h3 class="activite-title">
+                <i class="fas fa-user-times" style="color: var(--accent);"></i>
+                Absences
+              </h3>
+              {% if dernieres_soumissions_presence|length > 0 %}
+                <a href="{% url 'directeur:suivi_presence' %}" class="btn-voir-plus">Voir plus</a>
+              {% endif %}
+            </div>
+            <div class="activite-content">
+              {% if dernieres_soumissions_presence|length > 0 %}
+                {% for item in dernieres_soumissions_presence %}
+                  <div class="activite-item">
+                    <div class="activite-icon" style="background: var(--accent-light);">
+                      <i class="fas fa-clipboard-check" style="color: var(--accent);"></i>
+                    </div>
+                    <div class="activite-details">
+                      <div class="activite-main-info">
+                        <strong>{{ item.soumission.professeur.nom_complet }}</strong>
+                        <span class="activite-classe">{{ item.soumission.classe.nom }}</span>
+                      </div>
+                      <div class="activite-stats">
+                        <span class="stat-present">
+                          <i class="fas fa-check-circle"></i>
+                          {{ item.nombre_presents }} présents
+                        </span>
+                        <span class="stat-absent">
+                          <i class="fas fa-times-circle"></i>
+                          {{ item.nombre_absents }} absents
+                        </span>
+                      </div>
+                      <div class="activite-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ item.soumission.date|date:"d/m/Y" }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="activite-empty">
+                  <i class="fas fa-inbox"></i>
+                  <p>Aucune soumission de liste de présence récente</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Section Notes -->
+          <div class="activite-section">
+            <div class="activite-header">
+              <h3 class="activite-title">
+                <i class="fas fa-file-alt" style="color: var(--primary);"></i>
+                Notes
+              </h3>
+              {% if derniers_releves_notes|length > 0 %}
+                <a href="{% url 'directeur:notes_et_resultats' %}" class="btn-voir-plus">Voir plus</a>
+              {% endif %}
+            </div>
+            <div class="activite-content">
+              {% if derniers_releves_notes|length > 0 %}
+                {% for releve in derniers_releves_notes %}
+                  <div class="activite-item">
+                    <div class="activite-icon" style="background: var(--primary-light);">
+                      <i class="fas fa-clipboard-list" style="color: var(--primary);"></i>
+                    </div>
+                    <div class="activite-details">
+                      <div class="activite-main-info">
+                        <strong>{{ releve.professeur.nom_complet }}</strong>
+                        <span class="activite-classe">{{ releve.classe.nom }}</span>
+                      </div>
+                      <div class="activite-matiere">
+                        <i class="fas fa-book"></i>
+                        {{ releve.matiere.nom|default:"Matière non spécifiée" }}
+                      </div>
+                      {% if releve.periode_scolaire %}
+                        <div class="activite-periode">
+                          <i class="fas fa-calendar-alt"></i>
+                          {{ releve.periode_scolaire.nom_periode }}
+                        </div>
+                      {% endif %}
+                      <div class="activite-date">
+                        <i class="fas fa-clock"></i>
+                        {{ releve.date_soumission|date:"d/m/Y à H:i" }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="activite-empty">
+                  <i class="fas fa-inbox"></i>
+                  <p>Aucun relevé de notes soumis récemment</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Section Sanctions -->
+          <div class="activite-section">
+            <div class="activite-header">
+              <h3 class="activite-title">
+                <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                Sanctions
+              </h3>
+              {% if dernieres_sanctions|length > 0 %}
+                <a href="#" class="btn-voir-plus">Voir plus</a>
+              {% endif %}
+            </div>
+            <div class="activite-content">
+              {% if dernieres_sanctions|length > 0 %}
+                {% for sanction in dernieres_sanctions %}
+                  <div class="activite-item">
+                    <div class="activite-icon" style="background: var(--warning-light);">
+                      <i class="fas fa-gavel" style="color: var(--warning);"></i>
+                    </div>
+                    <div class="activite-details">
+                      <div class="activite-main-info">
+                        <strong>{{ sanction.eleve.nom_complet }}</strong>
+                        <span class="activite-classe">{{ sanction.classe.nom }}</span>
+                      </div>
+                      <div class="activite-sanction-type">
+                        <i class="fas fa-tag"></i>
+                        {{ sanction.get_type_sanction_display }}
+                      </div>
+                      {% if sanction.professeur %}
+                        <div class="activite-professeur">
+                          <i class="fas fa-user-tie"></i>
+                          Par {{ sanction.professeur.nom_complet }}
+                        </div>
+                      {% endif %}
+                      <div class="activite-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ sanction.date_sanction|date:"d/m/Y" }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="activite-empty">
+                  <i class="fas fa-inbox"></i>
+                  <p>Aucune sanction récente</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Alertes et notifications importantes -->
     </div>

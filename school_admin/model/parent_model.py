@@ -155,42 +155,35 @@ class Parent(AbstractUser):
     def generer_matricule_parent(etablissement):
         """
         Génère un matricule parental unique
-        Format : [XX]P[4 NUMERO_ALEATOIRE]-[3 NUMERO_ALEATOIRE]
-        Exemple : BPP1254-857 (initiales établissement + P + 4 chiffres aléatoires + tiret + 3 chiffres aléatoires)
-        Tous les chiffres sont aléatoires
+        Format : [XX]P[6 NUMEROS_ALEATOIRES]
+        Exemple : BDP345843 (première lettre des 2 premiers mots de l'établissement + P + 6 chiffres aléatoires)
         """
         import random
         
-        # Extraire les initiales de l'établissement (2 premiers mots)
+        # Extraire les initiales de l'établissement (première lettre des 2 premiers mots)
         mots = etablissement.nom.split()[:2]
         initiales = ''.join([mot[0].upper() for mot in mots if mot])
         
-        # Générer un numéro aléatoire de 4 chiffres (1000-9999)
-        numero_aleatoire_4 = random.randint(1000, 9999)
+        # Générer un numéro aléatoire de 6 chiffres (100000-999999)
+        numero_aleatoire_6 = random.randint(100000, 999999)
         
-        # Générer un numéro aléatoire de 3 chiffres (100-999)
-        numero_aleatoire_3 = random.randint(100, 999)
-        
-        # Générer le matricule avec le tiret : BPP1254-857
-        matricule = f"{initiales}P{numero_aleatoire_4}-{numero_aleatoire_3:03d}"
+        # Générer le matricule : BDP345843
+        matricule = f"{initiales}P{numero_aleatoire_6}"
         
         # Boucle de sécurité pour éviter les doublons
         max_tentatives = 1000
         tentatives = 0
         while Parent.objects.filter(matricule_parental=matricule).exists() or \
               Parent.objects.filter(username=matricule).exists():
-            # Générer de nouveaux numéros aléatoires
-            numero_aleatoire_4 = random.randint(1000, 9999)
-            numero_aleatoire_3 = random.randint(100, 999)
-            matricule = f"{initiales}P{numero_aleatoire_4}-{numero_aleatoire_3:03d}"
+            # Générer un nouveau numéro aléatoire
+            numero_aleatoire_6 = random.randint(100000, 999999)
+            matricule = f"{initiales}P{numero_aleatoire_6}"
             tentatives += 1
             if tentatives >= max_tentatives:
                 # Fallback avec timestamp si trop de tentatives
                 import time
                 timestamp = int(time.time() * 1000) % 1000000
-                numero_4 = timestamp % 10000
-                numero_3 = (timestamp // 10000) % 1000
-                matricule = f"{initiales}P{numero_4:04d}-{numero_3:03d}"
+                matricule = f"{initiales}P{timestamp:06d}"
                 break
         
         return matricule

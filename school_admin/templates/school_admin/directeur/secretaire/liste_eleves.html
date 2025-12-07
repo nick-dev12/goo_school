@@ -17,7 +17,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_secretaire.css' %}"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
     />
     <link
       rel="stylesheet"
@@ -30,15 +30,7 @@
   </head>
   <body>
     <!-- Header -->
-    {% if user.is_authenticated %}
-        {% if user.directeur_prenom %}
-            {% include 'school_admin/directeur/partials/header_directeur.html' %}
-        {% else %}
-            {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
-        {% endif %}
-    {% else %}
-        {% include 'school_admin/directeur/secretaire/partials/header_secretaire.html' %}
-    {% endif %}
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content Container -->
     <div class="container">

@@ -35,6 +35,7 @@ urlpatterns = [
 
     # Notifications
     path('eleve/notifications/', eleve_view.notifications_eleve, name='notifications_eleve'),
+    path('eleve/notifications/<int:notification_id>/click/', eleve_view.notification_eleve_click, name='notification_eleve_click'),
     
     # Historique des années scolaires
     path('eleve/historique-annees/', eleve_view.historique_annees_eleve, name='historique_annees'),

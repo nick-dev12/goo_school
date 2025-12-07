@@ -90,9 +90,10 @@ def dashboard_parent(request):
     notifications_map = {}
     for notification in notifications_list:
         notifications_map.setdefault(notification.eleve_id, []).append(notification)
+    # Compter les notifications non lues (utiliser lu=False pour être cohérent avec le context processor)
     notifications_non_lues_query = NotificationParent.objects.filter(
         parent=parent,
-        statut='non_lu'
+        lu=False
     )
     if annee_scolaire_active:
         notifications_non_lues_query = notifications_non_lues_query.filter(annee_scolaire=annee_scolaire_active)
@@ -343,8 +344,8 @@ def retour_selection_enfant(request):
 def demande_liaison_enfant(request):
     """
     Traite la demande de liaison d'un parent avec un enfant
-    Système de 3 tentatives maximum avec blocage automatique
-    Évite les doublons en mettant à jour la demande existante
+    Système simplifié : vérification uniquement du matricule et du mot de passe
+    Blocage après 5 tentatives échouées pour ce matricule spécifique (tous parents confondus)
     """
     if not isinstance(request.user, Parent):
         messages.error(request, "Accès non autorisé.")
@@ -355,44 +356,17 @@ def demande_liaison_enfant(request):
     
     parent = request.user
     matricule_eleve = request.POST.get('matricule_eleve', '').strip()
-    classe_eleve = request.POST.get('classe_eleve', '').strip()
-    nom_parent_inscripteur = request.POST.get('nom_parent_inscripteur', '').strip()
-    type_lien = request.POST.get('type_lien', '')
+    mot_de_passe_eleve = request.POST.get('mot_de_passe_eleve', '').strip()
     
     # Stocker les données saisies dans la session pour les réafficher en cas d'échec
     request.session['form_data'] = {
         'matricule_eleve': matricule_eleve,
-        'classe_eleve': classe_eleve,
-        'nom_parent_inscripteur': nom_parent_inscripteur,
-        'type_lien': type_lien,
     }
     
-    print(f"[DEMANDE LIAISON] Parent: {parent.nom_complet}, Matricule: {matricule_eleve}, Classe: {classe_eleve}")
+    print(f"[DEMANDE LIAISON] Parent: {parent.nom_complet}, Matricule: {matricule_eleve}")
     
     from school_admin.model.demande_liaison_model import DemandeLiaisonParent
-    
-    # Vérifier s'il existe déjà une demande pour ce parent + matricule
-    demande_existante = DemandeLiaisonParent.objects.filter(
-        parent_demandeur=parent,
-        matricule_eleve=matricule_eleve
-    ).order_by('-date_demande').first()
-    
-    # Si une demande est déjà bloquée, empêcher de nouvelles tentatives
-    if demande_existante and demande_existante.statut == 'bloquee':
-        messages.warning(request, "❌ Trop de tentatives échouées. Une demande de validation a été envoyée à l'établissement.")
-        return redirect('school_admin:dashboard_parent')
-    
-    # Compter le nombre de tentatives échouées précédentes
-    if demande_existante:
-        # Incrémenter le compteur si la dernière tentative a échoué
-        if demande_existante.statut in ['echec', 'bloquee']:
-            tentatives_precedentes = demande_existante.nombre_tentatives
-        else:
-            tentatives_precedentes = 0
-    else:
-        tentatives_precedentes = 0
-    
-    print(f"[DEMANDE LIAISON] Tentatives précédentes: {tentatives_precedentes}")
+    from django.contrib.auth.hashers import check_password
     
     try:
         # Vérifier que l'élève existe
@@ -401,9 +375,9 @@ def demande_liaison_enfant(request):
             actif=True
         ).first()
         
-        # Si l'élève n'existe pas, afficher un message et ne rien enregistrer
+        # Si l'élève n'existe pas, afficher un message
         if not eleve:
-            messages.error(request, "❌ Cet élève n'est inscrit dans aucun établissement.")
+            messages.error(request, "❌ Matricule incorrect. Cet élève n'est inscrit dans aucun établissement.")
             return redirect('school_admin:dashboard_parent')
         
         # Vérifier si un lien existe déjà
@@ -415,130 +389,107 @@ def demande_liaison_enfant(request):
         
         if lien_existant:
             messages.warning(request, f"Vous êtes déjà lié à {eleve.nom_complet}.")
+            # Supprimer les données du formulaire de la session
+            if 'form_data' in request.session:
+                del request.session['form_data']
             return redirect('school_admin:dashboard_parent')
         
-        raison_echec = None
-        verification_reussie = True
+        # Compter toutes les tentatives échouées pour ce matricule (tous parents confondus)
+        # Compter le nombre de demandes échouées/bloquées (chaque demande = 1 tentative)
+        tentatives_echec = DemandeLiaisonParent.objects.filter(
+            matricule_eleve=matricule_eleve,
+            statut__in=['echec', 'bloquee']
+        ).count()
         
-        # Récupérer l'année scolaire active de l'établissement de l'élève
-        annee_scolaire_active = None
-        if eleve.etablissement:
-            annee_scolaire_active = get_session_active(request, eleve.etablissement)
+        # Vérifier si ce matricule est déjà bloqué (5 tentatives ou plus)
+        if tentatives_echec >= 5:
+            messages.error(request, 
+                f"❌ Ce matricule a été bloqué après 5 tentatives infructueuses. "
+                f"Veuillez contacter l'établissement pour débloquer la liaison.")
+            logger.warning(f"Tentative de liaison sur matricule bloqué - Parent: {parent.matricule_parental}, Matricule: {matricule_eleve}")
+            return redirect('school_admin:dashboard_parent')
         
-        # Récupérer la classe de l'élève pour l'année scolaire active
-        classe_eleve_active = get_classe_eleve_active(eleve, annee_scolaire_active, eleve.etablissement)
-        
-        # Vérifier la classe
-        classe_fournie_clean = classe_eleve.strip().lower().replace(' ', '').replace('-', '')
-        classe_eleve_clean = classe_eleve_active.nom.strip().lower().replace(' ', '').replace('-', '') if classe_eleve_active else ''
-        
-        if classe_fournie_clean != classe_eleve_clean:
-            raison_echec = f"La classe fournie ({classe_eleve}) ne correspond pas à la classe réelle de l'élève"
-            verification_reussie = False
-        
-        # Vérifier le nom du parent inscripteur
-        if verification_reussie:
-            parent_inscripteur = eleve.parent_inscripteur
-            if parent_inscripteur:
-                nom_inscripteur = parent_inscripteur.nom.lower()
-                prenom_inscripteur = parent_inscripteur.prenom.lower()
-                nom_fourni = nom_parent_inscripteur.lower()
-                
-                if nom_fourni not in nom_inscripteur and nom_fourni not in prenom_inscripteur:
-                    raison_echec = f"Le nom du parent inscripteur ({nom_parent_inscripteur}) ne correspond pas"
-                    verification_reussie = False
-            else:
-                raison_echec = "Aucun parent inscripteur enregistré pour cet élève"
-                verification_reussie = False
-        
-        # Calculer le nombre total de tentatives (y compris celle-ci)
-        nombre_total_tentatives = tentatives_precedentes + 1
-        
-        # Déterminer le statut de la demande
-        if nombre_total_tentatives >= 3 and not verification_reussie:
-            statut_demande = 'bloquee'
-        elif verification_reussie:
-            statut_demande = 'reussie'
-        else:
-            statut_demande = 'echec'
-        
-        # Mettre à jour la demande existante ou créer une nouvelle
-        if demande_existante and demande_existante.statut in ['echec', 'en_attente']:
-            # Mise à jour de la demande existante au lieu de créer un doublon
-            demande = demande_existante
-            demande.classe_eleve = classe_eleve
-            demande.nom_parent_inscripteur = nom_parent_inscripteur
-            demande.type_lien = type_lien
-            demande.nom_eleve = eleve.nom
-            demande.prenom_eleve = eleve.prenom
-            demande.date_naissance_eleve = eleve.date_naissance
-            demande.nombre_tentatives = nombre_total_tentatives
-            demande.raison_echec = raison_echec
-            demande.eleve_valide = eleve
-            demande.date_demande = timezone.now()  # Mise à jour de la date
-            if annee_scolaire_active:
-                demande.annee_scolaire = annee_scolaire_active
-            demande.save()
-            print(f"[DEMANDE LIAISON] Mise à jour de la demande existante ID: {demande.id}")
-        else:
-            # Créer une nouvelle demande
+        # Vérifier le mot de passe de l'élève
+        if not eleve.check_password(mot_de_passe_eleve):
+            # Mot de passe incorrect - enregistrer la tentative échouée
+            nouvelle_tentative = tentatives_echec + 1
+            
+            # Récupérer l'année scolaire active
+            annee_scolaire_active = None
+            if eleve.etablissement:
+                annee_scolaire_active = get_session_active(request, eleve.etablissement)
+            
+            # Créer une nouvelle demande pour enregistrer cette tentative échouée
+            # (on crée toujours une nouvelle demande pour compter correctement les tentatives)
             demande = DemandeLiaisonParent.objects.create(
                 parent_demandeur=parent,
                 matricule_eleve=matricule_eleve,
                 nom_eleve=eleve.nom,
                 prenom_eleve=eleve.prenom,
                 date_naissance_eleve=eleve.date_naissance,
-                classe_eleve=classe_eleve,
-                nom_parent_inscripteur=nom_parent_inscripteur,
-                type_lien=type_lien,
-                statut='en_attente',  # Toujours en_attente au départ
-                nombre_tentatives=nombre_total_tentatives,
-                raison_echec=raison_echec,
+                type_lien='tuteur',  # Type par défaut
+                statut='echec',
+                nombre_tentatives=1,  # Cette demande représente 1 tentative
+                raison_echec="Mot de passe incorrect",
                 eleve_valide=eleve,
                 annee_scolaire=annee_scolaire_active
             )
-            print(f"[DEMANDE LIAISON] Nouvelle demande créée ID: {demande.id}")
-        
-        print(f"[DEMANDE LIAISON] Statut initial: {statut_demande}, Tentatives: {nombre_total_tentatives}")
-        
-        # Traiter selon le statut déterminé
-        if statut_demande == 'reussie':
-            # Approuver automatiquement
-            try:
-                lien = demande.approuver()
-                demande.statut = 'reussie'
+            
+            # Vérifier si on doit bloquer (5 tentatives atteintes)
+            if nouvelle_tentative >= 5:
+                demande.statut = 'bloquee'
                 demande.save()
-                
-                # Supprimer les données du formulaire de la session en cas de succès
-                if 'form_data' in request.session:
-                    del request.session['form_data']
-                
-                messages.success(request, f"✅ Votre enfant {eleve.nom_complet} a été ajouté avec succès à votre espace !")
-                logger.info(f"Liaison réussie - Parent: {parent.matricule_parental}, Élève: {eleve.matricule_eleve}")
-            except Exception as e:
-                print(f"[DEMANDE LIAISON] Erreur approbation: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                demande.statut = 'en_attente'
-                demande.save()
-                messages.info(request, f"Votre demande a été enregistrée et sera traitée par l'administration.")
+                messages.error(request, 
+                    f"❌ Mot de passe incorrect. Après 5 tentatives infructueuses pour ce matricule, "
+                    f"la liaison est maintenant bloquée. Veuillez contacter l'établissement.")
+                logger.warning(f"Matricule bloqué après 5 tentatives - Matricule: {matricule_eleve}")
+            else:
+                tentatives_restantes = 5 - nouvelle_tentative
+                messages.error(request, 
+                    f"❌ Mot de passe incorrect. Il reste {tentatives_restantes} tentative{'s' if tentatives_restantes > 1 else ''} "
+                    f"avant le blocage de ce matricule.")
+            
+            return redirect('school_admin:dashboard_parent')
         
-        elif statut_demande == 'bloquee':
-            # Bloquer après 3 tentatives échouées
-            demande.statut = 'bloquee'
-            demande.save()
-            messages.error(request, 
-                f"❌ Votre demande a échoué. Après {nombre_total_tentatives} tentatives, "
-                f"une demande a été envoyée à l'établissement pour validation manuelle.")
-            logger.warning(f"Demande bloquée après {nombre_total_tentatives} tentatives - Parent: {parent.matricule_parental}, Matricule: {matricule_eleve}")
+        # Mot de passe correct - créer directement le lien familial
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = None
+        if eleve.etablissement:
+            annee_scolaire_active = get_session_active(request, eleve.etablissement)
         
-        else:
-            # Échec mais tentatives restantes
-            demande.statut = 'echec'
-            demande.save()
-            tentatives_restantes = 3 - nombre_total_tentatives
-            messages.error(request, 
-                f"❌ {raison_echec}. Il vous reste {tentatives_restantes} tentative{'s' if tentatives_restantes > 1 else ''}.")
+        # Déterminer le type de lien (utiliser 'tuteur' par défaut)
+        type_lien = 'tuteur'
+        
+        # Créer le lien familial directement
+        lien = LienFamilial.objects.create(
+            parent=parent,
+            eleve=eleve,
+            type_lien=type_lien,
+            statut='valide',
+            est_inscripteur=False
+        )
+        lien.valider()
+        
+        # Enregistrer une demande réussie pour traçabilité
+        DemandeLiaisonParent.objects.create(
+            parent_demandeur=parent,
+            matricule_eleve=matricule_eleve,
+            nom_eleve=eleve.nom,
+            prenom_eleve=eleve.prenom,
+            date_naissance_eleve=eleve.date_naissance,
+            type_lien=type_lien,
+            statut='reussie',
+            nombre_tentatives=1,
+            eleve_valide=eleve,
+            annee_scolaire=annee_scolaire_active
+        )
+        
+        # Supprimer les données du formulaire de la session en cas de succès
+        if 'form_data' in request.session:
+            del request.session['form_data']
+        
+        messages.success(request, f"✅ Votre enfant {eleve.nom_complet} a été lié avec succès à votre espace !")
+        logger.info(f"Liaison réussie - Parent: {parent.matricule_parental}, Élève: {eleve.matricule_eleve}")
         
         return redirect('school_admin:dashboard_parent')
         
@@ -845,6 +796,39 @@ def notifications_parent(request):
     }
 
     return render(request, 'school_admin/parent/notifications_parent.html', context)
+
+
+def notification_parent_click(request, notification_id):
+    """
+    Gère le clic sur une notification parent : marque comme lue et redirige vers la page appropriée.
+    """
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    parent = request.user
+    
+    # Récupérer la notification
+    notification = get_object_or_404(NotificationParent, id=notification_id, parent=parent)
+    
+    # Marquer la notification comme lue
+    if not notification.lu:
+        notification.marquer_comme_lue()
+    
+    # Récupérer l'URL de redirection depuis les données de la notification
+    redirect_url = notification.donnees.get('redirect_url') if notification.donnees else None
+    
+    # Si pas d'URL dans les données, générer selon le type
+    if not redirect_url:
+        from school_admin.services.parent_notification_service import ParentNotificationService
+        redirect_url = ParentNotificationService._get_redirect_url(
+            notification.type_notification,
+            notification.donnees,
+            notification.eleve
+        )
+    
+    # Rediriger vers l'URL appropriée
+    return redirect(redirect_url)
 
 
 def profil_parent(request):

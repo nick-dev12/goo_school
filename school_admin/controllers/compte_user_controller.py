@@ -281,7 +281,8 @@ class CompteUserController:
                     else:
                         # Vérifier le type d'utilisateur et rediriger selon sa fonction
                         if isinstance(user, PersonnelAdministratif):
-                            return None, CompteUserController._redirect_personnel_administratif(user.fonction)
+                            # Rediriger le personnel administratif vers le dashboard du directeur (même interface mais avec restrictions)
+                            return None, redirect('directeur:dashboard_directeur')
                         elif isinstance(user, Etablissement):
                             return None, redirect('directeur:dashboard_directeur')
                         elif isinstance(user, Professeur):
@@ -338,11 +339,11 @@ class CompteUserController:
         """
         redirect_mapping = {
             'secretaire': 'secretaire:dashboard_secretaire',
-            'surveillant_general': 'administrateur_etablissement:dashboard_administrateur_etablissement',
-            'censeur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
-            'administrateur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+            'surveillant_general': 'directeur:dashboard_directeur',
+            'censeur': 'directeur:dashboard_directeur',
+            'administrateur': 'directeur:dashboard_directeur',
             }
-        return redirect(redirect_mapping.get(fonction, 'administrateur_etablissement:dashboard_administrateur_etablissement'))
+        return redirect(redirect_mapping.get(fonction, 'directeur:dashboard_directeur'))
     
     @staticmethod
     def get_user_dashboard_url(user):
@@ -367,11 +368,11 @@ class CompteUserController:
             logger.info(f"Utilisateur détecté comme PersonnelAdministratif - Fonction: {fonction}")
             redirect_mapping = {
                 'secretaire': 'secretaire:dashboard_secretaire',
-                'surveillant_general': 'administrateur_etablissement:dashboard_administrateur_etablissement',
-                'censeur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
-                'administrateur': 'administrateur_etablissement:dashboard_administrateur_etablissement',
+                'surveillant_general': 'directeur:dashboard_directeur',
+                'censeur': 'directeur:dashboard_directeur',
+                'administrateur': 'directeur:dashboard_directeur',
             }
-            return redirect_mapping.get(fonction, 'administrateur_etablissement:dashboard_administrateur_etablissement')
+            return redirect_mapping.get(fonction, 'directeur:dashboard_directeur')
         elif isinstance(user, Etablissement):
             logger.info("Utilisateur détecté comme Etablissement")
             return 'directeur:dashboard_directeur'

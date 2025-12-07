@@ -114,7 +114,7 @@ class PeriodeScolaire(models.Model):
                 # Vérifier le chevauchement
                 if (self.date_debut <= periode.date_fin and self.date_fin >= periode.date_debut):
                     raise ValidationError({
-                        'date_debut': f"Cette période chevauche avec '{periode.nom_periode}'."
+                        'date_debut': f"Une erreur s'est produite car une autre période ('{periode.nom_periode}') est déjà enregistrée dans ces tranches de l'année."
                     })
     
     def save(self, *args, **kwargs):

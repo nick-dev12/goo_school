@@ -54,6 +54,12 @@ class AuthenticationMiddleware:
             reverse('school_admin:verifier_bulletin_qr'),
             # Ajouter d'autres URLs publiques si nécessaire
         ]
+        
+        # URLs publiques avec paramètres (patterns)
+        public_url_patterns = [
+            '/auth/qr/',  # Authentification par QR Code
+            '/preinscription/formulaire/',  # Formulaire de préinscription
+        ]
 
         technical_urls = {
             '/service-worker.js',
@@ -65,10 +71,14 @@ class AuthenticationMiddleware:
         print(f"\n[MIDDLEWARE] Path: {request.path}, User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
         logger.info(f"[MIDDLEWARE] Path: {request.path}, User: {request.user}, Authenticated: {request.user.is_authenticated}")
         
+        # Vérifier si l'URL correspond à un pattern public
+        is_public_pattern = any(request.path.startswith(pattern) for pattern in public_url_patterns)
+        
         # Si l'URL actuelle est une URL publique, on laisse passer
         if (
             request.path in public_urls
             or request.path in technical_urls
+            or is_public_pattern
             or request.path.startswith('/admin/')
             or request.path.startswith('/static/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
@@ -83,6 +93,7 @@ class AuthenticationMiddleware:
         is_public_path = (
             request.path in public_urls
             or request.path in technical_urls
+            or is_public_pattern
             or request.path.startswith('/password-reset/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
             or request.path.startswith('/politiques-utilisation/')  # Page des politiques d'utilisation

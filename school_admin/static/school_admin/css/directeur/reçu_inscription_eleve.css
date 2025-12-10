@@ -196,16 +196,20 @@ body {
 
 .detail-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px 20px;
   margin-bottom: 8px;
   padding: 6px 0;
   border-bottom: 1px dotted #d1d5db;
 }
 
-.detail-row:last-child {
-  border-bottom: none;
+.detail-item {
+  display: flex;
+  justify-content: flex-start;
+  max-width: 150px;
 }
+
+
 
 .detail-row .label {
   font-weight: bold;
@@ -306,7 +310,7 @@ body {
   font-size: 9px;
   padding: 0;
   border: none;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .login-details.eleve-section {
@@ -317,6 +321,15 @@ body {
 .login-details.parent-section {
   background: transparent;
   border: none;
+}
+
+/* Wrapper pour la disposition horizontale */
+.login-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 8px;
 }
 
 .login-section-header {
@@ -341,11 +354,17 @@ body {
   color: #1f2937;
 }
 
+.login-credentials {
+  flex: 1;
+  min-width: 0;
+  max-width: 400px;
+}
+
 .login-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 6px 0;
   background: transparent;
   border-bottom: 1px dotted #d1d5db;
   margin-bottom: 0;
@@ -353,7 +372,7 @@ body {
 
 .login-item:last-of-type {
   border-bottom: none;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .login-label {
@@ -379,12 +398,12 @@ body {
 }
 
 .login-warning {
-  margin-top: 10px;
-  padding: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
   background: #fef3c7;
   border-left: 3px solid #f59e0b;
   border-radius: 0;
-  font-size: 8px;
+  font-size: 7.5px;
   color: #92400e;
   line-height: 1.3;
 }
@@ -394,13 +413,69 @@ body {
 }
 
 .parent-name {
-  margin-bottom: 10px;
-  padding: 8px 0;
+  margin-bottom: 6px;
+  padding: 6px 0;
   background: transparent;
   border-bottom: 1px dotted #d1d5db;
   font-size: 9px;
   color: #1f2937;
   font-weight: 600;
+}
+
+/* QR Code Section */
+.qr-code-section {
+  flex-shrink: 0;
+  width: 140px;
+  padding: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 2px;
+  text-align: center;
+}
+
+.qr-code-label {
+  font-size: 8px;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.qr-code-label i {
+  color: #3b82f6;
+  font-size: 9px;
+}
+
+.qr-code-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 6px 0;
+  padding: 6px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 2px;
+}
+
+.qr-code-container canvas,
+.qr-code-container img {
+  width: 120px !important;
+  height: 120px !important;
+  max-width: 120px !important;
+  max-height: 120px !important;
+}
+
+.qr-code-instruction {
+  font-size: 7px;
+  color: #6b7280;
+  margin-top: 4px;
+  font-style: italic;
+  line-height: 1.2;
 }
 
 /* Pied de page simple */
@@ -499,5 +574,29 @@ body {
     text-align: right !important;
   }
   
+  /* Assurer que la disposition horizontale fonctionne à l'impression */
+  .login-content-wrapper {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    page-break-inside: avoid;
+  }
+  
+  .qr-code-section {
+    flex-shrink: 0 !important;
+    width: 130px !important;
+  }
+  
+  .login-credentials {
+    flex: 1 !important;
+  }
+  
+  .qr-code-container canvas,
+  .qr-code-container img {
+    width: 110px !important;
+    height: 110px !important;
+    max-width: 110px !important;
+    max-height: 110px !important;
+  }
   
 }

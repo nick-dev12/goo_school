@@ -17,6 +17,7 @@ from ..model.inscription_parent_model import InscriptionParent
 from ..model.facturation_model import Facturation
 from ..model.ponderation_model import Ponderation
 from ..utils.session_utils import get_session_active, get_session_consultee
+from ..utils.formatting_utils import formater_nom, formater_prenom
 
 
 def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
@@ -71,15 +72,15 @@ def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
                 etablissement=etablissement
             ).select_related('eleve').order_by(Lower('eleve__nom'), Lower('eleve__prenom'))
             
-            # Récupérer les élèves depuis les inscriptions (filtrer uniquement les actifs)
-            eleves_list = [inscription.eleve for inscription in inscriptions if inscription.eleve and inscription.eleve.actif]
+            # Récupérer les élèves depuis les inscriptions (inclure tous les élèves, actifs et désactivés)
+            eleves_list = [inscription.eleve for inscription in inscriptions if inscription.eleve]
             
-            # Créer un queryset à partir de la liste pour maintenir la compatibilité
+            # Créer un queryset à partir de la liste pour maintenir la compatibilité (inclure tous les élèves)
             eleves_ids = [eleve.id for eleve in eleves_list]
-            eleves_queryset = Eleve.objects.filter(id__in=eleves_ids, actif=True).order_by(Lower('nom'), Lower('prenom'))
+            eleves_queryset = Eleve.objects.filter(id__in=eleves_ids).order_by(Lower('nom'), Lower('prenom'))
         else:
-            # Comportement par défaut : tous les élèves actifs
-            eleves_queryset = Eleve.objects.filter(classe=classe, actif=True).order_by(Lower('nom'), Lower('prenom'))
+            # Comportement par défaut : tous les élèves (actifs et désactivés)
+            eleves_queryset = Eleve.objects.filter(classe=classe).order_by(Lower('nom'), Lower('prenom'))
 
         eleves_data = []
         for eleve in eleves_queryset:
@@ -521,10 +522,16 @@ def inscription_eleves(request):
                         is_valid = False
                         raise Exception("Classe pleine")
                     
+                    # Formater les noms et prénoms
+                    nom_formate = formater_nom(form_data['nom'])
+                    prenom_formate = formater_prenom(form_data['prenom'])
+                    parent_nom_formate = formater_nom(form_data['parent_nom'])
+                    parent_prenom_formate = formater_prenom(form_data['parent_prenom'])
+                    
                     # Créer l'élève
                     eleve = Eleve(
-                        nom=form_data['nom'],
-                        prenom=form_data['prenom'],
+                        nom=nom_formate,
+                        prenom=prenom_formate,
                         date_naissance=datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date(),
                         lieu_naissance=form_data['lieu_naissance'],
                         sexe=form_data['sexe'],
@@ -537,8 +544,8 @@ def inscription_eleves(request):
                         date_inscription=inscription_date_obj or datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date(),
                         statut=form_data['statut'],
                         # Champs parent/tuteur
-                        parent_nom=form_data['parent_nom'],
-                        parent_prenom=form_data['parent_prenom'],
+                        parent_nom=parent_nom_formate,
+                        parent_prenom=parent_prenom_formate,
                         parent_telephone=form_data['parent_telephone'],
                         parent_adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else None,
                         parent_profession=form_data['parent_profession'] if form_data['parent_profession'] else None,
@@ -597,8 +604,8 @@ def inscription_eleves(request):
                         parent = Parent(
                             matricule_parental=form_data['matricule_parent'],
                             type_parent=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
-                            nom=form_data['parent_nom'],
-                            prenom=form_data['parent_prenom'],
+                            nom=parent_nom_formate,
+                            prenom=parent_prenom_formate,
                             telephone=form_data['parent_telephone'],
                             email='',
                             adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
@@ -1004,6 +1011,13 @@ def reçu_inscription_eleve(request, eleve_id):
     if lien_inscripteur:
         parent_inscripteur = lien_inscripteur.parent
     
+    # Générer les tokens QR si nécessaire
+    if not eleve.qr_auth_token:
+        eleve.generer_et_sauvegarder_token_qr()
+    
+    if parent_inscripteur and not parent_inscripteur.qr_auth_token:
+        parent_inscripteur.generer_et_sauvegarder_token_qr()
+    
     # Informations d'identification pour le reçu
     identifiants_info = {
         'matricule_eleve': eleve.matricule_eleve or "Non généré",
@@ -1012,6 +1026,8 @@ def reçu_inscription_eleve(request, eleve_id):
         'mot_de_passe_parent': parent_inscripteur.mot_de_passe_provisoire if parent_inscripteur else "Non généré",
         'type_parent': parent_inscripteur.get_type_parent_display() if parent_inscripteur else eleve.get_parent_lien_display(),
         'nom_parent': parent_inscripteur.nom_complet if parent_inscripteur else responsable_info['nom_complet'],
+        'qr_auth_url_eleve': eleve.get_qr_auth_url(request) if eleve.qr_auth_token else None,
+        'qr_auth_url_parent': parent_inscripteur.get_qr_auth_url(request) if parent_inscripteur and parent_inscripteur.qr_auth_token else None,
     }
     
     context = {
@@ -1702,9 +1718,15 @@ def detail_eleve(request, eleve_id):
             if is_valid:
                 try:
                     with transaction.atomic():
+                        # Formater les noms et prénoms
+                        nom_formate = formater_nom(form_data['nom'])
+                        prenom_formate = formater_prenom(form_data['prenom'])
+                        parent_nom_formate = formater_nom(form_data['parent_nom'])
+                        parent_prenom_formate = formater_prenom(form_data['parent_prenom'])
+                        
                         # Mettre à jour les informations de base de l'élève
-                        eleve.nom = form_data['nom']
-                        eleve.prenom = form_data['prenom']
+                        eleve.nom = nom_formate
+                        eleve.prenom = prenom_formate
                         eleve.date_naissance = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
                         eleve.lieu_naissance = form_data['lieu_naissance']
                         eleve.sexe = form_data['sexe']
@@ -1722,8 +1744,8 @@ def detail_eleve(request, eleve_id):
                             eleve.statut = form_data['statut']
 
                         # Mettre à jour les informations parent/tuteur dans l'élève
-                        eleve.parent_nom = form_data['parent_nom']
-                        eleve.parent_prenom = form_data['parent_prenom']
+                        eleve.parent_nom = parent_nom_formate
+                        eleve.parent_prenom = parent_prenom_formate
                         eleve.parent_telephone = form_data['parent_telephone']
                         eleve.parent_email = form_data['parent_email'] if form_data['parent_email'] else None
                         eleve.parent_adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else None
@@ -1762,8 +1784,8 @@ def detail_eleve(request, eleve_id):
                         if parent_existant:
                             # Utiliser le parent existant et mettre à jour ses informations
                             parent = parent_existant
-                            parent.nom = form_data['parent_nom']
-                            parent.prenom = form_data['parent_prenom']
+                            parent.nom = parent_nom_formate
+                            parent.prenom = parent_prenom_formate
                             parent.telephone = form_data['parent_telephone']
                             parent.email = form_data['parent_email'] if form_data['parent_email'] else ''
                             parent.adresse = form_data['parent_adresse'] if form_data['parent_adresse'] else ''
@@ -1782,8 +1804,8 @@ def detail_eleve(request, eleve_id):
                             parent = Parent(
                                 matricule_parental=matricule_parent,
                                 type_parent=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
-                                nom=form_data['parent_nom'],
-                                prenom=form_data['parent_prenom'],
+                                nom=parent_nom_formate,
+                                prenom=parent_prenom_formate,
                                 telephone=form_data['parent_telephone'],
                                 email=form_data['parent_email'] if form_data['parent_email'] else '',
                                 adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
@@ -2167,6 +2189,52 @@ def transfer_eleve(request, eleve_id):
             return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
     
     # Redirection si accès GET direct
+    return redirect('secretaire:detail_eleve', eleve_id=eleve_id)
+
+
+@login_required
+def desactiver_compte_eleve(request, eleve_id):
+    """
+    Désactive ou réactive le compte d'un élève
+    """
+    from django.contrib import messages
+    from django.shortcuts import redirect, get_object_or_404
+    
+    # Récupérer l'utilisateur connecté
+    user = request.user
+    
+    # Vérifier que l'utilisateur est soit un directeur soit un personnel avec la permission
+    if isinstance(user, Etablissement):
+        etablissement = user
+    elif isinstance(user, PersonnelAdministratif):
+        # Vérifier la permission eleves_modifier
+        from ..utils.decorators_permissions import check_permission
+        if not check_permission(user, 'eleves_modifier'):
+            messages.error(request, "Accès non autorisé. Vous n'avez pas la permission de modifier les élèves.")
+            return redirect('directeur:dashboard_directeur')
+        etablissement = user.etablissement
+    else:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    # Récupérer l'élève
+    eleve = get_object_or_404(Eleve, id=eleve_id, etablissement=etablissement)
+    
+    # Inverser le statut actif
+    eleve.actif = not eleve.actif
+    eleve.is_active = eleve.actif  # Synchroniser avec is_active
+    eleve.save(update_fields=['actif', 'is_active'])
+    
+    # Message de confirmation
+    if eleve.actif:
+        messages.success(request, f"Le compte de {eleve.nom_complet} a été réactivé avec succès.")
+    else:
+        messages.success(request, f"Le compte de {eleve.nom_complet} a été désactivé avec succès.")
+    
     return redirect('secretaire:detail_eleve', eleve_id=eleve_id)
 
 

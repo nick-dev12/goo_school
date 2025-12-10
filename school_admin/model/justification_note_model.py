@@ -37,6 +37,14 @@ class JustificationNote(models.Model):
         blank=True,
         verbose_name="Note (primaire)",
     )
+    note_examen = models.ForeignKey(
+        "NoteExamen",
+        on_delete=models.CASCADE,
+        related_name="justifications",
+        null=True,
+        blank=True,
+        verbose_name="Note d'examen",
+    )
     classe = models.ForeignKey(
         "Classe",
         on_delete=models.CASCADE,
@@ -161,10 +169,11 @@ class JustificationNote(models.Model):
     def clean(self):
         super().clean()
 
-        if not self.note and not self.note_primaire:
+        if not self.note and not self.note_primaire and not self.note_examen:
             raise ValidationError("Une justification doit cibler une note.")
 
-        if self.note and self.note_primaire:
+        note_count = sum([bool(self.note), bool(self.note_primaire), bool(self.note_examen)])
+        if note_count > 1:
             raise ValidationError("Une justification ne peut cibler qu'un seul type de note.")
 
         if self.nouvelle_note is None:
@@ -180,6 +189,8 @@ class JustificationNote(models.Model):
             bareme = self.note.evaluation.bareme
         elif self.note_primaire and self.note_primaire.evaluation_primaire:
             bareme = self.note_primaire.evaluation_primaire.bareme
+        elif self.note_examen:
+            bareme = self.note_examen.bareme
 
         if bareme is not None and nouvelle_note_decimal > bareme:
             raise ValidationError({"nouvelle_note": f"La note proposée ne peut pas dépasser le barème ({bareme})."})

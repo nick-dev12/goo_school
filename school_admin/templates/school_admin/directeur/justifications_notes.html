@@ -8,8 +8,112 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/justifications_notes.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/justifications_notes.css' %}?v=1.0.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <style>
+        .classes-tabs-container {
+            background: var(--gray-50, #f9fafb);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+        .classes-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .classe-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .classe-tab:not(.active) {
+            background: white;
+            color: var(--text-primary, #1f2937);
+            border: 1px solid var(--gray-300, #d1d5db);
+        }
+        .classe-tab.active {
+            background: var(--primary, #3b82f6);
+            color: white;
+            border: 1px solid var(--primary, #3b82f6);
+        }
+        .classe-tab:hover:not(.active) {
+            background: var(--gray-100, #f3f4f6);
+            border-color: var(--primary, #3b82f6);
+        }
+        .classe-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .classe-tab:not(.active) .classe-badge {
+            background: var(--primary-light, rgba(59, 130, 246, 0.1));
+            color: var(--primary, #3b82f6);
+        }
+        .classe-content {
+            display: none;
+        }
+        .classe-content.active {
+            display: block;
+        }
+        .classe-header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+        }
+        .btn-voir-toutes {
+            padding: 8px 16px;
+            background: var(--primary, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+        .btn-voir-toutes:hover {
+            background: var(--directeur-secondary, #1d4ed8);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+        }
+        .empty-state-classe {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+        }
+        .empty-state-classe i {
+            font-size: 4rem;
+            color: var(--gray-400, #9ca3af);
+            margin-bottom: 20px;
+        }
+        .empty-state-classe p {
+            font-size: 1.1rem;
+            color: var(--gray-600, #4b5563);
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -35,112 +139,122 @@
 
         <!-- Message d'information sur l'année scolaire active -->
         {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
+        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.7rem; align-items: center;">
+          <span class="active-year-icon" style="display: flex; width: 32px; height: 32px; border-radius: 6px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff; font-size: 0.875rem;">
             <i class="fas fa-calendar-check"></i>
           </span>
           <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
+            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.85rem;">
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seules les justifications de notes de cette année scolaire sont affichées.
+            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.75rem;">
+              Seules les justifications de notes en attente sont affichées.
             </p>
           </div>
         </div>
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Toutes les justifications sont affichées.
-          </span>
+        {% endif %}
+
+        {% if periodes %}
+        <div class="periodes-nav-container" style="margin-bottom: 12px; padding: 12px; background: var(--gray-50); border-radius: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">
+                    <i class="fas fa-calendar-alt"></i> Période :
+                </span>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    {% for periode in periodes %}
+                        <a href="?periode={{ periode.id }}" 
+                           class="periode-tab-btn {% if periode_active and periode_active.id == periode.id %}active{% endif %}"
+                           style="padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; 
+                                  background: {% if periode_active and periode_active.id == periode.id %}var(--primary); color: white;{% else %}white; color: var(--text-primary); border: 1px solid var(--gray-300);{% endif %};
+                                  transition: all 0.3s ease;">
+                            {{ periode.nom_periode }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
         {% endif %}
 
-        <form method="get" class="filters-bar">
-            <div class="filter-group">
-                <label for="classeFilter">
-                    <i class="fas fa-chalkboard"></i>
-                    Classe
-                </label>
-                <select id="classeFilter" name="classe" onchange="this.form.submit()">
-                    <option value="">Toutes les classes</option>
-                    {% for classe in classes %}
-                        <option value="{{ classe.id }}" {% if classe_selectionnee|stringformat:'s' == classe.id|stringformat:'s' %}selected{% endif %}>
-                            {{ classe.nom }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="statutFilter">
-                    <i class="fas fa-filter"></i>
-                    Statut
-                </label>
-                <select id="statutFilter" name="statut" onchange="this.form.submit()">
-                    <option value="">Tous les statuts</option>
-                    <option value="en_attente" {% if statut_selectionne == 'en_attente' %}selected{% endif %}>En attente</option>
-                    <option value="validee" {% if statut_selectionne == 'validee' %}selected{% endif %}>Validées</option>
-                    <option value="refusee" {% if statut_selectionne == 'refusee' %}selected{% endif %}>Refusées</option>
-                </select>
-            </div>
-        </form>
-
-        <div class="stats-container">
-            <div class="stat-card primary">
-                <div class="stat-icon">
-                    <i class="fas fa-hourglass-half"></i>
-                </div>
-                <div class="stat-content">
-                    <span class="stat-value">{{ stats.en_attente }}</span>
-                    <span class="stat-label">En attente</span>
-                </div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-content">
-                    <span class="stat-value">{{ stats.validees }}</span>
-                    <span class="stat-label">Validées</span>
-                </div>
-            </div>
-            <div class="stat-card danger">
-                <div class="stat-icon">
-                    <i class="fas fa-times-circle"></i>
-                </div>
-                <div class="stat-content">
-                    <span class="stat-value">{{ stats.refusees }}</span>
-                    <span class="stat-label">Refusées</span>
-                </div>
+        {% if classes_avec_justifications %}
+        <div class="classes-tabs-container">
+            <div class="classes-tabs">
+                {% for classe_data in classes_avec_justifications %}
+                    <a href="?periode={{ periode_active.id|default:'' }}&classe={{ classe_data.classe.id }}" 
+                       class="classe-tab {% if classe_selectionnee and classe_selectionnee.id == classe_data.classe.id %}active{% elif not classe_selectionnee and forloop.first %}active{% endif %}">
+                        <i class="fas fa-chalkboard"></i>
+                        <span>{{ classe_data.classe.nom }}</span>
+                        <span class="classe-badge">{{ classe_data.count }}</span>
+                    </a>
+                {% endfor %}
             </div>
         </div>
 
-        <section class="demandes-section">
-            <h2 class="section-title">
-                <i class="fas fa-hourglass-half"></i>
-                Demandes en attente
-            </h2>
-            {% if demandes_grouped.en_attente %}
+        {% if classe_selectionnee %}
+        <div class="classe-content active">
+            <div class="classe-header-actions">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">
+                        <i class="fas fa-chalkboard" style="color: var(--primary);"></i>
+                        {{ classe_selectionnee.nom }}
+                    </h2>
+                    <p style="margin: 4px 0 0 0; color: var(--gray-600); font-size: 0.8rem;">
+                        {{ justifications_classe_selectionnee|length }} demande{{ justifications_classe_selectionnee|length|pluralize }} en attente
+                    </p>
+                </div>
+                <a href="{% url 'directeur:justifications_notes_classe' classe_selectionnee.id %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-voir-toutes">
+                    <i class="fas fa-list"></i>
+                    Voir toutes les justifications
+                </a>
+            </div>
+
+            {% if justifications_classe_selectionnee %}
                 <div class="demandes-grid">
-                    {% for justification in demandes_grouped.en_attente %}
+                    {% for justification in justifications_classe_selectionnee %}
                         <article class="demande-card">
                             <header class="demande-header">
                                 <div>
                                     <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
-                                    <p class="classe-name">{{ justification.classe.nom }}{% if justification.matiere %} &middot; {{ justification.matiere.nom }}{% endif %}</p>
+                                    <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
                                 </div>
                                 <span class="badge badge-warning">En attente</span>
                             </header>
                             <div class="demande-body">
                                 <div class="value-line">
                                     <span>Ancienne note</span>
-                                    <strong>{{ justification.ancienne_note|default:"-" }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                    <strong>
+                                        {{ justification.ancienne_note|default:"-" }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
                                 </div>
                                 <div class="value-line">
                                     <span>Nouvelle note proposée</span>
-                                    <strong>{{ justification.nouvelle_note }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
+                                    <strong>
+                                        {{ justification.nouvelle_note }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
                                 </div>
+                                {% if justification.note_examen and justification.note_examen.session_examen %}
+                                <div class="value-line">
+                                    <span>Type</span>
+                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                </div>
+                                {% endif %}
                                 <div class="value-line">
                                     <span>Motif</span>
                                     <p class="motif">{{ justification.motif }}</p>
@@ -164,6 +278,9 @@
                                 <form method="post" action="" class="demande-actions">
                                     {% csrf_token %}
                                     <input type="hidden" name="justification_id" value="{{ justification.id }}">
+                                    {% if periode_active %}
+                                        <input type="hidden" name="periode" value="{{ periode_active.id }}">
+                                    {% endif %}
                                     <div class="form-commentaire">
                                         <label for="commentaire-{{ justification.id }}">Commentaire (optionnel)</label>
                                         <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="Ajoutez un commentaire pour l'enseignant..."></textarea>
@@ -184,110 +301,19 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="empty-state">
+                <div class="empty-state-classe">
                     <i class="fas fa-check-circle"></i>
-                    <p>Aucune demande en attente pour le moment.</p>
+                    <p>Aucune demande en attente pour cette classe.</p>
                 </div>
             {% endif %}
-        </section>
-
-        <section class="demandes-section">
-            <h2 class="section-title">
-                <i class="fas fa-check-circle"></i>
-                Demandes validées
-            </h2>
-            {% if demandes_grouped.validee %}
-                <div class="demandes-grid">
-                    {% for justification in demandes_grouped.validee %}
-                        <article class="demande-card">
-                            <header class="demande-header">
-                                <div>
-                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
-                                    <p class="classe-name">{{ justification.classe.nom }}{% if justification.matiere %} &middot; {{ justification.matiere.nom }}{% endif %}</p>
-                                </div>
-                                <span class="badge badge-success">Validée</span>
-                            </header>
-                            <div class="demande-body">
-                                <div class="value-line">
-                                    <span>Ancienne note</span>
-                                    <strong>{{ justification.ancienne_note|default:"-" }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
-                                </div>
-                                <div class="value-line">
-                                    <span>Nouvelle note</span>
-                                    <strong>{{ justification.nouvelle_note }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
-                                </div>
-                                <div class="value-line">
-                                    <span>Motif</span>
-                                    <p class="motif">{{ justification.motif }}</p>
-                                </div>
-                                {% if justification.commentaire_direction %}
-                                    <div class="value-line">
-                                        <span>Commentaire direction</span>
-                                        <p class="description">{{ justification.commentaire_direction }}</p>
-                                    </div>
-                                {% endif %}
-                                <div class="value-line">
-                                    <span>Validée le</span>
-                                    <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-folder-open"></i>
-                    <p>Aucune justification validée avec les filtres actuels.</p>
-                </div>
-            {% endif %}
-        </section>
-
-        <section class="demandes-section">
-            <h2 class="section-title">
-                <i class="fas fa-times-circle"></i>
-                Demandes refusées
-            </h2>
-            {% if demandes_grouped.refusee %}
-                <div class="demandes-grid">
-                    {% for justification in demandes_grouped.refusee %}
-                        <article class="demande-card">
-                            <header class="demande-header">
-                                <div>
-                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
-                                    <p class="classe-name">{{ justification.classe.nom }}{% if justification.matiere %} &middot; {{ justification.matiere.nom }}{% endif %}</p>
-                                </div>
-                                <span class="badge badge-danger">Refusée</span>
-                            </header>
-                            <div class="demande-body">
-                                <div class="value-line">
-                                    <span>Ancienne note</span>
-                                    <strong>{{ justification.ancienne_note|default:"-" }}/{{ justification.evaluation.bareme|default:"20" }}</strong>
-                                </div>
-                                <div class="value-line">
-                                    <span>Motif</span>
-                                    <p class="motif">{{ justification.motif }}</p>
-                                </div>
-                                {% if justification.commentaire_direction %}
-                                    <div class="value-line">
-                                        <span>Commentaire direction</span>
-                                        <p class="description">{{ justification.commentaire_direction }}</p>
-                                    </div>
-                                {% endif %}
-                                <div class="value-line">
-                                    <span>Décision</span>
-                                    <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-folder-open"></i>
-                    <p>Aucune justification refusée avec les filtres actuels.</p>
-                </div>
-            {% endif %}
-        </section>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state-classe">
+            <i class="fas fa-inbox"></i>
+            <p>Aucune demande de justification en attente pour le moment.</p>
+        </div>
+        {% endif %}
     </div>
 
     <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
@@ -295,4 +321,3 @@
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>
-

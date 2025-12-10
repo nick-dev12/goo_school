@@ -542,6 +542,13 @@
                                                 <i class="fas fa-edit"></i>
                                                 Modifier
                                             </button>
+                                            <button type="button" 
+                                                    class="btn-evaluation" 
+                                                    style="background: var(--accent); color: white;"
+                                                    onclick="supprimerEvaluationPrimaire({{ evaluation.id }}, '{{ evaluation.titre|escapejs }}', this)">
+                                                <i class="fas fa-trash"></i>
+                                                Supprimer
+                                            </button>
                                             <a href="{% url 'enseignant_primaire:noter_eleves' classe.id %}?periode={{ periode_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}" 
                                                class="btn-evaluation btn-evaluation-primary">
                                                 <i class="fas fa-clipboard-check"></i>
@@ -700,6 +707,96 @@
                 });
             }
         });
+        
+        // Fonction pour supprimer une évaluation primaire
+        function supprimerEvaluationPrimaire(evaluationId, titreEvaluation, buttonElement) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'évaluation "${titreEvaluation}" ?\n\nCette action est irréversible.`)) {
+                return;
+            }
+            
+            // Utiliser l'élément bouton passé en paramètre ou le trouver
+            let deleteBtn = buttonElement;
+            if (!deleteBtn) {
+                deleteBtn = document.querySelector(`button[onclick*="supprimerEvaluationPrimaire(${evaluationId}"]`);
+            }
+            if (!deleteBtn) {
+                // Fallback : chercher via le conteneur parent
+                const evaluationItem = document.querySelector(`.evaluation-item`);
+                if (evaluationItem) {
+                    deleteBtn = evaluationItem.querySelector('.btn-evaluation[style*="background: var(--accent)"]');
+                }
+            }
+            if (!deleteBtn) {
+                alert('Erreur : impossible de trouver le bouton de suppression.');
+                return;
+            }
+            
+            const originalContent = deleteBtn.innerHTML;
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression...';
+            
+            // Envoyer la requête de suppression
+            fetch(`/enseignant/primaire/supprimer-evaluation/${evaluationId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Afficher un message de succès
+                    const cardElement = deleteBtn.closest('.evaluation-item');
+                    if (cardElement) {
+                        // Animation de disparition
+                        cardElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        cardElement.style.opacity = '0';
+                        cardElement.style.transform = 'translateX(-20px)';
+                        
+                        setTimeout(() => {
+                            cardElement.remove();
+                            
+                            // Vérifier s'il reste des évaluations
+                            const evaluationsList = document.querySelector('.evaluations-list');
+                            if (evaluationsList && evaluationsList.children.length === 0) {
+                                // Recharger la page si plus d'évaluations
+                                window.location.reload();
+                            }
+                        }, 300);
+                    } else {
+                        // Si on ne trouve pas la carte, recharger la page
+                        window.location.reload();
+                    }
+                } else {
+                    alert('Erreur : ' + (data.message || 'Une erreur est survenue lors de la suppression.'));
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Une erreur est survenue lors de la suppression. Veuillez réessayer.');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalContent;
+            });
+        }
+        
+        // Fonction pour récupérer le token CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     </script>
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}

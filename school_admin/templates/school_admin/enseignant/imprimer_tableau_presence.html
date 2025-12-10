@@ -397,7 +397,7 @@
                     <tbody>
                         {% for eleve_data in classe_data.eleves %}
                         <tr>
-                            <td class="eleve-name">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</td>
+                            <td class="eleve-name">{{ eleve_data.eleve.nom_complet }}</td>
                             {% for jour in jours_semaine %}
                                 {% with presence=eleve_data.presences|get_item:jour.index %}
                                 <td class="presence-cell">

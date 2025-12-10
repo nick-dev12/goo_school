@@ -796,6 +796,29 @@ def dashboard_directeur(request):
     
     dernieres_sanctions = dernieres_sanctions_qs.order_by('-date_sanction', '-date_creation')[:4]
     
+    # 4. Dernières justifications de notes en attente (max 4)
+    dernieres_justifications_qs = JustificationNote.objects.filter(
+        etablissement=etablissement,
+        statut=JustificationNote.STATUT_EN_ATTENTE
+    ).select_related(
+        'classe',
+        'eleve',
+        'matiere',
+        'professeur',
+        'evaluation',
+        'evaluation_primaire',
+        'note_examen',
+        'note_examen__session_examen'
+    )
+    
+    if annee_scolaire_active:
+        dernieres_justifications_qs = dernieres_justifications_qs.filter(annee_scolaire=annee_scolaire_active)
+    
+    dernieres_justifications = dernieres_justifications_qs.order_by('-date_creation')[:4]
+    
+    # Compter le total des justifications en attente
+    total_justifications_en_attente = dernieres_justifications_qs.count()
+    
     # Récupérer toutes les années scolaires de l'établissement pour le sélecteur
     toutes_annees_scolaires = AnneeScolaire.objects.filter(
         etablissement=etablissement
@@ -842,6 +865,8 @@ def dashboard_directeur(request):
         'dernieres_soumissions_presence': dernieres_soumissions_presence_enrichies,
         'derniers_releves_notes': derniers_releves_notes,
         'dernieres_sanctions': dernieres_sanctions,
+        'dernieres_justifications': dernieres_justifications,
+        'total_justifications_en_attente': total_justifications_en_attente,
     }
     
     return render(request, 'school_admin/directeur/dashboard_directeur.html', context)
@@ -1473,7 +1498,7 @@ def reinscription_eleve(request, eleve_id):
                     etablissement.date_derniere_facturation = timezone.now()
                     etablissement.save(update_fields=['date_derniere_facturation'])
                     
-                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été réinscrit avec succès pour l'année scolaire {annee_scolaire_active.libelle} !")
+                    messages.success(request, f"L'élève {form_data['nom']} {form_data['prenom']} a été réinscrit avec succès pour l'année scolaire {annee_scolaire_active.libelle} !")
                     return redirect('directeur:liste_reinscription')
                     
             except Exception as e:
@@ -1773,6 +1798,28 @@ def justifications_notes_directeur(request):
 
     classe_id = request.GET.get('classe')
     statut_filtre = request.GET.get('statut')
+    periode_id = request.GET.get('periode')
+
+    # Récupérer les périodes scolaires
+    from ..model.periode_model import PeriodeScolaire
+    periodes_queryset = PeriodeScolaire.objects.filter(
+        etablissement=etablissement,
+        est_active=True
+    )
+    if annee_scolaire_active:
+        periodes_queryset = periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes_queryset.order_by('date_debut')
+    
+    # Sélectionner la période (GET paramètre ou période active par défaut)
+    periode_active = None
+    if periodes.exists():
+        if periode_id:
+            try:
+                periode_active = periodes.get(id=periode_id)
+            except PeriodeScolaire.DoesNotExist:
+                pass
+        if not periode_active:
+            periode_active = periodes.filter(est_active=True).first() or periodes.first()
 
     classes = Classe.objects.filter(
         etablissement=etablissement,
@@ -1781,25 +1828,50 @@ def justifications_notes_directeur(request):
 
     # Filtrer les justifications par année scolaire active
     justifications_queryset = JustificationNote.objects.filter(
-        etablissement=etablissement,
-        annee_scolaire=annee_scolaire_active
-    ).select_related(
+        etablissement=etablissement
+    )
+    if annee_scolaire_active:
+        justifications_queryset = justifications_queryset.filter(annee_scolaire=annee_scolaire_active)
+    
+    justifications_queryset = justifications_queryset.select_related(
         'classe',
         'eleve',
         'matiere',
         'professeur',
-        'evaluation'
+        'evaluation',
+        'evaluation_primaire',
+        'note_examen',
+        'note_examen__session_examen'
     ).order_by('-date_creation')
 
     if classe_id:
         justifications_queryset = justifications_queryset.filter(classe_id=classe_id)
 
-    if statut_filtre in {
-        JustificationNote.STATUT_EN_ATTENTE,
-        JustificationNote.STATUT_VALIDEE,
-        JustificationNote.STATUT_REFUSEE,
-    }:
-        justifications_queryset = justifications_queryset.filter(statut=statut_filtre)
+    # Filtrer par période
+    if periode_active:
+        from ..model.session_examen_model import SessionExamen
+        from django.db.models import Q
+        # Filtrer les justifications liées à une évaluation de la période
+        # ou à une note d'examen d'une session de cette période
+        session_ids_periode = list(SessionExamen.objects.filter(
+            periode=periode_active,
+            actif=True
+        ).values_list('id', flat=True))
+        
+        # Combiner les trois types de justifications : évaluations secondaires, primaires et examens
+        q_objects = Q()
+        # Justifications avec évaluation secondaire
+        q_objects |= Q(evaluation__periode_scolaire=periode_active)
+        # Justifications avec évaluation primaire
+        q_objects |= Q(evaluation_primaire__periode_scolaire=periode_active)
+        # Justifications avec note d'examen liée à une session de cette période
+        if session_ids_periode:
+            q_objects |= Q(note_examen__session_examen_id__in=session_ids_periode)
+        
+        justifications_queryset = justifications_queryset.filter(q_objects)
+
+    # Filtrer uniquement les justifications en attente pour la page principale
+    justifications_queryset = justifications_queryset.filter(statut=JustificationNote.STATUT_EN_ATTENTE)
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1822,7 +1894,7 @@ def justifications_notes_directeur(request):
                 return redirect(request.get_full_path())
 
             if action == 'valider':
-                note_obj = justification.note or justification.note_primaire
+                note_obj = justification.note or justification.note_primaire or justification.note_examen
 
                 if not note_obj:
                     messages.error(request, "Impossible de mettre à jour la note ciblée.")
@@ -1833,6 +1905,8 @@ def justifications_notes_directeur(request):
                     bareme = justification.evaluation.bareme
                 elif justification.note_primaire and justification.evaluation_primaire:
                     bareme = justification.evaluation_primaire.bareme
+                elif justification.note_examen:
+                    bareme = justification.note_examen.bareme
 
                 if bareme is not None and justification.nouvelle_note > bareme:
                     messages.error(request, f"La note proposée dépasse le barème ({bareme}).")
@@ -1907,6 +1981,8 @@ def justifications_notes_directeur(request):
                         evaluation_nom = getattr(justification.evaluation, "titre", None)
                     elif justification.evaluation_primaire:
                         evaluation_nom = getattr(justification.evaluation_primaire, "titre", None)
+                    elif justification.note_examen and justification.note_examen.session_examen:
+                        evaluation_nom = f"Examen: {justification.note_examen.session_examen.nom_examen}"
 
                     EleveNotificationService.notify_note_justifiee(
                         justification.eleve,
@@ -1949,8 +2025,314 @@ def justifications_notes_directeur(request):
             else:
                 messages.error(request, "Action inconnue.")
 
+        # Rediriger vers la page principale après traitement
+        redirect_url = reverse('directeur:justifications_notes')
+        params = []
+        if periode_active:
+            params.append(f"periode={periode_active.id}")
+        if params:
+            redirect_url = f"{redirect_url}?{'&'.join(params)}"
+        return redirect(redirect_url)
+
+    # Grouper les justifications par classe
+    justifications_par_classe = {}
+    for justification in justifications_queryset:
+        classe_id = justification.classe.id
+        if classe_id not in justifications_par_classe:
+            justifications_par_classe[classe_id] = {
+                'classe': justification.classe,
+                'justifications': [],
+                'count': 0
+            }
+        justifications_par_classe[classe_id]['justifications'].append(justification)
+        justifications_par_classe[classe_id]['count'] += 1
+
+    # Trier les classes par nom
+    classes_avec_justifications = sorted(
+        justifications_par_classe.values(),
+        key=lambda x: (x['classe'].niveau, x['classe'].nom)
+    )
+
+    # Sélectionner la première classe par défaut si aucune n'est sélectionnée
+    classe_selectionnee_obj = None
+    justifications_classe_selectionnee = []
+    if classe_id:
+        try:
+            classe_selectionnee_obj = Classe.objects.get(id=classe_id, etablissement=etablissement)
+            if classe_id in justifications_par_classe:
+                justifications_classe_selectionnee = justifications_par_classe[classe_id]['justifications']
+        except Classe.DoesNotExist:
+            pass
+    elif classes_avec_justifications:
+        classe_selectionnee_obj = classes_avec_justifications[0]['classe']
+        justifications_classe_selectionnee = classes_avec_justifications[0]['justifications']
+
+    total_en_attente = justifications_queryset.count()
+
+    context = {
+        'etablissement': etablissement,
+        'classes_avec_justifications': classes_avec_justifications,
+        'classe_selectionnee': classe_selectionnee_obj,
+        'justifications_classe_selectionnee': justifications_classe_selectionnee,
+        'total_en_attente': total_en_attente,
+        'annee_scolaire_active': annee_scolaire_active,
+        'periodes': periodes,
+        'periode_active': periode_active,
+        'is_directeur': is_directeur,
+        'is_personnel_administratif': not is_directeur,
+        'personnel': personnel,
+    }
+
+    return render(request, 'school_admin/directeur/justifications_notes.html', context)
+
+
+@login_required
+@require_permission('notes_justifications_voir')
+def justifications_notes_classe_directeur(request, classe_id):
+    """
+    Vue pour consulter toutes les justifications d'une classe (en attente, validées, refusées).
+    Permet de réaccepter des demandes refusées.
+    """
+    result = _get_user_etablissement(request, 'notes_justifications_voir')
+    if result[0] is None:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('directeur:dashboard_directeur')
+    
+    etablissement, is_directeur, personnel = result
+    from ..model.classe_model import Classe
+    from django.db import transaction
+    from django.shortcuts import get_object_or_404
+    from django.utils import timezone
+    from django.urls import reverse
+
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = _get_session_directeur(request, etablissement)
+    
+    if not annee_scolaire_active:
+        messages.error(request, "Aucune année scolaire active.")
+        return redirect('directeur:creer_annee_scolaire_obligatoire')
+
+    periode_id = request.GET.get('periode')
+    classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
+
+    # Récupérer les périodes scolaires
+    from ..model.periode_model import PeriodeScolaire
+    periodes_queryset = PeriodeScolaire.objects.filter(
+        etablissement=etablissement,
+        est_active=True
+    )
+    if annee_scolaire_active:
+        periodes_queryset = periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes_queryset.order_by('date_debut')
+    
+    # Sélectionner la période
+    periode_active = None
+    if periodes.exists():
+        if periode_id:
+            try:
+                periode_active = periodes.get(id=periode_id)
+            except PeriodeScolaire.DoesNotExist:
+                pass
+        if not periode_active:
+            periode_active = periodes.filter(est_active=True).first() or periodes.first()
+
+    # Récupérer toutes les justifications de cette classe
+    justifications_queryset = JustificationNote.objects.filter(
+        etablissement=etablissement,
+        classe=classe
+    )
+    if annee_scolaire_active:
+        justifications_queryset = justifications_queryset.filter(annee_scolaire=annee_scolaire_active)
+    
+    justifications_queryset = justifications_queryset.select_related(
+        'classe',
+        'eleve',
+        'matiere',
+        'professeur',
+        'evaluation',
+        'evaluation_primaire',
+        'note_examen',
+        'note_examen__session_examen'
+    ).order_by('-date_creation')
+
+    # Filtrer par période
+    if periode_active:
+        from ..model.session_examen_model import SessionExamen
+        from django.db.models import Q
+        session_ids_periode = list(SessionExamen.objects.filter(
+            periode=periode_active,
+            actif=True
+        ).values_list('id', flat=True))
+        
+        q_objects = Q()
+        q_objects |= Q(evaluation__periode_scolaire=periode_active)
+        q_objects |= Q(evaluation_primaire__periode_scolaire=periode_active)
+        if session_ids_periode:
+            q_objects |= Q(note_examen__session_examen_id__in=session_ids_periode)
+        
+        justifications_queryset = justifications_queryset.filter(q_objects)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        justification_id = request.POST.get('justification_id')
+        commentaire = (request.POST.get('commentaire') or '').strip()
+
+        if not justification_id:
+            messages.error(request, "La justification à traiter est introuvable.")
+            return redirect(request.get_full_path())
+
+        with transaction.atomic():
+            justification = get_object_or_404(
+                JustificationNote,
+                id=justification_id,
+                etablissement=etablissement,
+                classe=classe,
+            )
+
+            if action == 'valider':
+                # Permettre de valider même si déjà refusée (réaccepter)
+                if justification.statut == JustificationNote.STATUT_VALIDEE:
+                    messages.warning(request, "Cette justification a déjà été validée.")
+                    return redirect(request.get_full_path())
+
+                note_obj = justification.note or justification.note_primaire or justification.note_examen
+
+                if not note_obj:
+                    messages.error(request, "Impossible de mettre à jour la note ciblée.")
+                    return redirect(request.get_full_path())
+
+                bareme = None
+                if justification.note and justification.evaluation:
+                    bareme = justification.evaluation.bareme
+                elif justification.note_primaire and justification.evaluation_primaire:
+                    bareme = justification.evaluation_primaire.bareme
+                elif justification.note_examen:
+                    bareme = justification.note_examen.bareme
+
+                if bareme is not None and justification.nouvelle_note > bareme:
+                    messages.error(request, f"La note proposée dépasse le barème ({bareme}).")
+                    return redirect(request.get_full_path())
+
+                note_obj.note = justification.nouvelle_note
+                if hasattr(note_obj, 'absent'):
+                    note_obj.absent = False
+                note_obj.save()
+
+                justification.statut = JustificationNote.STATUT_VALIDEE
+                justification.commentaire_direction = commentaire
+                justification.valide_par = etablissement
+                justification.date_validation = timezone.now()
+                justification.save()
+
+                # Recalcul automatique des moyennes (Primaire)
+                if justification.note_primaire and justification.evaluation_primaire:
+                    try:
+                        matiere = justification.evaluation_primaire.matiere
+                        periode = justification.evaluation_primaire.periode_scolaire
+
+                        if matiere and periode:
+                            moyenne_obj, _ = MoyenneMatierePrimaire.objects.get_or_create(
+                                eleve=justification.eleve,
+                                matiere=matiere,
+                                periode_scolaire=periode,
+                                defaults={
+                                    'classe': justification.classe,
+                                    'mode_calcul': 'toutes',
+                                    'ponderation': '50_50',
+                                    'evaluations_utilisees': [],
+                                    'nombre_notes': 0,
+                                }
+                            )
+
+                            mode_calcul = moyenne_obj.mode_calcul or 'toutes'
+                            ponderation = moyenne_obj.ponderation or '50_50'
+                            evaluations_selectionnees = moyenne_obj.evaluations_utilisees or []
+
+                            moyenne_recalc, evaluations_effectives = calculer_moyenne_avec_mode(
+                                justification.eleve,
+                                matiere,
+                                periode,
+                                mode_calcul,
+                                ponderation,
+                                evaluations_selectionnees,
+                            )
+
+                            evaluations_finales = evaluations_effectives or evaluations_selectionnees
+                            if moyenne_recalc is not None:
+                                moyenne_obj.moyenne = moyenne_recalc
+                                moyenne_obj.appreciation = get_appreciation_moyenne(moyenne_recalc)
+                            moyenne_obj.mode_calcul = mode_calcul
+                            moyenne_obj.ponderation = ponderation
+                            moyenne_obj.evaluations_utilisees = evaluations_finales
+                            moyenne_obj.nombre_notes = len(evaluations_finales)
+                            if justification.classe:
+                                moyenne_obj.classe = justification.classe
+                            moyenne_obj.save()
+                    except Exception as exc:
+                        logger.exception("Recalcul moyenne primaire après justification impossible: %s", exc)
+                        messages.warning(
+                            request,
+                            "La note est mise à jour mais la moyenne n'a pas pu être recalculée automatiquement.",
+                        )
+
+                try:
+                    matiere_nom = getattr(justification.matiere, "nom", "Matière")
+                    evaluation_nom = None
+                    if justification.evaluation:
+                        evaluation_nom = getattr(justification.evaluation, "titre", None)
+                    elif justification.evaluation_primaire:
+                        evaluation_nom = getattr(justification.evaluation_primaire, "titre", None)
+                    elif justification.note_examen and justification.note_examen.session_examen:
+                        evaluation_nom = f"Examen: {justification.note_examen.session_examen.nom_examen}"
+
+                    EleveNotificationService.notify_note_justifiee(
+                        justification.eleve,
+                        matiere_nom=matiere_nom,
+                        nouvelle_note=justification.nouvelle_note,
+                        bareme=bareme,
+                        evaluation_nom=evaluation_nom,
+                        source=justification,
+                    )
+                    ParentNotificationService.notify_note_justifiee(
+                        justification.eleve,
+                        matiere_nom=matiere_nom,
+                        nouvelle_note=justification.nouvelle_note,
+                        bareme=bareme,
+                        evaluation_nom=evaluation_nom,
+                        source=justification,
+                    )
+                except Exception as notification_error:
+                    logger.error(
+                        "Erreur lors de l'envoi des notifications suite à la justification de note: %s",
+                        notification_error,
+                        exc_info=True,
+                    )
+
+                messages.success(
+                    request,
+                    f"La note de {justification.eleve.nom_complet} a été mise à jour."
+                )
+            elif action == 'rejeter':
+                if justification.statut == JustificationNote.STATUT_REFUSEE:
+                    messages.warning(request, "Cette justification a déjà été refusée.")
+                    return redirect(request.get_full_path())
+                
+                justification.statut = JustificationNote.STATUT_REFUSEE
+                justification.commentaire_direction = commentaire
+                justification.valide_par = etablissement
+                justification.date_validation = timezone.now()
+                justification.save()
+
+                messages.info(
+                    request,
+                    "La demande de justification a été refusée."
+                )
+            else:
+                messages.error(request, "Action inconnue.")
+
         return redirect(request.get_full_path())
 
+    # Grouper par statut
     demandes_grouped = {
         JustificationNote.STATUT_EN_ATTENTE: [],
         JustificationNote.STATUT_VALIDEE: [],
@@ -1968,18 +2350,18 @@ def justifications_notes_directeur(request):
 
     context = {
         'etablissement': etablissement,
-        'classes': classes,
-        'classe_selectionnee': classe_id,
-        'statut_selectionne': statut_filtre,
+        'classe': classe,
         'demandes_grouped': demandes_grouped,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
+        'periodes': periodes,
+        'periode_active': periode_active,
         'is_directeur': is_directeur,
         'is_personnel_administratif': not is_directeur,
         'personnel': personnel,
     }
 
-    return render(request, 'school_admin/directeur/justifications_notes.html', context)
+    return render(request, 'school_admin/directeur/justifications_notes_classe.html', context)
 
 
 @login_required
@@ -2171,7 +2553,7 @@ def bulletins_notes(request):
         bulletins_info['moyennes_calculees'] = moyennes_calculees
         
         eleves_liste = []
-        for eleve in eleves_classe_qs.order_by('prenom', 'nom'):
+        for eleve in eleves_classe_qs.order_by('nom', 'prenom'):
             moyenne_info = moyennes_generales_map.get(eleve.id, {})
             # Construire l'URL du bulletin avec le paramètre période si disponible
             bulletin_url = reverse('directeur:voir_bulletin_eleve', args=[classe.id, eleve.id])
@@ -5546,7 +5928,7 @@ def api_details_notes_matiere_secondaire(request):
             eleves_data.append({
                 'id': eleve.id,
                 'nom': eleve.nom_complet,
-                'initiales': f"{eleve.prenom[0]}{eleve.nom[0]}" if eleve.prenom and eleve.nom else eleve.nom[:2].upper(),
+                'initiales': f"{eleve.nom[0]}{eleve.prenom[0]}" if eleve.nom and eleve.prenom else (eleve.nom[:2].upper() if eleve.nom else ''),
                 'notes_retenues': notes_retenues_list,
                 'note_examen': note_examen,
                 'note_examen_absent': note_examen_absent,

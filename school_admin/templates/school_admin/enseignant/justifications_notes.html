@@ -50,6 +50,27 @@
                 </div>
             </div>
 
+            {% if periodes %}
+            <div class="periodes-nav-container" style="margin-bottom: 20px; padding: 15px; background: var(--gray-50); border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <span style="font-weight: 600; color: var(--text-primary);">
+                        <i class="fas fa-calendar-alt"></i> Période :
+                    </span>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        {% for periode in periodes %}
+                            <a href="?periode={{ periode.id }}" 
+                               class="periode-tab-btn {% if periode_active and periode_active.id == periode.id %}active{% endif %}"
+                               style="padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; 
+                                      background: {% if periode_active.id == periode.id %}var(--primary); color: white;{% else %}white; color: var(--text-primary); border: 1px solid var(--gray-300);{% endif %};
+                                      transition: all 0.3s ease;">
+                                {{ periode.nom_periode }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="tabs-container">
                 <div class="tabs-nav">
                     {% for categorie, data in classes_grouped.items %}
@@ -149,9 +170,9 @@
                                                                 <td class="col-numero">{{ forloop.counter }}</td>
                                                                 <td class="col-eleve">
                                                                     <div class="eleve-info">
-                                                                        <div class="eleve-avatar">{{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}</div>
+                                                                        <div class="eleve-avatar">{{ eleve_data.eleve.nom.0 }}{{ eleve_data.eleve.prenom.0 }}</div>
                                                                         <div>
-                                                                            <div class="eleve-nom">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</div>
+                                                                            <div class="eleve-nom">{{ eleve_data.eleve.nom_complet }}</div>
                                                                         </div>
                                                                     </div>
                                                                 </td>
@@ -208,7 +229,7 @@
                                                                             class="btn-primary"
                                                                             data-justify-btn
                                                                             data-eleve-id="{{ eleve_data.eleve.id }}"
-                                                                    data-eleve-nom="{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}"
+                                                                    data-eleve-nom="{{ eleve_data.eleve.nom_complet }}"
                                                                     data-classe-id="{{ classe_data.classe.id }}"
                                                                     data-matiere-id="{% if classe_data.matiere %}{{ classe_data.matiere.id }}{% endif %}"
                                                                         >
@@ -265,6 +286,10 @@
             <form method="post" action="{% url 'enseignant:justifications_notes' %}" class="modal-form">
                 {% csrf_token %}
                 <input type="hidden" name="eleve_id" id="modalEleveId">
+                <input type="hidden" name="note_type" id="noteTypeInput" value="evaluation">
+                {% if periode_active %}
+                    <input type="hidden" name="periode" value="{{ periode_active.id }}">
+                {% endif %}
                 <div class="form-group">
                     <label for="noteSelect">Sélectionnez la note à justifier *</label>
                     <select name="note_id" id="noteSelect" required>

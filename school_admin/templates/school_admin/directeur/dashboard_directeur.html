@@ -315,6 +315,80 @@
               {% endif %}
             </div>
           </div>
+
+          <!-- Section Justifications de notes -->
+          <div class="activite-section">
+            <div class="activite-header">
+              <h3 class="activite-title">
+                <i class="fas fa-scale-balanced" style="color: var(--primary);"></i>
+                Justifications de notes
+                {% if total_justifications_en_attente > 0 %}
+                  <span class="badge-notification" style="background: var(--warning); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 8px;">
+                    {{ total_justifications_en_attente }}
+                  </span>
+                {% endif %}
+              </h3>
+              {% if dernieres_justifications|length > 0 %}
+                <a href="{% url 'directeur:justifications_notes' %}" class="btn-voir-plus">Voir plus</a>
+              {% endif %}
+            </div>
+            <div class="activite-content">
+              {% if dernieres_justifications|length > 0 %}
+                {% for justification in dernieres_justifications %}
+                  <div class="activite-item">
+                    <div class="activite-icon" style="background: var(--primary-light);">
+                      <i class="fas fa-file-signature" style="color: var(--primary);"></i>
+                    </div>
+                    <div class="activite-details">
+                      <div class="activite-main-info">
+                        <strong>{{ justification.eleve.nom_complet }}</strong>
+                        <span class="activite-classe">{{ justification.classe.nom }}</span>
+                      </div>
+                      {% if justification.matiere %}
+                        <div class="activite-matiere">
+                          <i class="fas fa-book"></i>
+                          {{ justification.matiere.nom }}
+                        </div>
+                      {% endif %}
+                      {% if justification.note_examen and justification.note_examen.session_examen %}
+                        <div class="activite-periode">
+                          <i class="fas fa-file-alt"></i>
+                          Note d'examen : {{ justification.note_examen.session_examen.nom_examen }}
+                        </div>
+                      {% elif justification.evaluation %}
+                        <div class="activite-periode">
+                          <i class="fas fa-clipboard-list"></i>
+                          {{ justification.evaluation.titre }}
+                        </div>
+                      {% elif justification.evaluation_primaire %}
+                        <div class="activite-periode">
+                          <i class="fas fa-clipboard-list"></i>
+                          {{ justification.evaluation_primaire.titre }}
+                        </div>
+                      {% endif %}
+                      <div class="activite-note-change">
+                        <i class="fas fa-arrow-right"></i>
+                        {{ justification.ancienne_note|default:"-" }} → {{ justification.nouvelle_note }}
+                      </div>
+                      <div class="activite-professeur">
+                        <i class="fas fa-user-tie"></i>
+                        Par {{ justification.professeur.nom_complet }}
+                      </div>
+                      <div class="activite-date">
+                        <i class="fas fa-clock"></i>
+                        {{ justification.date_creation|date:"d/m/Y à H:i" }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="activite-empty">
+                  <i class="fas fa-inbox"></i>
+                  <p>Aucune justification de note en attente</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -233,81 +233,147 @@ class CompteUserController:
             if not conditions_acceptees:
                 field_errors['conditions_acceptees'] = "Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour vous connecter."
                 
-            # Si pas d'erreurs de validation, on tente l'authentification
+            # Si pas d'erreurs de validation, on vérifie d'abord si le compte existe et est actif
             if not field_errors:
                 logger.info(f"Tentative d'authentification - Username: {form_data['username']}, Password: {'*' * len(form_data['password'])}")
-                user = authenticate(request, username=form_data['username'], password=form_data['password'])
-                logger.info(f"Résultat authentification - User: {user}, Type: {type(user).__name__ if user else 'None'}")
-                if user is not None:
-                    # Vérifier si l'utilisateur a accepté les conditions
-                    if hasattr(user, 'conditions_acceptees') and not user.conditions_acceptees:
-                        # Si les conditions ne sont pas acceptées, les mettre à jour
-                        user.conditions_acceptees = True
-                        user.save(update_fields=['conditions_acceptees'])
-                        logger.info(f"Conditions acceptées mises à jour pour l'utilisateur: {type(user).__name__} - {getattr(user, 'email', getattr(user, 'username', 'N/A'))}")
-                    
-                    login(request, user)
-                    
-                    # Configuration de la session persistante "à vie"
-                    # Définir une expiration très longue (10 ans) pour que la session ne s'expire jamais
-                    # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
-                    from datetime import timedelta
-                    request.session.set_expiry(timedelta(days=365 * 10))  # 10 ans
-                    
-                    # Stocker le type d'utilisateur dans la session pour get_user()
-                    user_type_map = {
-                        'Etablissement': 'etablissement',
-                        'CompteUser': 'compte_user',
-                        'PersonnelAdministratif': 'personnel',
-                        'Professeur': 'professeur',
-                        'Eleve': 'eleve',
-                        'Parent': 'parent',
-                    }
-                    user_type = user_type_map.get(type(user).__name__, 'unknown')
-                    request.session['_auth_user_type'] = user_type
-                    logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
-                    
-                    # Sauvegarder l'année scolaire active dans la session pour les élèves
-                    if isinstance(user, Eleve) and user.etablissement:
-                        from ..utils.session_utils import get_session_active
-                        annee_scolaire_active = get_session_active(request, user.etablissement)
-                        if annee_scolaire_active:
-                            request.session['annee_scolaire_active_id'] = annee_scolaire_active.id
-                            logger.info(f"Année scolaire active sauvegardée pour l'élève: {annee_scolaire_active.id}")
-                    
-                    # Redirection vers l'URL next si présente, sinon vers le tableau de bord approprié
-                    if next_url:
-                        return None, redirect(next_url)
+                
+                # Vérifier si le compte existe et est actif avant l'authentification
+                account_inactive = False
+                from ..model.etablissement_model import Etablissement
+                from ..model.compte_user import CompteUser
+                from ..model.professeur_model import Professeur
+                from ..model.personnel_administratif_model import PersonnelAdministratif
+                from ..model.eleve_model import Eleve
+                from ..model.parent_model import Parent
+                
+                # Détecter le type d'utilisateur à partir du format de l'identifiant
+                username = form_data['username']
+                
+                # Vérifier dans chaque type de compte
+                if '@' in username or (len(username) > 0 and username[0].isalpha()):
+                    # Email-based (Etablissement ou CompteUser)
+                    try:
+                        etablissement = Etablissement.objects.get(username=username)
+                        if not etablissement.actif:
+                            account_inactive = True
+                    except Etablissement.DoesNotExist:
+                        try:
+                            user = CompteUser.objects.get(username=username)
+                            if not user.is_active:
+                                account_inactive = True
+                        except CompteUser.DoesNotExist:
+                            pass
+                elif len(username) >= 2 and username[:2].isalpha():
+                    # Format matricule (Parent, Eleve, Professeur)
+                    if username.startswith('LP') or username.startswith('BP'):
+                        # Parent
+                        try:
+                            parent = Parent.objects.get(matricule_parental=username)
+                            if not parent.is_active:
+                                account_inactive = True
+                        except Parent.DoesNotExist:
+                            pass
                     else:
-                        # Vérifier le type d'utilisateur et rediriger selon sa fonction
-                        if isinstance(user, PersonnelAdministratif):
-                            # Rediriger le personnel administratif vers le dashboard du directeur (même interface mais avec restrictions)
-                            return None, redirect('directeur:dashboard_directeur')
-                        elif isinstance(user, Etablissement):
-                            return None, redirect('directeur:dashboard_directeur')
-                        elif isinstance(user, Professeur):
-                            # Vérifier le type d'établissement pour rediriger vers le bon dashboard
-                            if user.etablissement.type_etablissement == 'primary':
-                                return None, redirect('enseignant_primaire:dashboard')
-                            else:
-                                return None, redirect('enseignant:dashboard_enseignant')
-                        elif isinstance(user, Eleve):
-                            return None, redirect('eleve:dashboard_eleve')
-                        elif isinstance(user, Parent):
-                            # Sauvegarder l'année scolaire active dans la session pour les parents
-                            if user.etablissement:
-                                from ..utils.session_utils import get_session_active
-                                annee_scolaire_active = get_session_active(request, user.etablissement)
-                                if annee_scolaire_active:
-                                    request.session['annee_scolaire_active_id'] = annee_scolaire_active.id
-                                    logger.info(f"Année scolaire active sauvegardée pour le parent: {annee_scolaire_active.id}")
-                            # Redirection vers le dashboard parent
-                            return None, redirect('school_admin:dashboard_parent')
-                        else:
-                            # Redirection basée sur la fonction de l'utilisateur (CompteUser)
-                            return None, CompteUserController._redirect_based_on_function(user.fonction)
+                        # Professeur ou Eleve
+                        try:
+                            professeur = Professeur.objects.get(username=username)
+                            if not professeur.actif:
+                                account_inactive = True
+                        except Professeur.DoesNotExist:
+                            try:
+                                eleve = Eleve.objects.get(username=username)
+                                if not eleve.actif:
+                                    account_inactive = True
+                            except Eleve.DoesNotExist:
+                                pass
                 else:
-                    field_errors['__all__'] = "Email ou mot de passe incorrect."
+                    # Personnel administratif ou autre
+                    try:
+                        personnel = PersonnelAdministratif.objects.get(username=username)
+                        if not personnel.actif:
+                            account_inactive = True
+                    except PersonnelAdministratif.DoesNotExist:
+                        pass
+                
+                if account_inactive:
+                    field_errors['__all__'] = "Ce compte a été désactivé. Veuillez contacter l'administration pour plus d'informations."
+                    logger.warning(f"Tentative de connexion avec un compte désactivé - Username: {form_data['username']}")
+                else:
+                    # Tenter l'authentification seulement si le compte est actif
+                    user = authenticate(request, username=form_data['username'], password=form_data['password'])
+                    logger.info(f"Résultat authentification - User: {user}, Type: {type(user).__name__ if user else 'None'}")
+                    if user is not None:
+                        # Vérifier si l'utilisateur a accepté les conditions
+                        if hasattr(user, 'conditions_acceptees') and not user.conditions_acceptees:
+                            # Si les conditions ne sont pas acceptées, les mettre à jour
+                            user.conditions_acceptees = True
+                            user.save(update_fields=['conditions_acceptees'])
+                            logger.info(f"Conditions acceptées mises à jour pour l'utilisateur: {type(user).__name__} - {getattr(user, 'email', getattr(user, 'username', 'N/A'))}")
+                        
+                        login(request, user)
+                        
+                        # Configuration de la session persistante "à vie"
+                        # Définir une expiration très longue (10 ans) pour que la session ne s'expire jamais
+                        # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
+                        from datetime import timedelta
+                        request.session.set_expiry(timedelta(days=365 * 10))  # 10 ans
+                        
+                        # Stocker le type d'utilisateur dans la session pour get_user()
+                        user_type_map = {
+                            'Etablissement': 'etablissement',
+                            'CompteUser': 'compte_user',
+                            'PersonnelAdministratif': 'personnel',
+                            'Professeur': 'professeur',
+                            'Eleve': 'eleve',
+                            'Parent': 'parent',
+                        }
+                        user_type = user_type_map.get(type(user).__name__, 'unknown')
+                        request.session['_auth_user_type'] = user_type
+                        logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
+                        
+                        # Sauvegarder l'année scolaire active dans la session pour les élèves
+                        if isinstance(user, Eleve) and user.etablissement:
+                            from ..utils.session_utils import get_session_active
+                            annee_scolaire_active = get_session_active(request, user.etablissement)
+                            if annee_scolaire_active:
+                                request.session['annee_scolaire_active_id'] = annee_scolaire_active.id
+                                logger.info(f"Année scolaire active sauvegardée pour l'élève: {annee_scolaire_active.id}")
+                        
+                        # Redirection vers l'URL next si présente, sinon vers le tableau de bord approprié
+                        if next_url:
+                            return None, redirect(next_url)
+                        else:
+                            # Vérifier le type d'utilisateur et rediriger selon sa fonction
+                            if isinstance(user, PersonnelAdministratif):
+                                # Rediriger le personnel administratif vers le dashboard du directeur (même interface mais avec restrictions)
+                                return None, redirect('directeur:dashboard_directeur')
+                            elif isinstance(user, Etablissement):
+                                return None, redirect('directeur:dashboard_directeur')
+                            elif isinstance(user, Professeur):
+                                # Vérifier le type d'établissement pour rediriger vers le bon dashboard
+                                if user.etablissement.type_etablissement == 'primary':
+                                    return None, redirect('enseignant_primaire:dashboard')
+                                else:
+                                    return None, redirect('enseignant:dashboard_enseignant')
+                            elif isinstance(user, Eleve):
+                                return None, redirect('eleve:dashboard_eleve')
+                            elif isinstance(user, Parent):
+                                # Sauvegarder l'année scolaire active dans la session pour les parents
+                                if user.etablissement:
+                                    from ..utils.session_utils import get_session_active
+                                    annee_scolaire_active = get_session_active(request, user.etablissement)
+                                    if annee_scolaire_active:
+                                        request.session['annee_scolaire_active_id'] = annee_scolaire_active.id
+                                        logger.info(f"Année scolaire active sauvegardée pour le parent: {annee_scolaire_active.id}")
+                                # Redirection vers le dashboard parent
+                                return None, redirect('school_admin:dashboard_parent')
+                            else:
+                                # Redirection basée sur la fonction de l'utilisateur (CompteUser)
+                                return None, CompteUserController._redirect_based_on_function(user.fonction)
+                    else:
+                        # Si l'authentification échoue, vérifier si c'est à cause d'un compte désactivé
+                        # (déjà vérifié plus haut, donc ici c'est un mauvais mot de passe)
+                        field_errors['__all__'] = "Email ou mot de passe incorrect."
                     
         return {
             'form_data': form_data,
@@ -407,3 +473,124 @@ class CompteUserController:
             logger.warning(f"Type d'utilisateur non reconnu: {type(user).__name__}, redirection vers dashboard par défaut")
             # Par défaut, rediriger vers le dashboard principal
             return 'school_admin:dashboard'
+    
+    @staticmethod
+    def auth_qr_login(request, token):
+        """
+        Authentifie un utilisateur (Parent ou Élève) via un token QR Code
+        """
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        from django.contrib.auth import login
+        from django.urls import reverse
+        from django.http import HttpResponseRedirect
+        
+        try:
+            logger.info(f"Tentative d'authentification QR Code avec token: {token[:10]}...")
+            
+            if not token or not token.strip():
+                logger.warning("Token QR Code vide ou invalide")
+                messages.error(request, "Token QR Code invalide.")
+                return HttpResponseRedirect(reverse('school_admin:connexion_compte_user'))
+            
+            token = token.strip()
+            
+            # Chercher l'élève avec ce token (sans filtrer par actif pour détecter les comptes désactivés)
+            eleve = None
+            try:
+                # Rechercher avec le token exact (sans filtre actif pour pouvoir détecter les comptes désactivés)
+                eleve = Eleve.objects.filter(qr_auth_token=token).first()
+                if eleve:
+                    logger.info(f"Élève trouvé: {eleve.nom_complet} (ID: {eleve.id}, Actif: {eleve.actif})")
+                else:
+                    logger.debug("Aucun élève trouvé avec ce token")
+            except Exception as e:
+                logger.error(f"Erreur lors de la recherche d'élève: {str(e)}", exc_info=True)
+            
+            # Chercher le parent avec ce token (sans filtrer par actif pour détecter les comptes désactivés)
+            parent = None
+            if not eleve:
+                try:
+                    # Rechercher avec le token exact (sans filtre actif pour pouvoir détecter les comptes désactivés)
+                    parent = Parent.objects.filter(qr_auth_token=token).first()
+                    if parent:
+                        logger.info(f"Parent trouvé: {parent.nom_complet} (ID: {parent.id}, Actif: {parent.is_active})")
+                    else:
+                        logger.debug("Aucun parent trouvé avec ce token")
+                except Exception as e:
+                    logger.error(f"Erreur lors de la recherche de parent: {str(e)}", exc_info=True)
+            
+            # Vérifier qu'un utilisateur a été trouvé
+            if not eleve and not parent:
+                logger.warning(f"Token QR Code invalide: {token[:10]}...")
+                messages.error(request, "Code QR invalide. Veuillez utiliser un code QR valide.")
+                return HttpResponseRedirect(reverse('school_admin:connexion_compte_user'))
+            
+            # Déterminer l'utilisateur à connecter
+            user_to_login = eleve if eleve else parent
+            
+            # Vérifier que l'utilisateur est actif
+            is_active = user_to_login.actif if hasattr(user_to_login, 'actif') else user_to_login.is_active
+            if not is_active:
+                logger.warning(f"Compte désactivé: {type(user_to_login).__name__} (ID: {user_to_login.id})")
+                messages.error(request, "Désolé, ce compte a été désactivé. Veuillez contacter l'administration.")
+                return HttpResponseRedirect(reverse('school_admin:connexion_compte_user'))
+            
+            # Vérifier que l'utilisateur a un établissement
+            if hasattr(user_to_login, 'etablissement') and not user_to_login.etablissement:
+                logger.warning(f"Aucun établissement associé: {type(user_to_login).__name__} (ID: {user_to_login.id})")
+                messages.error(request, "Aucun établissement associé à votre compte.")
+                return HttpResponseRedirect(reverse('school_admin:connexion_compte_user'))
+            
+            # Connecter l'utilisateur
+            logger.info(f"Tentative de connexion: {type(user_to_login).__name__} (ID: {user_to_login.id})")
+            
+            # Spécifier le backend d'authentification
+            from school_admin.authentication_backends import MultiUserBackend
+            backend_path = 'school_admin.authentication_backends.MultiUserBackend'
+            
+            # Marquer le type d'utilisateur pour le backend
+            if isinstance(user_to_login, Eleve):
+                user_to_login._auth_user_type = 'eleve'
+            elif isinstance(user_to_login, Parent):
+                user_to_login._auth_user_type = 'parent'
+            
+            # Sauvegarder le type dans la session pour le middleware
+            request.session['_auth_user_type'] = user_to_login._auth_user_type
+            
+            login(request, user_to_login, backend=backend_path)
+            logger.info(f"Utilisateur connecté via QR Code: {type(user_to_login).__name__} - {user_to_login}")
+            
+            # Accepter automatiquement les conditions d'utilisation lors de la connexion par QR
+            if hasattr(user_to_login, 'conditions_acceptees'):
+                if not user_to_login.conditions_acceptees:
+                    user_to_login.conditions_acceptees = True
+                    user_to_login.save(update_fields=['conditions_acceptees'])
+                    logger.info(f"Conditions d'utilisation acceptées pour: {type(user_to_login).__name__} (ID: {user_to_login.id})")
+            
+            # Déterminer la redirection selon le type d'utilisateur
+            if isinstance(user_to_login, Eleve):
+                messages.success(request, f"Bienvenue {user_to_login.nom_complet} !")
+                redirect_url = reverse('eleve:dashboard_eleve')
+                logger.info(f"Redirection vers dashboard élève: {redirect_url}")
+                return HttpResponseRedirect(redirect_url)
+            elif isinstance(user_to_login, Parent):
+                messages.success(request, f"Bienvenue {user_to_login.nom_complet} !")
+                redirect_url = reverse('school_admin:dashboard_parent')
+                logger.info(f"Redirection vers dashboard parent: {redirect_url}")
+                return HttpResponseRedirect(redirect_url)
+            else:
+                logger.warning(f"Type d'utilisateur non reconnu: {type(user_to_login).__name__}")
+                messages.success(request, "Connexion réussie !")
+                redirect_url = reverse('school_admin:connexion_compte_user')
+                return HttpResponseRedirect(redirect_url)
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la connexion par QR Code: {str(e)}", exc_info=True)
+            messages.error(request, f"Une erreur est survenue lors de la connexion: {str(e)}. Veuillez réessayer.")
+            try:
+                redirect_url = reverse('school_admin:connexion_compte_user')
+                return HttpResponseRedirect(redirect_url)
+            except Exception as reverse_error:
+                logger.error(f"Erreur lors de la redirection: {str(reverse_error)}", exc_info=True)
+                return redirect('/connexion/')

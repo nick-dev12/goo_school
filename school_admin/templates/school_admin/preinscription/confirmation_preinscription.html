@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirmation de préinscription - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .confirmation-container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 50px 40px;
+            text-align: center;
+        }
+        
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: scaleIn 0.5s ease-out;
+        }
+        
+        .success-icon i {
+            font-size: 3rem;
+            color: white;
+        }
+        
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        h1 {
+            font-size: 2rem;
+            color: #1f2937;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #6b7280;
+            margin-bottom: 40px;
+        }
+        
+        .info-card {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: left;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .info-card h3 {
+            font-size: 1.1rem;
+            color: #1f2937;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-card h3 i {
+            color: #3b82f6;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #4b5563;
+        }
+        
+        .info-value {
+            color: #1f2937;
+            text-align: right;
+        }
+        
+        .warning-box {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .warning-box h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .warning-box h3 i {
+            color: #f59e0b;
+        }
+        
+        .warning-box p {
+            color: #78350f;
+            line-height: 1.6;
+        }
+        
+        .contact-info {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(29, 78, 216, 0.1) 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .contact-info h3 {
+            color: #1e40af;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .contact-info p {
+            color: #1e3a8a;
+            margin: 5px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .confirmation-container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .success-icon {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .success-icon i {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="confirmation-container">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        
+        <h1>Préinscription soumise avec succès !</h1>
+        <p class="subtitle">Votre demande de préinscription a été enregistrée. L'établissement vous contactera prochainement.</p>
+        
+        <div class="info-card">
+            <h3>
+                <i class="fas fa-user-graduate"></i>
+                Informations de l'élève
+            </h3>
+            <div class="info-item">
+                <span class="info-label">Nom complet :</span>
+                <span class="info-value">{{ preinscription.prenom }} {{ preinscription.nom }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Date de naissance :</span>
+                <span class="info-value">{{ preinscription.date_naissance|date:"d/m/Y" }}</span>
+            </div>
+            {% if preinscription.classe_souhaitee %}
+            <div class="info-item">
+                <span class="info-label">Classe souhaitée :</span>
+                <span class="info-value">{{ preinscription.classe_souhaitee.nom }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">Type d'inscription :</span>
+                <span class="info-value">{{ preinscription.get_statut_inscription_display }}</span>
+            </div>
+        </div>
+        
+        <div class="warning-box">
+            <h3>
+                <i class="fas fa-exclamation-triangle"></i>
+                Prochaines étapes
+            </h3>
+            <p>
+                <strong>Important :</strong> Vous devez vous présenter à l'établissement <strong>{{ etablissement.nom }}</strong> 
+                avec les documents suivants pour finaliser l'inscription :
+            </p>
+            <ul style="margin: 15px 0 0 20px; color: #78350f;">
+                <li>Acte de naissance ou extrait d'acte de naissance</li>
+                <li>Carte nationale d'identité ou passeport</li>
+                <li>Bulletin de l'année précédente (si réinscription)</li>
+                <li>Certificat médical</li>
+                <li>Photo d'identité récente</li>
+                <li>Justificatif de domicile</li>
+            </ul>
+        </div>
+        
+        <div class="contact-info">
+            <h3>
+                <i class="fas fa-phone-alt"></i>
+                Contact de l'établissement
+            </h3>
+            <p><strong>{{ etablissement.nom }}</strong></p>
+            {% if etablissement.telephone %}
+            <p><i class="fas fa-phone"></i> {{ etablissement.telephone }}</p>
+            {% endif %}
+            {% if etablissement.email %}
+            <p><i class="fas fa-envelope"></i> {{ etablissement.email }}</p>
+            {% endif %}
+            {% if etablissement.adresse %}
+            <p><i class="fas fa-map-marker-alt"></i> {{ etablissement.adresse }}</p>
+            {% endif %}
+        </div>
+        
+        <p style="margin-top: 30px; color: #6b7280; font-size: 0.9rem;">
+            <i class="fas fa-info-circle"></i>
+            Vous recevrez un appel ou un message de l'établissement pour confirmer votre rendez-vous.
+        </p>
+    </div>
+</body>
+</html>
+

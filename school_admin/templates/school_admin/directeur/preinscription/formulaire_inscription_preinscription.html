@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Validation de la préinscription - {{ preinscription.nom }} {{ preinscription.prenom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
+    <style>
+        .country-search-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        
+        .country-search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        #nationalite_search {
+            width: 100%;
+            padding-right: 45px;
+        }
+        
+        .country-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+            margin-top: -1px;
+        }
+        
+        .country-dropdown-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .country-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .country-dropdown-item:hover,
+        .country-dropdown-item.highlighted {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .country-dropdown-item.no-results {
+            padding: 15px;
+            text-align: center;
+            color: var(--gray-500);
+            cursor: default;
+            font-style: italic;
+        }
+        
+        .country-dropdown-item.no-results:hover {
+            background-color: white;
+        }
+        
+        .country-select-hidden {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .preinscription-banner {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white !important;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .preinscription-banner i {
+            font-size: 2rem;
+            color: white !important;
+        }
+        
+        .preinscription-banner-content {
+            color: white !important;
+        }
+        
+        .preinscription-banner-content h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+            color: white !important;
+            font-weight: 600;
+        }
+        
+        .preinscription-banner-content p {
+            margin: 0;
+            opacity: 0.95;
+            font-size: 0.9375rem;
+            color: white !important;
+        }
+        
+        .field-readonly {
+            background-color: var(--gray-50) !important;
+            cursor: not-allowed;
+        }
+        
+        .field-readonly:focus {
+            border-color: var(--gray-300) !important;
+        }
+        
+        /* S'assurer que le header et le banner sont dans le conteneur */
+        .main-content-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: var(--spacing-md);
+        }
+        
+        .page-header-modern {
+            max-width: 100%;
+        }
+        
+        .preinscription-banner {
+            max-width: 100%;
+        }
+        
+        .form-container-modern {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Page Header -->
+        <div class="page-header-modern">
+            <div class="header-background-gradient"></div>
+            <div class="header-content">
+                <div class="header-icon-circle">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="header-text">
+                    <h1 class="page-title-modern">Validation de la préinscription</h1>
+                    <p class="page-subtitle-modern">{{ preinscription.nom }} {{ preinscription.prenom }}</p>
+                </div>
+                <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-back-modern">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour à la liste</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages Django -->
+        {% include 'school_admin/partials/messages.html' %}
+
+        <!-- Banner d'information -->
+        <div class="preinscription-banner">
+            <i class="fas fa-info-circle"></i>
+            <div class="preinscription-banner-content">
+                <h3>Formulaire d'inscription pré-rempli</h3>
+                <p>Les informations ont été pré-remplies à partir de la préinscription. Vérifiez les données et sélectionnez les documents fournis avant de valider.</p>
+            </div>
+        </div>
+
+        <!-- Formulaire d'inscription -->
+        <div class="form-container-modern">
+            <form id="inscriptionForm" method="POST" action="{% url 'directeur:valider_preinscription' preinscription.id %}">
+                {% csrf_token %}
+                
+                <!-- Section 1: Informations Personnelles -->
+                <div class="form-section-modern" data-section="1">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Informations Personnelles</h2>
+                            <p class="section-subtitle-modern">Identité et coordonnées de l'élève</p>
+                        </div>
+                        <div class="section-number">01</div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="nom">
+                                <i class="fas fa-id-card"></i>
+                                Nom de famille <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="nom" 
+                                   name="nom" 
+                                   value="{{ form_data.nom }}"
+                                   readonly>
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="prenom">
+                                <i class="fas fa-user"></i>
+                                Prénom <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="prenom" 
+                                   name="prenom" 
+                                   value="{{ form_data.prenom }}"
+                                   readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="date_naissance">
+                                <i class="fas fa-calendar-alt"></i>
+                                Date de naissance <span class="required-star">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="input-modern field-readonly" 
+                                   id="date_naissance" 
+                                   name="date_naissance" 
+                                   value="{{ form_data.date_naissance }}"
+                                   readonly>
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="lieu_naissance">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Lieu de naissance <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="lieu_naissance" 
+                                   name="lieu_naissance" 
+                                   value="{{ form_data.lieu_naissance }}"
+                                   readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="sexe">
+                                <i class="fas fa-venus-mars"></i>
+                                Sexe <span class="required-star">*</span>
+                            </label>
+                            <select class="input-modern field-readonly" id="sexe" name="sexe" disabled>
+                                <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
+                                <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
+                            </select>
+                            <input type="hidden" name="sexe" value="{{ form_data.sexe }}">
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="nationalite">
+                                <i class="fas fa-flag"></i>
+                                Nationalité <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="nationalite" 
+                                   name="nationalite" 
+                                   value="{{ form_data.nationalite }}"
+                                   readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern full-width">
+                        <label class="label-modern" for="adresse">
+                            <i class="fas fa-home"></i>
+                            Adresse de résidence <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <textarea class="input-modern textarea-modern field-readonly" 
+                                  id="adresse" 
+                                  name="adresse" 
+                                  rows="3"
+                                  readonly>{{ form_data.adresse }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Section 2: Informations Scolaires -->
+                <div class="form-section-modern" data-section="2">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Informations Scolaires</h2>
+                            <p class="section-subtitle-modern">Classe et date d'inscription</p>
+                        </div>
+                        <div class="section-number">02</div>
+                    </div>
+
+                    <div class="info-box-modern">
+                        <i class="fas fa-info-circle"></i>
+                        <p>La classe a été sélectionnée par le parent lors de la préinscription. Le statut d'inscription est automatiquement défini sur "Nouvelle inscription".</p>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern">
+                                <i class="fas fa-chalkboard"></i>
+                                Classe d'affectation
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   value="{% if preinscription.classe_souhaitee %}{{ preinscription.classe_souhaitee.nom }} ({{ preinscription.classe_souhaitee.get_niveau_display }}){% else %}Non spécifiée{% endif %}"
+                                   readonly>
+                            <input type="hidden" name="classe" value="{% if preinscription.classe_souhaitee %}{{ preinscription.classe_souhaitee.id }}{% endif %}">
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="date_inscription">
+                                <i class="fas fa-calendar-check"></i>
+                                Date d'inscription <span class="required-star">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="input-modern {% if field_errors.date_inscription %}input-error{% endif %}" 
+                                   id="date_inscription" 
+                                   name="date_inscription" 
+                                   value="{{ "now"|date:"Y-m-d" }}"
+                                   required>
+                            {% if field_errors.date_inscription %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.date_inscription }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="label-modern">
+                            <i class="fas fa-user-check"></i>
+                            Type d'inscription
+                        </label>
+                        <input type="text" 
+                               class="input-modern field-readonly" 
+                               value="Nouvelle inscription"
+                               readonly>
+                        <input type="hidden" name="statut_inscription" value="nouvelle">
+                    </div>
+                </div>
+
+                <!-- Section 3: Informations Parent/Tuteur -->
+                <div class="form-section-modern" data-section="3">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Parent / Tuteur</h2>
+                            <p class="section-subtitle-modern">Informations de la personne responsable</p>
+                        </div>
+                        <div class="section-number">03</div>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_nom">
+                                <i class="fas fa-id-card"></i>
+                                Nom du parent/tuteur <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="parent_nom" 
+                                   name="parent_nom" 
+                                   value="{{ form_data.parent_nom }}"
+                                   readonly>
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_prenom">
+                                <i class="fas fa-user"></i>
+                                Prénom du parent/tuteur <span class="required-star">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="parent_prenom" 
+                                   name="parent_prenom" 
+                                   value="{{ form_data.parent_prenom }}"
+                                   readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="parent_telephone">
+                            <i class="fas fa-phone"></i>
+                            Téléphone du parent/tuteur <span class="required-star">*</span>
+                        </label>
+                        <input type="tel" 
+                               class="input-modern field-readonly" 
+                               id="parent_telephone" 
+                               name="parent_telephone" 
+                               value="{{ form_data.parent_telephone }}"
+                               readonly>
+                    </div>
+
+                    <div class="form-grid-modern">
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_lien">
+                                <i class="fas fa-link"></i>
+                                Lien avec l'élève <span class="required-star">*</span>
+                            </label>
+                            <select class="input-modern field-readonly" id="parent_lien" name="parent_lien" disabled>
+                                <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>Père</option>
+                                <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>Mère</option>
+                                <option value="grand_parent" {% if form_data.parent_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
+                                <option value="oncle_tante" {% if form_data.parent_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
+                                <option value="frere_soeur" {% if form_data.parent_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
+                                <option value="autre_famille" {% if form_data.parent_lien == 'autre_famille' %}selected{% endif %}>Autre membre de la famille</option>
+                                <option value="tuteur_legal" {% if form_data.parent_lien == 'tuteur_legal' %}selected{% endif %}>Tuteur légal</option>
+                                <option value="autre" {% if form_data.parent_lien == 'autre' %}selected{% endif %}>Autre</option>
+                            </select>
+                            <input type="hidden" name="parent_lien" value="{{ form_data.parent_lien }}">
+                        </div>
+                        
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="parent_profession">
+                                <i class="fas fa-briefcase"></i>
+                                Profession <span class="optional-badge">Optionnel</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-modern field-readonly" 
+                                   id="parent_profession" 
+                                   name="parent_profession" 
+                                   value="{{ form_data.parent_profession }}"
+                                   readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-group-modern full-width">
+                        <label class="label-modern" for="parent_adresse">
+                            <i class="fas fa-home"></i>
+                            Adresse du parent/tuteur <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <textarea class="input-modern textarea-modern field-readonly" 
+                                  id="parent_adresse" 
+                                  name="parent_adresse" 
+                                  rows="3"
+                                  readonly>{{ form_data.parent_adresse }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Section 4: Documents -->
+                <div class="form-section-modern" data-section="4">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Documents Fournis</h2>
+                            <p class="section-subtitle-modern">Cochez les documents fournis par l'élève</p>
+                        </div>
+                        <div class="section-number">04</div>
+                    </div>
+
+                    <div class="documents-grid-modern">
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-id-badge"></i>
+                                Documents d'identité
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_acte_naissance" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-file-alt"></i>
+                                        <span>Acte de naissance</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_cni" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>Carte nationale d'identité</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_passeport" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-passport"></i>
+                                        <span>Passeport</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-graduation-cap"></i>
+                                Documents scolaires
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_bulletin_precedent" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-file-signature"></i>
+                                        <span>Bulletin de l'année précédente</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_certificat_scolarite" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-certificate"></i>
+                                        <span>Certificat de scolarité</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_livret_scolaire" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-book"></i>
+                                        <span>Livret scolaire</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-heartbeat"></i>
+                                Documents médicaux
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_certificat_medical" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-user-md"></i>
+                                        <span>Certificat médical</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_carnet_vaccination" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-syringe"></i>
+                                        <span>Carnet de vaccination</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_assurance_maladie" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>Attestation d'assurance maladie</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="document-category-modern">
+                            <h3 class="category-title-modern">
+                                <i class="fas fa-folder-open"></i>
+                                Documents administratifs
+                            </h3>
+                            <div class="checkbox-grid-modern">
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_justificatif_domicile" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-home"></i>
+                                        <span>Justificatif de domicile</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_photo_identite" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-image"></i>
+                                        <span>Photo d'identité</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card-modern">
+                                    <input type="checkbox" name="document_autorisation_parentale" value="true">
+                                    <div class="checkbox-content-modern">
+                                        <i class="fas fa-handshake"></i>
+                                        <span>Autorisation parentale</span>
+                                    </div>
+                                    <div class="checkbox-check-modern">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commentaires -->
+                <div class="form-section-modern" data-section="5">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-comment-alt"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">Commentaires</h2>
+                            <p class="section-subtitle-modern">Notes ou commentaires additionnels (optionnel)</p>
+                        </div>
+                        <div class="section-number">05</div>
+                    </div>
+
+                    <div class="form-group-modern full-width">
+                        <label class="label-modern" for="commentaires_etablissement">
+                            <i class="fas fa-sticky-note"></i>
+                            Commentaires de l'établissement <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <textarea class="input-modern textarea-modern" 
+                                  id="commentaires_etablissement" 
+                                  name="commentaires_etablissement" 
+                                  rows="4"
+                                  placeholder="Ajoutez des commentaires ou notes sur cette inscription..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Actions du formulaire -->
+                <div class="form-actions-modern">
+                    <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-reset-modern" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Annuler</span>
+                    </a>
+                    <button type="submit" class="btn-submit-modern">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Valider et inscrire l'élève</span>
+                        <div class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector("#inscriptionForm");
+            
+            // Gestion de la soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                const submitBtn = form.querySelector('.btn-submit-modern');
+                const loading = submitBtn.querySelector('.btn-loading');
+                const btnText = submitBtn.querySelector('span');
+                
+                // Afficher le loader
+                loading.style.display = 'inline-block';
+                btnText.style.display = 'none';
+                submitBtn.disabled = true;
+            });
+        });
+    </script>
+</body>
+</html>
+

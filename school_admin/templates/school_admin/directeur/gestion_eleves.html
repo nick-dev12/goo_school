@@ -128,6 +128,26 @@
                     </div>
                 </a>
                 {% endif %}
+                {% if is_directeur %}
+                <a href="{% url 'directeur:gerer_liens_preinscription' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Préinscriptions</h3>
+                        <p>Gérer les liens de préinscription</p>
+                    </div>
+                </a>
+                <a href="{% url 'directeur:liste_preinscriptions' %}" class="nav-link-card">
+                    <div class="nav-card-icon neo-cyan">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>Liste des préinscriptions</h3>
+                        <p>Voir et valider les préinscriptions</p>
+                    </div>
+                </a>
+                {% endif %}
               
             </div>
         </div>

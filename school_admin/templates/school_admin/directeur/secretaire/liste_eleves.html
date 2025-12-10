@@ -434,21 +434,29 @@
                       </div>
                       
                       {% for eleve_data in classe_data.eleves %}
-                        <div class="list-row" 
+                        <div class="list-row {% if not eleve_data.eleve.actif %}eleve-desactive{% endif %}" 
                              data-nom="{{ eleve_data.eleve.nom|lower }}"
                              data-prenom="{{ eleve_data.eleve.prenom|lower }}"
                              data-email="{{ eleve_data.eleve.email|lower|default:'' }}"
                              data-matricule="{{ eleve_data.eleve.matricule_eleve|default:eleve_data.eleve.numero_eleve|lower }}"
                              data-statut="{{ eleve_data.eleve.statut }}"
                              data-sexe="{{ eleve_data.eleve.sexe }}"
-                             data-absences="{{ eleve_data.nombre_absences }}">
+                             data-absences="{{ eleve_data.nombre_absences }}"
+                             data-actif="{{ eleve_data.eleve.actif|yesno:'true,false' }}">
                           <div class="list-cell student-cell">
                             <div class="student-avatar-small">
                               <i class="fas fa-user"></i>
                             </div>
                             <div class="student-info-compact">
                               <h4 class="student-name">
-                                <span class="student-name-full">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</span>
+                                <span class="student-name-full">
+                                  {{ eleve_data.eleve.nom_complet }}
+                                  {% if not eleve_data.eleve.actif %}
+                                    <span class="badge-desactive" title="Compte désactivé">
+                                      <i class="fas fa-user-slash"></i> Désactivé
+                                    </span>
+                                  {% endif %}
+                                </span>
                                 <span class="student-name-mobile">{{ eleve_data.eleve.nom|premier_nom }} {{ eleve_data.eleve.prenom|premier_prenom }}</span>
                               </h4>
                             </div>
@@ -486,7 +494,7 @@
                               <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-small btn-view" title="Voir détails">
                                 <i class="fas fa-eye"></i>
                               </a>
-                              <button class="btn-action-small btn-sanction" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
+                              <button class="btn-action-small btn-sanction" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet }}', {{ classe_data.classe.id }})">
                                 <i class="fas fa-gavel"></i>
                               </button>
                             </div>

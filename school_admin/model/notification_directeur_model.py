@@ -14,6 +14,7 @@ class NotificationDirecteur(models.Model):
     TYPE_NOTIFICATION_CHOICES = [
         ("releve", "Relevé de notes soumis"),
         ("sanction", "Sanction disciplinaire"),
+        ("justification_note", "Justification de note"),
         ("information", "Information générale"),
     ]
 

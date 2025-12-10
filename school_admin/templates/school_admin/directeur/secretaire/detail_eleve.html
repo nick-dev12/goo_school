@@ -281,6 +281,13 @@
               <i class="fas fa-exchange-alt"></i>
               Transférer
             </button>
+            <a href="{% url 'secretaire:desactiver_compte_eleve' eleve.id %}" 
+               class="btn-action {% if eleve.actif %}btn-deactivate{% else %}btn-activate{% endif %}"
+               onclick="return confirm('Êtes-vous sûr de vouloir {% if eleve.actif %}désactiver{% else %}réactiver{% endif %} le compte de {{ eleve.nom_complet }} ?');"
+               style="{% if eleve.actif %}background: linear-gradient(135deg, #ef4444, #dc2626);{% else %}background: linear-gradient(135deg, #10b981, #059669);{% endif %} color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; transition: all 0.3s; border: none; cursor: pointer;">
+              <i class="fas {% if eleve.actif %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+              {% if eleve.actif %}Désactiver le compte{% else %}Réactiver le compte{% endif %}
+            </a>
           </div>
         </div>
 
@@ -928,7 +935,7 @@
                               <td><span class="rank-circle">1</span></td>
                               <td>
                                 <div class="student-info-modal">
-                                  <div class="student-avatar-modal">${data.eleve.prenom.charAt(0).toUpperCase()}${data.eleve.nom.charAt(0).toUpperCase()}</div>
+                                  <div class="student-avatar-modal">${data.eleve.nom.charAt(0).toUpperCase()}${data.eleve.prenom.charAt(0).toUpperCase()}</div>
                                   <span class="student-name-modal">${data.eleve.nom_complet}</span>
                                 </div>
                               </td>

@@ -29,8 +29,7 @@
     />
   </head>
   <body>
-    {% if user.is_authenticated %}
-  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="container">
       {% include 'school_admin/partials/messages.html' %}
@@ -168,7 +167,7 @@
                               </div>
                               <div class="student-info-compact">
                                 <h4 class="student-name">
-                                    <span class="student-name-full">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</span>
+                                    <span class="student-name-full">{{ eleve_data.eleve.nom_complet }}</span>
                                     <span class="student-name-mobile">{{ eleve_data.eleve.nom|premier_nom }} {{ eleve_data.eleve.prenom|premier_prenom }}</span>
                                 </h4>
                                 <p class="student-email">Matricule : {{ eleve_data.eleve.matricule_eleve|default:"Non défini" }}</p>

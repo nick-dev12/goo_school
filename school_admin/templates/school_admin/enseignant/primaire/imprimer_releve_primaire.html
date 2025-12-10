@@ -79,8 +79,7 @@
                 <thead>
                     <tr>
                         <th class="col-rang">Rang</th>
-                        <th class="col-nom">Nom</th>
-                        <th class="col-prenom">Prénom</th>
+                        <th class="col-nom-complet">Nom complet</th>
                         {% for matiere in matieres %}
                             <th class="col-matiere" title="{{ matiere.nom }}">
                                 {{ matiere.code }}
@@ -92,8 +91,7 @@
                     {% for resultat in resultats %}
                         <tr>
                             <td class="col-rang">{{ forloop.counter }}</td>
-                            <td class="col-nom">{{ resultat.eleve.nom|upper }}</td>
-                            <td class="col-prenom">{{ resultat.eleve.prenom }}</td>
+                            <td class="col-nom-complet">{{ resultat.eleve.nom_complet }}</td>
                             
                             {% for matiere in matieres %}
                                 <td class="col-matiere">

@@ -15,8 +15,10 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.1"
+      href="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"
     />
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   </head>
   <body>
     <!-- Actions d'impression et navigation -->
@@ -55,18 +57,28 @@
         </div>
         <div class="student-details">
           <div class="detail-row">
+           <div class="detail-item">
             <span class="label">Classe:</span>
             <span class="value">{{ eleve_info.classe }}</span>
+           </div>
+           <div class="detail-item">
             <span class="label">Matric:</span>
             <span class="value">{{ eleve.matricule_eleve|default:eleve_info.numero_eleve }}</span>
+           </div>
+           <div class="detail-item">
             <span class="label">Statut:</span>
             <span class="value">{{ eleve.statut|upper }}</span>
+           </div>
           </div>
           <div class="detail-row">
+           <div class="detail-item">
             <span class="label">Date:</span>
             <span class="value">{{ "now"|date:"d/m/Y H:i:s" }}</span>
+           </div>
+           <div class="detail-item">
             <span class="label">Enregistré par:</span>
             <span class="value">SECRÉTAIRE</span>
+           </div>
           </div>
         </div>
       </div>
@@ -75,31 +87,31 @@
       <div class="student-details-section">
         <div class="section-title">Informations Personnelles</div>
         <div class="details-grid">
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Date de naissance:</span>
             <span class="value">{{ eleve_info.date_naissance|date:"d/m/Y" }}</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Lieu de naissance:</span>
             <span class="value">{{ eleve_info.lieu_naissance }}</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Sexe:</span>
             <span class="value">{{ eleve_info.sexe }}</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Nationalité:</span>
             <span class="value">{{ eleve_info.nationalite }}</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Adresse:</span>
             <span class="value">{{ eleve_info.adresse }}</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Téléphone:</span>
             <span class="value">{{ eleve_info.telephone|default:"Non renseigné" }}</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item1">
             <span class="label">Email:</span>
             <span class="value">{{ eleve_info.email|default:"Non renseigné" }}</span>
           </div>
@@ -120,17 +132,33 @@
             <i class="fas fa-user-graduate"></i>
             ESPACE ÉLÈVE
           </div>
-          <div class="login-item">
-            <span class="login-label">Identifiant de connexion élève:</span>
-            <span class="login-value">{{ identifiants_info.matricule_eleve }}</span>
-          </div>
-          <div class="login-item">
-            <span class="login-label">Mot de passe:</span>
-            <span class="login-value password-value">{{ identifiants_info.mot_de_passe_eleve }}</span>
-          </div>
-          <div class="login-warning">
-            <i class="fas fa-exclamation-triangle"></i>
-            <strong>Important :</strong> L'élève doit modifier ce mot de passe lors de sa première connexion
+          <div class="login-content-wrapper">
+            {% if identifiants_info.qr_auth_url_eleve %}
+            <div class="qr-code-section">
+              <div class="qr-code-label">
+                <i class="fas fa-qrcode"></i>
+                <span>QR Code</span>
+              </div>
+              <div class="qr-code-container" id="qrCodeEleve"></div>
+              <div class="qr-code-instruction">
+                Scannez pour vous connecter
+              </div>
+            </div>
+            {% endif %}
+            <div class="login-credentials">
+              <div class="login-item">
+                <span class="login-label">Identifiant:</span>
+                <span class="login-value">{{ identifiants_info.matricule_eleve }}</span>
+              </div>
+              <div class="login-item">
+                <span class="login-label">Mot de passe:</span>
+                <span class="login-value password-value">{{ identifiants_info.mot_de_passe_eleve }}</span>
+              </div>
+              <div class="login-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Important :</strong> Modifier le mot de passe lors de la première connexion
+              </div>
+            </div>
           </div>
         </div>
         
@@ -140,20 +168,36 @@
             <i class="fas fa-users"></i>
             ESPACE PARENT ({{ identifiants_info.type_parent }})
           </div>
-          <div class="parent-name">
-            <strong>Nom :</strong> {{ identifiants_info.nom_parent }}
-          </div>
-          <div class="login-item">
-            <span class="login-label">Identifiant de connexion parent:</span>
-            <span class="login-value">{{ identifiants_info.matricule_parent }}</span>
-          </div>
-          <div class="login-item">
-            <span class="login-label">Mot de passe:</span>
-            <span class="login-value password-value">{{ identifiants_info.mot_de_passe_parent }}</span>
-          </div>
-          <div class="login-warning">
-            <i class="fas fa-exclamation-triangle"></i>
-            <strong>Important :</strong> Le parent doit modifier ce mot de passe lors de sa première connexion
+          <div class="login-content-wrapper">
+            {% if identifiants_info.qr_auth_url_parent %}
+            <div class="qr-code-section">
+              <div class="qr-code-label">
+                <i class="fas fa-qrcode"></i>
+                <span>QR Code</span>
+              </div>
+              <div class="qr-code-container" id="qrCodeParent"></div>
+              <div class="qr-code-instruction">
+                Scannez pour vous connecter
+              </div>
+            </div>
+            {% endif %}
+            <div class="login-credentials">
+              <div class="parent-name">
+                <strong>Nom :</strong> {{ identifiants_info.nom_parent }}
+              </div>
+              <div class="login-item">
+                <span class="login-label">Identifiant:</span>
+                <span class="login-value">{{ identifiants_info.matricule_parent }}</span>
+              </div>
+              <div class="login-item">
+                <span class="login-label">Mot de passe:</span>
+                <span class="login-value password-value">{{ identifiants_info.mot_de_passe_parent }}</span>
+              </div>
+              <div class="login-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Important :</strong> Modifier le mot de passe lors de la première connexion
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -164,6 +208,41 @@
         <div class="footer-date">Émis le {{ "now"|date:"d/m/Y à H:i" }}</div>
       </div>
     </div>
+
+    <script>
+      // Générer les QR codes au chargement de la page
+      document.addEventListener('DOMContentLoaded', function() {
+        {% if identifiants_info.qr_auth_url_eleve %}
+        // QR Code pour l'élève
+        const qrEleve = document.getElementById('qrCodeEleve');
+        if (qrEleve && typeof QRCode !== 'undefined') {
+          new QRCode(qrEleve, {
+            text: '{{ identifiants_info.qr_auth_url_eleve }}',
+            width: 120,
+            height: 120,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+        {% endif %}
+        
+        {% if identifiants_info.qr_auth_url_parent %}
+        // QR Code pour le parent
+        const qrParent = document.getElementById('qrCodeParent');
+        if (qrParent && typeof QRCode !== 'undefined') {
+          new QRCode(qrParent, {
+            text: '{{ identifiants_info.qr_auth_url_parent }}',
+            width: 120,
+            height: 120,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+        {% endif %}
+      });
+    </script>
 
   </body>
 </html>

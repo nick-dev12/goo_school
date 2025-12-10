@@ -97,6 +97,24 @@ class Parent(AbstractUser):
     password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
     password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
     
+    # Authentification par QR Code
+    qr_auth_token = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Token d'authentification QR",
+        help_text="Token unique pour l'authentification par QR Code"
+    )
+    
+    qr_auth_token_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de génération du token QR",
+        help_text="Date de génération du token d'authentification QR"
+    )
+    
     # Acceptation des conditions d'utilisation
     conditions_acceptees = models.BooleanField(
         default=False,
@@ -136,8 +154,17 @@ class Parent(AbstractUser):
     
     @property
     def nom_complet(self):
-        """Retourne le nom complet du parent"""
-        return f"{self.prenom} {self.nom}"
+        """Retourne le nom complet du parent au format 'NOM Prénom'"""
+        nom = self.nom.upper() if self.nom else ''
+        prenom = self.prenom[0].upper() + self.prenom[1:].lower() if self.prenom and len(self.prenom) > 1 else (self.prenom.upper() if self.prenom else '')
+        if nom and prenom:
+            return f"{nom} {prenom}"
+        elif nom:
+            return nom
+        elif prenom:
+            return prenom
+        else:
+            return ''
     
     @property
     def nombre_enfants(self):
@@ -197,4 +224,53 @@ class Parent(AbstractUser):
         """
         import random
         return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    @staticmethod
+    def generer_token_qr_auth():
+        """
+        Génère un token unique et sécurisé pour l'authentification par QR Code
+        """
+        import secrets
+        return secrets.token_urlsafe(32)
+    
+    def generer_et_sauvegarder_token_qr(self):
+        """
+        Génère et sauvegarde un nouveau token QR d'authentification
+        """
+        self.qr_auth_token = self.generer_token_qr_auth()
+        self.qr_auth_token_generated_at = timezone.now()
+        self.save(update_fields=['qr_auth_token', 'qr_auth_token_generated_at'])
+    
+    def get_qr_auth_url(self, request=None):
+        """
+        Retourne l'URL d'authentification par QR Code
+        """
+        from django.urls import reverse
+        if request:
+            return request.build_absolute_uri(
+                reverse('school_admin:auth_qr_login', kwargs={'token': self.qr_auth_token})
+            )
+        return f"/auth/qr/{self.qr_auth_token}/"
+    
+    def save(self, *args, **kwargs):
+        """
+        Surcharge de la méthode save pour générer automatiquement le token QR d'authentification
+        et formater les noms et prénoms
+        """
+        # Formater automatiquement les noms et prénoms
+        if self.nom:
+            self.nom = self.nom.strip().upper()
+        if self.prenom:
+            prenom_stripped = self.prenom.strip()
+            if len(prenom_stripped) > 1:
+                self.prenom = prenom_stripped[0].upper() + prenom_stripped[1:].lower()
+            else:
+                self.prenom = prenom_stripped.upper()
+        
+        # Générer le token QR d'authentification si nécessaire
+        if not self.qr_auth_token:
+            self.qr_auth_token = self.generer_token_qr_auth()
+            self.qr_auth_token_generated_at = timezone.now()
+        
+        super().save(*args, **kwargs)
 

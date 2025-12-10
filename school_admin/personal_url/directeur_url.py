@@ -1,6 +1,7 @@
 from django.urls import path
 from ..personal_views.directeur_view import *
 from ..controllers.examen_controller import *
+from ..controllers.preinscription_controller import PreinscriptionController
 
 app_name = 'directeur'  # ← Changement du namespace pour éviter le conflit
 
@@ -12,8 +13,17 @@ urlpatterns = [
     path('gestion-eleves/', gestion_eleves, name='gestion_eleves'),
     path('gestion-eleves/reinscription/', liste_reinscription_eleves, name='liste_reinscription'),
     path('gestion-eleves/reinscription/<int:eleve_id>/', reinscription_eleve, name='reinscription_eleve'),
+    
+    # Préinscriptions
+    path('preinscription/liens/', PreinscriptionController.gerer_liens_preinscription, name='gerer_liens_preinscription'),
+    path('preinscription/liens/toggle/', PreinscriptionController.toggle_lien_actif, name='toggle_lien_preinscription'),
+    path('preinscription/liste/', PreinscriptionController.liste_preinscriptions, name='liste_preinscriptions'),
+    path('preinscription/<int:preinscription_id>/', PreinscriptionController.detail_preinscription, name='detail_preinscription'),
+    path('preinscription/<int:preinscription_id>/valider/', PreinscriptionController.valider_preinscription, name='valider_preinscription'),
+    path('preinscription/<int:preinscription_id>/rejeter/', PreinscriptionController.rejeter_preinscription, name='rejeter_preinscription'),
     path('notes-et-resultats/', notes_et_resultats, name='notes_et_resultats'),
     path('notes-et-resultats/justifications/', justifications_notes_directeur, name='justifications_notes'),
+    path('notes-et-resultats/justifications/classe/<int:classe_id>/', justifications_notes_classe_directeur, name='justifications_notes_classe'),
     path('bulletins/', bulletins_notes, name='bulletins_notes'),
     path('bulletins/voir/<int:classe_id>/<int:eleve_id>/', voir_bulletin_eleve, name='voir_bulletin_eleve'),
     path('bulletins/calculer-moyenne/<int:classe_id>/<int:eleve_id>/', calculer_moyenne_eleve, name='calculer_moyenne_eleve'),

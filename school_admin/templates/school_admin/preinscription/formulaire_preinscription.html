@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Préinscription - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .preinscription-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 16px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        }
+        
+        .preinscription-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .preinscription-header h1 i {
+            font-size: 2.5rem;
+        }
+        
+        .preinscription-header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin: 0;
+        }
+        
+        .info-box-documents {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .info-box-documents i {
+            font-size: 1.5rem;
+            color: #f59e0b;
+            margin-top: 2px;
+        }
+        
+        .info-box-documents-content h3 {
+            margin: 0 0 10px 0;
+            color: #92400e;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .info-box-documents-content ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #78350f;
+        }
+        
+        .info-box-documents-content li {
+            margin: 5px 0;
+        }
+        
+        .country-search-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        
+        .country-search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        #nationalite_search {
+            width: 100%;
+            padding-right: 45px;
+        }
+        
+        .country-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+            margin-top: -1px;
+        }
+        
+        .country-dropdown-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .country-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .country-dropdown-item:hover,
+        .country-dropdown-item.highlighted {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .country-dropdown-item.no-results {
+            padding: 15px;
+            text-align: center;
+            color: var(--gray-500);
+            cursor: default;
+            font-style: italic;
+        }
+        
+        .country-select-hidden {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        @media (max-width: 768px) {
+            .preinscription-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .preinscription-header h1 i {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header de préinscription -->
+    <div class="preinscription-header">
+        <h1>
+            <i class="fas fa-user-graduate"></i>
+            Préinscription en ligne
+        </h1>
+        <p>{{ etablissement.nom }}</p>
+    </div>
+
+    <!-- Messages Django -->
+    {% include 'school_admin/partials/messages.html' %}
+
+    <!-- Formulaire de préinscription -->
+    <div class="form-container-modern">
+        <form method="post" action="{% url 'school_admin:preinscription:formulaire' token=token %}" class="inscription-form-modern" id="preinscriptionForm">
+            {% csrf_token %}
+            
+            <!-- Alertes d'erreur globales -->
+            {% for key, error in field_errors.items %}
+                {% if key == '__all__' %}
+                <div class="alert-error-modern">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Erreur de soumission :</strong>
+                        <p>{{ error }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Message informatif sur les documents -->
+            <div class="info-box-documents">
+                <i class="fas fa-info-circle"></i>
+                <div class="info-box-documents-content">
+                    <h3>Documents à apporter lors de la validation</h3>
+                    <p style="margin: 0 0 10px 0; color: #78350f;">Veuillez vous présenter à l'établissement avec les documents suivants :</p>
+                    <ul>
+                        <li>Acte de naissance ou extrait d'acte de naissance</li>
+                        <li>Carte nationale d'identité ou passeport</li>
+                        <li>Bulletin de l'année précédente (si réinscription)</li>
+                        <li>Certificat médical</li>
+                        <li>Photo d'identité récente</li>
+                        <li>Justificatif de domicile</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 1: Informations Personnelles -->
+            <div class="form-section-modern" data-section="1">
+                <div class="section-header-modern">
+                    <div class="section-icon-wrapper">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="section-title-wrapper">
+                        <h2 class="section-title-modern">Informations Personnelles</h2>
+                        <p class="section-subtitle-modern">Identité et coordonnées de l'élève</p>
+                    </div>
+                    <div class="section-number">01</div>
+                </div>
+
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="nom">
+                            <i class="fas fa-id-card"></i>
+                            Nom de famille <span class="required-star">*</span>
+                        </label>
+                        <input type="text" 
+                               class="input-modern {% if field_errors.nom %}input-error{% endif %}" 
+                               id="nom" 
+                               name="nom" 
+                               value="{{ form_data.nom }}"
+                               placeholder="Ex: Dupont"
+                               required>
+                        {% if field_errors.nom %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.nom }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="prenom">
+                            <i class="fas fa-user"></i>
+                            Prénom <span class="required-star">*</span>
+                        </label>
+                        <input type="text" 
+                               class="input-modern {% if field_errors.prenom %}input-error{% endif %}" 
+                               id="prenom" 
+                               name="prenom" 
+                               value="{{ form_data.prenom }}"
+                               placeholder="Ex: Marie"
+                               required>
+                        {% if field_errors.prenom %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.prenom }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="date_naissance">
+                            <i class="fas fa-calendar-alt"></i>
+                            Date de naissance <span class="required-star">*</span>
+                        </label>
+                        <input type="date" 
+                               class="input-modern {% if field_errors.date_naissance %}input-error{% endif %}" 
+                               id="date_naissance" 
+                               name="date_naissance" 
+                               value="{{ form_data.date_naissance }}"
+                               required>
+                        {% if field_errors.date_naissance %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.date_naissance }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="lieu_naissance">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Lieu de naissance <span class="required-star">*</span>
+                        </label>
+                        <input type="text" 
+                               class="input-modern {% if field_errors.lieu_naissance %}input-error{% endif %}" 
+                               id="lieu_naissance" 
+                               name="lieu_naissance" 
+                               value="{{ form_data.lieu_naissance }}"
+                               placeholder="Ex: Dakar, Sénégal"
+                               required>
+                        {% if field_errors.lieu_naissance %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.lieu_naissance }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="sexe">
+                            <i class="fas fa-venus-mars"></i>
+                            Sexe <span class="required-star">*</span>
+                        </label>
+                        <select class="input-modern {% if field_errors.sexe %}input-error{% endif %}" id="sexe" name="sexe" required>
+                            <option value="">Sélectionnez le sexe</option>
+                            <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
+                            <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
+                        </select>
+                        {% if field_errors.sexe %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.sexe }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="nationalite">
+                            <i class="fas fa-flag"></i>
+                            Nationalité <span class="required-star">*</span>
+                        </label>
+                        <div class="country-search-wrapper">
+                            <input type="text" 
+                                   class="input-modern {% if field_errors.nationalite %}input-error{% endif %}" 
+                                   id="nationalite_search" 
+                                   placeholder="Rechercher un pays..."
+                                   autocomplete="off"
+                                   value="{% if form_data.nationalite %}{{ form_data.nationalite }}{% endif %}">
+                            <i class="fas fa-search country-search-icon"></i>
+                            <div class="country-dropdown" id="country_dropdown" style="display: none;"></div>
+                            <select class="input-modern country-select-hidden" 
+                                    id="nationalite" 
+                                    name="nationalite" 
+                                    required
+                                    style="display: none;">
+                                <option value="">Sélectionnez un pays</option>
+                                {% if pays_list %}
+                                    {% for code, nom in pays_list %}
+                                        <option value="{{ nom }}" {% if form_data.nationalite == nom %}selected{% endif %} data-search="{{ nom|lower }}">
+                                            {{ nom }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        {% if field_errors.nationalite %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.nationalite }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group-modern full-width">
+                    <label class="label-modern" for="adresse">
+                        <i class="fas fa-home"></i>
+                        Adresse de résidence <span class="optional-badge">Optionnel</span>
+                    </label>
+                    <textarea class="input-modern textarea-modern {% if field_errors.adresse %}input-error{% endif %}" 
+                              id="adresse" 
+                              name="adresse" 
+                              rows="3"
+                              placeholder="Adresse complète de résidence (optionnel)">{{ form_data.adresse }}</textarea>
+                    {% if field_errors.adresse %}
+                        <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.adresse }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Section 2: Informations Scolaires -->
+            <div class="form-section-modern" data-section="2">
+                <div class="section-header-modern">
+                    <div class="section-icon-wrapper">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="section-title-wrapper">
+                        <h2 class="section-title-modern">Informations Scolaires</h2>
+                        <p class="section-subtitle-modern">Classe souhaitée et type d'inscription</p>
+                    </div>
+                    <div class="section-number">02</div>
+                </div>
+
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="classe_souhaitee">
+                            <i class="fas fa-chalkboard"></i>
+                            Classe souhaitée <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <select class="input-modern {% if field_errors.classe_souhaitee %}input-error{% endif %}" id="classe_souhaitee" name="classe_souhaitee">
+                            <option value="">Sélectionnez une classe (optionnel)</option>
+                            {% for classe in classes %}
+                                <option value="{{ classe.id }}" {% if form_data.classe_souhaitee == classe.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if field_errors.classe_souhaitee %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.classe_souhaitee }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="statut_inscription">
+                            <i class="fas fa-user-check"></i>
+                            Type d'inscription <span class="required-star">*</span>
+                        </label>
+                        <select class="input-modern {% if field_errors.statut_inscription %}input-error{% endif %}" id="statut_inscription" name="statut_inscription" required>
+                            <option value="">Sélectionnez un type</option>
+                            <option value="nouvelle" {% if form_data.statut_inscription == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
+                            <option value="reinscription" {% if form_data.statut_inscription == 'reinscription' %}selected{% endif %}>Réinscription</option>
+                        </select>
+                        {% if field_errors.statut_inscription %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.statut_inscription }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Informations Parent/Tuteur -->
+            <div class="form-section-modern" data-section="3">
+                <div class="section-header-modern">
+                    <div class="section-icon-wrapper">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <div class="section-title-wrapper">
+                        <h2 class="section-title-modern">Parent / Tuteur</h2>
+                        <p class="section-subtitle-modern">Informations de la personne responsable</p>
+                    </div>
+                    <div class="section-number">03</div>
+                </div>
+
+                <div class="info-box-modern">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Remplissez les informations de la personne responsable de l'élève (parent, tuteur légal, etc.)</p>
+                </div>
+
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="parent_nom">
+                            <i class="fas fa-id-card"></i>
+                            Nom du parent/tuteur <span class="required-star">*</span>
+                        </label>
+                        <input type="text" 
+                               class="input-modern {% if field_errors.parent_nom %}input-error{% endif %}" 
+                               id="parent_nom" 
+                               name="parent_nom" 
+                               value="{{ form_data.parent_nom }}"
+                               placeholder="Nom de famille"
+                               required>
+                        {% if field_errors.parent_nom %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_nom }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="parent_prenom">
+                            <i class="fas fa-user"></i>
+                            Prénom du parent/tuteur <span class="required-star">*</span>
+                        </label>
+                        <input type="text" 
+                               class="input-modern {% if field_errors.parent_prenom %}input-error{% endif %}" 
+                               id="parent_prenom" 
+                               name="parent_prenom" 
+                               value="{{ form_data.parent_prenom }}"
+                               placeholder="Prénom"
+                               required>
+                        {% if field_errors.parent_prenom %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_prenom }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group-modern">
+                    <label class="label-modern" for="parent_telephone">
+                        <i class="fas fa-phone"></i>
+                        Téléphone du parent/tuteur <span class="required-star">*</span>
+                    </label>
+                    <input type="tel" 
+                           class="input-modern {% if field_errors.parent_telephone %}input-error{% endif %}" 
+                           id="parent_telephone" 
+                           name="parent_telephone" 
+                           value="{{ form_data.parent_telephone }}"
+                           placeholder=""
+                           required>
+                    <input type="hidden" name="parent_telephone_full" id="parent_telephone_full">
+                    {% if field_errors.parent_telephone %}
+                        <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_telephone }}</span>
+                    {% endif %}
+                    <small class="phone-error-message" id="parent-phone-error" style="display: none;"></small>
+                </div>
+
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="parent_profession">
+                            <i class="fas fa-briefcase"></i>
+                            Profession <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <input type="text" 
+                               class="input-modern {% if field_errors.parent_profession %}input-error{% endif %}" 
+                               id="parent_profession" 
+                               name="parent_profession" 
+                               value="{{ form_data.parent_profession }}"
+                               placeholder="Ex: Enseignant, Médecin, etc.">
+                        {% if field_errors.parent_profession %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_profession }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="parent_lien">
+                            <i class="fas fa-link"></i>
+                            Lien avec l'élève <span class="required-star">*</span>
+                        </label>
+                        <select class="input-modern {% if field_errors.parent_lien %}input-error{% endif %}" 
+                                id="parent_lien" 
+                                name="parent_lien" 
+                                required>
+                            <option value="">Sélectionner le lien</option>
+                            <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>Père</option>
+                            <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>Mère</option>
+                            <option value="grand_parent" {% if form_data.parent_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
+                            <option value="oncle_tante" {% if form_data.parent_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
+                            <option value="frere_soeur" {% if form_data.parent_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
+                            <option value="autre_famille" {% if form_data.parent_lien == 'autre_famille' %}selected{% endif %}>Autre membre de la famille</option>
+                            <option value="tuteur_legal" {% if form_data.parent_lien == 'tuteur_legal' %}selected{% endif %}>Tuteur légal</option>
+                            <option value="autre" {% if form_data.parent_lien == 'autre' %}selected{% endif %}>Autre</option>
+                        </select>
+                        {% if field_errors.parent_lien %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_lien }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group-modern full-width">
+                    <label class="label-modern" for="commentaires_parent">
+                        <i class="fas fa-comment-alt"></i>
+                        Commentaires ou informations supplémentaires <span class="optional-badge">Optionnel</span>
+                    </label>
+                    <textarea class="input-modern textarea-modern {% if field_errors.commentaires_parent %}input-error{% endif %}" 
+                              id="commentaires_parent" 
+                              name="commentaires_parent" 
+                              rows="4"
+                              placeholder="Vous pouvez ajouter ici toute information supplémentaire que vous souhaitez communiquer à l'établissement...">{{ form_data.commentaires_parent }}</textarea>
+                    {% if field_errors.commentaires_parent %}
+                        <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.commentaires_parent }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions du formulaire -->
+            <div class="form-actions-modern">
+                <button type="button" class="btn-reset-modern" onclick="resetForm()">
+                    <i class="fas fa-redo"></i>
+                    <span>Réinitialiser</span>
+                </button>
+                <button type="submit" class="btn-submit-modern">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Soumettre la préinscription</span>
+                    <div class="btn-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scripts -->
+    <!-- intl-tel-input JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector("#preinscriptionForm");
+            
+            // Fonctionnalité de recherche de pays (identique au formulaire d'inscription)
+            const countrySearchInput = document.getElementById('nationalite_search');
+            const countrySelect = document.getElementById('nationalite');
+            const countryDropdown = document.getElementById('country_dropdown');
+            let highlightedIndex = -1;
+            let filteredCountries = [];
+            
+            function normalizeString(str) {
+                if (!str) return '';
+                return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            }
+            
+            if (countrySearchInput && countrySelect && countryDropdown) {
+                const allCountries = Array.from(countrySelect.options).slice(1).map(option => {
+                    const text = option.textContent.trim();
+                    return {
+                        value: option.value,
+                        text: text,
+                        searchText: normalizeString(text)
+                    };
+                });
+                
+                if (countrySelect.value) {
+                    const selectedOption = Array.from(countrySelect.options).find(opt => opt.value === countrySelect.value);
+                    if (selectedOption) {
+                        countrySearchInput.value = selectedOption.textContent.trim();
+                        countrySearchInput.classList.add('has-value');
+                    }
+                }
+                
+                function filterCountries(searchTerm) {
+                    const normalizedTerm = normalizeString(searchTerm);
+                    if (normalizedTerm === '') {
+                        filteredCountries = [];
+                        countryDropdown.style.display = 'none';
+                        return;
+                    }
+                    filteredCountries = allCountries.filter(country => 
+                        country.searchText.includes(normalizedTerm)
+                    ).slice(0, 20);
+                    renderDropdown();
+                }
+                
+                function renderDropdown() {
+                    countryDropdown.innerHTML = '';
+                    if (filteredCountries.length === 0) {
+                        countryDropdown.innerHTML = '<div class="country-dropdown-item no-results">Aucun pays trouvé</div>';
+                        countryDropdown.style.display = 'block';
+                        return;
+                    }
+                    filteredCountries.forEach((country, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'country-dropdown-item';
+                        item.textContent = country.text;
+                        item.addEventListener('click', function() {
+                            selectCountry(country.value, country.text);
+                        });
+                        countryDropdown.appendChild(item);
+                    });
+                    countryDropdown.style.display = 'block';
+                    highlightedIndex = -1;
+                }
+                
+                function selectCountry(value, text) {
+                    countrySearchInput.value = text;
+                    countrySelect.value = value;
+                    countryDropdown.style.display = 'none';
+                    countrySearchInput.classList.add('has-value');
+                }
+                
+                countrySearchInput.addEventListener('input', function(e) {
+                    filterCountries(e.target.value);
+                    if (e.target.value === '') {
+                        countrySelect.value = '';
+                        countrySearchInput.classList.remove('has-value');
+                    }
+                });
+                
+                document.addEventListener('click', function(e) {
+                    if (!countrySearchInput.contains(e.target) && !countryDropdown.contains(e.target)) {
+                        countryDropdown.style.display = 'none';
+                    }
+                });
+                
+                form.addEventListener('submit', function(e) {
+                    if (!countrySelect.value || countrySelect.value === '') {
+                        e.preventDefault();
+                        countrySearchInput.focus();
+                        countrySearchInput.classList.add('input-error');
+                        return false;
+                    }
+                });
+            }
+            
+            // Initialisation intl-tel-input pour le téléphone du parent
+            const parentPhoneInput = document.querySelector("#parent_telephone");
+            const parentPhoneFullInput = document.querySelector("#parent_telephone_full");
+            const parentPhoneError = document.querySelector("#parent-phone-error");
+            
+            if (parentPhoneInput) {
+                const itiParent = window.intlTelInput(parentPhoneInput, {
+                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js",
+                    separateDialCode: true,
+                    initialCountry: "auto",
+                    preferredCountries: ["sn", "ci", "cm", "fr"],
+                    geoIpLookup: function(callback) {
+                        fetch("https://ipapi.co/json")
+                            .then(function(res) { return res.json(); })
+                            .then(function(data) { callback(data.country_code); })
+                            .catch(function() { callback("sn"); });
+                    },
+                    nationalMode: false,
+                    autoFormat: true,
+                    autoPlaceholder: "aggressive"
+                });
+                
+                parentPhoneInput.addEventListener('blur', function() {
+                    if (parentPhoneInput.value.trim()) {
+                        if (itiParent.isValidNumber()) {
+                            parentPhoneError.style.display = 'none';
+                            parentPhoneInput.classList.remove('input-error');
+                            parentPhoneFullInput.value = itiParent.getNumber();
+                        } else {
+                            parentPhoneError.textContent = 'Numéro de téléphone invalide.';
+                            parentPhoneError.style.display = 'block';
+                            parentPhoneError.style.color = '#ef4444';
+                            parentPhoneInput.classList.add('input-error');
+                            parentPhoneFullInput.value = '';
+                        }
+                    }
+                });
+                
+                form.addEventListener('submit', function(e) {
+                    if (parentPhoneInput.value.trim()) {
+                        if (itiParent.isValidNumber()) {
+                            parentPhoneFullInput.value = itiParent.getNumber();
+                        } else {
+                            e.preventDefault();
+                            parentPhoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
+                            parentPhoneError.style.display = 'block';
+                            parentPhoneInput.focus();
+                            return false;
+                        }
+                    }
+                });
+            }
+            
+            // Gestion du chargement du formulaire
+            form.addEventListener('submit', function(e) {
+                const submitBtn = form.querySelector('.btn-submit-modern');
+                const btnText = submitBtn.querySelector('span');
+                const btnLoading = submitBtn.querySelector('.btn-loading');
+                
+                btnText.style.display = 'none';
+                btnLoading.style.display = 'inline-block';
+                submitBtn.disabled = true;
+            });
+        });
+        
+        function resetForm() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ? Toutes les données saisies seront perdues.')) {
+                document.getElementById('preinscriptionForm').reset();
+                document.getElementById('parent_telephone_full').value = '';
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -154,6 +154,24 @@ class Eleve(AbstractUser):
     password_reset_code = models.CharField(max_length=6, null=True, blank=True, verbose_name="Code de réinitialisation")
     password_reset_expires = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du code de réinitialisation")
     
+    # Authentification par QR Code
+    qr_auth_token = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Token d'authentification QR",
+        help_text="Token unique pour l'authentification par QR Code"
+    )
+    
+    qr_auth_token_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de génération du token QR",
+        help_text="Date de génération du token d'authentification QR"
+    )
+    
     etablissement = models.ForeignKey(
         Etablissement,
         on_delete=models.CASCADE,
@@ -418,8 +436,17 @@ class Eleve(AbstractUser):
     
     @property
     def nom_complet(self):
-        """Retourne le nom complet de l'élève"""
-        return f"{self.prenom} {self.nom}"
+        """Retourne le nom complet de l'élève au format 'NOM Prénom'"""
+        nom = self.nom.upper() if self.nom else ''
+        prenom = self.prenom[0].upper() + self.prenom[1:].lower() if self.prenom and len(self.prenom) > 1 else (self.prenom.upper() if self.prenom else '')
+        if nom and prenom:
+            return f"{nom} {prenom}"
+        elif nom:
+            return nom
+        elif prenom:
+            return prenom
+        else:
+            return ''
     
     @property
     def age(self):
@@ -587,6 +614,33 @@ class Eleve(AbstractUser):
         import random
         return ''.join([str(random.randint(0, 9)) for _ in range(6)])
     
+    @staticmethod
+    def generer_token_qr_auth():
+        """
+        Génère un token unique et sécurisé pour l'authentification par QR Code
+        """
+        import secrets
+        return secrets.token_urlsafe(32)
+    
+    def generer_et_sauvegarder_token_qr(self):
+        """
+        Génère et sauvegarde un nouveau token QR d'authentification
+        """
+        self.qr_auth_token = self.generer_token_qr_auth()
+        self.qr_auth_token_generated_at = timezone.now()
+        self.save(update_fields=['qr_auth_token', 'qr_auth_token_generated_at'])
+    
+    def get_qr_auth_url(self, request=None):
+        """
+        Retourne l'URL d'authentification par QR Code
+        """
+        from django.urls import reverse
+        if request:
+            return request.build_absolute_uri(
+                reverse('school_admin:auth_qr_login', kwargs={'token': self.qr_auth_token})
+            )
+        return f"/auth/qr/{self.qr_auth_token}/"
+    
     def get_statut_display(self):
         """Retourne l'affichage du statut d'inscription"""
         return dict(self.STATUT_CHOICES).get(self.statut, self.statut)
@@ -701,6 +755,24 @@ class Eleve(AbstractUser):
 
     def save(self, *args, **kwargs):
         """Surcharge du save pour garantir un QR code cohérent et mettre à jour la facturation de l'établissement."""
+        # Formater automatiquement les noms et prénoms
+        if self.nom:
+            self.nom = self.nom.strip().upper()
+        if self.prenom:
+            prenom_stripped = self.prenom.strip()
+            if len(prenom_stripped) > 1:
+                self.prenom = prenom_stripped[0].upper() + prenom_stripped[1:].lower()
+            else:
+                self.prenom = prenom_stripped.upper()
+        if self.parent_nom:
+            self.parent_nom = self.parent_nom.strip().upper()
+        if self.parent_prenom:
+            parent_prenom_stripped = self.parent_prenom.strip()
+            if len(parent_prenom_stripped) > 1:
+                self.parent_prenom = parent_prenom_stripped[0].upper() + parent_prenom_stripped[1:].lower()
+            else:
+                self.parent_prenom = parent_prenom_stripped.upper()
+        
         old_instance = None
         previous_image_path = None
         etablissement_changed = False
@@ -723,6 +795,11 @@ class Eleve(AbstractUser):
 
         if not self.qr_code_identifier:
             self.qr_code_identifier = uuid.uuid4().hex
+
+        # Générer le token QR d'authentification si nécessaire
+        if not self.qr_auth_token:
+            self.qr_auth_token = self.generer_token_qr_auth()
+            self.qr_auth_token_generated_at = timezone.now()
 
         regenerate_qr = self._should_regenerate_qr(old_instance)
 

@@ -1,0 +1,396 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Justifications de notes - {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/justifications_notes.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="main-content-container">
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-scale-balanced"></i>
+                    Justifications de notes - {{ classe.nom }}
+                </h1>
+                <p class="page-subtitle">
+                    Consultez toutes les justifications de notes pour cette classe.
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:justifications_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour aux justifications
+                </a>
+            </div>
+        </div>
+
+        <!-- Message d'information sur l'année scolaire active -->
+        {% if annee_scolaire_active %}
+        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.7rem; align-items: center;">
+          <span class="active-year-icon" style="display: flex; width: 32px; height: 32px; border-radius: 6px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff; font-size: 0.875rem;">
+            <i class="fas fa-calendar-check"></i>
+          </span>
+          <div>
+            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.85rem;">
+              Année scolaire active : {{ annee_scolaire_active.libelle }}
+            </p>
+            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.75rem;">
+              Classe : {{ classe.nom }}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if periodes %}
+        <div class="periodes-nav-container" style="margin-bottom: 12px; padding: 12px; background: var(--gray-50); border-radius: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">
+                    <i class="fas fa-calendar-alt"></i> Période :
+                </span>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    {% for periode in periodes %}
+                        <a href="?periode={{ periode.id }}" 
+                           class="periode-tab-btn {% if periode_active and periode_active.id == periode.id %}active{% endif %}"
+                           style="padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; 
+                                  background: {% if periode_active and periode_active.id == periode.id %}var(--primary); color: white;{% else %}white; color: var(--text-primary); border: 1px solid var(--gray-300);{% endif %};
+                                  transition: all 0.3s ease;">
+                            {{ periode.nom_periode }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="stats-container">
+            <div class="stat-card primary">
+                <div class="stat-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.en_attente }}</span>
+                    <span class="stat-label">En attente</span>
+                </div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.validees }}</span>
+                    <span class="stat-label">Validées</span>
+                </div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.refusees }}</span>
+                    <span class="stat-label">Refusées</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Demandes en attente -->
+        <section class="demandes-section">
+            <h2 class="section-title">
+                <i class="fas fa-hourglass-half"></i>
+                Demandes en attente
+            </h2>
+            {% if demandes_grouped.en_attente %}
+                <div class="demandes-grid">
+                    {% for justification in demandes_grouped.en_attente %}
+                        <article class="demande-card">
+                            <header class="demande-header">
+                                <div>
+                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
+                                    <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
+                                </div>
+                                <span class="badge badge-warning">En attente</span>
+                            </header>
+                            <div class="demande-body">
+                                <div class="value-line">
+                                    <span>Ancienne note</span>
+                                    <strong>
+                                        {{ justification.ancienne_note|default:"-" }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Nouvelle note proposée</span>
+                                    <strong>
+                                        {{ justification.nouvelle_note }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                {% if justification.note_examen and justification.note_examen.session_examen %}
+                                <div class="value-line">
+                                    <span>Type</span>
+                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Motif</span>
+                                    <p class="motif">{{ justification.motif }}</p>
+                                </div>
+                                {% if justification.description %}
+                                    <div class="value-line">
+                                        <span>Détails</span>
+                                        <p class="description">{{ justification.description }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Enseignant</span>
+                                    <p>{{ justification.professeur.nom_complet }}</p>
+                                </div>
+                                <div class="value-line">
+                                    <span>Date</span>
+                                    <p>{{ justification.date_creation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                            <footer class="demande-footer">
+                                <form method="post" action="" class="demande-actions">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="justification_id" value="{{ justification.id }}">
+                                    {% if periode_active %}
+                                        <input type="hidden" name="periode" value="{{ periode_active.id }}">
+                                    {% endif %}
+                                    <div class="form-commentaire">
+                                        <label for="commentaire-{{ justification.id }}">Commentaire (optionnel)</label>
+                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="Ajoutez un commentaire pour l'enseignant..."></textarea>
+                                    </div>
+                                    <div class="actions-buttons">
+                                        <button type="submit" name="action" value="rejeter" class="btn-outline">
+                                            <i class="fas fa-times"></i>
+                                            Refuser
+                                        </button>
+                                        <button type="submit" name="action" value="valider" class="btn-primary">
+                                            <i class="fas fa-check"></i>
+                                            Valider
+                                        </button>
+                                    </div>
+                                </form>
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Aucune demande en attente pour cette classe.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Section Demandes validées -->
+        <section class="demandes-section">
+            <h2 class="section-title">
+                <i class="fas fa-check-circle"></i>
+                Demandes validées
+            </h2>
+            {% if demandes_grouped.validee %}
+                <div class="demandes-grid">
+                    {% for justification in demandes_grouped.validee %}
+                        <article class="demande-card">
+                            <header class="demande-header">
+                                <div>
+                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
+                                    <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
+                                </div>
+                                <span class="badge badge-success">Validée</span>
+                            </header>
+                            <div class="demande-body">
+                                <div class="value-line">
+                                    <span>Ancienne note</span>
+                                    <strong>
+                                        {{ justification.ancienne_note|default:"-" }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Nouvelle note</span>
+                                    <strong>
+                                        {{ justification.nouvelle_note }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                {% if justification.note_examen and justification.note_examen.session_examen %}
+                                <div class="value-line">
+                                    <span>Type</span>
+                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Motif</span>
+                                    <p class="motif">{{ justification.motif }}</p>
+                                </div>
+                                {% if justification.commentaire_direction %}
+                                    <div class="value-line">
+                                        <span>Commentaire direction</span>
+                                        <p class="description">{{ justification.commentaire_direction }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Validée le</span>
+                                    <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Aucune justification validée pour cette classe.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Section Demandes refusées -->
+        <section class="demandes-section">
+            <h2 class="section-title">
+                <i class="fas fa-times-circle"></i>
+                Demandes refusées
+            </h2>
+            {% if demandes_grouped.refusee %}
+                <div class="demandes-grid">
+                    {% for justification in demandes_grouped.refusee %}
+                        <article class="demande-card">
+                            <header class="demande-header">
+                                <div>
+                                    <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
+                                    <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
+                                </div>
+                                <span class="badge badge-danger">Refusée</span>
+                            </header>
+                            <div class="demande-body">
+                                <div class="value-line">
+                                    <span>Ancienne note</span>
+                                    <strong>
+                                        {{ justification.ancienne_note|default:"-" }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <div class="value-line">
+                                    <span>Nouvelle note proposée</span>
+                                    <strong>
+                                        {{ justification.nouvelle_note }}/
+                                        {% if justification.evaluation %}
+                                            {{ justification.evaluation.bareme|default:"20" }}
+                                        {% elif justification.evaluation_primaire %}
+                                            {{ justification.evaluation_primaire.bareme|default:"20" }}
+                                        {% elif justification.note_examen %}
+                                            {{ justification.note_examen.bareme|default:"20" }}
+                                        {% else %}
+                                            20
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                {% if justification.note_examen and justification.note_examen.session_examen %}
+                                <div class="value-line">
+                                    <span>Type</span>
+                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Motif</span>
+                                    <p class="motif">{{ justification.motif }}</p>
+                                </div>
+                                {% if justification.commentaire_direction %}
+                                    <div class="value-line">
+                                        <span>Commentaire direction</span>
+                                        <p class="description">{{ justification.commentaire_direction }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="value-line">
+                                    <span>Refusée le</span>
+                                    <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                            <footer class="demande-footer">
+                                <form method="post" action="" class="demande-actions">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="justification_id" value="{{ justification.id }}">
+                                    {% if periode_active %}
+                                        <input type="hidden" name="periode" value="{{ periode_active.id }}">
+                                    {% endif %}
+                                    <div class="form-commentaire">
+                                        <label for="commentaire-{{ justification.id }}">Commentaire (optionnel)</label>
+                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="Ajoutez un commentaire pour l'enseignant..."></textarea>
+                                    </div>
+                                    <div class="actions-buttons">
+                                        <button type="submit" name="action" value="valider" class="btn-primary">
+                                            <i class="fas fa-check"></i>
+                                            Réaccepter
+                                        </button>
+                                    </div>
+                                </form>
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Aucune justification refusée pour cette classe.</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>
+

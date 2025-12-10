@@ -178,10 +178,10 @@
                                                 <div class="col-numero">{{ forloop.counter }}</div>
                                                 <div class="col-nom">
                                                     <div class="eleve-avatar-small">
-                                                        {{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}
+                                                        {{ eleve_data.eleve.nom.0 }}{{ eleve_data.eleve.prenom.0 }}
                                                     </div>
                                                     <div class="eleve-info">
-                                                        <span class="eleve-nom-complet">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</span>
+                                                        <span class="eleve-nom-complet">{{ eleve_data.eleve.nom_complet }}</span>
                                                         <span class="eleve-matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
                                                     </div>
                                                 </div>
@@ -227,7 +227,7 @@
                                                     <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=notes" class="action-btn-small success" title="Notes">
                                                         <i class="fas fa-clipboard-check"></i>
                                                     </a>
-                                                    <button class="action-btn-small warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
+                                                    <button class="action-btn-small warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet }}', {{ classe_data.classe.id }})">
                                                         <i class="fas fa-gavel"></i>
                                                     </button>
                                                 </div>

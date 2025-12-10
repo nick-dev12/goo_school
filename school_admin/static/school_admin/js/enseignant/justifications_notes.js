@@ -127,12 +127,24 @@ justificationButtons.forEach((button) => {
       option.value = item.id;
       option.textContent = item.label;
       option.dataset.bareme = item.bareme;
+      option.dataset.noteType = item.note_type || "evaluation";
       noteSelect.appendChild(option);
     });
 
     updateBaremeHint();
     openModal();
   });
+});
+
+const noteTypeInput = document.getElementById("noteTypeInput");
+noteSelect.addEventListener("change", () => {
+  updateBaremeHint();
+  const selectedOption = noteSelect.options[noteSelect.selectedIndex];
+  if (selectedOption && selectedOption.dataset.noteType) {
+    noteTypeInput.value = selectedOption.dataset.noteType;
+  } else {
+    noteTypeInput.value = "evaluation";
+  }
 });
 
 noteSelect.addEventListener("change", updateBaremeHint);

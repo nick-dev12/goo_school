@@ -14,6 +14,7 @@ urlpatterns = [
     path('transfer/eleve/<int:eleve_id>/', transfer_eleve, name='transfer_eleve'),
     path('reçu/eleve/<int:eleve_id>/', reçu_inscription_eleve, name='reçu_inscription_eleve'),
     path('supprimer/eleve/<int:eleve_id>/', supprimer_eleve, name='supprimer_eleve'),
+    path('desactiver-compte/eleve/<int:eleve_id>/', desactiver_compte_eleve, name='desactiver_compte_eleve'),
     path('synchroniser/facturation/', synchroniser_facturation, name='synchroniser_facturation'),
     # Notes détaillées par matière
     path('api/notes-detail/<int:eleve_id>/<int:matiere_id>/', get_notes_detail_matiere, name='get_notes_detail_matiere'),

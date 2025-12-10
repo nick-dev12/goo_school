@@ -138,7 +138,7 @@ class MultiUserBackend(BaseBackend):
             # Pour les emails, vérifier d'abord Etablissement, puis CompteUser
             try:
                 etablissement = Etablissement.objects.get(username=username)
-                if etablissement.check_password(password):
+                if etablissement.check_password(password) and etablissement.actif:
                     etablissement._auth_user_type = 'etablissement'
                     return etablissement
             except Etablissement.DoesNotExist:
@@ -146,7 +146,7 @@ class MultiUserBackend(BaseBackend):
             
             try:
                 user = CompteUser.objects.get(username=username)
-                if user.check_password(password):
+                if user.check_password(password) and user.is_active:
                     user._auth_user_type = 'compte_user'
                     return user
             except CompteUser.DoesNotExist:
@@ -173,7 +173,7 @@ class MultiUserBackend(BaseBackend):
         # ==========================================
         try:
             etablissement = Etablissement.objects.get(username=username)
-            if etablissement.check_password(password):
+            if etablissement.check_password(password) and etablissement.actif:
                 etablissement._auth_user_type = 'etablissement'
                 return etablissement
         except Etablissement.DoesNotExist:
@@ -184,7 +184,7 @@ class MultiUserBackend(BaseBackend):
         # ==========================================
         try:
             user = CompteUser.objects.get(username=username)
-            if user.check_password(password):
+            if user.check_password(password) and user.is_active:
                 user._auth_user_type = 'compte_user'
                 return user
         except CompteUser.DoesNotExist:

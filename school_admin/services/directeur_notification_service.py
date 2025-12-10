@@ -183,10 +183,13 @@ class DirecteurNotificationService:
         bareme = None
         evaluation = getattr(justification, "evaluation", None)
         evaluation_primaire = getattr(justification, "evaluation_primaire", None)
+        note_examen = getattr(justification, "note_examen", None)
         if evaluation and getattr(evaluation, "bareme", None) is not None:
             bareme = evaluation.bareme
         elif evaluation_primaire and getattr(evaluation_primaire, "bareme", None) is not None:
             bareme = evaluation_primaire.bareme
+        elif note_examen and getattr(note_examen, "bareme", None) is not None:
+            bareme = note_examen.bareme
 
         def _format_note(value, bareme_value=None):
             if value is None:

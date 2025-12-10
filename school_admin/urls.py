@@ -2,6 +2,7 @@ from django.urls import path, include
 from . import views
 from . import pwa_views
 from .controllers.administrateur_compte_controller import AdministrateurCompteController
+from .controllers.compte_user_controller import CompteUserController
 from .personal_views.administrateur_view import *
 from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
@@ -67,7 +68,11 @@ urlpatterns =[
     # Authentification
     path('inscription/', views.inscription_compte_user, name='inscription_compte_user'),
     path('connexion/', views.connexion_compte_user, name='connexion_compte_user'),
+    path('auth/qr/<str:token>/', CompteUserController.auth_qr_login, name='auth_qr_login'),
     path('politiques-utilisation/', views.politiques_utilisation, name='politiques_utilisation'),
+    
+    # Préinscriptions (routes publiques - doit être après les routes directeur pour éviter les conflits)
+    path('preinscription/formulaire/', include('school_admin.personal_url.preinscription_url')),
     path('suppression-compte/', views.suppression_compte, name='suppression_compte'),
     path('password-reset/', views.password_reset_request, name='password_reset_request'),
     path('password-reset/verify/<str:identifier>/<str:user_type>/', views.password_reset_verify, name='password_reset_verify'),

@@ -1914,3 +1914,58 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
+
+/* Styles pour les élèves désactivés */
+.eleve-desactive {
+  opacity: 0.6;
+  background-color: var(--gray-50) !important;
+  position: relative;
+}
+
+.eleve-desactive::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.05));
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+.eleve-desactive:hover {
+  background-color: var(--gray-100) !important;
+  opacity: 0.7;
+}
+
+.eleve-desactive .list-cell {
+  color: var(--gray-500);
+}
+
+.eleve-desactive .student-name {
+  color: var(--gray-500);
+}
+
+.eleve-desactive .student-number,
+.eleve-desactive .student-age {
+  color: var(--gray-400);
+}
+
+.badge-desactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--gray-300);
+  color: var(--gray-700);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.badge-desactive i {
+  font-size: 0.7rem;
+}

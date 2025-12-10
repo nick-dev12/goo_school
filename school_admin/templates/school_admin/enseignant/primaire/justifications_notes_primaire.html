@@ -202,9 +202,9 @@
                                     <td class="eleve-cell">
                                         <div class="eleve-info">
                                             <div class="eleve-avatar">
-                                                {{ data.eleve.prenom.0 }}{{ data.eleve.nom.0 }}
+                                                {{ data.eleve.nom.0 }}{{ data.eleve.prenom.0 }}
                                             </div>
-                                            <span class="eleve-nom">{{ data.eleve.nom|upper }} {{ data.eleve.prenom }}</span>
+                                            <span class="eleve-nom">{{ data.eleve.nom_complet }}</span>
                                         </div>
                                     </td>
                                     
@@ -245,7 +245,7 @@
                                             class="btn-primary"
                                             data-justify-btn
                                             data-eleve-id="{{ data.eleve.id }}"
-                                            data-eleve-nom="{{ data.eleve.nom|upper }} {{ data.eleve.prenom }}"
+                                            data-eleve-nom="{{ data.eleve.nom_complet }}"
                                             data-classe-id="{{ classe_selectionnee.id }}"
                                             data-matiere-id="{{ matiere_selectionnee.id }}"
                                         >
@@ -282,6 +282,16 @@
             <form method="post" action="{% url 'enseignant_primaire:justifications_notes' %}" class="modal-form">
                 {% csrf_token %}
                 <input type="hidden" name="eleve_id" id="modalEleveId">
+                <input type="hidden" name="note_type" id="noteTypeInput" value="evaluation">
+                {% if periode_selectionnee %}
+                    <input type="hidden" name="periode" value="{{ periode_selectionnee.id }}">
+                {% endif %}
+                {% if classe_selectionnee %}
+                    <input type="hidden" name="classe" value="{{ classe_selectionnee.id }}">
+                {% endif %}
+                {% if matiere_selectionnee %}
+                    <input type="hidden" name="matiere" value="{{ matiere_selectionnee.id }}">
+                {% endif %}
                 <div class="form-group">
                     <label for="noteSelect">Sélectionnez la note à justifier *</label>
                     <select name="note_id" id="noteSelect" required>

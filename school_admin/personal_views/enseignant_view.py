@@ -110,6 +110,11 @@ MOTIFS_JUSTIFICATION_SECONDAIRE = OrderedDict([
     ("force_majeure", "Cas de force majeure (pluie, catastrophe, grève)"),
     ("probleme_technique", "Problème technique ou défaillance matérielle"),
     ("retard_correction", "Correction ou transmission tardive"),
+    ("situation_familiale", "Situation familiale (décès, événement familial, etc.)"),
+    ("difficulte_transport", "Difficultés de transport (accident, panne, etc.)"),
+    ("evenement_religieux", "Événement religieux ou culturel"),
+    ("probleme_sante", "Problème de santé (sans certificat médical)"),
+    ("raison_personnelle", "Raison personnelle justifiée"),
     ("autre", "Autre motif (voir détails)")
 ])
 
@@ -980,103 +985,182 @@ def justifications_notes_enseignant(request):
     from ..model.evaluation_model import Evaluation, Note
     from django.db import transaction
     from decimal import Decimal, InvalidOperation
+    from django.urls import reverse
     import json
     import re
+
+    # Fonction helper pour les redirections avec paramètre periode
+    def _redirect_with_periode():
+        redirect_url = reverse('enseignant:justifications_notes')
+        periode_id_param = request.POST.get('periode') or request.GET.get('periode')
+        if periode_id_param:
+            redirect_url = f"{redirect_url}?periode={periode_id_param}"
+        return redirect(redirect_url)
 
     # Traitement de la soumission du formulaire
     if request.method == 'POST':
         note_id = request.POST.get('note_id')
+        note_type = request.POST.get('note_type', 'evaluation')  # 'evaluation' ou 'examen'
         nouvelle_note_raw = request.POST.get('nouvelle_note')
         motif_code = request.POST.get('motif')
         description = (request.POST.get('description') or '').strip()
 
         if not note_id:
             messages.error(request, "Veuillez sélectionner la note à justifier.")
-            return redirect('enseignant:justifications_notes')
+            return _redirect_with_periode()
 
-        try:
-            note = Note.objects.select_related(
-                'evaluation',
-                'evaluation__classe',
-                'evaluation__matiere',
-                'eleve',
-            ).get(id=note_id, evaluation__professeur=professeur)
-        except Note.DoesNotExist:
-            messages.error(request, "Impossible de trouver la note sélectionnée.")
-            return redirect('enseignant:justifications_notes')
+        note = None
+        note_examen = None
+        
+        if note_type == 'examen':
+            from ..model.note_examen_model import NoteExamen
+            try:
+                note_examen = NoteExamen.objects.select_related(
+                    'session_examen',
+                    'creneau_examen',
+                    'matiere',
+                    'classe',
+                    'eleve',
+                ).get(id=note_id, professeur=professeur)
+            except NoteExamen.DoesNotExist:
+                messages.error(request, "Impossible de trouver la note d'examen sélectionnée.")
+                return _redirect_with_periode()
+        else:
+            try:
+                note = Note.objects.select_related(
+                    'evaluation',
+                    'evaluation__classe',
+                    'evaluation__matiere',
+                    'eleve',
+                ).get(id=note_id, evaluation__professeur=professeur)
+            except Note.DoesNotExist:
+                messages.error(request, "Impossible de trouver la note sélectionnée.")
+                return _redirect_with_periode()
 
         if not motif_code or motif_code not in MOTIFS_JUSTIFICATION_SECONDAIRE:
             messages.error(request, "Veuillez sélectionner un motif de justification valide.")
-            return redirect('enseignant:justifications_notes')
+            return _redirect_with_periode()
         motif = MOTIFS_JUSTIFICATION_SECONDAIRE[motif_code]
 
         try:
             nouvelle_note = Decimal(str(nouvelle_note_raw).replace(',', '.'))
         except (InvalidOperation, TypeError):
             messages.error(request, "La nouvelle note proposée est invalide.")
-            return redirect('enseignant:justifications_notes')
+            return _redirect_with_periode()
 
         if nouvelle_note < 0:
             messages.error(request, "La note proposée ne peut pas être négative.")
-            return redirect('enseignant:justifications_notes')
+            return _redirect_with_periode()
 
-        bareme = note.evaluation.bareme if note.evaluation else None
+        bareme = None
+        if note:
+            bareme = note.evaluation.bareme if note.evaluation else None
+        elif note_examen:
+            bareme = note_examen.bareme
+        
         if bareme is not None and nouvelle_note > bareme:
             messages.error(
                 request,
                 f"La note proposée ne peut pas dépasser le barème ({bareme})."
             )
-            return redirect('enseignant:justifications_notes')
+            return _redirect_with_periode()
 
         justification_obj = None
 
         with transaction.atomic():
-            justification = JustificationNote.objects.filter(
-                note=note,
-                statut=JustificationNote.STATUT_EN_ATTENTE
-            ).first()
+            if note:
+                justification = JustificationNote.objects.filter(
+                    note=note,
+                    statut=JustificationNote.STATUT_EN_ATTENTE
+                ).first()
+                ancienne_note_val = note.note
+                classe_obj = note.evaluation.classe
+                matiere_obj = note.matiere or note.evaluation.matiere
+                eleve_obj = note.eleve
+                evaluation_obj = note.evaluation
+            else:
+                justification = JustificationNote.objects.filter(
+                    note_examen=note_examen,
+                    statut=JustificationNote.STATUT_EN_ATTENTE
+                ).first()
+                ancienne_note_val = note_examen.note
+                classe_obj = note_examen.classe
+                matiere_obj = note_examen.matiere
+                eleve_obj = note_examen.eleve
+                evaluation_obj = None
 
             if justification:
-                justification.ancienne_note = note.note
+                justification.ancienne_note = ancienne_note_val
                 justification.nouvelle_note = nouvelle_note
                 justification.motif = motif
                 justification.description = description
                 justification.professeur = professeur
                 justification.etablissement = professeur.etablissement
-                justification.matiere = note.matiere or note.evaluation.matiere
-                justification.classe = note.evaluation.classe
-                justification.evaluation = note.evaluation
-                justification.eleve = note.eleve
+                justification.matiere = matiere_obj
+                justification.classe = classe_obj
+                justification.eleve = eleve_obj
+                if note:
+                    justification.note = note
+                    justification.evaluation = evaluation_obj
+                    justification.note_examen = None
+                else:
+                    justification.note_examen = note_examen
+                    justification.note = None
+                    justification.evaluation = None
+                justification.annee_scolaire = annee_scolaire_active
                 justification.save()
                 justification_obj = justification
                 messages.success(request, "Votre demande de justification a été mise à jour.")
             else:
-                justification_obj = JustificationNote.objects.create(
-                    note=note,
-                    classe=note.evaluation.classe,
-                    evaluation=note.evaluation,
-                    eleve=note.eleve,
-                    matiere=note.matiere or note.evaluation.matiere,
-                    professeur=professeur,
-                    etablissement=professeur.etablissement,
-                    ancienne_note=note.note,
-                    nouvelle_note=nouvelle_note,
-                    motif=motif,
-                    description=description,
-                )
+                creation_kwargs = {
+                    'classe': classe_obj,
+                    'eleve': eleve_obj,
+                    'matiere': matiere_obj,
+                    'professeur': professeur,
+                    'etablissement': professeur.etablissement,
+                    'ancienne_note': ancienne_note_val,
+                    'nouvelle_note': nouvelle_note,
+                    'motif': motif,
+                    'description': description,
+                    'annee_scolaire': annee_scolaire_active,
+                }
+                if note:
+                    creation_kwargs['note'] = note
+                    creation_kwargs['evaluation'] = evaluation_obj
+                else:
+                    creation_kwargs['note_examen'] = note_examen
+                
+                justification_obj = JustificationNote.objects.create(**creation_kwargs)
                 messages.success(request, "Votre demande de justification a été envoyée à la direction.")
 
         if justification_obj:
-            try:
-                DirecteurNotificationService.notify_justification_note(justification_obj)
-            except Exception as notification_error:
-                logger.error(
-                    "Erreur lors de la notification directeur pour la justification de note: %s",
-                    notification_error,
-                    exc_info=True,
-                )
+            from ..services.notification_tasks import schedule_justification_note_directeur_notification
+            schedule_justification_note_directeur_notification(justification_obj.id)
 
-        return redirect('enseignant:justifications_notes')
+        # Rediriger en gardant le paramètre periode
+        return _redirect_with_periode()
+
+    # Récupérer les périodes scolaires
+    from ..model.periode_model import PeriodeScolaire
+    periodes_queryset = PeriodeScolaire.objects.filter(
+        etablissement=etablissement,
+        est_active=True
+    )
+    if annee_scolaire_active:
+        periodes_queryset = periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes_queryset.order_by('date_debut')
+    
+    # Sélectionner la période (GET paramètre ou période active par défaut)
+    periode_id = request.GET.get('periode')
+    periode_active = None
+    if periodes.exists():
+        if periode_id:
+            try:
+                periode_active = periodes.get(id=periode_id)
+            except PeriodeScolaire.DoesNotExist:
+                pass
+        if not periode_active:
+            periode_active = periodes.filter(est_active=True).first() or periodes.first()
 
     # Construction des données d'affichage
     affectations_queryset = AffectationProfesseur.objects.filter(
@@ -1126,6 +1210,8 @@ def justifications_notes_enseignant(request):
             )
             if annee_scolaire_active:
                 toutes_evaluations_queryset = toutes_evaluations_queryset.filter(annee_scolaire=annee_scolaire_active)
+            if periode_active:
+                toutes_evaluations_queryset = toutes_evaluations_queryset.filter(periode_scolaire=periode_active)
             toutes_evaluations = toutes_evaluations_queryset.order_by('date_evaluation')
 
             # Classer par barème : <= 10 = interrogation, > 10 = devoir
@@ -1160,6 +1246,32 @@ def justifications_notes_enseignant(request):
             'eleve'
         ).prefetch_related('justifications').order_by('eleve__nom', 'evaluation__date_evaluation')
 
+        # Récupérer les notes d'examen pour cette classe et matière
+        from ..model.note_examen_model import NoteExamen
+        from ..model.session_examen_model import SessionExamen
+        notes_examen_query = NoteExamen.objects.filter(
+            classe=classe,
+            professeur=professeur,
+            actif=True
+        )
+        if matiere_affectation:
+            notes_examen_query = notes_examen_query.filter(matiere=matiere_affectation)
+        if annee_scolaire_active:
+            notes_examen_query = notes_examen_query.filter(annee_scolaire=annee_scolaire_active)
+        if periode_active:
+            # Filtrer par période via la session d'examen
+            session_ids = SessionExamen.objects.filter(
+                periode=periode_active,
+                actif=True
+            ).values_list('id', flat=True)
+            notes_examen_query = notes_examen_query.filter(session_examen_id__in=session_ids)
+        notes_examen_query = notes_examen_query.select_related(
+            'session_examen',
+            'creneau_examen',
+            'matiere',
+            'eleve'
+        ).prefetch_related('justifications').order_by('eleve__nom', 'session_examen__date_debut')
+
         notes_par_eleve = {}
         for note in notes_query:
             notes_map = notes_par_eleve.setdefault(note.eleve_id, {})
@@ -1169,9 +1281,26 @@ def justifications_notes_enseignant(request):
                 reverse=True
             )
             derniere_justification = justifications[0] if justifications else None
-            notes_map[note.evaluation_id] = {
+            notes_map[f"eval_{note.evaluation_id}"] = {
                 'note': note,
+                'note_examen': None,
                 'justification': derniere_justification,
+                'type': 'evaluation',
+            }
+        
+        for note_examen in notes_examen_query:
+            notes_map = notes_par_eleve.setdefault(note_examen.eleve_id, {})
+            justifications = sorted(
+                list(note_examen.justifications.all()),
+                key=lambda j: j.date_creation,
+                reverse=True
+            )
+            derniere_justification = justifications[0] if justifications else None
+            notes_map[f"examen_{note_examen.id}"] = {
+                'note': None,
+                'note_examen': note_examen,
+                'justification': derniere_justification,
+                'type': 'examen',
             }
 
         eleves_data = []
@@ -1190,21 +1319,47 @@ def justifications_notes_enseignant(request):
             if notes_map:
                 eleve_payload = notes_payload.setdefault(str(eleve.id), [])
                 for entry in notes_map.values():
-                    note_obj = entry['note']
-                    evaluation = note_obj.evaluation
+                    note_obj = entry.get('note')
+                    note_examen_obj = entry.get('note_examen')
                     justification = entry['justification']
-                    label = f"{evaluation.titre} ({note_obj.note}/{evaluation.bareme}) - {date_format(evaluation.date_evaluation, 'd/m/Y')}"
-                    matiere_obj = note_obj.matiere or evaluation.matiere
-                    eleve_payload.append({
-                        'id': note_obj.id,
-                        'evaluation_id': evaluation.id,
-                        'classe_id': str(classe.id),
-                        'matiere_id': str(matiere_obj.id) if matiere_obj else "",
-                        'label': label,
-                        'bareme': str(evaluation.bareme),
-                        'valeur': str(note_obj.note) if note_obj.note is not None else "",
-                        'statut': justification.statut if justification else "",
-                    })
+                    entry_type = entry.get('type', 'evaluation')
+                    
+                    if entry_type == 'examen' and note_examen_obj:
+                        session_examen = note_examen_obj.session_examen
+                        creneau = note_examen_obj.creneau_examen
+                        session_label = session_examen.nom if session_examen else "Examen"
+                        if creneau:
+                            session_label += f" - {creneau.nom}"
+                        label = f"Examen: {session_label} ({note_examen_obj.note if note_examen_obj.note is not None else 'N/A'}/{note_examen_obj.bareme})"
+                        if session_examen and session_examen.date_debut:
+                            label += f" - {date_format(session_examen.date_debut, 'd/m/Y')}"
+                        matiere_obj = note_examen_obj.matiere
+                        eleve_payload.append({
+                            'id': note_examen_obj.id,
+                            'note_type': 'examen',
+                            'evaluation_id': None,
+                            'classe_id': str(classe.id),
+                            'matiere_id': str(matiere_obj.id) if matiere_obj else "",
+                            'label': label,
+                            'bareme': str(note_examen_obj.bareme),
+                            'valeur': str(note_examen_obj.note) if note_examen_obj.note is not None else "",
+                            'statut': justification.statut if justification else "",
+                        })
+                    elif note_obj:
+                        evaluation = note_obj.evaluation
+                        label = f"{evaluation.titre} ({note_obj.note}/{evaluation.bareme}) - {date_format(evaluation.date_evaluation, 'd/m/Y')}"
+                        matiere_obj = note_obj.matiere or evaluation.matiere
+                        eleve_payload.append({
+                            'id': note_obj.id,
+                            'note_type': 'evaluation',
+                            'evaluation_id': evaluation.id,
+                            'classe_id': str(classe.id),
+                            'matiere_id': str(matiere_obj.id) if matiere_obj else "",
+                            'label': label,
+                            'bareme': str(evaluation.bareme),
+                            'valeur': str(note_obj.note) if note_obj.note is not None else "",
+                            'statut': justification.statut if justification else "",
+                        })
 
             eleves_data.append({
                 'eleve': eleve,
@@ -1234,6 +1389,9 @@ def justifications_notes_enseignant(request):
         'stats': stats,
         'notes_json': notes_json,
         'motifs_justification': MOTIFS_JUSTIFICATION_SECONDAIRE,
+        'periodes': periodes,
+        'periode_active': periode_active,
+        'annee_scolaire_active': annee_scolaire_active,
     }
 
     return render(request, 'school_admin/enseignant/justifications_notes.html', context)
@@ -1510,88 +1668,11 @@ def exercices_maison_enseignant(request):
             messages.error(request, f"Erreur lors de l'enregistrement de l'exercice : {creation_error}")
             return redirect(request.get_full_path())
 
+        # Programmer l'envoi des notifications en arrière-plan (uniquement pour les nouveaux exercices)
         if not exercice_id:
-            from ..model.eleve_model import Eleve
-
-            # Récupérer les élèves via InscriptionEleve
-            eleves = _get_eleves_classe_par_inscription(classe_obj, etablissement, annee_scolaire_active).select_related('classe')
-            if eleves.exists():
-                date_claire = date_format(date_rendu, "l d F Y", use_l10n=True)
-                payload_base = {
-                    'exercice_id': exercice.id,
-                    'classe': classe_obj.nom,
-                    'matiere': matiere_obj.nom,
-                    'date_rendu': date_claire,
-                    'titre': titre,
-                }
-
-                for eleve in eleves:
-                    eleve_nom = getattr(eleve, 'nom_complet', f"{eleve.nom} {eleve.prenom}")
-                    try:
-                        # Notification pour l'élève avec push
-                        push_title = f"📝 Nouvel exercice en {matiere_obj.nom}"
-                        push_body = f"Exercice \"{titre}\" à rendre le {date_claire}."
-                        push_data = {
-                            'type': 'exercice_maison',
-                            'classe': classe_obj.nom,
-                            'matiere': matiere_obj.nom,
-                            'date_rendu': date_claire,
-                            'exercice_id': str(exercice.id),
-                            'titre': titre,
-                        }
-                        
-                        # Utiliser _dispatch directement pour avoir le push
-                        EleveNotificationService._dispatch(
-                            eleve=eleve,
-                            type_notification="information",
-                            titre=f"Exercice en {matiere_obj.nom}",
-                            message=f"Exercice \"{titre}\" à rendre le {date_claire} pour {classe_obj.nom}.",
-                            payload={**payload_base, 'eleve': eleve_nom},
-                            source=exercice,
-                            push_title=push_title,
-                            push_body=push_body,
-                            push_data=push_data,
-                        )
-                    except Exception as notify_error:
-                        logger.error(
-                            "Erreur notification élève exercice %s : %s",
-                            exercice.id,
-                            notify_error,
-                            exc_info=True,
-                        )
-
-                    try:
-                        # Notification pour les parents avec push
-                        parent_push_title = f"📝 Nouvel exercice en {matiere_obj.nom}"
-                        parent_push_body = f"Votre enfant {eleve_nom} doit rendre l'exercice \"{titre}\" le {date_claire}."
-                        parent_push_data = {
-                            'type': 'exercice_maison',
-                            'classe': classe_obj.nom,
-                            'matiere': matiere_obj.nom,
-                            'date_rendu': date_claire,
-                            'exercice_id': str(exercice.id),
-                            'eleve_id': str(eleve.id),
-                            'titre': titre,
-                        }
-                        
-                        ParentNotificationService.notify_custom(
-                            eleve=eleve,
-                            type_notification="information",
-                            titre=f"Exercice en {matiere_obj.nom}",
-                            message=f"Votre enfant {eleve_nom} en {classe_obj.nom} doit rendre l'exercice \"{titre}\" le {date_claire}.",
-                            payload={**payload_base, 'eleve': eleve_nom},
-                            source=exercice,
-                            push_title=parent_push_title,
-                            push_body=parent_push_body,
-                            push_data=parent_push_data,
-                        )
-                    except Exception as parent_notify_error:
-                        logger.error(
-                            "Erreur notification parent exercice %s : %s",
-                            exercice.id,
-                            parent_notify_error,
-                            exc_info=True,
-                        )
+            from ..services.notification_tasks import schedule_exercice_maison_notification
+            schedule_exercice_maison_notification(exercice.id)
+            logger.info(f"Envoi des notifications programmé en arrière-plan pour l'exercice de maison {exercice.id}")
 
         messages.success(request, f"Exercice de maison « {titre} » {action_message} avec succès.")
 
@@ -3160,93 +3241,10 @@ def creer_evaluation_enseignant(request, classe_id):
                     
                     logger.info(f"Évaluation créée: {evaluation.id} - {evaluation.titre}")
                     
-                    from ..model.eleve_model import Eleve
-                    eleves = list(_get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active))
-                    if eleves:
-                        date_obj = evaluation.date_evaluation
-                        if isinstance(date_obj, str):
-                            parsed = parse_date(date_obj)
-                            date_obj = parsed or date_obj
-                        date_claire = date_format(date_obj, "l d F Y", use_l10n=True) if isinstance(date_obj, (datetime, date)) else str(date_obj)
-                        classe_nom = classe.nom
-                        matiere_nom = matiere_enseignee.nom if matiere_enseignee else ""
-                        professeur_nom = getattr(professeur, 'nom_complet', str(professeur))
-                        payload_base = {
-                            'evaluation_id': evaluation.id,
-                            'classe': classe_nom,
-                            'matiere': matiere_nom,
-                            'date': date_claire,
-                            'professeur': professeur_nom,
-                        }
-                        
-                        for eleve in eleves:
-                            eleve_nom = getattr(eleve, 'nom_complet', f"{eleve.nom} {eleve.prenom}")
-                            try:
-                                EleveNotificationService.notify_custom(
-                                    eleve=eleve,
-                                    titre=f"Évaluation en {matiere_nom}",
-                                    message=f"Une évaluation de {matiere_nom} est programmée pour la classe {classe_nom} le {date_claire}.",
-                                    payload={**payload_base, 'eleve': eleve_nom},
-                                    source=evaluation,
-                                    type_notification="evaluation",
-                                )
-                            except Exception as notify_error:
-                                logger.error(
-                                    "Erreur notification élève pour évaluation %s : %s",
-                                    evaluation.id,
-                                    notify_error,
-                                    exc_info=True,
-                                )
-                            else:
-                                try:
-                                    from school_admin.services.firebase_service import FirebaseService
-                                    
-                                    FirebaseService.send_notification_to_multiple_users(
-                                        users=[eleve],
-                                        title=f"📘 Évaluation en {matiere_nom}",
-                                        body=f"{classe_nom} : évaluation prévue le {date_claire}.",
-                                        data={
-                                            'type': 'evaluation',
-                                            'classe': classe_nom,
-                                            'matiere': matiere_nom,
-                                            'date': date_claire,
-                                            'evaluation_id': str(evaluation.id),
-                                        },
-                                    )
-                                except Exception as push_error:
-                                    logger.error(
-                                        "Erreur envoi push élève pour évaluation %s : %s",
-                                        evaluation.id,
-                                        push_error,
-                                        exc_info=True,
-                                    )
-                            
-                            try:
-                                ParentNotificationService.notify_custom(
-                                    eleve=eleve,
-                                    type_notification="evaluation",
-                                    titre=f"Évaluation en {matiere_nom}",
-                                    message=f"Votre enfant {eleve_nom} en {classe_nom} a une évaluation programmée le {date_claire} en {matiere_nom}.",
-                                    payload={**payload_base, 'eleve': eleve_nom},
-                                    source=evaluation,
-                                    push_title=f"Évaluation prévue en {matiere_nom}",
-                                    push_body=f"{eleve_nom} en {classe_nom} passera une évaluation le {date_claire}.",
-                                    push_data={
-                                        'type': 'evaluation',
-                                        'classe': classe_nom,
-                                        'matiere': matiere_nom,
-                                        'date': date_claire,
-                                        'evaluation_id': str(evaluation.id),
-                                        'eleve_id': str(eleve.id),
-                                    },
-                                )
-                            except Exception as parent_notify_error:
-                                logger.error(
-                                    "Erreur notification parent pour évaluation %s : %s",
-                                    evaluation.id,
-                                    parent_notify_error,
-                                    exc_info=True,
-                                )
+                    # Programmer l'envoi des notifications en arrière-plan
+                    from ..services.notification_tasks import schedule_evaluation_notification
+                    schedule_evaluation_notification(evaluation.id)
+                    logger.info(f"Envoi des notifications programmé en arrière-plan pour l'évaluation {evaluation.id}")
                     
                     messages.success(request, f"L'évaluation '{evaluation.titre}' a été créée avec succès !")
                     if matiere_id:
@@ -3454,6 +3452,63 @@ def liste_evaluations_enseignant(request):
     }
     
     return render(request, 'school_admin/enseignant/liste_evaluations.html', context)
+
+
+def supprimer_evaluation_enseignant(request, evaluation_id):
+    """
+    Supprime une évaluation existante.
+    """
+    if request.method != 'POST':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Méthode non autorisée.'})
+        messages.error(request, "Méthode non autorisée.")
+        return redirect('enseignant:liste_evaluations')
+    
+    if not isinstance(request.user, Professeur):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Accès non autorisé.'})
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    professeur = request.user
+    from ..model.evaluation_model import Evaluation
+    from django.shortcuts import get_object_or_404
+    from django.db import transaction
+    from django.http import JsonResponse
+    
+    try:
+        evaluation = get_object_or_404(Evaluation, id=evaluation_id, professeur=professeur, actif=True)
+        titre_evaluation = evaluation.titre
+        
+        with transaction.atomic():
+            # Marquer l'évaluation comme inactive (soft delete)
+            evaluation.actif = False
+            evaluation.save()
+        
+        logger.info(f"Évaluation {evaluation_id} supprimée par {professeur.nom_complet}")
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': f"L'évaluation '{titre_evaluation}' a été supprimée avec succès.",
+            })
+        
+        messages.success(request, f"L'évaluation '{titre_evaluation}' a été supprimée avec succès.")
+        return redirect('enseignant:liste_evaluations')
+        
+    except Evaluation.DoesNotExist:
+        error_message = "Évaluation introuvable ou vous n'avez pas la permission de la supprimer."
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': error_message})
+        messages.error(request, error_message)
+        return redirect('enseignant:liste_evaluations')
+    except Exception as e:
+        logger.error(f"Erreur lors de la suppression de l'évaluation {evaluation_id}: {e}", exc_info=True)
+        error_message = f"Une erreur est survenue lors de la suppression : {str(e)}"
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': error_message})
+        messages.error(request, error_message)
+        return redirect('enseignant:liste_evaluations')
 
 
 def modifier_evaluation_enseignant(request, evaluation_id):
@@ -5414,6 +5469,13 @@ def valider_presence_enseignant(request, classe_id):
                 f"Matière: {matiere_selectionnee.nom if matiere_selectionnee else 'N/A'}, "
                 f"Présents: {nombre_presents}, Absents: {nombre_absents}"
             )
+            
+            # Programmer l'envoi des notifications en arrière-plan
+            if presences_creees:
+                presence_ids = [p.id for p in presences_creees]
+                from ..services.notification_tasks import schedule_presence_notifications
+                schedule_presence_notifications(presence_ids)
+                logger.info(f"Envoi des notifications programmé en arrière-plan pour {len(presence_ids)} présence(s)")
             
             matiere_msg = f" pour la matière {matiere_selectionnee.nom}" if matiere_selectionnee else ""
             messages.success(

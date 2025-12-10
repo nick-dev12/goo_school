@@ -7187,7 +7187,8 @@ def emploi_du_temps_enseignant(request):
     
     if config_horaire:
         # Utiliser les périodes de l'établissement
-        periodes = config_horaire.periodes.filter(actif=True).order_by('ordre')
+        # Trier par heure de début pour afficher chronologiquement (de la plus ancienne à la plus récente)
+        periodes = config_horaire.periodes.filter(actif=True).order_by('heure_debut')
         
         # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
         creneaux_groupes = {}

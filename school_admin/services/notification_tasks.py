@@ -330,18 +330,34 @@ def _send_emploi_publication(emploi_id: int) -> None:
         redirect_parent = "/parent/notifications/"
 
     # Notifications enseignants
-    enseignants = list(classe.professeurs.filter(actif=True))
-    _notify_users_push(
-        enseignants,
-        titre=titre_general,
-        message=message_general,
-        redirect_url=redirect_teacher,
-        data_type="emploi_du_temps",
-        extra_data={
-            "emploi_id": str(emploi.id),
-            "classe_id": str(classe.id),
-        },
-    )
+    # Récupérer tous les créneaux de l'emploi du temps avec leurs professeurs
+    from school_admin.model.emploi_du_temps_model import CreneauEmploiDuTemps
+    
+    creneaux = CreneauEmploiDuTemps.objects.filter(
+        emploi_du_temps=emploi,
+        professeur__isnull=False
+    ).select_related('professeur')
+    
+    # Identifier tous les professeurs qui ont des créneaux dans cet emploi
+    # Seuls ces professeurs doivent être notifiés
+    professeurs_avec_creneaux = set()
+    for creneau in creneaux:
+        if creneau.professeur and creneau.professeur.actif:
+            professeurs_avec_creneaux.add(creneau.professeur)
+    
+    # Envoyer les notifications uniquement aux professeurs qui ont des créneaux dans cet emploi
+    if professeurs_avec_creneaux:
+        _notify_users_push(
+            list(professeurs_avec_creneaux),
+            titre=titre_general,
+            message=message_general,
+            redirect_url=redirect_teacher,
+            data_type="emploi_du_temps",
+            extra_data={
+                "emploi_id": str(emploi.id),
+                "classe_id": str(classe.id),
+            },
+        )
 
     # Notifications élèves
     eleves = list(Eleve.objects.filter(classe=classe, actif=True))

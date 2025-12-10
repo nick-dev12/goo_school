@@ -1,0 +1,606 @@
+/* 
+* Modal plein écran pour ajouter un créneau - Design System
+* Styles pour le modal élégant et responsive
+*/
+
+/* Variables CSS - Respectant le code couleur de l'application */
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #1d4ed8;
+  --primary-light: #60a5fa;
+  --primary-lighter: rgba(59, 130, 246, 0.1);
+  --secondary: #7c3aed;
+  --accent: #ef4444;
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.1);
+  --warning: #fbbf24;
+  --warning-light: rgba(251, 191, 36, 0.1);
+  --error: #ef4444;
+  --error-light: rgba(239, 68, 68, 0.1);
+  --info: #8b5cf6;
+  --info-light: rgba(139, 92, 246, 0.1);
+  --white: #ffffff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --text-primary: var(--gray-800);
+  --text-secondary: var(--gray-600);
+  --border-light: var(--gray-200);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --transition-normal: 250ms ease-in-out;
+}
+
+/* Modal plein écran */
+.modal-creneau-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+}
+
+.modal-creneau-fullscreen.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Overlay */
+.modal-creneau-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* Contenu du modal */
+.modal-creneau-content {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: var(--white);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.95);
+  transition: transform var(--transition-normal);
+}
+
+.modal-creneau-fullscreen.active .modal-creneau-content {
+  transform: scale(1);
+}
+
+/* Header du modal */
+.modal-creneau-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: var(--white);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-creneau-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--white);
+}
+
+.modal-creneau-title i {
+  font-size: 1.75rem;
+}
+
+.modal-creneau-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: var(--white);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-normal);
+  font-size: 1.25rem;
+}
+
+.modal-creneau-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Body du modal */
+.modal-creneau-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Alerts */
+.modal-alert-info {
+  background: var(--primary-lighter);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.modal-alert-info i {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.alert-error {
+  background: var(--error-light);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--error);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--error);
+}
+
+.alert-warning-modal {
+  background: var(--warning-light);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  border-left: 4px solid var(--warning);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+/* Formulaire */
+.form-creneau-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row-modal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-group-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group-full-modal {
+  grid-column: 1 / -1;
+}
+
+.form-label-modal {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-label-modal i {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.form-label-modal.required::after {
+  content: '*';
+  color: var(--error);
+  margin-left: 0.25rem;
+}
+
+.form-label-modal .optional {
+  font-weight: 400;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+  margin-left: 0.25rem;
+}
+
+.form-control-modal {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  background: var(--white);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.form-control-modal:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-lighter);
+}
+
+.form-control-modal:disabled {
+  background: var(--gray-50);
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
+
+/* Grille de sélection des périodes */
+.periodes-selection-grid-modal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.periode-checkbox-label-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-light);
+  border-radius: 0.5rem;
+  background: var(--gray-50);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  position: relative;
+}
+
+.periode-checkbox-label-modal input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.periode-checkbox-label-modal:hover {
+  border-color: var(--primary-light);
+  background: var(--primary-lighter);
+}
+
+.periode-checkbox-label-modal:has(input:checked) {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-color: var(--primary);
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* Messages d'erreur */
+.error-message-modal {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--error);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.error-message-modal i {
+  font-size: 0.875rem;
+}
+
+/* Actions du formulaire */
+.form-actions-modal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+  margin-top: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--transition-normal);
+}
+
+.btn-primary-modal {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: var(--white);
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary-modal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary-modal {
+  background: var(--gray-100);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.btn-secondary-modal:hover {
+  background: var(--gray-200);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .modal-creneau-content {
+    width: 95%;
+    max-width: 800px;
+  }
+
+  .modal-creneau-header {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .modal-creneau-title {
+    font-size: 1.25rem;
+  }
+
+  .modal-creneau-body {
+    padding: 1.5rem;
+  }
+
+  .form-row-modal {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .periodes-selection-grid-modal {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-creneau-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .modal-creneau-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .modal-creneau-title {
+    font-size: 1.125rem;
+  }
+
+  .modal-creneau-title i {
+    font-size: 1.5rem;
+  }
+
+  .modal-creneau-body {
+    padding: 1.25rem;
+  }
+
+  .form-creneau-modal {
+    gap: 1.25rem;
+  }
+
+  .form-row-modal {
+    gap: 1rem;
+  }
+
+  .periodes-selection-grid-modal {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .periode-checkbox-label-modal {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .form-actions-modal {
+    flex-direction: column-reverse;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-creneau-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .modal-creneau-title {
+    font-size: 1rem;
+  }
+
+  .modal-creneau-body {
+    padding: 1rem;
+  }
+
+  .periodes-selection-grid-modal {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Styles pour le formulaire de gestion des périodes */
+.form-card-creneau {
+  background: var(--white);
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-card-header-creneau {
+  margin-bottom: 1.25rem;
+}
+
+.form-card-title-creneau {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-card-title-creneau i {
+  color: var(--primary);
+}
+
+.form-content-creneau {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-label i {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.form-label.required::after {
+  content: '*';
+  color: var(--error);
+  margin-left: 0.25rem;
+}
+
+.form-control {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  background: var(--white);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-lighter);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+  margin-top: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--transition-normal);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: var(--white);
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.4);
+}
+
+/* Styles pour les modals de modification et suppression */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease;
+  padding: 1.5rem;
+  z-index: 10000;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Responsive pour le formulaire dans le modal */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+

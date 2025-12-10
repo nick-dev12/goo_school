@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/configuration_horaires.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0" />
 </head>
 <body>
     <!-- Header -->
@@ -29,10 +30,10 @@
                 </p>
             </div>
             <div class="page-actions">
-                <a href="{% url 'administrateur_etablissement:gerer_periodes' %}" class="btn-add btn-primary">
+                <button type="button" class="btn-add btn-primary" id="btnOuvrirModalPeriodes">
                     <i class="fas fa-cogs"></i>
                     <span>Gérer les Périodes</span>
-                </a>
+                </button>
             </div>
         </div>
 
@@ -211,14 +212,29 @@
                                     <td>{{ periode.heure_debut|time:"H:i" }} - {{ periode.heure_fin|time:"H:i" }}</td>
                                     <td>{{ periode.duree_minutes }} min</td>
                                     <td>
-                                        <form method="post" action="{% url 'administrateur_etablissement:gerer_periodes' %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette période ?');">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="supprimer_periode">
-                                            <input type="hidden" name="periode_id" value="{{ periode.id }}">
-                                            <button type="submit" class="btn-delete-table">
-                                                <i class="fas fa-trash"></i>
+                                        <div style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+                                            <button type="button"
+                                                    class="btn-action-edit"
+                                                    data-id="{{ periode.id }}"
+                                                    data-nom="{{ periode.nom|escape }}"
+                                                    data-type="{{ periode.type_periode }}"
+                                                    data-debut="{{ periode.heure_debut|time:'H:i' }}"
+                                                    data-fin="{{ periode.heure_fin|time:'H:i' }}"
+                                                    onclick="openEditPeriodeModal(this)"
+                                                    style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.875rem;">
+                                                <i class="fas fa-pen"></i>
+                                                Modifier
                                             </button>
-                                        </form>
+                                            <button type="button"
+                                                    class="btn-action-delete"
+                                                    data-id="{{ periode.id }}"
+                                                    data-nom="{{ periode.nom|escape }}"
+                                                    onclick="openDeletePeriodeModal(this)"
+                                                    style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.875rem;">
+                                                <i class="fas fa-trash"></i>
+                                                Supprimer
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -228,6 +244,297 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- Modal plein écran pour gérer les périodes -->
+    <div id="modalGererPeriodes" class="modal-creneau-fullscreen">
+      <div class="modal-creneau-overlay" id="modalPeriodesOverlay"></div>
+      <div class="modal-creneau-content" style="max-width: 1000px;">
+        <div class="modal-creneau-header">
+          <h2 class="modal-creneau-title">
+            <i class="fas fa-calendar-alt"></i>
+            Gestion des Périodes
+          </h2>
+          <button type="button" class="modal-creneau-close" id="btnFermerModalPeriodes">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-creneau-body">
+          <!-- Message d'information sur l'année scolaire active -->
+          {% if annee_scolaire_active %}
+          <div class="alert alert-info modal-alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>
+              Gestion des périodes pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+            </span>
+          </div>
+          {% endif %}
+
+          <!-- Formulaire d'ajout de période -->
+          <div class="form-card-creneau" style="margin-bottom: 2rem;">
+            <div class="form-card-header-creneau">
+              <h2 class="form-card-title-creneau">
+                <i class="fas fa-plus-circle"></i>
+                Ajouter une Période
+              </h2>
+            </div>
+            
+            <form method="post" action="{% url 'administrateur_etablissement:configuration_horaires' %}" class="form-content-creneau">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="ajouter_periode">
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nom" class="form-label required">
+                    <i class="fas fa-tag"></i>
+                    Nom de la période
+                  </label>
+                  <input type="text" 
+                         class="form-control" 
+                         id="nom" 
+                         name="nom" 
+                         placeholder="Ex: Période 7"
+                         required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="type_periode" class="form-label required">
+                    <i class="fas fa-list"></i>
+                    Type de période
+                  </label>
+                  <select class="form-control" id="type_periode" name="type_periode" required>
+                    <option value="">Sélectionnez un type</option>
+                    <option value="cours">Période de cours</option>
+                    <option value="pause">Pause/Récréation</option>
+                    <option value="dejeuner">Pause déjeuner</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="heure_debut" class="form-label required">
+                    <i class="fas fa-clock"></i>
+                    Heure de début
+                  </label>
+                  <input type="time" 
+                         class="form-control" 
+                         id="heure_debut" 
+                         name="heure_debut" 
+                         required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="heure_fin" class="form-label required">
+                    <i class="fas fa-clock"></i>
+                    Heure de fin
+                  </label>
+                  <input type="time" 
+                         class="form-control" 
+                         id="heure_fin" 
+                         name="heure_fin" 
+                         required>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-plus"></i>
+                  <span>Ajouter la Période</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Modification de période -->
+    <div class="modal-overlay" id="periodeEditModal" aria-hidden="true" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.25s ease; padding: 1.5rem; z-index: 10000;">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="editModalTitle" style="background: white; border-radius: 16px; width: 100%; max-width: 560px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden; display: flex; flex-direction: column; position: relative;">
+        <div class="modal-header" style="padding: 1.5rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;">
+          <h3 id="editModalTitle" style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-pen-to-square"></i>
+            Modifier la période
+          </h3>
+          <button type="button" class="modal-close" onclick="closePeriodeModal('periodeEditModal')" aria-label="Fermer la fenêtre" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.1rem;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form class="modal-form" method="post" action="{% url 'administrateur_etablissement:configuration_horaires' %}" style="display: flex; flex-direction: column;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="modifier_periode">
+          <input type="hidden" name="periode_id" id="edit_periode_id">
+          <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <label for="edit_nom" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Nom de la période</label>
+              <input type="text" id="edit_nom" name="nom" required placeholder="Ex: Période 1" style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
+            </div>
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <label for="edit_type" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Type de période</label>
+              <select id="edit_type" name="type_periode" required style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
+                <option value="cours">Période de cours</option>
+                <option value="pause">Pause / Récréation</option>
+                <option value="dejeuner">Pause déjeuner</option>
+              </select>
+            </div>
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <label for="edit_heure_debut" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Heure de début</label>
+              <input type="time" id="edit_heure_debut" name="heure_debut" required style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
+            </div>
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <label for="edit_heure_fin" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Heure de fin</label>
+              <input type="time" id="edit_heure_fin" name="heure_fin" required style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding: 1.25rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+            <button type="button" class="btn-secondary" onclick="closePeriodeModal('periodeEditModal')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
+              Annuler
+            </button>
+            <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
+              Mettre à jour
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Suppression de période -->
+    <div class="modal-overlay" id="periodeDeleteModal" aria-hidden="true" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.25s ease; padding: 1.5rem; z-index: 10000;">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" style="background: white; border-radius: 16px; width: 100%; max-width: 560px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden; display: flex; flex-direction: column; position: relative;">
+        <div class="modal-header" style="padding: 1.5rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: white;">
+          <h3 id="deleteModalTitle" style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-triangle-exclamation"></i>
+            Supprimer la période
+          </h3>
+          <button type="button" class="modal-close" onclick="closePeriodeModal('periodeDeleteModal')" aria-label="Fermer la fenêtre" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.1rem;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="deletePeriodeForm" method="post" action="{% url 'administrateur_etablissement:configuration_horaires' %}" style="display: flex; flex-direction: column;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="supprimer_periode">
+          <input type="hidden" name="periode_id" id="delete_periode_id">
+          <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <p style="color: #374151; line-height: 1.5;">
+              Vous êtes sur le point de supprimer la période
+              <strong id="delete_periode_name" style="color: #ef4444;"></strong>.
+              Cette action est définitive et supprimera tous les créneaux associés à cette période.
+            </p>
+            <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(239, 68, 68, 0.08); padding: 0.85rem 1rem; border-radius: 12px;">
+              <i class="fas fa-circle-info" style="color: #dc2626;"></i>
+              <span style="font-size: 0.9rem; color: #991b1b;">
+                Assurez-vous qu'aucune plage horaire active n'utilise cette période avant de confirmer.
+              </span>
+            </div>
+          </div>
+          <div class="modal-footer" style="padding: 1.25rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+            <button type="button" class="btn-secondary" onclick="closePeriodeModal('periodeDeleteModal')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
+              Annuler
+            </button>
+            <button type="submit" class="btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
+              Supprimer définitivement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- JavaScript pour le modal -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modalGererPeriodes');
+        const btnOuvrir = document.getElementById('btnOuvrirModalPeriodes');
+        const btnFermer = document.getElementById('btnFermerModalPeriodes');
+        const overlay = document.getElementById('modalPeriodesOverlay');
+
+        // Ouvrir le modal
+        if (btnOuvrir) {
+          btnOuvrir.addEventListener('click', function() {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          });
+        }
+
+        // Fonction pour fermer le modal
+        function fermerModal() {
+          modal.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+
+        // Fermer via le bouton X
+        if (btnFermer) {
+          btnFermer.addEventListener('click', fermerModal);
+        }
+
+        // Fermer en cliquant sur l'overlay
+        if (overlay) {
+          overlay.addEventListener('click', fermerModal);
+        }
+
+        // Empêcher la fermeture en cliquant sur le contenu du modal
+        const modalContent = document.querySelector('#modalGererPeriodes .modal-creneau-content');
+        if (modalContent) {
+          modalContent.addEventListener('click', function(e) {
+            e.stopPropagation();
+          });
+        }
+      });
+
+      // Fonctions pour les modals de modification et suppression
+      const editModal = document.getElementById('periodeEditModal');
+      const deleteModal = document.getElementById('periodeDeleteModal');
+
+      function openEditPeriodeModal(button) {
+        const { id, nom, type, debut, fin } = button.dataset;
+        document.getElementById('edit_periode_id').value = id;
+        document.getElementById('edit_nom').value = nom || '';
+        document.getElementById('edit_type').value = type || 'cours';
+        document.getElementById('edit_heure_debut').value = debut || '';
+        document.getElementById('edit_heure_fin').value = fin || '';
+        editModal.style.opacity = '1';
+        editModal.style.visibility = 'visible';
+        editModal.setAttribute('aria-hidden', 'false');
+      }
+
+      function openDeletePeriodeModal(button) {
+        const { id, nom } = button.dataset;
+        document.getElementById('delete_periode_id').value = id;
+        document.getElementById('delete_periode_name').textContent = nom || '';
+        deleteModal.style.opacity = '1';
+        deleteModal.style.visibility = 'visible';
+        deleteModal.setAttribute('aria-hidden', 'false');
+      }
+
+      function closePeriodeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        modal.style.opacity = '0';
+        modal.style.visibility = 'hidden';
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      window.openEditPeriodeModal = openEditPeriodeModal;
+      window.openDeletePeriodeModal = openDeletePeriodeModal;
+      window.closePeriodeModal = closePeriodeModal;
+
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          closePeriodeModal('periodeEditModal');
+          closePeriodeModal('periodeDeleteModal');
+        }
+      });
+
+      [editModal, deleteModal].forEach(modal => {
+        if (modal) {
+          modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+              closePeriodeModal(modal.id);
+            }
+          });
+        }
+      });
+    </script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

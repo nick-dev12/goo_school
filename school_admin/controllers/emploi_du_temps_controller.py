@@ -230,10 +230,11 @@ class EmploiDuTempsController:
         
         if config_horaire:
             # Utiliser les périodes de l'établissement pour l'année scolaire active
+            # Trier par heure de début pour afficher chronologiquement (de la plus ancienne à la plus récente)
             periodes = config_horaire.periodes.filter(
                 annee_scolaire=annee_scolaire_active,
                 actif=True
-            ).order_by('ordre')
+            ).order_by('heure_debut')
             
             # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
             creneaux_groupes = {}
@@ -434,6 +435,30 @@ class EmploiDuTempsController:
                             cellules_masquees_examens[date][plage_suivante['label']] = True
                     break
         
+        # Récupérer les données nécessaires pour le formulaire d'ajout de créneau
+        from ..model.matiere_model import Matiere
+        from ..model.professeur_model import Professeur
+        from ..model.salle_model import Salle
+        
+        matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
+        salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
+        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(classe)
+        
+        # Récupérer les périodes de l'établissement pour l'année scolaire active (seulement les périodes de cours)
+        periodes_etablissement = []
+        if config_horaire:
+            periodes_etablissement = PeriodeEtablissement.objects.filter(
+                configuration_horaire=config_horaire,
+                annee_scolaire=annee_scolaire_active,
+                actif=True,
+                type_periode='cours'  # Seulement les périodes de cours
+            ).order_by('ordre')
+        
+        # Récupérer les erreurs et données du formulaire depuis la session (si présentes)
+        creneau_form_data = request.session.pop('creneau_form_data', {})
+        creneau_field_errors = request.session.pop('creneau_field_errors', {})
+        show_modal_creneau = bool(creneau_form_data or creneau_field_errors)
+        
         context = {
             'classe': classe,
             'emploi_du_temps': emploi_du_temps,
@@ -456,6 +481,18 @@ class EmploiDuTempsController:
             'plages_horaires_examens': plages_horaires_examens,
             'dates_examens_triees': dates_examens_triees,
             'cellules_masquees_examens': cellules_masquees_examens,
+            # Données pour le formulaire d'ajout de créneau
+            'matieres': matieres,
+            'professeurs_options': professeurs_options,
+            'afficher_matiere_prof': afficher_matiere_prof,
+            'salles': salles,
+            'periodes_etablissement': periodes_etablissement,
+            'jours_choices': CreneauEmploiDuTemps.JOUR_CHOICES,
+            'annee_scolaire_active': annee_scolaire_active,
+            # Données pour le formulaire d'ajout de créneau (en cas d'erreur)
+            'creneau_form_data': creneau_form_data,
+            'creneau_field_errors': creneau_field_errors,
+            'show_modal_creneau': show_modal_creneau,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/detail_emploi_du_temps.html', context)
@@ -524,18 +561,21 @@ class EmploiDuTempsController:
         # Récupérer la classe
         classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
         
-        # Vérifier si la classe a déjà un emploi du temps actif
-        emploi_existant = classe.emplois_du_temps.filter(est_actif=True).first()
-        if emploi_existant:
-            messages.warning(request, f"La classe {classe.nom} a déjà un emploi du temps actif.")
-            return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe.id)
-        
         # Récupérer l'année scolaire active
         annee_scolaire_active = get_session_active(request, etablissement)
         
         if not annee_scolaire_active:
             messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de créer un emploi du temps.")
             return redirect('administrateur_etablissement:liste_emplois_du_temps')
+        
+        # Vérifier si la classe a déjà un emploi du temps actif pour l'année scolaire active
+        emploi_existant = classe.emplois_du_temps.filter(
+            est_actif=True,
+            annee_scolaire_fk=annee_scolaire_active
+        ).first()
+        if emploi_existant:
+            messages.warning(request, f"La classe {classe.nom} a déjà un emploi du temps actif pour l'année scolaire {annee_scolaire_active.libelle}.")
+            return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe.id)
         
         if request.method == 'POST':
             notes = request.POST.get('notes', '').strip()
@@ -677,16 +717,72 @@ class EmploiDuTempsController:
             # Vérification des chevauchements pour chaque période
             if is_valid and form_data['jour'] and periodes_selectionnees:
                 for periode in periodes_selectionnees:
-                    chevauchements = CreneauEmploiDuTemps.objects.filter(
+                    # 1. Vérifier si un créneau existe déjà pour cette classe, ce jour et cette période
+                    chevauchements_classe = CreneauEmploiDuTemps.objects.filter(
                         emploi_du_temps=emploi_du_temps,
                         jour=form_data['jour'],
                         periode_etablissement=periode
                     )
                     
-                    if chevauchements.exists():
-                        field_errors['non_field_errors'] = f"Un créneau existe déjà pour la période {periode.nom} le {form_data['jour']}."
+                    if chevauchements_classe.exists():
+                        creneau_existant = chevauchements_classe.first()
+                        matiere_existante = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                        heure_debut_str = periode.heure_debut.strftime('%H:%M')
+                        heure_fin_str = periode.heure_fin.strftime('%H:%M')
+                        jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
+                        field_errors['non_field_errors'] = f"Un créneau existe déjà pour cet horaire ({heure_debut_str} à {heure_fin_str}) le {jour_display} dans cette classe avec la matière {matiere_existante}. Veuillez choisir un autre horaire."
                         is_valid = False
                         break
+                    
+                    # 2. Vérifier si le professeur sélectionné a déjà un créneau qui se chevauche avec cette période dans une autre classe
+                    if form_data['professeur_id']:
+                        try:
+                            professeur = Professeur.objects.get(id=form_data['professeur_id'], etablissement=etablissement)
+                            
+                            # Récupérer tous les créneaux du professeur pour ce jour et cette année scolaire
+                            creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
+                                professeur=professeur,
+                                jour=form_data['jour'],
+                                emploi_du_temps__est_actif=True,
+                                emploi_du_temps__annee_scolaire_fk=annee_scolaire_active
+                            ).exclude(emploi_du_temps=emploi_du_temps).select_related('emploi_du_temps__classe', 'matiere', 'periode_etablissement')
+                            
+                            # Vérifier les chevauchements d'heures
+                            for creneau_existant in creneaux_professeur:
+                                # Récupérer les heures du créneau existant (via période ou directes)
+                                heure_debut_existant = creneau_existant.get_heure_debut()
+                                heure_fin_existant = creneau_existant.get_heure_fin()
+                                
+                                if heure_debut_existant and heure_fin_existant:
+                                    # Vérifier si les heures se chevauchent
+                                    heure_debut_periode = periode.heure_debut
+                                    heure_fin_periode = periode.heure_fin
+                                    
+                                    # Deux périodes se chevauchent si :
+                                    # - Le début de l'une est entre le début et la fin de l'autre, OU
+                                    # - La fin de l'une est entre le début et la fin de l'autre, OU
+                                    # - Une période contient complètement l'autre
+                                    chevauche = (
+                                        (heure_debut_periode <= heure_debut_existant < heure_fin_periode) or
+                                        (heure_debut_periode < heure_fin_existant <= heure_fin_periode) or
+                                        (heure_debut_existant <= heure_debut_periode and heure_fin_existant >= heure_fin_periode) or
+                                        (heure_debut_periode <= heure_debut_existant and heure_fin_periode >= heure_fin_existant)
+                                    )
+                                    
+                                    if chevauche:
+                                        matiere_conflict = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                                        heure_debut_str = periode.heure_debut.strftime('%H:%M')
+                                        heure_fin_str = periode.heure_fin.strftime('%H:%M')
+                                        jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
+                                        field_errors['non_field_errors'] = f"Un professeur a déjà été programmé pour cet horaire ({heure_debut_str} à {heure_fin_str}) le {jour_display} avec la matière {matiere_conflict}. Veuillez choisir un autre horaire."
+                                        is_valid = False
+                                        break
+                            
+                            if not is_valid:
+                                break
+                                
+                        except Professeur.DoesNotExist:
+                            pass
             
             # Si tout est valide, créer les créneaux
             if is_valid:
@@ -748,28 +844,15 @@ class EmploiDuTempsController:
                 except Exception as e:
                     logger.error(f"Erreur lors de l'ajout du créneau: {str(e)}")
                     field_errors['non_field_errors'] = "Une erreur est survenue lors de l'ajout du créneau."
+            
+            # En cas d'erreur, stocker les données en session et rediriger vers detail_emploi_du_temps
+            if not is_valid:
+                request.session['creneau_form_data'] = form_data
+                request.session['creneau_field_errors'] = field_errors
+                return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
         
-        context = {
-            'emploi_du_temps': emploi_du_temps,
-            'classe': emploi_du_temps.classe,
-            'etablissement': etablissement,
-            'personnel': personnel,
-            'is_directeur': isinstance(request.user, Etablissement),
-            'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
-            'matieres': matieres,
-            'professeurs_options': professeurs_options,
-            'afficher_matiere_prof': afficher_matiere_prof,
-            'salles': salles,
-            'periodes_etablissement': periodes_etablissement,
-            'config_horaire': config_horaire,
-            'form_data': form_data,
-            'field_errors': field_errors,
-            'jours_choices': CreneauEmploiDuTemps.JOUR_CHOICES,
-            'type_cours_choices': CreneauEmploiDuTemps.TYPE_COURS_CHOICES,
-            'annee_scolaire_active': annee_scolaire_active,
-        }
-        
-        return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/ajouter_creneau.html', context)
+        # Si c'est une requête GET, rediriger vers detail_emploi_du_temps
+        return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
     
     @staticmethod
     @login_required
@@ -855,16 +938,66 @@ class EmploiDuTempsController:
             
             # Vérification des chevauchements (en excluant le créneau actuel)
             if is_valid and form_data['jour'] and form_data['heure_debut'] and form_data['heure_fin']:
-                chevauchements = CreneauEmploiDuTemps.objects.filter(
+                # 1. Vérifier si un autre créneau existe déjà pour cette classe, ce jour et ces heures
+                chevauchements_classe = CreneauEmploiDuTemps.objects.filter(
                     emploi_du_temps=emploi_du_temps,
                     jour=form_data['jour'],
                     heure_debut__lt=fin,
                     heure_fin__gt=debut
                 ).exclude(id=creneau.id)
                 
-                if chevauchements.exists():
-                    field_errors['non_field_errors'] = "Ce créneau chevauche un autre créneau existant."
+                if chevauchements_classe.exists():
+                    creneau_existant = chevauchements_classe.first()
+                    matiere_existante = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                    field_errors['non_field_errors'] = f"Un créneau existe déjà pour ces heures le {form_data['jour']} dans cette classe (matière: {matiere_existante})."
                     is_valid = False
+                
+                # 2. Vérifier si le professeur sélectionné a déjà un créneau qui se chevauche dans une autre classe
+                if is_valid and form_data['professeur_id']:
+                    try:
+                        professeur = Professeur.objects.get(id=form_data['professeur_id'], etablissement=etablissement)
+                        
+                        # Récupérer l'année scolaire active
+                        annee_scolaire_active = get_session_active(request, etablissement)
+                        
+                        # Récupérer tous les créneaux du professeur pour ce jour et cette année scolaire
+                        creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
+                            professeur=professeur,
+                            jour=form_data['jour'],
+                            emploi_du_temps__est_actif=True
+                        )
+                        
+                        if annee_scolaire_active:
+                            creneaux_professeur = creneaux_professeur.filter(
+                                emploi_du_temps__annee_scolaire_fk=annee_scolaire_active
+                            )
+                        
+                        creneaux_professeur = creneaux_professeur.exclude(id=creneau.id).select_related('emploi_du_temps__classe', 'matiere')
+                        
+                        # Vérifier les chevauchements d'heures
+                        for creneau_existant in creneaux_professeur:
+                            # Récupérer les heures du créneau existant (via période ou directes)
+                            heure_debut_existant = creneau_existant.get_heure_debut()
+                            heure_fin_existant = creneau_existant.get_heure_fin()
+                            
+                            if heure_debut_existant and heure_fin_existant:
+                                # Vérifier si les heures se chevauchent
+                                chevauche = (
+                                    (debut <= heure_debut_existant < fin) or
+                                    (debut < heure_fin_existant <= fin) or
+                                    (heure_debut_existant <= debut and heure_fin_existant >= fin) or
+                                    (debut <= heure_debut_existant and fin >= heure_fin_existant)
+                                )
+                                
+                                if chevauche:
+                                    matiere_conflict = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                                    jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
+                                    field_errors['non_field_errors'] = f"Un professeur a déjà été programmé pour cet horaire ({form_data['heure_debut']} à {form_data['heure_fin']}) le {jour_display} avec la matière {matiere_conflict}. Veuillez choisir un autre horaire."
+                                    is_valid = False
+                                    break
+                                
+                    except Professeur.DoesNotExist:
+                        pass
             
             # Si tout est valide, modifier le créneau
             if is_valid:

@@ -31,11 +31,14 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/emploi_du_temps_examens_classe.css' %}"
     />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0"
+    />
   </head>
   <body>
     <!-- Header -->
-    {% if user.is_authenticated %}
-  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content Container -->
     <div class="content-container">
@@ -99,27 +102,15 @@
               <i class="fas fa-print"></i>
               <span>Imprimer</span>
             </button>
-            <a href="{% url 'administrateur_etablissement:ajouter_creneau' emploi_du_temps.id %}" class="btn btn-primary">
+            <button type="button" class="btn btn-primary" id="btnOuvrirModalAjouterCreneau">
               <i class="fas fa-plus"></i>
               <span>Ajouter un créneau</span>
-            </a>
+            </button>
           </div>
         </div>
 
         <!-- Messages Django -->
-        {% if messages %}
-          <div class="messages-container">
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                <span>{{ message }}</span>
-                <button type="button" class="btn-close" onclick="this.parentElement.remove()">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+       
 
         <!-- Emploi du temps -->
         <div class="emploi-du-temps-section">
@@ -447,6 +438,283 @@
           }
         });
       }
+    </script>
+
+    <!-- Modal pour ajouter un créneau -->
+    <div id="modalAjouterCreneau" class="modal-creneau-fullscreen">
+      <div class="modal-creneau-overlay" id="modalOverlay"></div>
+      <div class="modal-creneau-content">
+        <div class="modal-creneau-header">
+          <h2 class="modal-creneau-title">
+            <i class="fas fa-plus-circle"></i>
+            Ajouter un Créneau
+          </h2>
+          <button type="button" class="modal-creneau-close" id="btnFermerModalAjouterCreneau">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-creneau-body">
+          <!-- Message d'information sur l'année scolaire active -->
+          {% if annee_scolaire_active %}
+          <div class="alert alert-info modal-alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>
+              Ajout de créneau pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+            </span>
+          </div>
+          {% endif %}
+
+          <!-- Erreurs globales -->
+          <div id="modalErrorsGlobales" class="alert alert-error" {% if not creneau_field_errors.non_field_errors %}style="display: none;"{% endif %}>
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="modalErrorMessage">{% if creneau_field_errors.non_field_errors %}{{ creneau_field_errors.non_field_errors }}{% endif %}</span>
+          </div>
+
+          <!-- Formulaire -->
+          <form method="post" action="{% url 'administrateur_etablissement:ajouter_creneau' emploi_du_temps.id %}" id="formAjouterCreneau" class="form-creneau-modal">
+            {% csrf_token %}
+            
+            <div class="form-row-modal">
+              <!-- Jour -->
+              <div class="form-group-modal" id="formGroupJour">
+                <label for="modalJour" class="form-label-modal required">
+                  <i class="fas fa-calendar-day"></i>
+                  Jour de la semaine
+                </label>
+                <select id="modalJour" name="jour" class="form-control-modal" required>
+                  <option value="">Sélectionnez un jour</option>
+                  {% for value, label in jours_choices %}
+                    <option value="{{ value }}" {% if creneau_form_data.jour == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <span class="error-message-modal" id="errorJour" {% if not creneau_field_errors.jour %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if creneau_field_errors.jour %}{{ creneau_field_errors.jour }}{% endif %}</span>
+                </span>
+              </div>
+
+              <!-- Périodes (Horaires) - Sélection multiple -->
+              <div class="form-group-modal form-group-full-modal" id="formGroupPeriodes">
+                <label class="form-label-modal required form-label-full-modal">
+                  <i class="fas fa-clock"></i>
+                  Horaires (sélectionnez plusieurs pour un cours de 2h ou plus)
+                </label>
+                {% if periodes_etablissement %}
+                  <div class="periodes-selection-grid-modal">
+                    {% for periode in periodes_etablissement %}
+                      <label class="periode-checkbox-label-modal" data-ordre="{{ periode.ordre }}">
+                        <input type="checkbox" 
+                               name="periodes_etablissement" 
+                               value="{{ periode.id }}"
+                               data-ordre="{{ periode.ordre }}"
+                               class="periode-checkbox-modal"
+                               {% if creneau_form_data.periodes_etablissement_ids and periode.id|stringformat:"s" in creneau_form_data.periodes_etablissement_ids %}checked{% endif %}>
+                        <div>
+                          {{ periode.heure_debut|time:"H:i" }} - {{ periode.heure_fin|time:"H:i" }}
+                        </div>
+                      </label>
+                    {% endfor %}
+                  </div>
+                  <span class="error-message-modal" id="errorPeriodes" {% if not creneau_field_errors.periodes_etablissement %}style="display: none;"{% endif %}>
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{% if creneau_field_errors.periodes_etablissement %}{{ creneau_field_errors.periodes_etablissement }}{% endif %}</span>
+                  </span>
+                {% else %}
+                  <div class="alert alert-warning-modal">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Aucune période configurée. Veuillez d'abord <a href="{% url 'administrateur_etablissement:configuration_horaires' %}" style="color: #d97706; text-decoration: underline;">configurer les horaires</a> de l'établissement.</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Matière -->
+            <div class="form-group-modal" id="formGroupMatiere">
+              <label for="modalMatiere" class="form-label-modal">
+                <i class="fas fa-book"></i>
+                Matière
+                <span class="optional">(Optionnel)</span>
+              </label>
+              <select id="modalMatiere" name="matiere" class="form-control-modal">
+                <option value="">Sélectionnez une matière</option>
+                {% for matiere in matieres %}
+                  <option value="{{ matiere.id }}" {% if creneau_form_data.matiere_id == matiere.id|stringformat:"s" %}selected{% endif %}>{{ matiere.nom }}</option>
+                {% endfor %}
+              </select>
+              <span class="error-message-modal" id="errorMatiere" {% if not creneau_field_errors.matiere %}style="display: none;"{% endif %}>
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{% if creneau_field_errors.matiere %}{{ creneau_field_errors.matiere }}{% endif %}</span>
+              </span>
+            </div>
+
+            <div class="form-row-modal">
+              <!-- Professeur -->
+              <div class="form-group-modal" id="formGroupProfesseur">
+                <label for="modalProfesseur" class="form-label-modal">
+                  <i class="fas fa-user-tie"></i>
+                  Professeur
+                  <span class="optional">(Optionnel)</span>
+                </label>
+                <select id="modalProfesseur" name="professeur" class="form-control-modal">
+                  <option value="">Sélectionnez un professeur</option>
+                  {% if professeurs_options %}
+                    {% for prof in professeurs_options %}
+                      <option value="{{ prof.id }}" {% if creneau_form_data.professeur_id == prof.id|stringformat:"s" %}selected{% endif %}>{{ prof.label }}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled>Aucun professeur n'est affecté à cette classe.</option>
+                  {% endif %}
+                </select>
+                <span class="error-message-modal" id="errorProfesseur" {% if not creneau_field_errors.professeur %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if creneau_field_errors.professeur %}{{ creneau_field_errors.professeur }}{% endif %}</span>
+                </span>
+              </div>
+
+              <!-- Salle -->
+              <div class="form-group-modal" id="formGroupSalle">
+                <label for="modalSalle" class="form-label-modal">
+                  <i class="fas fa-door-open"></i>
+                  Salle
+                  <span class="optional">(Optionnel)</span>
+                </label>
+                <select id="modalSalle" name="salle" class="form-control-modal">
+                  <option value="">Sélectionnez une salle</option>
+                  {% for salle in salles %}
+                    <option value="{{ salle.id }}" {% if creneau_form_data.salle_id == salle.id|stringformat:"s" %}selected{% endif %}>Salle {{ salle.numero }} - {{ salle.nom }}</option>
+                  {% endfor %}
+                </select>
+                <span class="error-message-modal" id="errorSalle" {% if not creneau_field_errors.salle %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if creneau_field_errors.salle %}{{ creneau_field_errors.salle }}{% endif %}</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Actions du formulaire -->
+            <div class="form-actions-modal">
+              <button type="button" class="btn btn-secondary-modal" id="btnAnnulerModal">
+                <i class="fas fa-times"></i>
+                <span>Annuler</span>
+              </button>
+              <button type="submit" class="btn btn-primary-modal">
+                <i class="fas fa-check"></i>
+                <span>Ajouter le créneau</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript pour le modal -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modalAjouterCreneau');
+        const btnOuvrir = document.getElementById('btnOuvrirModalAjouterCreneau');
+        const btnFermer = document.getElementById('btnFermerModalAjouterCreneau');
+        const btnAnnuler = document.getElementById('btnAnnulerModal');
+        const overlay = document.getElementById('modalOverlay');
+        const form = document.getElementById('formAjouterCreneau');
+
+        // Ouvrir le modal
+        if (btnOuvrir) {
+          btnOuvrir.addEventListener('click', function() {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          });
+        }
+
+        // Ouvrir automatiquement le modal si show_modal_creneau est True
+        {% if show_modal_creneau %}
+        if (modal) {
+          modal.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
+        {% endif %}
+
+        // Fonction pour fermer le modal
+        function fermerModal() {
+          modal.classList.remove('active');
+          document.body.style.overflow = '';
+          // Réinitialiser le formulaire
+          if (form) {
+            form.reset();
+            // Masquer les erreurs
+            document.querySelectorAll('.error-message-modal').forEach(el => {
+              el.style.display = 'none';
+            });
+            document.getElementById('modalErrorsGlobales').style.display = 'none';
+          }
+        }
+
+        // Fermer via le bouton X
+        if (btnFermer) {
+          btnFermer.addEventListener('click', fermerModal);
+        }
+
+        // Fermer via le bouton Annuler
+        if (btnAnnuler) {
+          btnAnnuler.addEventListener('click', fermerModal);
+        }
+
+        // Fermer en cliquant sur l'overlay
+        if (overlay) {
+          overlay.addEventListener('click', fermerModal);
+        }
+
+        // Empêcher la fermeture en cliquant sur le contenu du modal
+        const modalContent = document.querySelector('.modal-creneau-content');
+        if (modalContent) {
+          modalContent.addEventListener('click', function(e) {
+            e.stopPropagation();
+          });
+        }
+
+        // Gestion de la sélection multiple des périodes
+        const checkboxes = document.querySelectorAll('.periode-checkbox-modal');
+        const labels = document.querySelectorAll('.periode-checkbox-label-modal');
+        
+        // Fonction pour appliquer les styles visuels
+        function appliquerStylePeriode(checkbox, label) {
+          if (checkbox.checked) {
+            label.style.background = 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
+            label.style.borderColor = '#3b82f6';
+            label.style.transform = 'scale(1.02)';
+          } else {
+            label.style.background = '#f9fafb';
+            label.style.borderColor = '#e5e7eb';
+            label.style.transform = 'scale(1)';
+          }
+        }
+        
+        // Appliquer les styles initiaux pour les périodes déjà cochées
+        checkboxes.forEach((checkbox, index) => {
+          const label = labels[index];
+          appliquerStylePeriode(checkbox, label);
+          
+          checkbox.addEventListener('change', function() {
+            appliquerStylePeriode(this, label);
+          });
+        });
+
+        // Validation côté client avant soumission
+        if (form) {
+          form.addEventListener('submit', function(e) {
+            const checkedPeriodes = document.querySelectorAll('.periode-checkbox-modal:checked');
+            if (checkedPeriodes.length === 0) {
+              e.preventDefault();
+              const errorPeriodes = document.getElementById('errorPeriodes');
+              if (errorPeriodes) {
+                errorPeriodes.querySelector('span').textContent = 'Veuillez sélectionner au moins une période.';
+                errorPeriodes.style.display = 'flex';
+              }
+              return false;
+            }
+          });
+        }
+      });
     </script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

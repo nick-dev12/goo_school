@@ -168,6 +168,7 @@ def etablissements(request):
     search_query = request.GET.get('search', '')
     type_filter = request.GET.get('type', '')
     status_filter = request.GET.get('status', '')
+    pays_filter = request.GET.get('pays', '')
     page = request.GET.get('page', 1)
     
     # Récupérer les établissements
@@ -176,6 +177,20 @@ def etablissements(request):
         type_filter=type_filter,
         status_filter=status_filter
     )
+    
+    # Filtrer par pays si spécifié
+    if pays_filter:
+        etablissements_list = etablissements_list.filter(pays=pays_filter)
+    
+    # Récupérer les types d'établissement présents en base de données
+    from ..model.etablissement_model import Etablissement
+    types_presents = Etablissement.objects.values_list('type_etablissement', flat=True).distinct()
+    types_choices = dict(Etablissement.TYPE_CHOICES)
+    types_disponibles = [(t, types_choices.get(t, t)) for t in types_presents if t in types_choices]
+    
+    # Récupérer les pays présents en base de données
+    pays_presents = Etablissement.objects.values_list('pays', flat=True).distinct().order_by('pays')
+    pays_disponibles = [(p, p) for p in pays_presents if p]
     
     # Pagination
     paginator = Paginator(etablissements_list, 10)  # 10 établissements par page
@@ -192,8 +207,11 @@ def etablissements(request):
         'search_query': search_query,
         'type_filter': type_filter,
         'status_filter': status_filter,
+        'pays_filter': pays_filter,
         'total_etablissements': etablissements_list.count(),
         'user_administrateur': user_administrateur,
+        'types_disponibles': types_disponibles,
+        'pays_disponibles': pays_disponibles,
     }
     
     return render(request, 'school_admin/etablissements/etablissement.html', context)
@@ -264,6 +282,81 @@ def detaille_etablissement(request):
     }
     
     return render(request, 'school_admin/etablissements/detaille_etablissement.html', context)
+
+
+@login_required
+def supprimer_etablissement(request):
+    """
+    Supprime un établissement et toutes ses données associées
+    """
+    # Vérifier que l'utilisateur est un administrateur
+    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':
+        messages.error(request, "Accès non autorisé. Vous devez être administrateur pour effectuer cette action.")
+        return redirect('school_admin:connexion_compte_user')
+    
+    if request.method != 'POST':
+        messages.error(request, "Méthode non autorisée.")
+        return redirect('school_admin:etablissements')
+    
+    etablissement_id = request.POST.get('etablissement_id')
+    
+    if not etablissement_id:
+        messages.error(request, "ID de l'établissement manquant.")
+        return redirect('school_admin:etablissements')
+    
+    try:
+        etablissement = EtablissementController.get_etablissement_by_id(etablissement_id)
+    except Exception as e:
+        messages.error(request, f"Établissement non trouvé : {str(e)}")
+        return redirect('school_admin:etablissements')
+    
+    if not etablissement:
+        messages.error(request, "Établissement non trouvé.")
+        return redirect('school_admin:etablissements')
+    
+    # Récupérer le nom de l'établissement avant suppression pour le message
+    nom_etablissement = etablissement.nom
+    
+    try:
+        # Suppression en cascade - Django supprimera automatiquement les objets liés
+        # grâce aux ForeignKey avec on_delete=CASCADE
+        # Mais nous devons aussi supprimer manuellement certains objets qui pourraient
+        # avoir des relations complexes
+        
+        from django.db import transaction
+        from ..model.eleve_model import Eleve
+        from ..model.professeur_model import Professeur
+        from ..model.classe_model import Classe
+        from ..model.inscription_eleve_model import InscriptionEleve
+        from ..model.preinscription_model import Preinscription
+        
+        with transaction.atomic():
+            # Compter les données avant suppression pour le message
+            nb_eleves = Eleve.objects.filter(etablissement=etablissement).count()
+            nb_professeurs = Professeur.objects.filter(etablissement=etablissement).count()
+            nb_classes = Classe.objects.filter(etablissement=etablissement).count()
+            nb_inscriptions = InscriptionEleve.objects.filter(etablissement=etablissement).count()
+            nb_preinscriptions = Preinscription.objects.filter(etablissement=etablissement).count()
+            
+            # Supprimer l'établissement (cascade automatique pour les ForeignKey)
+            etablissement.delete()
+            
+            messages.success(
+                request, 
+                f"L'établissement '{nom_etablissement}' a été supprimé définitivement avec toutes ses données associées : "
+                f"{nb_eleves} élève(s), {nb_professeurs} professeur(s), {nb_classes} classe(s), "
+                f"{nb_inscriptions} inscription(s), {nb_preinscriptions} préinscription(s)."
+            )
+            
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erreur lors de la suppression de l'établissement {etablissement_id}: {str(e)}", exc_info=True)
+        messages.error(request, f"Une erreur est survenue lors de la suppression de l'établissement : {str(e)}")
+        from django.urls import reverse
+        return redirect(f"{reverse('school_admin:detaille_etablissement')}?id={etablissement_id}")
+    
+    return redirect('school_admin:etablissements')
 
 
 @login_required

@@ -77,6 +77,9 @@
             <button class="btn btn-secondary">
               <i class="fas fa-file-export"></i> Exporter
             </button>
+            <button class="btn btn-danger" id="btn-supprimer-etablissement" data-etablissement-id="{{ etablissement.id }}" data-etablissement-nom="{{ etablissement.nom }}">
+              <i class="fas fa-trash-alt"></i> Supprimer
+            </button>
           </div>
         </div>
         <div class="school-body">
@@ -143,7 +146,7 @@
             <div class="info-item">
               <div class="info-label">Montant par élève</div>
               <div class="info-value highlight">
-                {{ etablissement.montant_par_eleve|floatformat:0 }} FCFA
+                {{ etablissement.montant_par_eleve|floatformat:0 }}{% if etablissement.devise_monnaie %} {{ etablissement.devise_monnaie }}{% endif %}
               </div>
             </div>
           </div>
@@ -309,7 +312,7 @@
                     </select>
                   </div>
                   <div class="form-group" style="flex: 1">
-                    <label class="form-label">Montant par élève (FCFA)</label>
+                    <label class="form-label">Montant par élève{% if etablissement.devise_monnaie %} ({{ etablissement.devise_monnaie }}){% else %} (FCFA){% endif %}</label>
                     <input
                       type="number"
                       name="montant_par_eleve"
@@ -748,6 +751,56 @@
         
       </div>
     </div>
+    
+    <!-- Modal de confirmation de suppression -->
+    <div id="modal-suppression" class="modal" style="display: none;">
+      <div class="modal-content" style="max-width: 600px; margin: 10% auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div class="modal-header" style="margin-bottom: 20px;">
+          <h2 style="color: #dc3545; margin: 0; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-exclamation-triangle"></i>
+            Confirmation de suppression
+          </h2>
+        </div>
+        <div class="modal-body" style="margin-bottom: 25px;">
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
+            <strong>Attention !</strong> Vous êtes sur le point de supprimer définitivement l'établissement <strong id="nom-etablissement-suppression"></strong>.
+          </p>
+          <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+            <h3 style="color: #856404; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">
+              <i class="fas fa-exclamation-circle"></i> RISQUES ENCOURUS :
+            </h3>
+            <ul style="margin: 0; padding-left: 20px; color: #856404; line-height: 1.8;">
+              <li><strong>Toutes les données de l'établissement seront perdues et effacées définitivement</strong></li>
+              <li>Tous les élèves et leurs données (notes, présences, bulletins, etc.)</li>
+              <li>Tous les enseignants et le personnel administratif</li>
+              <li>Toutes les classes, matières et emplois du temps</li>
+              <li>Toutes les inscriptions et préinscriptions</li>
+              <li>Toutes les facturations et paiements</li>
+              <li>Toutes les annonces, messages et notifications</li>
+              <li>Tous les documents et fichiers associés</li>
+              <li><strong style="color: #dc3545;">Cette action est IRRÉVERSIBLE et ne peut pas être annulée !</strong></li>
+            </ul>
+          </div>
+          <p style="font-size: 14px; color: #6c757d; margin: 0;">
+            Si vous êtes sûr de vouloir continuer, veuillez saisir le nom de l'établissement ci-dessous pour confirmer.
+          </p>
+          <input 
+            type="text" 
+            id="confirmation-nom" 
+            placeholder="Saisissez le nom de l'établissement pour confirmer" 
+            style="width: 100%; padding: 10px; margin-top: 15px; border: 2px solid #dc3545; border-radius: 6px; font-size: 14px;"
+          />
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button id="btn-annuler-suppression" class="btn btn-secondary" style="padding: 10px 20px;">
+            <i class="fas fa-times"></i> Annuler
+          </button>
+          <button id="btn-confirmer-suppression" class="btn btn-danger" style="padding: 10px 20px;" disabled>
+            <i class="fas fa-trash-alt"></i> Supprimer définitivement
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script>
       // Tab switching functionality
@@ -807,6 +860,297 @@
           });
         });
       });
+      
+      // Gestion de la suppression d'établissement
+      const btnSupprimer = document.getElementById('btn-supprimer-etablissement');
+      const modalSuppression = document.getElementById('modal-suppression');
+      const btnAnnuler = document.getElementById('btn-annuler-suppression');
+      const btnConfirmer = document.getElementById('btn-confirmer-suppression');
+      const confirmationNom = document.getElementById('confirmation-nom');
+      const nomEtablissementSuppression = document.getElementById('nom-etablissement-suppression');
+      
+      if (btnSupprimer) {
+        const etablissementNom = btnSupprimer.getAttribute('data-etablissement-nom');
+        const etablissementId = btnSupprimer.getAttribute('data-etablissement-id');
+        
+        btnSupprimer.addEventListener('click', function() {
+          nomEtablissementSuppression.textContent = etablissementNom;
+          confirmationNom.value = '';
+          btnConfirmer.disabled = true;
+          modalSuppression.style.display = 'block';
+        });
+        
+        btnAnnuler.addEventListener('click', function() {
+          modalSuppression.style.display = 'none';
+          confirmationNom.value = '';
+        });
+        
+        confirmationNom.addEventListener('input', function() {
+          if (confirmationNom.value.trim() === etablissementNom) {
+            btnConfirmer.disabled = false;
+          } else {
+            btnConfirmer.disabled = true;
+          }
+        });
+        
+        btnConfirmer.addEventListener('click', function() {
+          if (confirmationNom.value.trim() !== etablissementNom) {
+            alert('Le nom saisi ne correspond pas. Veuillez réessayer.');
+            return;
+          }
+          
+          // Désactiver le bouton pour éviter les doubles clics
+          btnConfirmer.disabled = true;
+          btnConfirmer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
+          
+          // Créer un formulaire pour envoyer la requête POST
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '{% url "school_admin:supprimer_etablissement" %}';
+          
+          // Ajouter le CSRF token
+          const csrftoken = getCookie('csrftoken');
+          if (csrftoken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrftoken;
+            form.appendChild(csrfInput);
+          }
+          
+          // Ajouter l'ID de l'établissement
+          const idInput = document.createElement('input');
+          idInput.type = 'hidden';
+          idInput.name = 'etablissement_id';
+          idInput.value = etablissementId;
+          form.appendChild(idInput);
+          
+          document.body.appendChild(form);
+          form.submit();
+        });
+        
+        // Fermer le modal en cliquant en dehors
+        modalSuppression.addEventListener('click', function(e) {
+          if (e.target === modalSuppression) {
+            modalSuppression.style.display = 'none';
+            confirmationNom.value = '';
+          }
+        });
+      }
+      
+      // Fonction pour récupérer le cookie CSRF
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      const btnSupprimer = document.getElementById('btn-supprimer-etablissement');
+      const modalSuppression = document.getElementById('modal-suppression');
+      const btnAnnuler = document.getElementById('btn-annuler-suppression');
+      const btnConfirmer = document.getElementById('btn-confirmer-suppression');
+      const confirmationNom = document.getElementById('confirmation-nom');
+      const nomEtablissementSuppression = document.getElementById('nom-etablissement-suppression');
+      
+      if (btnSupprimer) {
+        const etablissementNom = btnSupprimer.getAttribute('data-etablissement-nom');
+        const etablissementId = btnSupprimer.getAttribute('data-etablissement-id');
+        
+        btnSupprimer.addEventListener('click', function() {
+          nomEtablissementSuppression.textContent = etablissementNom;
+          confirmationNom.value = '';
+          btnConfirmer.disabled = true;
+          modalSuppression.style.display = 'block';
+        });
+        
+        btnAnnuler.addEventListener('click', function() {
+          modalSuppression.style.display = 'none';
+          confirmationNom.value = '';
+        });
+        
+        confirmationNom.addEventListener('input', function() {
+          if (confirmationNom.value.trim() === etablissementNom) {
+            btnConfirmer.disabled = false;
+          } else {
+            btnConfirmer.disabled = true;
+          }
+        });
+        
+        btnConfirmer.addEventListener('click', function() {
+          if (confirmationNom.value.trim() !== etablissementNom) {
+            alert('Le nom saisi ne correspond pas. Veuillez réessayer.');
+            return;
+          }
+          
+          // Désactiver le bouton pour éviter les doubles clics
+          btnConfirmer.disabled = true;
+          btnConfirmer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
+          
+          // Créer un formulaire pour envoyer la requête POST
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '{% url "school_admin:supprimer_etablissement" %}';
+          
+          // Ajouter le CSRF token
+          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+          if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+          } else {
+            // Récupérer le token depuis les cookies
+            const csrftoken = getCookie('csrftoken');
+            if (csrftoken) {
+              const csrfInput = document.createElement('input');
+              csrfInput.type = 'hidden';
+              csrfInput.name = 'csrfmiddlewaretoken';
+              csrfInput.value = csrftoken;
+              form.appendChild(csrfInput);
+            }
+          }
+          
+          // Ajouter l'ID de l'établissement
+          const idInput = document.createElement('input');
+          idInput.type = 'hidden';
+          idInput.name = 'etablissement_id';
+          idInput.value = etablissementId;
+          form.appendChild(idInput);
+          
+          document.body.appendChild(form);
+          form.submit();
+        });
+        
+        // Fermer le modal en cliquant en dehors
+        modalSuppression.addEventListener('click', function(e) {
+          if (e.target === modalSuppression) {
+            modalSuppression.style.display = 'none';
+            confirmationNom.value = '';
+          }
+        });
+      }
+      
+      // Fonction pour récupérer le cookie CSRF
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
     </script>
+    
+    <style>
+      .modal {
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow: auto;
+      }
+      
+      .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+      
+      .btn-danger:hover {
+        background-color: #c82333;
+      }
+      
+      .btn-danger:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+      
+      .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+      
+      .btn-secondary:hover {
+        background-color: #5a6268;
+      }
+    </style>
+    </script>
+    
+    <style>
+      .modal {
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow: auto;
+      }
+      
+      .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+      
+      .btn-danger:hover {
+        background-color: #c82333;
+      }
+      
+      .btn-danger:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+      
+      .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+      
+      .btn-secondary:hover {
+        background-color: #5a6268;
+      }
+    </style>
   </body>
 </html>

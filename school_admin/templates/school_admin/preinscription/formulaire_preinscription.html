@@ -52,34 +52,57 @@
             background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
             border: 2px solid #fbbf24;
             border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
+            padding: 12px 16px;
+            margin: 15px 0;
             display: flex;
             align-items: flex-start;
-            gap: 15px;
+            gap: 12px;
         }
         
         .info-box-documents i {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             color: #f59e0b;
             margin-top: 2px;
+            flex-shrink: 0;
+        }
+        
+        .info-box-documents-content {
+            flex: 1;
         }
         
         .info-box-documents-content h3 {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
             color: #92400e;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 600;
         }
         
-        .info-box-documents-content ul {
-            margin: 0;
-            padding-left: 20px;
+        .info-box-documents-content p {
+            margin: 0 0 8px 0;
             color: #78350f;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        
+        .info-box-documents-content ul {
+            margin: 0 0 8px 0;
+            padding-left: 18px;
+            color: #78350f;
+            font-size: 0.875rem;
         }
         
         .info-box-documents-content li {
-            margin: 5px 0;
+            margin: 3px 0;
+            line-height: 1.4;
+        }
+        
+        .info-box-documents-note {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(245, 158, 11, 0.3);
+            font-size: 0.8125rem;
+            color: #92400e;
+            font-style: italic;
         }
         
         .country-search-wrapper {
@@ -195,16 +218,8 @@
             <div class="info-box-documents">
                 <i class="fas fa-info-circle"></i>
                 <div class="info-box-documents-content">
-                    <h3>Documents à apporter lors de la validation</h3>
-                    <p style="margin: 0 0 10px 0; color: #78350f;">Veuillez vous présenter à l'établissement avec les documents suivants :</p>
-                    <ul>
-                        <li>Acte de naissance ou extrait d'acte de naissance</li>
-                        <li>Carte nationale d'identité ou passeport</li>
-                        <li>Bulletin de l'année précédente (si réinscription)</li>
-                        <li>Certificat médical</li>
-                        <li>Photo d'identité récente</li>
-                        <li>Justificatif de domicile</li>
-                    </ul>
+                    <h3>Documents à apporter</h3>
+                    <p style="margin: 0; color: #78350f;">Après la soumission de votre préinscription, veuillez vous rendre auprès de l'établissement avec les documents nécessaires pour valider l'inscription.</p>
                 </div>
             </div>
 
@@ -359,56 +374,7 @@
                 </div>
             </div>
 
-            <!-- Section 2: Informations Scolaires -->
-            <div class="form-section-modern" data-section="2">
-                <div class="section-header-modern">
-                    <div class="section-icon-wrapper">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <div class="section-title-wrapper">
-                        <h2 class="section-title-modern">Informations Scolaires</h2>
-                        <p class="section-subtitle-modern">Classe souhaitée et type d'inscription</p>
-                    </div>
-                    <div class="section-number">02</div>
-                </div>
-
-                <div class="form-grid-modern">
-                    <div class="form-group-modern">
-                        <label class="label-modern" for="classe_souhaitee">
-                            <i class="fas fa-chalkboard"></i>
-                            Classe souhaitée <span class="optional-badge">Optionnel</span>
-                        </label>
-                        <select class="input-modern {% if field_errors.classe_souhaitee %}input-error{% endif %}" id="classe_souhaitee" name="classe_souhaitee">
-                            <option value="">Sélectionnez une classe (optionnel)</option>
-                            {% for classe in classes %}
-                                <option value="{{ classe.id }}" {% if form_data.classe_souhaitee == classe.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ classe.nom }} ({{ classe.get_niveau_display }})
-                                </option>
-                            {% endfor %}
-                        </select>
-                        {% if field_errors.classe_souhaitee %}
-                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.classe_souhaitee }}</span>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group-modern">
-                        <label class="label-modern" for="statut_inscription">
-                            <i class="fas fa-user-check"></i>
-                            Type d'inscription <span class="required-star">*</span>
-                        </label>
-                        <select class="input-modern {% if field_errors.statut_inscription %}input-error{% endif %}" id="statut_inscription" name="statut_inscription" required>
-                            <option value="">Sélectionnez un type</option>
-                            <option value="nouvelle" {% if form_data.statut_inscription == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
-                            <option value="reinscription" {% if form_data.statut_inscription == 'reinscription' %}selected{% endif %}>Réinscription</option>
-                        </select>
-                        {% if field_errors.statut_inscription %}
-                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.statut_inscription }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Section 3: Informations Parent/Tuteur -->
+            <!-- Section 2: Informations Parent/Tuteur -->
             <div class="form-section-modern" data-section="3">
                 <div class="section-header-modern">
                     <div class="section-icon-wrapper">
@@ -418,7 +384,7 @@
                         <h2 class="section-title-modern">Parent / Tuteur</h2>
                         <p class="section-subtitle-modern">Informations de la personne responsable</p>
                     </div>
-                    <div class="section-number">03</div>
+                    <div class="section-number">02</div>
                 </div>
 
                 <div class="info-box-modern">

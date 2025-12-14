@@ -403,14 +403,6 @@ class InscriptionEleve(models.Model):
         if not self.parent_lien:
             raise ValidationError("Le lien avec l'élève est obligatoire.")
         
-        # Validation de l'âge
-        if self.date_naissance:
-            from datetime import date
-            inscription_date = self.date_inscription or date.today()
-            age = inscription_date.year - self.date_naissance.year - ((inscription_date.month, inscription_date.day) < (self.date_naissance.month, self.date_naissance.day))
-            if age < 3 or age > 25:
-                raise ValidationError("L'âge de l'élève doit être entre 3 et 25 ans.")
-        
         # Vérifier que l'établissement correspond à celui de l'année scolaire
         if self.annee_scolaire and self.etablissement:
             if self.annee_scolaire.etablissement != self.etablissement:

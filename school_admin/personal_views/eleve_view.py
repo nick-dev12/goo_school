@@ -841,133 +841,100 @@ def emploi_du_temps_eleve(request):
             'eleve': eleve,
             'classe': classe,
             'emploi_du_temps': None,
-            'periodes_affichage': [],
+            'grille_emploi': {},
+            'plages_horaires': [],
+            'cellules_masquees': {},
             'jours_semaine': [],
             'emploi_non_publie': emplois_actifs.exists(),
         }
         return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
     
-    # Récupérer les créneaux organisés par jour
+    # Organiser les créneaux en grille comme pour le directeur et les professeurs (nouvelle structure)
+    from ..controllers.emploi_du_temps_controller import get_matiere_config
+    from datetime import datetime, timedelta
+    
     jours_semaine = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
     
     # Récupérer tous les créneaux
     tous_creneaux = emploi_du_temps.creneaux.all().order_by('jour', 'heure_debut')
     
-    # Organiser les créneaux par période et par jour
-    from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
-    from ..controllers.emploi_du_temps_controller import get_matiere_config
+    # Créer une plage horaire pour chaque heure de début unique des créneaux
+    heures_debut_uniques = sorted(list(set(creneau.heure_debut for creneau in tous_creneaux)))
     
-    # Récupérer la configuration horaire de l'établissement
-    config_horaire = ConfigurationHoraire.objects.filter(etablissement=etablissement, actif=True).first()
-    
-    periodes_affichage = []
-    
-    if config_horaire:
-        # Utiliser les périodes de l'établissement
-        # Trier par heure de début pour afficher chronologiquement (de la plus ancienne à la plus récente)
-        periodes = config_horaire.periodes.filter(actif=True).order_by('heure_debut')
+    plages_horaires = []
+    for heure_debut in heures_debut_uniques:
+        # Pour chaque heure de début, créer une plage de 1h
+        dt_debut = datetime.combine(datetime.today(), heure_debut)
+        dt_fin = dt_debut + timedelta(hours=1)
+        heure_fin = dt_fin.time()
         
-        # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
-        creneaux_groupes = {}
-        for creneau in tous_creneaux:
-            if creneau.groupe_creneau:
-                if creneau.groupe_creneau not in creneaux_groupes:
-                    creneaux_groupes[creneau.groupe_creneau] = []
-                creneaux_groupes[creneau.groupe_creneau].append(creneau)
+        plages_horaires.append({
+            'debut': heure_debut,
+            'fin': heure_fin,
+            'label': f"{heure_debut.strftime('%H:%M')} - {heure_fin.strftime('%H:%M')}"
+        })
+    
+    # Trier les plages horaires par heure de début (plus tôt en haut)
+    plages_horaires.sort(key=lambda p: p['debut'])
+    
+    # Créer la grille d'emploi du temps (structure similaire aux examens)
+    grille_emploi = {}
+    for jour in jours_semaine:
+        grille_emploi[jour] = {
+            'jour': jour,
+            'plages': {}
+        }
+        for plage in plages_horaires:
+            grille_emploi[jour]['plages'][plage['label']] = []
+    
+    # Remplir la grille avec les créneaux
+    cellules_masquees = {}
+    for creneau in tous_creneaux:
+        jour = creneau.jour
         
-        for periode in periodes:
-            periode_info = {
-                'nom': periode.nom,
-                'heure_debut': periode.heure_debut,
-                'heure_fin': periode.heure_fin,
-                'duree': periode.duree_minutes,
-                'est_pause': periode.est_pause,
-                'type_periode': periode.type_periode,
-                'creneaux_par_jour': {},
-                'skip_render': {},
-                'rowspans': {}
-            }
-            
-            # Pour chaque jour, trouver le créneau correspondant à cette période
-            for jour in jours_semaine:
-                periode_info['skip_render'][jour] = False
-                periode_info['rowspans'][jour] = 1
+        # Trouver la plage horaire correspondante (celle qui commence exactement à l'heure de début du créneau)
+        plage_index = -1
+        for idx, plage in enumerate(plages_horaires):
+            # Le créneau commence exactement à cette plage horaire
+            if plage['debut'] == creneau.heure_debut:
+                plage_index = idx
                 
-                if periode.est_pause:
-                    # C'est une pause: créer un créneau virtuel
-                    periode_info['creneaux_par_jour'][jour] = {
-                        'est_pause': True,
-                        'est_virtual': True,
-                        'nom_pause': periode.nom,
-                        'type_periode': periode.type_periode
-                    }
-                else:
-                    # Chercher un créneau qui utilise cette période
-                    creneau = tous_creneaux.filter(
-                        jour=jour,
-                        periode_etablissement=periode
-                    ).first()
-                    
-                    if creneau:
-                        # Pour les créneaux groupés, afficher le premier créneau dans toutes les périodes du groupe
-                        if creneau.groupe_creneau:
-                            groupe_creneaux = creneaux_groupes.get(creneau.groupe_creneau, [])
-                            groupe_creneaux_jour = [c for c in groupe_creneaux if c.jour == jour]
-                            groupe_creneaux_jour.sort(key=lambda c: c.periode_etablissement.ordre)
-                            
-                            if groupe_creneaux_jour:
-                                creneau = groupe_creneaux_jour[0]
-                        
-                        # Ajouter icône et couleur au créneau
-                        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
-                        icone, couleur = get_matiere_config(matiere_nom)
-                        creneau.matiere_icone = icone
-                        creneau.matiere_couleur = couleur
-                        
-                        periode_info['creneaux_par_jour'][jour] = creneau
-                    else:
-                        periode_info['creneaux_par_jour'][jour] = None
-            
-            periodes_affichage.append(periode_info)
-    else:
-        # Mode compatibilité: regrouper les créneaux par horaires
-        horaires_uniques = set()
-        for creneau in tous_creneaux:
-            horaires_uniques.add((creneau.get_heure_debut(), creneau.get_heure_fin()))
-        
-        horaires_tries = sorted(list(horaires_uniques))
-        
-        for heure_debut, heure_fin in horaires_tries:
-            from datetime import datetime
-            debut = datetime.combine(datetime.today(), heure_debut)
-            fin = datetime.combine(datetime.today(), heure_fin)
-            duree = int((fin - debut).total_seconds() / 60)
-            
-            periode_info = {
-                'nom': f"{heure_debut.strftime('%H:%M')}-{heure_fin.strftime('%H:%M')}",
-                'heure_debut': heure_debut,
-                'heure_fin': heure_fin,
-                'duree': duree,
-                'est_pause': False,
-                'creneaux_par_jour': {}
-            }
-            
-            for jour in jours_semaine:
-                creneau = tous_creneaux.filter(
-                    jour=jour,
-                    heure_debut=heure_debut,
-                    heure_fin=heure_fin
-                ).first()
+                # Calculer le rowspan (nombre de plages horaires que le créneau occupe)
+                # On compte combien de plages horaires sont couvertes par le créneau
+                rowspan = 1
+                creneau_fin = creneau.heure_fin
                 
-                if creneau and creneau.matiere:
-                    matiere_nom = creneau.matiere.nom
+                # Parcourir les plages suivantes pour voir combien sont couvertes
+                for i in range(1, len(plages_horaires) - plage_index):
+                    if plage_index + i < len(plages_horaires):
+                        plage_suivante = plages_horaires[plage_index + i]
+                        # Si le créneau se termine après le début de la plage suivante, il couvre cette plage
+                        if creneau_fin > plage_suivante['debut']:
+                            rowspan += 1
+                        else:
+                            break
+                
+                if jour in grille_emploi:
+                    # Ajouter icône et couleur au créneau
+                    matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
                     icone, couleur = get_matiere_config(matiere_nom)
                     creneau.matiere_icone = icone
                     creneau.matiere_couleur = couleur
+                    
+                    grille_emploi[jour]['plages'][plage['label']].append({
+                        'creneau': creneau,
+                        'rowspan': rowspan
+                    })
                 
-                periode_info['creneaux_par_jour'][jour] = creneau
-            
-            periodes_affichage.append(periode_info)
+                # Marquer les cellules suivantes comme masquées
+                if jour not in cellules_masquees:
+                    cellules_masquees[jour] = {}
+                
+                for i in range(1, rowspan):
+                    if plage_index + i < len(plages_horaires):
+                        plage_suivante = plages_horaires[plage_index + i]
+                        cellules_masquees[jour][plage_suivante['label']] = True
+                break
     
     # Récupérer les créneaux d'examens pour cette classe
     from ..model.session_examen_model import SessionExamen
@@ -1008,11 +975,12 @@ def emploi_du_temps_eleve(request):
         'classe': classe,
         'emploi_du_temps': emploi_du_temps,
         'emploi_non_publie': False,
-        'periodes_affichage': periodes_affichage,
+        'grille_emploi': grille_emploi,
+        'plages_horaires': plages_horaires,
+        'cellules_masquees': cellules_masquees,
         'tous_creneaux': tous_creneaux,
         'etablissement': etablissement,
         'jours_semaine': jours_semaine,
-        'config_horaire': config_horaire,
         'sessions_examens': sessions_examens,
         'creneaux_examens': creneaux_examens,
         'dates_examens_triees': dates_examens_triees,

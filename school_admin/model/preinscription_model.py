@@ -290,7 +290,7 @@ class PreinscriptionEleve(models.Model):
     def __str__(self):
         return f"Préinscription - {self.prenom} {self.nom} ({self.etablissement.nom})"
     
-    def valider(self, validateur, commentaires=None, documents=None):
+    def valider(self, validateur, commentaires=None, documents=None, classe=None, statut_inscription=None, date_inscription=None):
         """
         Valide la préinscription et crée automatiquement :
         - L'élève dans la table Eleve
@@ -302,6 +302,9 @@ class PreinscriptionEleve(models.Model):
             validateur: L'établissement qui valide la préinscription
             commentaires: Commentaires optionnels
             documents: Dictionnaire des documents fournis (optionnel)
+            classe: Classe d'affectation (optionnel, utilise classe_souhaitee par défaut)
+            statut_inscription: Statut d'inscription ('nouvelle' ou 'reinscription', optionnel, 'nouvelle' par défaut)
+            date_inscription: Date d'inscription (optionnel, date du jour par défaut)
         """
         from .eleve_model import Eleve
         from .parent_model import Parent
@@ -345,8 +348,8 @@ class PreinscriptionEleve(models.Model):
                     
                     # Formater les noms et prénoms du parent
                     from ..utils.formatting_utils import formater_nom, formater_prenom
-                    parent_nom_formate = formater_nom(self.nom_parent)
-                    parent_prenom_formate = formater_prenom(self.prenom_parent)
+                    parent_nom_formate = formater_nom(self.parent_nom)
+                    parent_prenom_formate = formater_prenom(self.parent_prenom)
                     
                     parent = Parent.objects.create(
                         username=matricule_parent,
@@ -377,15 +380,17 @@ class PreinscriptionEleve(models.Model):
                 matricule_eleve = Eleve.generer_matricule_eleve(self.etablissement)
                 mot_de_passe_eleve = Eleve.generer_mot_de_passe()
                 
-                # Le statut d'inscription est toujours "nouvelle" pour les préinscriptions
-                statut_inscription = 'nouvelle'
+                # Utiliser les paramètres fournis ou les valeurs par défaut
+                classe_affectation = classe if classe is not None else self.classe_souhaitee
+                statut_inscription_final = statut_inscription if statut_inscription is not None else (self.statut_inscription or 'nouvelle')
+                date_inscription_final = date_inscription if date_inscription is not None else timezone.now().date()
                 
                 # Formater les noms et prénoms
                 from ..utils.formatting_utils import formater_nom, formater_prenom
-                nom_formate = formater_nom(self.nom_eleve)
-                prenom_formate = formater_prenom(self.prenom_eleve)
-                parent_nom_formate = formater_nom(self.nom_parent)
-                parent_prenom_formate = formater_prenom(self.prenom_parent)
+                nom_formate = formater_nom(self.nom)
+                prenom_formate = formater_prenom(self.prenom)
+                parent_nom_formate = formater_nom(self.parent_nom)
+                parent_prenom_formate = formater_prenom(self.parent_prenom)
                 
                 # Créer l'élève
                 eleve = Eleve.objects.create(
@@ -401,9 +406,9 @@ class PreinscriptionEleve(models.Model):
                     adresse=self.adresse or None,
                     telephone=None,  # Pas de téléphone pour l'élève dans la préinscription
                     etablissement=self.etablissement,
-                    classe=self.classe_souhaitee,
-                    date_inscription=timezone.now().date(),
-                    statut=statut_inscription,
+                    classe=classe_affectation,
+                    date_inscription=date_inscription_final,
+                    statut=statut_inscription_final,
                     parent_nom=parent_nom_formate,
                     parent_prenom=parent_prenom_formate,
                     parent_telephone=self.parent_telephone,

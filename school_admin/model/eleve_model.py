@@ -667,14 +667,6 @@ class Eleve(AbstractUser):
         if not self.parent_lien:
             raise ValidationError("Le lien avec l'élève est obligatoire.")
         
-        # Validation de l'âge
-        if self.date_naissance:
-            from datetime import date
-            today = date.today()
-            age = today.year - self.date_naissance.year - ((today.month, today.day) < (self.date_naissance.month, self.date_naissance.day))
-            if age < 3 or age > 25:
-                raise ValidationError("L'âge de l'élève doit être entre 3 et 25 ans.")
-    
     def get_absolute_url(self):
         """Retourne l'URL de détail de l'élève"""
         from django.urls import reverse

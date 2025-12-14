@@ -4062,6 +4062,10 @@ def detail_eleve_primaire(request, eleve_id):
     # Récupérer la classe active de l'élève depuis InscriptionEleve
     classe_active = _get_classe_eleve_active(eleve, annee_scolaire_active, professeur.etablissement)
     
+    if not classe_active:
+        messages.error(request, "Cet élève n'est pas inscrit dans une classe pour l'année scolaire active.")
+        return redirect('enseignant_primaire:gestion_eleves')
+    
     # Vérifier que le professeur enseigne dans la classe active de l'élève
     affectation_qs = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
@@ -4073,7 +4077,7 @@ def detail_eleve_primaire(request, eleve_id):
     try:
         affectation = affectation_qs.get()
     except AffectationProfesseurPrimaire.DoesNotExist:
-        messages.error(request, "Vous n'enseignez pas dans la classe de cet élève pour l'année scolaire active.")
+        messages.error(request, "Vous n'êtes pas affecté à cette classe pour l'année scolaire active.")
         return redirect('enseignant_primaire:gestion_eleves')
     
     # Récupérer l'onglet sélectionné

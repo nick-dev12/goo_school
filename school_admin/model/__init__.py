@@ -39,3 +39,4 @@ from .annee_scolaire_model import AnneeScolaire
 from .inscription_eleve_model import InscriptionEleve
 from .inscription_parent_model import InscriptionParent
 from .preinscription_model import LienPreinscription, PreinscriptionEleve
+from .carte_identite_personnalisation_model import CarteIdentitePersonnalisation

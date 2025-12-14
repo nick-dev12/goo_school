@@ -41,31 +41,50 @@
           <form id="filter-form" method="GET" action="{% url 'school_admin:etablissements' %}">
             <div class="search-container">
               <i class="fas fa-search search-icon"></i>
-              <input type="text" name="search" placeholder="Rechercher un établissement..." class="search-input" value="{{ search_query }}" />
+              <input 
+                type="text" 
+                id="search-input" 
+                name="search" 
+                placeholder="Rechercher un établissement..." 
+                class="search-input" 
+                value="{{ search_query }}" 
+                autocomplete="off"
+              />
+              {% if search_query %}
+                <button type="button" id="clear-search" class="clear-search-btn" title="Effacer la recherche">
+                  <i class="fas fa-times"></i>
+                </button>
+              {% endif %}
             </div>
             <div class="filters">
               <div class="filter-item">
                 <label for="filter-type">Type d'établissement:</label>
-                <select id="filter-type" name="type" class="filter-select" onchange="document.getElementById('filter-form').submit()">
-                  <option value="">Tous</option>
-                  <option value="primary" {% if type_filter == 'primary' %}selected{% endif %}>École Primaire</option>
-                  <option value="collège" {% if type_filter == 'collège' %}selected{% endif %}>Collège</option>
-                  <option value="lycée" {% if type_filter == 'lycée' %}selected{% endif %}>Lycée</option>
+                <select id="filter-type" name="type" class="filter-select">
+                  <option value="">Tous les types</option>
+                  {% for type_code, type_label in types_disponibles %}
+                    <option value="{{ type_code }}" {% if type_filter == type_code %}selected{% endif %}>{{ type_label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-pays">Pays:</label>
+                <select id="filter-pays" name="pays" class="filter-select">
+                  <option value="">Tous les pays</option>
+                  {% for pays_code, pays_nom in pays_disponibles %}
+                    <option value="{{ pays_nom }}" {% if pays_filter == pays_nom %}selected{% endif %}>{{ pays_nom }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <div class="filter-item">
                 <label for="filter-status">Statut:</label>
-                <select id="filter-status" name="status" class="filter-select" onchange="document.getElementById('filter-form').submit()">
+                <select id="filter-status" name="status" class="filter-select">
                   <option value="">Tous</option>
                   <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Actif</option>
                   <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactif</option>
                 </select>
               </div>
               <div class="filter-item">
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-filter"></i> Filtrer
-                </button>
-                {% if search_query or type_filter or status_filter %}
+                {% if search_query or type_filter or status_filter or pays_filter %}
                   <a href="{% url 'school_admin:etablissements' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Réinitialiser
                   </a>
@@ -76,17 +95,18 @@
         </div>
 
         <!-- Message pour les résultats de recherche -->
-        {% if search_query or type_filter or status_filter %}
+        {% if search_query or type_filter or status_filter or pays_filter %}
         <div class="search-results">
           <p>
             {% if total_etablissements > 0 %}
               <i class="fas fa-search"></i> {{ total_etablissements }} résultat{% if total_etablissements > 1 %}s{% endif %} trouvé{% if total_etablissements > 1 %}s{% endif %}
               {% if search_query %} pour "<strong>{{ search_query }}</strong>"{% endif %}
               {% if type_filter %}
-                {% if type_filter == 'primary' %} dans les <strong>Écoles Primaires</strong>{% endif %}
-                {% if type_filter == 'collège' %} dans les <strong>Collèges</strong>{% endif %}
-                {% if type_filter == 'lycée' %} dans les <strong>Lycées</strong>{% endif %}
+                {% for type_code, type_label in types_disponibles %}
+                  {% if type_filter == type_code %} dans les <strong>{{ type_label }}</strong>{% endif %}
+                {% endfor %}
               {% endif %}
+              {% if pays_filter %} dans le pays <strong>{{ pays_filter }}</strong>{% endif %}
               {% if status_filter %}
                 {% if status_filter == 'active' %} avec statut <strong>Actif</strong>{% endif %}
                 {% if status_filter == 'inactive' %} avec statut <strong>Inactif</strong>{% endif %}
@@ -174,7 +194,7 @@
         {% if etablissements.paginator.num_pages > 1 %}
         <div class="pagination">
           {% if etablissements.has_previous %}
-            <a href="?page={{ etablissements.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+            <a href="?page={{ etablissements.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if pays_filter %}&pays={{ pays_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
           {% else %}
             <button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
           {% endif %}
@@ -183,12 +203,12 @@
             {% if etablissements.number == i %}
               <button class="pagination-btn active">{{ i }}</button>
             {% elif i > etablissements.number|add:"-3" and i < etablissements.number|add:"3" %}
-              <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">{{ i }}</a>
+              <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if pays_filter %}&pays={{ pays_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">{{ i }}</a>
             {% endif %}
           {% endfor %}
           
           {% if etablissements.has_next %}
-            <a href="?page={{ etablissements.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
+            <a href="?page={{ etablissements.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if pays_filter %}&pays={{ pays_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
           {% else %}
             <button class="pagination-btn" disabled><i class="fas fa-chevron-right"></i></button>
           {% endif %}
@@ -198,5 +218,99 @@
 
       <!-- Modal pour ajouter/modifier un enseignant -->
     </section>
+    
+    <script>
+      // Recherche en temps réel
+      let searchTimeout;
+      const searchInput = document.getElementById('search-input');
+      const filterForm = document.getElementById('filter-form');
+      const clearSearchBtn = document.getElementById('clear-search');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          
+          // Délai de 300ms avant de soumettre le formulaire (debounce)
+          searchTimeout = setTimeout(function() {
+            filterForm.submit();
+          }, 300);
+        });
+      }
+      
+      // Bouton pour effacer la recherche
+      if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+          searchInput.value = '';
+          filterForm.submit();
+        });
+      }
+      
+      // Soumettre le formulaire lors du changement des filtres
+      const filterSelects = document.querySelectorAll('.filter-select');
+      filterSelects.forEach(function(select) {
+        select.addEventListener('change', function() {
+          filterForm.submit();
+        });
+      });
+      
+      // Mettre à jour l'URL de pagination pour inclure les filtres
+      const paginationLinks = document.querySelectorAll('.pagination a');
+      paginationLinks.forEach(function(link) {
+        const url = new URL(link.href);
+        const currentUrl = new URL(window.location.href);
+        
+        // Préserver les paramètres de recherche et filtres
+        if (searchInput && searchInput.value) {
+          url.searchParams.set('search', searchInput.value);
+        }
+        
+        const typeFilter = document.getElementById('filter-type');
+        if (typeFilter && typeFilter.value) {
+          url.searchParams.set('type', typeFilter.value);
+        }
+        
+        const paysFilter = document.getElementById('filter-pays');
+        if (paysFilter && paysFilter.value) {
+          url.searchParams.set('pays', paysFilter.value);
+        }
+        
+        const statusFilter = document.getElementById('filter-status');
+        if (statusFilter && statusFilter.value) {
+          url.searchParams.set('status', statusFilter.value);
+        }
+        
+        link.href = url.toString();
+      });
+    </script>
+    
+    <style>
+      .search-container {
+        position: relative;
+      }
+      
+      .clear-search-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+      }
+      
+      .clear-search-btn:hover {
+        color: #dc3545;
+      }
+      
+      .search-input {
+        padding-right: 35px;
+      }
+    </style>
   </body>
 </html>

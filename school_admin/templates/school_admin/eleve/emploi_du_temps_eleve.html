@@ -1,5 +1,7 @@
 {% load static %}
 {% load notes_tags %}
+{% load exam_filters %}
+{% load pagination_tags %}
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -14,6 +16,7 @@
     <!-- Style CSS personnalisé -->
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/dashboard.css' %}?v=1.0.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/eleve/emploi_du_temps_eleve.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}">
 </head>
 
 <body>
@@ -96,93 +99,78 @@
         <!-- Emploi du temps -->
         <div class="emploi-du-temps-section" style="margin-bottom: 32px;">
             <div style="background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); overflow-x: auto; border: 1px solid #e5e7eb;">
-                <table class="edt-table">
+                {% if grille_emploi and plages_horaires %}
+                  <table class="calendar-timetable">
                     <thead>
-                        <tr>
-                            <th class="edt-horaire-header">Horaires</th>
-                            {% for jour in jours_semaine %}
-                                <th class="edt-jour-header">{{ jour|title }}</th>
-                            {% endfor %}
-                        </tr>
+                      <tr>
+                        {% for jour in jours_semaine %}
+                          <th class="day-header">{{ jour|title }}</th>
+                        {% endfor %}
+                      </tr>
                     </thead>
                     <tbody>
-                        {% for periode_info in periodes_affichage %}
-                            {% if periode_info.est_pause %}
-                                <!-- Ligne spéciale pour les pauses -->
-                                <tr class="pause-row">
-                                    <td class="edt-horaire-cell pause-horaire">
-                                        <div class="horaire-info">
-                                            <div class="periode-horaire-simple">
-                                                {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td colspan="6" class="pause-cell-full">
-                                        <div class="pause-banner {% if periode_info.type_periode == 'dejeuner' %}pause-dejeuner{% else %}pause-recreation{% endif %}">
-                                            <i class="fas fa-{% if periode_info.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
-                                            <span class="pause-text">{% if periode_info.type_periode == 'dejeuner' %}PAUSE DÉJEUNER{% else %}RÉCRÉATION{% endif %}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% else %}
-                                <!-- Ligne normale pour les cours -->
-                                <tr>
-                                    <td class="edt-horaire-cell">
-                                        <div class="horaire-info">
-                                            <div class="periode-horaire-simple">
-                                                {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    {% for jour in jours_semaine %}
-                                        {% with creneau=periode_info.creneaux_par_jour|get_item:jour %}
-                                            <td class="edt-creneau-cell">
-                                                {% if creneau %}
-                                                    <!-- Vérifier si c'est un dict (pause) ou un objet Django (cours) -->
-                                                    {% if creneau.est_virtual %}
-                                                        <!-- C'est une pause (dict) -->
-                                                        <div class="creneau-card creneau-pause" data-matiere="pause">
-                                                            <div class="creneau-content">
-                                                                <div class="pause-label">
-                                                                    <i class="fas fa-{% if creneau.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
-                                                                    {{ creneau.nom_pause|default:"Pause" }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% else %}
-                                                        <!-- C'est un créneau cours (objet Django) -->
-                                                        {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
-                                                            <div class="creneau-card creneau-cours" data-matiere="{{ matiere_nom }}" style="border-top: 4px solid {{ creneau.matiere_couleur }};">
-                                                                <div class="creneau-content">
-                                                                    <div class="creneau-matiere">
-                                                                        <i class="fas fa-{{ creneau.matiere_icone }}" style="color: {{ creneau.matiere_couleur }}; margin-right: 6px;"></i>
-                                                                        <span>{{ matiere_nom }}</span>
-                                                                    </div>
-                                                                    <div class="creneau-professeur">
-                                                                        {% if creneau.professeur %}
-                                                                            <i class="fas fa-user" style="margin-right: 4px; font-size: 11px;"></i>
-                                                                            {{ creneau.professeur.prenom }} {{ creneau.professeur.nom }}
-                                                                        {% endif %}
-                                                                    </div>
-                                                                    <div class="creneau-salle">
-                                                                        {% if creneau.salle %}
-                                                                            <i class="fas fa-door-open" style="margin-right: 4px; font-size: 11px;"></i>
-                                                                            Salle {{ creneau.salle.numero }}
-                                                                        {% endif %}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        {% endwith %}
-                                                    {% endif %}
+                      {% for plage in plages_horaires %}
+                        <tr class="time-row">
+                          {% for jour in jours_semaine %}
+                            {% with jour_masquees=cellules_masquees|dict_value:jour plage_label=plage|dict_value:'label' %}
+                              {% if jour_masquees and jour_masquees|dict_value:plage_label %}
+                                <!-- Cette cellule est masquée par un rowspan, ne rien afficher -->
+                              {% else %}
+                                {% with creneaux_list=grille_emploi|dict_value:jour|dict_value:'plages'|dict_value:plage_label %}
+                                  {% if creneaux_list and creneaux_list|length > 0 %}
+                                    {% with max_rowspan=creneaux_list.0.rowspan %}
+                                      <td class="exam-cell" rowspan="{{ max_rowspan }}">
+                                        {% for creneau_data in creneaux_list %}
+                                          {% with creneau=creneau_data.creneau %}
+                                            {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                              <div class="exam-block" style="border-top: 4px solid {{ creneau.matiere_couleur|default:'#3b82f6' }};">
+                                                <div class="exam-time">
+                                                  {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                                                </div>
+                                                <div class="exam-subject">
+                                                  <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
+                                                  {{ matiere_nom }}
+                                                </div>
+                                                {% if creneau.professeur %}
+                                                  <div class="exam-teacher">
+                                                    <i class="fas fa-user-tie"></i>
+                                                    {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
+                                                      {{ prenom_parts.0 }} {{ nom_parts.0 }}
+                                                    {% endwith %}
+                                                  </div>
                                                 {% endif %}
-                                            </td>
-                                        {% endwith %}
-                                    {% endfor %}
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
+                                                {% if creneau.salle %}
+                                                  <div class="exam-room">
+                                                    <i class="fas fa-building"></i>
+                                                    {{ creneau.salle.nom }}
+                                                  </div>
+                                                {% endif %}
+                                              </div>
+                                              {% if not forloop.last %}
+                                                <hr style="margin: 6px 0; border: none; border-top: 1px solid #e5e7eb;">
+                                              {% endif %}
+                                            {% endwith %}
+                                          {% endwith %}
+                                        {% endfor %}
+                                      </td>
+                                    {% endwith %}
+                                  {% else %}
+                                    <td class="empty-cell"></td>
+                                  {% endif %}
+                                {% endwith %}
+                              {% endif %}
+                            {% endwith %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
                     </tbody>
-                </table>
+                  </table>
+                {% else %}
+                  <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <i class="fas fa-calendar-times" style="font-size: 48px; margin-bottom: 15px; color: #d1d5db;"></i>
+                    <h3>Aucun créneau programmé</h3>
+                  </div>
+                {% endif %}
             </div>
         </div>
 
@@ -195,42 +183,34 @@
                         <span>{{ jour|title }}</span>
                     </div>
                     <div class="creneaux-mobile-list">
-                        {% for periode_info in periodes_affichage %}
-                            {% if not periode_info.est_pause %}
-                                {% with creneau=periode_info.creneaux_par_jour|get_item:jour %}
-                                    {% if creneau and not creneau.est_virtual %}
-                                        {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
-                                            <div class="creneau-mobile-item" style="border-left: 4px solid {{ creneau.matiere_couleur }};">
-                                                <div class="creneau-mobile-horaire">
-                                                    <i class="fas fa-clock"></i>
-                                                    {{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}
-                                                </div>
-                                                <div class="creneau-mobile-matiere">
-                                                    <i class="fas fa-{{ creneau.matiere_icone }}" style="color: {{ creneau.matiere_couleur }};"></i>
-                                                    {{ matiere_nom }}
-                                                </div>
-                                                {% if creneau.professeur %}
-                                                    <div class="creneau-mobile-info">
-                                                        <i class="fas fa-user"></i>
-                                                        {{ creneau.professeur.prenom }} {{ creneau.professeur.nom }}
-                                                    </div>
-                                                {% endif %}
-                                                {% if creneau.salle %}
-                                                    <div class="creneau-mobile-info">
-                                                        <i class="fas fa-door-open"></i>
-                                                        Salle {{ creneau.salle.numero }}
-                                                    </div>
-                                                {% endif %}
+                        {% for creneau in tous_creneaux %}
+                            {% if creneau.jour == jour %}
+                                {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                    <div class="creneau-mobile-item" style="border-left: 4px solid {{ creneau.matiere_couleur|default:'#3b82f6' }};">
+                                        <div class="creneau-mobile-horaire">
+                                            <i class="fas fa-clock"></i>
+                                            {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                                        </div>
+                                        <div class="creneau-mobile-matiere">
+                                            <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
+                                            {{ matiere_nom }}
+                                        </div>
+                                        {% if creneau.professeur %}
+                                            <div class="creneau-mobile-info">
+                                                <i class="fas fa-user-tie"></i>
+                                                {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
+                                                  {{ prenom_parts.0 }} {{ nom_parts.0 }}
+                                                {% endwith %}
                                             </div>
-                                        {% endwith %}
-                                    {% endif %}
+                                        {% endif %}
+                                        {% if creneau.salle %}
+                                            <div class="creneau-mobile-info">
+                                                <i class="fas fa-building"></i>
+                                                {{ creneau.salle.nom }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 {% endwith %}
-                            {% else %}
-                                <div class="pause-mobile-item">
-                                    <i class="fas fa-{% if periode_info.type_periode == 'dejeuner' %}utensils{% else %}coffee{% endif %}"></i>
-                                    <span>{% if periode_info.type_periode == 'dejeuner' %}Pause Déjeuner{% else %}Récréation{% endif %}</span>
-                                    <span class="pause-mobile-horaire">{{ periode_info.heure_debut|time:"H:i" }} - {{ periode_info.heure_fin|time:"H:i" }}</span>
-                                </div>
                             {% endif %}
                         {% endfor %}
                     </div>

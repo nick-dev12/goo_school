@@ -1941,6 +1941,14 @@
         "documentation": {}
     },
     {
+        "label": "timezone",
+        "importPath": "django.utils",
+        "description": "django.utils",
+        "isExtraImport": true,
+        "detail": "django.utils",
+        "documentation": {}
+    },
+    {
         "label": "json",
         "kind": 6,
         "isExtraImport": true,
@@ -3305,6 +3313,14 @@
     },
     {
         "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "time",
         "importPath": "datetime",
         "description": "datetime",
         "isExtraImport": true,
@@ -7002,6 +7018,94 @@
     },
     {
         "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
         "importPath": "django.db",
         "description": "django.db",
         "isExtraImport": true,
@@ -12470,6 +12574,60 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0181_modifier_creneau_emploi_temps_horaires_obligatoires",
+        "description": "school_admin.migrations.0181_modifier_creneau_emploi_temps_horaires_obligatoires",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0180_add_note_examen_to_justification'),\n    ]\n    operations = [\n        migrations.RunPython(remplir_heures_vides, migrations.RunPython.noop),\n        migrations.AlterField(\n            model_name='creneauemploidutemps',\n            name='heure_debut',\n            field=models.TimeField(help_text='Heure de début du créneau', verbose_name='Heure de début'),",
+        "detail": "school_admin.migrations.0181_modifier_creneau_emploi_temps_horaires_obligatoires",
+        "documentation": {}
+    },
+    {
+        "label": "remplir_heures_vides",
+        "kind": 2,
+        "importPath": "school_admin.migrations.0181_modifier_creneau_emploi_temps_horaires_obligatoires",
+        "description": "school_admin.migrations.0181_modifier_creneau_emploi_temps_horaires_obligatoires",
+        "peekOfCode": "def remplir_heures_vides(apps, schema_editor):\n    \"\"\"\n    Remplit les heures vides avec les heures depuis periode_etablissement si elle existe,\n    sinon utilise des valeurs par défaut.\n    \"\"\"\n    CreneauEmploiDuTemps = apps.get_model('school_admin', 'CreneauEmploiDuTemps')\n    for creneau in CreneauEmploiDuTemps.objects.filter(heure_debut__isnull=True):\n        if creneau.periode_etablissement:\n            creneau.heure_debut = creneau.periode_etablissement.heure_debut\n            creneau.heure_fin = creneau.periode_etablissement.heure_fin",
+        "detail": "school_admin.migrations.0181_modifier_creneau_emploi_temps_horaires_obligatoires",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0182_add_carte_identite_personnalisation",
+        "description": "school_admin.migrations.0182_add_carte_identite_personnalisation",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0181_modifier_creneau_emploi_temps_horaires_obligatoires'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='CarteIdentitePersonnalisation',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('pays_nom', models.CharField(default='RÉPUBLIQUE DU SÉNÉGAL', help_text='Nom du pays à afficher (ex: RÉPUBLIQUE DU SÉNÉGAL)', max_length=255, verbose_name='Nom du pays')),",
+        "detail": "school_admin.migrations.0182_add_carte_identite_personnalisation",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0183_add_devise_etablissement_carte_identite",
+        "description": "school_admin.migrations.0183_add_devise_etablissement_carte_identite",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0182_add_carte_identite_personnalisation'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='carteidentitepersonnalisation',\n            name='devise_etablissement',\n            field=models.CharField(default='Discipline - Travail - Réussite', help_text=\"Devise de l'établissement à afficher au verso de la carte (ex: Discipline - Travail - Réussite)\", max_length=255, verbose_name=\"Devise de l'établissement\"),\n        ),",
+        "detail": "school_admin.migrations.0183_add_devise_etablissement_carte_identite",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0184_update_default_values_carte_identite_universal",
+        "description": "school_admin.migrations.0184_update_default_values_carte_identite_universal",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0183_add_devise_etablissement_carte_identite'),\n    ]\n    operations = [\n        migrations.AlterField(\n            model_name='carteidentitepersonnalisation',\n            name='devise_etablissement',\n            field=models.CharField(default='[DEVISE DE VOTRE ÉTABLISSEMENT]', help_text=\"Devise de l'établissement à afficher au verso de la carte (ex: Discipline - Travail - Réussite)\", max_length=255, verbose_name=\"Devise de l'établissement\"),\n        ),",
+        "detail": "school_admin.migrations.0184_update_default_values_carte_identite_universal",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "school_admin.migrations.0185_add_devise_monnaie_etablissement",
+        "description": "school_admin.migrations.0185_add_devise_monnaie_etablissement",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('school_admin', '0184_update_default_values_carte_identite_universal'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='etablissement',\n            name='devise_monnaie',\n            field=models.CharField(blank=True, help_text='Devise utilisée dans le pays (ex: XOF, EUR, USD, etc.)', max_length=10, null=True, verbose_name='Devise de la monnaie'),\n        ),",
+        "detail": "school_admin.migrations.0185_add_devise_monnaie_etablissement",
+        "documentation": {}
+    },
+    {
         "label": "AffectationProfesseur",
         "kind": 6,
         "importPath": "school_admin.model.affectation_model",
@@ -12521,6 +12679,15 @@
         "description": "school_admin.model.budget_model",
         "peekOfCode": "class Budget(models.Model):\n    \"\"\"\n    Modèle pour gérer les budgets par catégorie\n    \"\"\"\n    CATEGORIE_CHOICES = [\n        ('personnel', 'Personnel'),\n        ('equipement', 'Équipement'),\n        ('maintenance', 'Maintenance'),\n        ('formation', 'Formation'),\n        ('marketing', 'Marketing'),",
         "detail": "school_admin.model.budget_model",
+        "documentation": {}
+    },
+    {
+        "label": "CarteIdentitePersonnalisation",
+        "kind": 6,
+        "importPath": "school_admin.model.carte_identite_personnalisation_model",
+        "description": "school_admin.model.carte_identite_personnalisation_model",
+        "peekOfCode": "class CarteIdentitePersonnalisation(models.Model):\n    \"\"\"\n    Modèle pour stocker les personnalisations de l'en-tête des cartes d'identité\n    \"\"\"\n    etablissement = models.OneToOneField(\n        Etablissement,\n        on_delete=models.CASCADE,\n        related_name='carte_identite_personnalisation',\n        verbose_name=\"Établissement\",\n        help_text=\"Établissement concerné par cette personnalisation\"",
+        "detail": "school_admin.model.carte_identite_personnalisation_model",
         "documentation": {}
     },
     {
@@ -13302,7 +13469,7 @@
         "kind": 5,
         "importPath": "school_admin.personal_url.secretaire_url",
         "description": "school_admin.personal_url.secretaire_url",
-        "peekOfCode": "app_name = 'secretaire'\nurlpatterns = [\n    path('dashboard/secretaire/', dashboard_secretaire, name='dashboard_secretaire'),\n    path('inscription/eleves/', inscription_eleves, name='inscription_eleves'),\n    path('liste/eleves/', liste_eleves, name='liste_eleves'),\n    path('cartes-identite/eleves/', cartes_identite_eleves, name='cartes_identite_eleves'),\n    path('detail/eleve/<int:eleve_id>/', detail_eleve, name='detail_eleve'),\n    path('carte-identite/eleve/<int:eleve_id>/', carte_identite_eleve, name='carte_identite_eleve'),\n    path('cartes-identite/classe/<int:classe_id>/', cartes_identite_classe, name='cartes_identite_classe'),\n    path('transfer/eleve/<int:eleve_id>/', transfer_eleve, name='transfer_eleve'),",
+        "peekOfCode": "app_name = 'secretaire'\nurlpatterns = [\n    path('dashboard/secretaire/', dashboard_secretaire, name='dashboard_secretaire'),\n    path('inscription/eleves/', inscription_eleves, name='inscription_eleves'),\n    path('liste/eleves/', liste_eleves, name='liste_eleves'),\n    path('cartes-identite/eleves/', cartes_identite_eleves, name='cartes_identite_eleves'),\n    path('detail/eleve/<int:eleve_id>/', detail_eleve, name='detail_eleve'),\n    path('carte-identite/eleve/<int:eleve_id>/', carte_identite_eleve, name='carte_identite_eleve'),\n    path('cartes-identite/classe/<int:classe_id>/', cartes_identite_classe, name='cartes_identite_classe'),\n    path('cartes-identite/personnaliser/sauvegarder/', sauvegarder_personnalisation_carte_identite, name='sauvegarder_personnalisation_carte_identite'),",
         "detail": "school_admin.personal_url.secretaire_url",
         "documentation": {}
     },
@@ -13311,7 +13478,7 @@
         "kind": 5,
         "importPath": "school_admin.personal_url.secretaire_url",
         "description": "school_admin.personal_url.secretaire_url",
-        "peekOfCode": "urlpatterns = [\n    path('dashboard/secretaire/', dashboard_secretaire, name='dashboard_secretaire'),\n    path('inscription/eleves/', inscription_eleves, name='inscription_eleves'),\n    path('liste/eleves/', liste_eleves, name='liste_eleves'),\n    path('cartes-identite/eleves/', cartes_identite_eleves, name='cartes_identite_eleves'),\n    path('detail/eleve/<int:eleve_id>/', detail_eleve, name='detail_eleve'),\n    path('carte-identite/eleve/<int:eleve_id>/', carte_identite_eleve, name='carte_identite_eleve'),\n    path('cartes-identite/classe/<int:classe_id>/', cartes_identite_classe, name='cartes_identite_classe'),\n    path('transfer/eleve/<int:eleve_id>/', transfer_eleve, name='transfer_eleve'),\n    path('reçu/eleve/<int:eleve_id>/', reçu_inscription_eleve, name='reçu_inscription_eleve'),",
+        "peekOfCode": "urlpatterns = [\n    path('dashboard/secretaire/', dashboard_secretaire, name='dashboard_secretaire'),\n    path('inscription/eleves/', inscription_eleves, name='inscription_eleves'),\n    path('liste/eleves/', liste_eleves, name='liste_eleves'),\n    path('cartes-identite/eleves/', cartes_identite_eleves, name='cartes_identite_eleves'),\n    path('detail/eleve/<int:eleve_id>/', detail_eleve, name='detail_eleve'),\n    path('carte-identite/eleve/<int:eleve_id>/', carte_identite_eleve, name='carte_identite_eleve'),\n    path('cartes-identite/classe/<int:classe_id>/', cartes_identite_classe, name='cartes_identite_classe'),\n    path('cartes-identite/personnaliser/sauvegarder/', sauvegarder_personnalisation_carte_identite, name='sauvegarder_personnalisation_carte_identite'),\n    path('transfer/eleve/<int:eleve_id>/', transfer_eleve, name='transfer_eleve'),",
         "detail": "school_admin.personal_url.secretaire_url",
         "documentation": {}
     },
@@ -13356,7 +13523,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.administrateur_view",
         "description": "school_admin.personal_views.administrateur_view",
-        "peekOfCode": "def etablissements(request):\n    \"\"\"\n    Gestion des établissements (protégé)\n    \"\"\"\n    user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)\n    # Récupérer les paramètres de filtrage\n    search_query = request.GET.get('search', '')\n    type_filter = request.GET.get('type', '')\n    status_filter = request.GET.get('status', '')\n    page = request.GET.get('page', 1)",
+        "peekOfCode": "def etablissements(request):\n    \"\"\"\n    Gestion des établissements (protégé)\n    \"\"\"\n    user_administrateur = AdministrateurCompteController.get_user_compte_administrateur(request)\n    # Récupérer les paramètres de filtrage\n    search_query = request.GET.get('search', '')\n    type_filter = request.GET.get('type', '')\n    status_filter = request.GET.get('status', '')\n    pays_filter = request.GET.get('pays', '')",
         "detail": "school_admin.personal_views.administrateur_view",
         "documentation": {}
     },
@@ -13375,6 +13542,15 @@
         "importPath": "school_admin.personal_views.administrateur_view",
         "description": "school_admin.personal_views.administrateur_view",
         "peekOfCode": "def detaille_etablissement(request):\n    \"\"\"\n    Détails d'un établissement (protégé)\n    \"\"\"\n    etablissement_id = request.GET.get('id', None)\n    etablissement = EtablissementController.get_etablissement_by_id(etablissement_id)\n    if not etablissement:\n        messages.error(request, \"Établissement non trouvé.\")\n        return redirect('school_admin:etablissements')\n    # Calculer les statistiques de l'établissement",
+        "detail": "school_admin.personal_views.administrateur_view",
+        "documentation": {}
+    },
+    {
+        "label": "supprimer_etablissement",
+        "kind": 2,
+        "importPath": "school_admin.personal_views.administrateur_view",
+        "description": "school_admin.personal_views.administrateur_view",
+        "peekOfCode": "def supprimer_etablissement(request):\n    \"\"\"\n    Supprime un établissement et toutes ses données associées\n    \"\"\"\n    # Vérifier que l'utilisateur est un administrateur\n    if not isinstance(request.user, CompteUser) or not hasattr(request.user, 'fonction') or request.user.fonction != 'administrateur':\n        messages.error(request, \"Accès non autorisé. Vous devez être administrateur pour effectuer cette action.\")\n        return redirect('school_admin:connexion_compte_user')\n    if request.method != 'POST':\n        messages.error(request, \"Méthode non autorisée.\")",
         "detail": "school_admin.personal_views.administrateur_view",
         "documentation": {}
     },
@@ -15571,6 +15747,15 @@
         "importPath": "school_admin.personal_views.secretaire_view",
         "description": "school_admin.personal_views.secretaire_view",
         "peekOfCode": "def cartes_identite_classe(request, classe_id):\n    \"\"\"Page d'impression regroupant les cartes d'identité d'une classe.\"\"\"\n    user = request.user\n    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':\n        etablissement = user.etablissement\n    elif isinstance(user, Etablissement):\n        etablissement = user\n    else:\n        messages.error(request, \"Accès non autorisé. Vous devez être un secrétaire ou un directeur.\")\n        return redirect('school_admin:connexion_compte_user')",
+        "detail": "school_admin.personal_views.secretaire_view",
+        "documentation": {}
+    },
+    {
+        "label": "sauvegarder_personnalisation_carte_identite",
+        "kind": 2,
+        "importPath": "school_admin.personal_views.secretaire_view",
+        "description": "school_admin.personal_views.secretaire_view",
+        "peekOfCode": "def sauvegarder_personnalisation_carte_identite(request):\n    \"\"\"Sauvegarde les personnalisations de l'en-tête de la carte d'identité\"\"\"\n    from django.http import JsonResponse\n    from ..model.carte_identite_personnalisation_model import CarteIdentitePersonnalisation\n    user = request.user\n    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':\n        etablissement = user.etablissement\n    elif isinstance(user, Etablissement):\n        etablissement = user\n    else:",
         "detail": "school_admin.personal_views.secretaire_view",
         "documentation": {}
     },

@@ -208,133 +208,90 @@ class EmploiDuTempsController:
             messages.info(request, f"Aucun emploi du temps actif pour la classe {classe.nom} pour l'année scolaire {annee_scolaire_active.libelle}. Créez-en un.")
             return redirect('administrateur_etablissement:creer_emploi_du_temps', classe_id=classe.id)
         
-        # Récupérer les créneaux organisés par jour
+        # Récupérer les créneaux organisés par jour (comme pour les examens)
         jours_semaine = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
         
-        # Récupérer tous les créneaux
+        # Récupérer tous les créneaux triés par jour et heure de début
         tous_creneaux = emploi_du_temps.creneaux.all().order_by('jour', 'heure_debut')
         
-        # Organiser les créneaux par période et par jour
-        from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
+        # Organiser les créneaux en grille comme pour les examens
+        # Créer une plage horaire pour chaque heure de début unique des créneaux
+        heures_debut_uniques = sorted(list(set(creneau.heure_debut for creneau in tous_creneaux)))
         
-        # Récupérer la configuration horaire de l'établissement pour l'année scolaire active
-        config_horaire = None
-        if annee_scolaire_active:
-            config_horaire = ConfigurationHoraire.objects.filter(
-                etablissement=etablissement,
-                annee_scolaire=annee_scolaire_active,
-                actif=True
-            ).first()
-        
-        periodes_affichage = []
-        
-        if config_horaire:
-            # Utiliser les périodes de l'établissement pour l'année scolaire active
-            # Trier par heure de début pour afficher chronologiquement (de la plus ancienne à la plus récente)
-            periodes = config_horaire.periodes.filter(
-                annee_scolaire=annee_scolaire_active,
-                actif=True
-            ).order_by('heure_debut')
+        plages_horaires = []
+        for heure_debut in heures_debut_uniques:
+            # Pour chaque heure de début, créer une plage de 1h
+            dt_debut = datetime.combine(datetime.today(), heure_debut)
+            dt_fin = dt_debut + timedelta(hours=1)
+            heure_fin = dt_fin.time()
             
-            # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
-            creneaux_groupes = {}
-            for creneau in tous_creneaux:
-                if creneau.groupe_creneau:
-                    if creneau.groupe_creneau not in creneaux_groupes:
-                        creneaux_groupes[creneau.groupe_creneau] = []
-                    creneaux_groupes[creneau.groupe_creneau].append(creneau)
+            plages_horaires.append({
+                'debut': heure_debut,
+                'fin': heure_fin,
+                'label': f"{heure_debut.strftime('%H:%M')} - {heure_fin.strftime('%H:%M')}"
+            })
+        
+        # Trier les plages horaires par heure de début (plus tôt en haut)
+        plages_horaires.sort(key=lambda p: p['debut'])
+        
+        # Créer la grille d'emploi du temps (structure similaire aux examens)
+        grille_emploi = {}
+        for jour in jours_semaine:
+            grille_emploi[jour] = {
+                'jour': jour,
+                'plages': {}
+            }
+            for plage in plages_horaires:
+                grille_emploi[jour]['plages'][plage['label']] = []
+        
+        # Remplir la grille avec les créneaux
+        cellules_masquees = {}
+        for creneau in tous_creneaux:
+            jour = creneau.jour
             
-            for periode in periodes:
-                periode_info = {
-                    'nom': periode.nom,
-                    'heure_debut': periode.heure_debut,
-                    'heure_fin': periode.heure_fin,
-                    'duree': periode.duree_minutes,
-                    'est_pause': periode.est_pause,
-                    'type_periode': periode.type_periode,
-                    'creneaux_par_jour': {},
-                    'skip_render': {},  # Pour savoir si on doit skip le rendu (cellule fusionnée)
-                    'rowspans': {}  # Pour stocker les rowspans par jour
-                }
-                
-                # Pour chaque jour, trouver le créneau correspondant à cette période
-                for jour in jours_semaine:
-                    periode_info['skip_render'][jour] = False
-                    periode_info['rowspans'][jour] = 1  # Par défaut, pas de fusion
+            # Trouver la plage horaire correspondante (celle qui commence exactement à l'heure de début du créneau)
+            plage_index = -1
+            for idx, plage in enumerate(plages_horaires):
+                # Le créneau commence exactement à cette plage horaire
+                if plage['debut'] == creneau.heure_debut:
+                    plage_index = idx
                     
-                    if periode.est_pause:
-                        # C'est une pause: créer un créneau virtuel
-                        periode_info['creneaux_par_jour'][jour] = {
-                            'est_pause': True,
-                            'est_virtual': True,  # Flag pour identifier un dict
-                            'nom_pause': periode.nom,
-                            'type_periode': periode.type_periode
-                        }
-                    else:
-                        # Chercher un créneau qui utilise cette période
-                        creneau = tous_creneaux.filter(
-                            jour=jour,
-                            periode_etablissement=periode
-                        ).first()
+                    # Calculer le rowspan (nombre de plages horaires que le créneau occupe)
+                    # On compte combien de plages horaires sont couvertes par le créneau
+                    rowspan = 1
+                    creneau_fin = creneau.heure_fin
+                    
+                    # Parcourir les plages suivantes pour voir combien sont couvertes
+                    for i in range(1, len(plages_horaires) - plage_index):
+                        if plage_index + i < len(plages_horaires):
+                            plage_suivante = plages_horaires[plage_index + i]
+                            # Si le créneau se termine après le début de la plage suivante, il couvre cette plage
+                            if creneau_fin > plage_suivante['debut']:
+                                rowspan += 1
+                            else:
+                                break
+                    
+                    if jour in grille_emploi:
+                        # Ajouter icône et couleur au créneau
+                        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
+                        icone, couleur = get_matiere_config(matiere_nom)
+                        creneau.matiere_icone = icone
+                        creneau.matiere_couleur = couleur
                         
-                        if creneau:
-                            # Pour les créneaux groupés, on affiche le premier créneau dans toutes les périodes du groupe
-                            if creneau.groupe_creneau:
-                                groupe_creneaux = creneaux_groupes.get(creneau.groupe_creneau, [])
-                                # Filtrer pour le même jour
-                                groupe_creneaux_jour = [c for c in groupe_creneaux if c.jour == jour]
-                                groupe_creneaux_jour.sort(key=lambda c: c.periode_etablissement.ordre)
-                                
-                                # Toujours afficher le premier créneau du groupe (pas de skip)
-                                if groupe_creneaux_jour:
-                                    creneau = groupe_creneaux_jour[0]
-                            
-                            # Ajouter icône et couleur au créneau
-                            matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
-                            icone, couleur = get_matiere_config(matiere_nom)
-                            creneau.matiere_icone = icone
-                            creneau.matiere_couleur = couleur
-                            
-                            periode_info['creneaux_par_jour'][jour] = creneau
-                        else:
-                            periode_info['creneaux_par_jour'][jour] = None
-                
-                periodes_affichage.append(periode_info)
-        else:
-            # Mode compatibilité: regrouper les créneaux par horaires
-            # Extraire toutes les plages horaires uniques
-            horaires_uniques = set()
-            for creneau in tous_creneaux:
-                horaires_uniques.add((creneau.get_heure_debut(), creneau.get_heure_fin()))
-            
-            # Trier les horaires
-            horaires_tries = sorted(list(horaires_uniques))
-            
-            for heure_debut, heure_fin in horaires_tries:
-                from datetime import datetime
-                debut = datetime.combine(datetime.today(), heure_debut)
-                fin = datetime.combine(datetime.today(), heure_fin)
-                duree = int((fin - debut).total_seconds() / 60)
-                
-                periode_info = {
-                    'nom': f"{heure_debut.strftime('%H:%M')}-{heure_fin.strftime('%H:%M')}",
-                    'heure_debut': heure_debut,
-                    'heure_fin': heure_fin,
-                    'duree': duree,
-                    'est_pause': False,
-                    'creneaux_par_jour': {}
-                }
-                
-                for jour in jours_semaine:
-                    creneau = tous_creneaux.filter(
-                        jour=jour,
-                        heure_debut=heure_debut,
-                        heure_fin=heure_fin
-                    ).first()
+                        grille_emploi[jour]['plages'][plage['label']].append({
+                            'creneau': creneau,
+                            'rowspan': rowspan
+                        })
                     
-                    periode_info['creneaux_par_jour'][jour] = creneau
-                
-                periodes_affichage.append(periode_info)
+                    # Marquer les cellules suivantes comme masquées
+                    if jour not in cellules_masquees:
+                        cellules_masquees[jour] = {}
+                    
+                    for i in range(1, rowspan):
+                        if plage_index + i < len(plages_horaires):
+                            plage_suivante = plages_horaires[plage_index + i]
+                            cellules_masquees[jour][plage_suivante['label']] = True
+                    break
         
         # Récupérer les créneaux d'examens pour cette classe
         from ..model.session_examen_model import SessionExamen
@@ -378,7 +335,6 @@ class EmploiDuTempsController:
             heure_min = min([h[0] for h in heures_examens_triees])
             heure_max = max([h[1] for h in heures_examens_triees])
             
-            from datetime import datetime, time
             heure_actuelle = heure_min
             while heure_actuelle < heure_max:
                 dt = datetime.combine(datetime.today(), heure_actuelle)
@@ -442,17 +398,7 @@ class EmploiDuTempsController:
         
         matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
-        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(classe)
-        
-        # Récupérer les périodes de l'établissement pour l'année scolaire active (seulement les périodes de cours)
-        periodes_etablissement = []
-        if config_horaire:
-            periodes_etablissement = PeriodeEtablissement.objects.filter(
-                configuration_horaire=config_horaire,
-                annee_scolaire=annee_scolaire_active,
-                actif=True,
-                type_periode='cours'  # Seulement les périodes de cours
-            ).order_by('ordre')
+        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(classe, annee_scolaire_active)
         
         # Récupérer les erreurs et données du formulaire depuis la session (si présentes)
         creneau_form_data = request.session.pop('creneau_form_data', {})
@@ -462,18 +408,20 @@ class EmploiDuTempsController:
         context = {
             'classe': classe,
             'emploi_du_temps': emploi_du_temps,
-            'periodes_affichage': periodes_affichage,
             'tous_creneaux': tous_creneaux,
             'etablissement': etablissement,
             'personnel': personnel,
             'is_directeur': isinstance(request.user, Etablissement),
             'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
             'jours_semaine': jours_semaine,
-            'config_horaire': config_horaire,
             'statut_publication': emploi_du_temps.get_statut_publication_display(),
             'date_publication': emploi_du_temps.date_publication,
             'peut_publier': not emploi_du_temps.est_publie,
             'doit_republier': emploi_du_temps.doit_republier,
+            # Données pour l'emploi du temps des classes (structure comme les examens)
+            'grille_emploi': grille_emploi,
+            'plages_horaires': plages_horaires,
+            'cellules_masquees': cellules_masquees,
             # Données pour l'emploi du temps des examens
             'sessions_examens': sessions_examens,
             'creneaux_examens': creneaux_examens,
@@ -486,7 +434,6 @@ class EmploiDuTempsController:
             'professeurs_options': professeurs_options,
             'afficher_matiere_prof': afficher_matiere_prof,
             'salles': salles,
-            'periodes_etablissement': periodes_etablissement,
             'jours_choices': CreneauEmploiDuTemps.JOUR_CHOICES,
             'annee_scolaire_active': annee_scolaire_active,
             # Données pour le formulaire d'ajout de créneau (en cas d'erreur)
@@ -496,6 +443,143 @@ class EmploiDuTempsController:
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/detail_emploi_du_temps.html', context)
+    
+    @staticmethod
+    @login_required
+    def imprimer_emploi_du_temps(request, classe_id):
+        """
+        Affiche la page d'impression de l'emploi du temps pour une classe
+        """
+        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
+        if isinstance(request.user, PersonnelAdministratif):
+            personnel = request.user
+            etablissement = personnel.etablissement
+        elif isinstance(request.user, Etablissement):
+            personnel = None
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        if not annee_scolaire_active:
+            messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de consulter un emploi du temps.")
+            return redirect('administrateur_etablissement:liste_emplois_du_temps')
+        
+        # Récupérer la classe
+        classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
+        
+        # Récupérer l'emploi du temps actif pour l'année scolaire active uniquement
+        emploi_du_temps = classe.emplois_du_temps.filter(
+            est_actif=True,
+            annee_scolaire_fk=annee_scolaire_active
+        ).first()
+        
+        # Si pas d'emploi du temps, rediriger vers la création
+        if not emploi_du_temps:
+            messages.info(request, f"Aucun emploi du temps actif pour la classe {classe.nom} pour l'année scolaire {annee_scolaire_active.libelle}.")
+            return redirect('administrateur_etablissement:liste_emplois_du_temps')
+        
+        # Récupérer les créneaux organisés par jour (comme pour les examens)
+        jours_semaine = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+        
+        # Récupérer tous les créneaux triés par jour et heure de début
+        tous_creneaux = emploi_du_temps.creneaux.all().order_by('jour', 'heure_debut')
+        
+        # Organiser les créneaux en grille comme pour les examens
+        # Créer une plage horaire pour chaque heure de début unique des créneaux
+        heures_debut_uniques = sorted(list(set(creneau.heure_debut for creneau in tous_creneaux)))
+        
+        plages_horaires = []
+        for heure_debut in heures_debut_uniques:
+            # Pour chaque heure de début, créer une plage de 1h
+            dt_debut = datetime.combine(datetime.today(), heure_debut)
+            dt_fin = dt_debut + timedelta(hours=1)
+            heure_fin = dt_fin.time()
+            
+            plages_horaires.append({
+                'debut': heure_debut,
+                'fin': heure_fin,
+                'label': f"{heure_debut.strftime('%H:%M')} - {heure_fin.strftime('%H:%M')}"
+            })
+        
+        # Trier les plages horaires par heure de début (plus tôt en haut)
+        plages_horaires.sort(key=lambda p: p['debut'])
+        
+        # Créer la grille d'emploi du temps (structure similaire aux examens)
+        grille_emploi = {}
+        for jour in jours_semaine:
+            grille_emploi[jour] = {
+                'jour': jour,
+                'plages': {}
+            }
+            for plage in plages_horaires:
+                grille_emploi[jour]['plages'][plage['label']] = []
+        
+        # Remplir la grille avec les créneaux
+        cellules_masquees = {}
+        for creneau in tous_creneaux:
+            jour = creneau.jour
+            
+            # Trouver la plage horaire correspondante (celle qui commence exactement à l'heure de début du créneau)
+            plage_index = -1
+            for idx, plage in enumerate(plages_horaires):
+                # Le créneau commence exactement à cette plage horaire
+                if plage['debut'] == creneau.heure_debut:
+                    plage_index = idx
+                    
+                    # Calculer le rowspan (nombre de plages horaires que le créneau occupe)
+                    # On compte combien de plages horaires sont couvertes par le créneau
+                    rowspan = 1
+                    creneau_fin = creneau.heure_fin
+                    
+                    # Parcourir les plages suivantes pour voir combien sont couvertes
+                    for i in range(1, len(plages_horaires) - plage_index):
+                        if plage_index + i < len(plages_horaires):
+                            plage_suivante = plages_horaires[plage_index + i]
+                            # Si le créneau se termine après le début de la plage suivante, il couvre cette plage
+                            if creneau_fin > plage_suivante['debut']:
+                                rowspan += 1
+                            else:
+                                break
+                    
+                    if jour in grille_emploi:
+                        # Ajouter icône et couleur au créneau
+                        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
+                        icone, couleur = get_matiere_config(matiere_nom)
+                        creneau.matiere_icone = icone
+                        creneau.matiere_couleur = couleur
+                        
+                        grille_emploi[jour]['plages'][plage['label']].append({
+                            'creneau': creneau,
+                            'rowspan': rowspan
+                        })
+                    
+                    # Marquer les cellules suivantes comme masquées
+                    if jour not in cellules_masquees:
+                        cellules_masquees[jour] = {}
+                    
+                    for i in range(1, rowspan):
+                        if plage_index + i < len(plages_horaires):
+                            plage_suivante = plages_horaires[plage_index + i]
+                            cellules_masquees[jour][plage_suivante['label']] = True
+                    break
+        
+        context = {
+            'classe': classe,
+            'emploi_du_temps': emploi_du_temps,
+            'tous_creneaux': tous_creneaux,
+            'etablissement': etablissement,
+            'jours_semaine': jours_semaine,
+            'grille_emploi': grille_emploi,
+            'plages_horaires': plages_horaires,
+            'cellules_masquees': cellules_masquees,
+            'annee_scolaire_active': annee_scolaire_active,
+        }
+        
+        return render(request, 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/imprimer_emploi_du_temps.html', context)
     
     @staticmethod
     @login_required
@@ -650,34 +734,17 @@ class EmploiDuTempsController:
         matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
         
-        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe)
-        
-        # Récupérer les périodes de l'établissement pour l'année scolaire active
-        from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
-        config_horaire = None
-        if annee_scolaire_active:
-            config_horaire = ConfigurationHoraire.objects.filter(
-                etablissement=etablissement,
-                annee_scolaire=annee_scolaire_active,
-                actif=True
-            ).first()
-        periodes_etablissement = []
-        if config_horaire:
-            periodes_etablissement = PeriodeEtablissement.objects.filter(
-                configuration_horaire=config_horaire,
-                annee_scolaire=annee_scolaire_active,
-                actif=True,
-                type_periode='cours'  # Seulement les périodes de cours
-            ).order_by('ordre')
+        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe, annee_scolaire_active)
         
         form_data = {}
         field_errors = {}
         
         if request.method == 'POST':
-            # Récupération des données (periodes_etablissement est maintenant une liste)
+            # Récupération des données (utilise directement heure_debut et heure_fin)
             form_data = {
                 'jour': request.POST.get('jour', ''),
-                'periodes_etablissement_ids': request.POST.getlist('periodes_etablissement'),
+                'heure_debut': request.POST.get('heure_debut', ''),
+                'heure_fin': request.POST.get('heure_fin', ''),
                 'matiere_id': request.POST.get('matiere', ''),
                 'professeur_id': request.POST.get('professeur', ''),
                 'salle_id': request.POST.get('salle', ''),
@@ -693,107 +760,103 @@ class EmploiDuTempsController:
                 field_errors['jour'] = "Le jour est obligatoire."
                 is_valid = False
             
-            if not form_data['periodes_etablissement_ids']:
-                field_errors['periodes_etablissement'] = "Vous devez sélectionner au moins une période."
+            if not form_data['heure_debut']:
+                field_errors['heure_debut'] = "L'heure de début est obligatoire."
                 is_valid = False
             
-            # Récupérer les périodes sélectionnées
-            periodes_selectionnees = []
-            if form_data['periodes_etablissement_ids']:
+            if not form_data['heure_fin']:
+                field_errors['heure_fin'] = "L'heure de fin est obligatoire."
+                is_valid = False
+            
+            # Validation des heures
+            heure_debut_obj = None
+            heure_fin_obj = None
+            if is_valid and form_data['heure_debut'] and form_data['heure_fin']:
                 try:
-                    periodes_selectionnees = list(PeriodeEtablissement.objects.filter(
-                        id__in=form_data['periodes_etablissement_ids'],
-                        configuration_horaire__etablissement=etablissement,
-                        actif=True
-                    ).order_by('ordre'))
+                    heure_debut_obj = datetime.strptime(form_data['heure_debut'], '%H:%M').time()
+                    heure_fin_obj = datetime.strptime(form_data['heure_fin'], '%H:%M').time()
                     
-                    if len(periodes_selectionnees) != len(form_data['periodes_etablissement_ids']):
-                        field_errors['periodes_etablissement'] = "Certaines périodes sélectionnées sont invalides."
+                    # Vérifier que l'heure de fin est après l'heure de début
+                    if heure_fin_obj <= heure_debut_obj:
+                        field_errors['heure_fin'] = "L'heure de fin doit être après l'heure de début."
                         is_valid = False
-                except Exception:
-                    field_errors['periodes_etablissement'] = "Erreur lors de la récupération des périodes."
+                except (ValueError, TypeError):
+                    field_errors['heure_debut'] = "Format d'heure invalide."
                     is_valid = False
             
-            # Vérification des chevauchements pour chaque période
-            if is_valid and form_data['jour'] and periodes_selectionnees:
-                for periode in periodes_selectionnees:
-                    # 1. Vérifier si un créneau existe déjà pour cette classe, ce jour et cette période
-                    chevauchements_classe = CreneauEmploiDuTemps.objects.filter(
-                        emploi_du_temps=emploi_du_temps,
-                        jour=form_data['jour'],
-                        periode_etablissement=periode
-                    )
+            # Vérification des chevauchements
+            if is_valid and form_data['jour'] and heure_debut_obj and heure_fin_obj:
+                # 1. Vérifier si un créneau existe déjà pour cette classe, ce jour avec chevauchement d'heures
+                creneaux_classe = CreneauEmploiDuTemps.objects.filter(
+                    emploi_du_temps=emploi_du_temps,
+                    jour=form_data['jour']
+                )
+                
+                for creneau_existant in creneaux_classe:
+                    heure_debut_existant = creneau_existant.heure_debut
+                    heure_fin_existant = creneau_existant.heure_fin
                     
-                    if chevauchements_classe.exists():
-                        creneau_existant = chevauchements_classe.first()
-                        matiere_existante = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
-                        heure_debut_str = periode.heure_debut.strftime('%H:%M')
-                        heure_fin_str = periode.heure_fin.strftime('%H:%M')
-                        jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
-                        field_errors['non_field_errors'] = f"Un créneau existe déjà pour cet horaire ({heure_debut_str} à {heure_fin_str}) le {jour_display} dans cette classe avec la matière {matiere_existante}. Veuillez choisir un autre horaire."
-                        is_valid = False
-                        break
-                    
-                    # 2. Vérifier si le professeur sélectionné a déjà un créneau qui se chevauche avec cette période dans une autre classe
-                    if form_data['professeur_id']:
-                        try:
-                            professeur = Professeur.objects.get(id=form_data['professeur_id'], etablissement=etablissement)
+                    if heure_debut_existant and heure_fin_existant:
+                        # Vérifier si les heures se chevauchent
+                        chevauche = (
+                            (heure_debut_obj <= heure_debut_existant < heure_fin_obj) or
+                            (heure_debut_obj < heure_fin_existant <= heure_fin_obj) or
+                            (heure_debut_existant <= heure_debut_obj and heure_fin_existant >= heure_fin_obj) or
+                            (heure_debut_obj <= heure_debut_existant and heure_fin_obj >= heure_fin_existant)
+                        )
+                        
+                        if chevauche:
+                            matiere_existante = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                            heure_debut_str = heure_debut_obj.strftime('%H:%M')
+                            heure_fin_str = heure_fin_obj.strftime('%H:%M')
+                            jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
+                            field_errors['non_field_errors'] = f"Un créneau existe déjà pour cet horaire ({heure_debut_str} à {heure_fin_str}) le {jour_display} dans cette classe avec la matière {matiere_existante}. Veuillez choisir un autre horaire."
+                            is_valid = False
+                            break
+                
+                # 2. Vérifier si le professeur sélectionné a déjà un créneau qui se chevauche
+                if is_valid and form_data['professeur_id']:
+                    try:
+                        professeur = Professeur.objects.get(id=form_data['professeur_id'], etablissement=etablissement)
+                        
+                        # Récupérer tous les créneaux du professeur pour ce jour et cette année scolaire
+                        creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
+                            professeur=professeur,
+                            jour=form_data['jour'],
+                            emploi_du_temps__est_actif=True,
+                            emploi_du_temps__annee_scolaire_fk=annee_scolaire_active
+                        ).exclude(emploi_du_temps=emploi_du_temps).select_related('emploi_du_temps__classe', 'matiere')
+                        
+                        # Vérifier les chevauchements d'heures
+                        for creneau_existant in creneaux_professeur:
+                            heure_debut_existant = creneau_existant.heure_debut
+                            heure_fin_existant = creneau_existant.heure_fin
                             
-                            # Récupérer tous les créneaux du professeur pour ce jour et cette année scolaire
-                            creneaux_professeur = CreneauEmploiDuTemps.objects.filter(
-                                professeur=professeur,
-                                jour=form_data['jour'],
-                                emploi_du_temps__est_actif=True,
-                                emploi_du_temps__annee_scolaire_fk=annee_scolaire_active
-                            ).exclude(emploi_du_temps=emploi_du_temps).select_related('emploi_du_temps__classe', 'matiere', 'periode_etablissement')
-                            
-                            # Vérifier les chevauchements d'heures
-                            for creneau_existant in creneaux_professeur:
-                                # Récupérer les heures du créneau existant (via période ou directes)
-                                heure_debut_existant = creneau_existant.get_heure_debut()
-                                heure_fin_existant = creneau_existant.get_heure_fin()
+                            if heure_debut_existant and heure_fin_existant:
+                                # Vérifier si les heures se chevauchent
+                                chevauche = (
+                                    (heure_debut_obj <= heure_debut_existant < heure_fin_obj) or
+                                    (heure_debut_obj < heure_fin_existant <= heure_fin_obj) or
+                                    (heure_debut_existant <= heure_debut_obj and heure_fin_existant >= heure_fin_obj) or
+                                    (heure_debut_obj <= heure_debut_existant and heure_fin_obj >= heure_fin_existant)
+                                )
                                 
-                                if heure_debut_existant and heure_fin_existant:
-                                    # Vérifier si les heures se chevauchent
-                                    heure_debut_periode = periode.heure_debut
-                                    heure_fin_periode = periode.heure_fin
-                                    
-                                    # Deux périodes se chevauchent si :
-                                    # - Le début de l'une est entre le début et la fin de l'autre, OU
-                                    # - La fin de l'une est entre le début et la fin de l'autre, OU
-                                    # - Une période contient complètement l'autre
-                                    chevauche = (
-                                        (heure_debut_periode <= heure_debut_existant < heure_fin_periode) or
-                                        (heure_debut_periode < heure_fin_existant <= heure_fin_periode) or
-                                        (heure_debut_existant <= heure_debut_periode and heure_fin_existant >= heure_fin_periode) or
-                                        (heure_debut_periode <= heure_debut_existant and heure_fin_periode >= heure_fin_existant)
-                                    )
-                                    
-                                    if chevauche:
-                                        matiere_conflict = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
-                                        heure_debut_str = periode.heure_debut.strftime('%H:%M')
-                                        heure_fin_str = periode.heure_fin.strftime('%H:%M')
-                                        jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
-                                        field_errors['non_field_errors'] = f"Un professeur a déjà été programmé pour cet horaire ({heure_debut_str} à {heure_fin_str}) le {jour_display} avec la matière {matiere_conflict}. Veuillez choisir un autre horaire."
-                                        is_valid = False
-                                        break
-                            
-                            if not is_valid:
-                                break
+                                if chevauche:
+                                    matiere_conflict = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                                    heure_debut_str = heure_debut_obj.strftime('%H:%M')
+                                    heure_fin_str = heure_fin_obj.strftime('%H:%M')
+                                    jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
+                                    field_errors['non_field_errors'] = f"Le professeur est déjà programmé pour cet horaire ({heure_debut_str} à {heure_fin_str}) le {jour_display} avec la matière {matiere_conflict}. Veuillez choisir un autre horaire."
+                                    is_valid = False
+                                    break
                                 
-                        except Professeur.DoesNotExist:
-                            pass
+                    except Professeur.DoesNotExist:
+                        pass
             
-            # Si tout est valide, créer les créneaux
+            # Si tout est valide, créer le créneau
             if is_valid:
                 try:
                     with transaction.atomic():
-                        # Générer un identifiant unique pour le groupe de créneaux si plusieurs périodes
-                        import uuid
-                        groupe_creneau = None
-                        if len(periodes_selectionnees) > 1:
-                            groupe_creneau = str(uuid.uuid4())[:8]
-                        
                         # Récupérer les objets communs une seule fois
                         matiere = None
                         if form_data['matiere_id']:
@@ -816,28 +879,23 @@ class EmploiDuTempsController:
                             except Salle.DoesNotExist:
                                 pass
                         
-                        # Créer un créneau pour chaque période sélectionnée
-                        for periode in periodes_selectionnees:
-                            creneau = CreneauEmploiDuTemps(
-                                emploi_du_temps=emploi_du_temps,
-                                jour=form_data['jour'],
-                                periode_etablissement=periode,
-                                groupe_creneau=groupe_creneau,
-                                type_cours=form_data['type_cours'],
-                                notes=form_data['notes'] if form_data['notes'] else None,
-                                matiere=matiere,
-                                professeur=professeur,
-                                salle=salle
-                            )
-                            creneau.save()
+                        # Créer le créneau avec les heures directement
+                        creneau = CreneauEmploiDuTemps(
+                            emploi_du_temps=emploi_du_temps,
+                            jour=form_data['jour'],
+                            heure_debut=heure_debut_obj,
+                            heure_fin=heure_fin_obj,
+                            type_cours=form_data['type_cours'],
+                            notes=form_data['notes'] if form_data['notes'] else None,
+                            matiere=matiere,
+                            professeur=professeur,
+                            salle=salle
+                        )
+                        creneau.save()
                         
                         emploi_du_temps.marquer_comme_modifie()
                         
-                        nb_creneaux = len(periodes_selectionnees)
-                        if nb_creneaux == 1:
-                            messages.success(request, "Le créneau a été ajouté avec succès !")
-                        else:
-                            messages.success(request, f"{nb_creneaux} créneaux consécutifs ont été ajoutés avec succès !")
+                        messages.success(request, "Le créneau a été ajouté avec succès !")
                         EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
                         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
                         
@@ -888,7 +946,10 @@ class EmploiDuTempsController:
         matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
         
-        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe)
+        # Récupérer l'année scolaire active
+        annee_scolaire_active = get_session_active(request, etablissement)
+        
+        professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe, annee_scolaire_active)
         
         form_data = {}
         field_errors = {}
@@ -924,10 +985,9 @@ class EmploiDuTempsController:
             
             # Vérification que l'heure de fin est après l'heure de début
             if form_data['heure_debut'] and form_data['heure_fin']:
-                from datetime import datetime as dt
                 try:
-                    debut = dt.strptime(form_data['heure_debut'], '%H:%M').time()
-                    fin = dt.strptime(form_data['heure_fin'], '%H:%M').time()
+                    debut = datetime.strptime(form_data['heure_debut'], '%H:%M').time()
+                    fin = datetime.strptime(form_data['heure_fin'], '%H:%M').time()
                     
                     if fin <= debut:
                         field_errors['heure_fin'] = "L'heure de fin doit être après l'heure de début."
@@ -938,21 +998,43 @@ class EmploiDuTempsController:
             
             # Vérification des chevauchements (en excluant le créneau actuel)
             if is_valid and form_data['jour'] and form_data['heure_debut'] and form_data['heure_fin']:
-                # 1. Vérifier si un autre créneau existe déjà pour cette classe, ce jour et ces heures
-                chevauchements_classe = CreneauEmploiDuTemps.objects.filter(
-                    emploi_du_temps=emploi_du_temps,
-                    jour=form_data['jour'],
-                    heure_debut__lt=fin,
-                    heure_fin__gt=debut
-                ).exclude(id=creneau.id)
-                
-                if chevauchements_classe.exists():
-                    creneau_existant = chevauchements_classe.first()
-                    matiere_existante = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
-                    field_errors['non_field_errors'] = f"Un créneau existe déjà pour ces heures le {form_data['jour']} dans cette classe (matière: {matiere_existante})."
+                # Convertir les heures en objets time pour la comparaison
+                try:
+                    debut = datetime.strptime(form_data['heure_debut'], '%H:%M').time()
+                    fin = datetime.strptime(form_data['heure_fin'], '%H:%M').time()
+                except (ValueError, TypeError):
+                    debut = None
+                    fin = None
                     is_valid = False
                 
-                # 2. Vérifier si le professeur sélectionné a déjà un créneau qui se chevauche dans une autre classe
+                if is_valid and debut and fin:
+                    # 1. Vérifier si un autre créneau existe déjà pour cette classe, ce jour et ces heures
+                    creneaux_classe = CreneauEmploiDuTemps.objects.filter(
+                        emploi_du_temps=emploi_du_temps,
+                        jour=form_data['jour']
+                    ).exclude(id=creneau.id)
+                    
+                    for creneau_existant in creneaux_classe:
+                        heure_debut_existant = creneau_existant.heure_debut
+                        heure_fin_existant = creneau_existant.heure_fin
+                        
+                        if heure_debut_existant and heure_fin_existant:
+                            # Vérifier si les heures se chevauchent
+                            chevauche = (
+                                (debut <= heure_debut_existant < fin) or
+                                (debut < heure_fin_existant <= fin) or
+                                (heure_debut_existant <= debut and heure_fin_existant >= fin) or
+                                (debut <= heure_debut_existant and fin >= heure_fin_existant)
+                            )
+                            
+                            if chevauche:
+                                matiere_existante = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
+                                jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
+                                field_errors['non_field_errors'] = f"Un créneau existe déjà pour ces heures le {jour_display} dans cette classe avec la matière {matiere_existante}. Veuillez choisir un autre horaire."
+                                is_valid = False
+                                break
+                    
+                    # 2. Vérifier si le professeur sélectionné a déjà un créneau qui se chevauche dans une autre classe
                 if is_valid and form_data['professeur_id']:
                     try:
                         professeur = Professeur.objects.get(id=form_data['professeur_id'], etablissement=etablissement)
@@ -976,9 +1058,9 @@ class EmploiDuTempsController:
                         
                         # Vérifier les chevauchements d'heures
                         for creneau_existant in creneaux_professeur:
-                            # Récupérer les heures du créneau existant (via période ou directes)
-                            heure_debut_existant = creneau_existant.get_heure_debut()
-                            heure_fin_existant = creneau_existant.get_heure_fin()
+                            # Récupérer les heures du créneau existant directement
+                            heure_debut_existant = creneau_existant.heure_debut
+                            heure_fin_existant = creneau_existant.heure_fin
                             
                             if heure_debut_existant and heure_fin_existant:
                                 # Vérifier si les heures se chevauchent
@@ -992,7 +1074,7 @@ class EmploiDuTempsController:
                                 if chevauche:
                                     matiere_conflict = creneau_existant.matiere.nom if creneau_existant.matiere else "Sans matière"
                                     jour_display = dict(CreneauEmploiDuTemps.JOUR_CHOICES).get(form_data['jour'], form_data['jour']).capitalize()
-                                    field_errors['non_field_errors'] = f"Un professeur a déjà été programmé pour cet horaire ({form_data['heure_debut']} à {form_data['heure_fin']}) le {jour_display} avec la matière {matiere_conflict}. Veuillez choisir un autre horaire."
+                                    field_errors['non_field_errors'] = f"Le professeur est déjà programmé pour cet horaire ({form_data['heure_debut']} à {form_data['heure_fin']}) le {jour_display} avec la matière {matiere_conflict}. Veuillez choisir un autre horaire."
                                     is_valid = False
                                     break
                                 
@@ -1131,9 +1213,14 @@ class EmploiDuTempsController:
             )
     
     @staticmethod
-    def _get_professeurs_options(classe):
+    def _get_professeurs_options(classe, annee_scolaire_active=None):
         """
         Retourne la liste des professeurs affectés à une classe avec un libellé adapté.
+        Filtre uniquement les professeurs affectés à la classe pour l'année scolaire active.
+        
+        Args:
+            classe: L'objet Classe
+            annee_scolaire_active: L'année scolaire active (optionnel mais recommandé)
         """
         from collections import OrderedDict
         from ..model.professeur_model import Professeur
@@ -1159,6 +1246,14 @@ class EmploiDuTempsController:
                     actif=True,
                     professeur__actif=True,
                 )
+            )
+            # Filtrer par année scolaire active si fournie
+            if annee_scolaire_active:
+                affectations_primaire = affectations_primaire.filter(
+                    annee_scolaire=annee_scolaire_active
+                )
+            affectations_primaire = (
+                affectations_primaire
                 .select_related('professeur')
                 .prefetch_related('matieres')
                 .order_by('professeur__nom', 'professeur__prenom')
@@ -1182,6 +1277,14 @@ class EmploiDuTempsController:
                     actif=True,
                     professeur__actif=True,
                 )
+            )
+            # Filtrer par année scolaire active si fournie
+            if annee_scolaire_active:
+                affectations = affectations.filter(
+                    annee_scolaire=annee_scolaire_active
+                )
+            affectations = (
+                affectations
                 .select_related('professeur', 'matiere')
                 .order_by('professeur__nom', 'professeur__prenom', 'matiere__nom')
             )

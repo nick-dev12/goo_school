@@ -1019,6 +1019,7 @@ def facturation_directeur(request):
         'nombre_personnel_admin': nombre_personnel_admin,
         'nombre_enseignants': nombre_enseignants,
         'nombre_classes': nombre_classes,
+        'devise_etablissement': etablissement.devise_monnaie if hasattr(etablissement, 'devise_monnaie') else None,
     }
     
     return render(request, 'school_admin/directeur/facturation_directeur.html', context)
@@ -7396,18 +7397,16 @@ def imprimer_liste_nominative(request, classe_id):
         return redirect('directeur:liste_eleves')
     
     # Filtrer les élèves par année scolaire active via InscriptionEleve
-    eleves_ids_inscrits = InscriptionEleve.objects.filter(
+    # Utiliser la même logique que cartes_identite_classe pour la cohérence
+    from django.db.models.functions import Lower
+    inscriptions = InscriptionEleve.objects.filter(
         annee_scolaire=annee_scolaire_active,
         classe=classe,
         etablissement=etablissement
-    ).values_list('eleve_id', flat=True)
+    ).select_related('eleve').order_by(Lower('eleve__nom'), Lower('eleve__prenom'))
     
-    # Récupérer tous les élèves de la classe filtrés par année scolaire active
-    eleves = Eleve.objects.filter(
-        id__in=eleves_ids_inscrits,
-        classe=classe,
-        actif=True
-    ).order_by('nom', 'prenom')
+    # Récupérer les élèves depuis les inscriptions (inclure tous les élèves inscrits pour cette année)
+    eleves = [inscription.eleve for inscription in inscriptions if inscription.eleve]
     
     # Déterminer l'année scolaire à afficher
     annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
@@ -7419,7 +7418,7 @@ def imprimer_liste_nominative(request, classe_id):
         'date_generation': datetime.now(),
         'annee_scolaire': annee_scolaire_libelle,
         'annee_scolaire_active': annee_scolaire_active,
-        'nombre_eleves': eleves.count(),
+        'nombre_eleves': len(eleves),
     }
     
     return render(request, 'school_admin/directeur/imprimer_liste_nominative.html', context)
@@ -8327,7 +8326,7 @@ def profil_etablissement(request):
         'etablissement': etablissement,
         'modules_config': modules_config,
         'facturation': facturation,
-        'devise_etablissement': getattr(etablissement, 'devise', None),
+        'devise_etablissement': etablissement.devise_monnaie if hasattr(etablissement, 'devise_monnaie') else None,
         'active_tab': active_tab,
         'is_directeur': is_directeur,
         'is_personnel_administratif': is_personnel,

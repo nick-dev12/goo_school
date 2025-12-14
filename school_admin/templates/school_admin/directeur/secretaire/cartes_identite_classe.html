@@ -15,8 +15,69 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}"
+      href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}?v=1.0.1"
     />
+    <style>
+      .btn-success {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+      }
+      
+      .btn-success:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
+      
+      .btn-success:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      
+      .editable-header:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+      
+      .personalization-notice {
+        animation: slideIn 0.3s ease-out;
+      }
+      
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      @media print {
+        .btn-personnaliser,
+        .btn-enregistrer-personnalisation,
+        .personalization-notice {
+          display: none !important;
+        }
+        
+        .editable-header {
+          border: none !important;
+          background: transparent !important;
+          padding: 0 !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div class="card-page">
@@ -30,13 +91,16 @@
             Retour aux classes
           </a>
         </div>
-        <div class="card-title">
-          <h1>Cartes d'identité de la classe {{ classe.nom }}</h1>
-          <p>
-            {{ etablissement.nom }} · Année scolaire {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}
-          </p>
-        </div>
+       
         <div class="card-actions-right">
+          <button type="button" class="btn-secondary" id="btn-personnaliser" style="margin-right: 10px;">
+            <i class="fas fa-edit"></i>
+            Personnaliser l'en-tête
+          </button>
+          <button type="button" class="btn-success" id="btn-enregistrer-personnalisation" style="display: none; margin-right: 10px;">
+            <i class="fas fa-save"></i>
+            Enregistrer
+          </button>
           <button type="button" class="btn-primary" id="print-class-cards">
             <i class="fas fa-print"></i>
             Imprimer toutes les cartes
@@ -54,6 +118,22 @@
             <i class="fas fa-id-card"></i>
             Cartes d'identité de la classe {{ classe.nom }}
           </h3>
+
+          {% if not personnalisation or not personnalisation.pays_nom or personnalisation.pays_nom == "RÉPUBLIQUE DE [VOTRE PAYS]" or personnalisation.devise_pays == "[DEVISE NATIONALE]" or personnalisation.devise_etablissement == "[DEVISE DE VOTRE ÉTABLISSEMENT]" %}
+          <div class="personalization-notice" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 10px 14px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <div style="font-size: 14px; flex-shrink: 0; margin-top: 2px;">
+                <i class="fas fa-info-circle"></i>
+              </div>
+              <div style="flex: 1;">
+                <p style="margin: 0; line-height: 1.4; font-size: 12px; opacity: 0.95;">
+                  <strong>Note :</strong> Veuillez personnaliser les informations de votre établissement via le bouton <strong>"Personnaliser l'en-tête"</strong> : 
+                  <strong>République du pays</strong>, <strong>Devise du pays</strong> et <strong>Devise de l'établissement</strong> (verso).
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
 
           {% if eleves %}
             <div class="class-cards-container">
@@ -79,10 +159,25 @@
                           <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo de l'établissement" />
                         </div>
                         <div class="idcard-header-text">
-                          <p class="idcard-country">RÉPUBLIQUE DU SÉNÉGAL</p>
-                          <p class="idcard-motto">UN PEUPLE - UN BUT - UNE FOI</p>
+                          <p class="idcard-country editable-header" 
+                             data-field="pays_nom" 
+                             contenteditable="false"
+                             data-default="RÉPUBLIQUE DE [VOTRE PAYS]">
+                            {{ personnalisation.pays_nom|default:"RÉPUBLIQUE DE [VOTRE PAYS]" }}
+                          </p>
+                          <p class="idcard-motto editable-header" 
+                             data-field="devise_pays" 
+                             contenteditable="false"
+                             data-default="[DEVISE NATIONALE]">
+                            {{ personnalisation.devise_pays|default:"[DEVISE NATIONALE]" }}
+                          </p>
                           <h4 class="idcard-school">{{ etablissement.nom|default:"LYCÉE BLAISE PASCAL" }}</h4>
-                          <p class="idcard-title">CARTE D'IDENTITÉ SCOLAIRE</p>
+                          <p class="idcard-title editable-header" 
+                             data-field="titre_carte" 
+                             contenteditable="false"
+                             data-default="CARTE D'IDENTITÉ SCOLAIRE">
+                            {{ personnalisation.titre_carte|default:"CARTE D'IDENTITÉ SCOLAIRE" }}
+                          </p>
                         </div>
                         <div class="idcard-logo">
                           {% if etablissement.logo %}
@@ -164,12 +259,12 @@
                            
                           </div>
                           <div class="signature-line">
-                            <span>Signature du Chef d'établissement :</span>
-                            <span class="signature-placeholder"></span>
+                            <span>Téléphone du Directeur :</span>
+                            <span class="signature-placeholder">{{ etablissement.directeur_telephone|default:"Non renseigné" }}</span>
                           </div>
                           <div class="signature-line">
-                            <span>Cachet de l'établissement :</span>
-                            <span class="signature-placeholder"></span>
+                            <span>Téléphone du Parent :</span>
+                            <span class="signature-placeholder">{{ eleve.parent_telephone|default:"Non renseigné" }}</span>
                           </div>
                         </div>
                       </div>
@@ -181,7 +276,12 @@
                             <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement" />
                           {% endif %}
                         </div>
-                        <span class="idcard-back-motto">{{ etablissement.devise|default:"Discipline - Travail - Réussite" }}</span>
+                        <span class="idcard-back-motto editable-header" 
+                              data-field="devise_etablissement" 
+                              contenteditable="false"
+                              data-default="[DEVISE DE VOTRE ÉTABLISSEMENT]">
+                          {{ personnalisation.devise_etablissement|default:"[DEVISE DE VOTRE ÉTABLISSEMENT]" }}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -211,6 +311,137 @@
       const printClassCardsBtn = document.getElementById('print-class-cards');
       if (printClassCardsBtn) {
         printClassCardsBtn.addEventListener('click', () => window.print());
+      }
+
+      // Système de personnalisation de l'en-tête
+      let modeEdition = false;
+      let valeursInitiales = {};
+      const btnPersonnaliser = document.getElementById('btn-personnaliser');
+      const btnEnregistrer = document.getElementById('btn-enregistrer-personnalisation');
+      
+      // Fonction pour activer/désactiver le mode édition
+      function toggleModeEdition() {
+        modeEdition = !modeEdition;
+        const editableHeaders = document.querySelectorAll('.editable-header');
+        
+        editableHeaders.forEach(function(header) {
+          header.contentEditable = modeEdition;
+          if (modeEdition) {
+            header.style.border = '2px dashed #3b82f6';
+            header.style.borderRadius = '4px';
+            header.style.padding = '2px 4px';
+            header.style.cursor = 'text';
+            header.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+            header.style.outline = 'none';
+            // Sauvegarder la valeur initiale
+            valeursInitiales[header.getAttribute('data-field')] = header.textContent.trim();
+          } else {
+            header.style.border = 'none';
+            header.style.padding = '0';
+            header.style.cursor = 'default';
+            header.style.backgroundColor = 'transparent';
+          }
+        });
+        
+        if (modeEdition) {
+          btnPersonnaliser.innerHTML = '<i class="fas fa-times"></i> Annuler';
+          btnPersonnaliser.classList.remove('btn-secondary');
+          btnPersonnaliser.classList.add('btn-danger');
+          if (btnEnregistrer) btnEnregistrer.style.display = 'inline-flex';
+        } else {
+          btnPersonnaliser.innerHTML = '<i class="fas fa-edit"></i> Personnaliser l\'en-tête';
+          btnPersonnaliser.classList.remove('btn-danger');
+          btnPersonnaliser.classList.add('btn-secondary');
+          if (btnEnregistrer) btnEnregistrer.style.display = 'none';
+          // Restaurer les valeurs initiales si annulation
+          editableHeaders.forEach(function(header) {
+            const field = header.getAttribute('data-field');
+            if (valeursInitiales[field]) {
+              header.textContent = valeursInitiales[field];
+            }
+          });
+        }
+      }
+      
+      // Activer/désactiver le mode édition
+      if (btnPersonnaliser) {
+        btnPersonnaliser.addEventListener('click', toggleModeEdition);
+      }
+      
+      // Mise à jour en temps réel sur toutes les cartes
+      document.addEventListener('input', function(e) {
+        if (modeEdition && e.target.classList.contains('editable-header')) {
+          const field = e.target.getAttribute('data-field');
+          const newValue = e.target.textContent.trim();
+          
+          // Mettre à jour tous les éléments avec le même data-field
+          document.querySelectorAll(`[data-field="${field}"]`).forEach(function(el) {
+            if (el !== e.target) {
+              el.textContent = newValue || el.getAttribute('data-default');
+            }
+          });
+        }
+      });
+      
+      // Sauvegarder les personnalisations
+      if (btnEnregistrer) {
+        btnEnregistrer.addEventListener('click', function() {
+          const data = {};
+          const editableHeaders = document.querySelectorAll('.editable-header');
+          
+          editableHeaders.forEach(function(header) {
+            const field = header.getAttribute('data-field');
+            const value = header.textContent.trim();
+            if (field && value) {
+              data[field] = value;
+            }
+          });
+          
+          // Validation
+          if (!data.pays_nom || !data.devise_pays || !data.titre_carte || !data.devise_etablissement) {
+            alert('Veuillez remplir tous les champs.');
+            return;
+          }
+          
+          // Envoyer les données au serveur
+          const formData = new FormData();
+          formData.append('pays_nom', data.pays_nom);
+          formData.append('devise_pays', data.devise_pays);
+          formData.append('titre_carte', data.titre_carte);
+          formData.append('devise_etablissement', data.devise_etablissement);
+          
+          // Désactiver le bouton pendant la sauvegarde
+          btnEnregistrer.disabled = true;
+          btnEnregistrer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+          
+          fetch('{% url "secretaire:sauvegarder_personnalisation_carte_identite" %}', {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              alert('Personnalisation enregistrée avec succès !');
+              // Désactiver le mode édition
+              toggleModeEdition();
+              // Recharger la page pour afficher les nouvelles valeurs
+              window.location.reload();
+            } else {
+              alert('Erreur : ' + result.message);
+            }
+          })
+          .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue lors de la sauvegarde.');
+          })
+          .finally(() => {
+            btnEnregistrer.disabled = false;
+            btnEnregistrer.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+          });
+        });
       }
     </script>
   </body>

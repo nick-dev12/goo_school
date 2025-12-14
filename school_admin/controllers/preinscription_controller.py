@@ -342,6 +342,7 @@ class PreinscriptionController:
             'adresse': preinscription.adresse or '',
             'classe': preinscription.classe_souhaitee.id if preinscription.classe_souhaitee else '',
             'statut_inscription': preinscription.statut_inscription,
+            'date_inscription': date.today().strftime('%Y-%m-%d'),  # Date du jour automatique
             'parent_nom': preinscription.parent_nom,
             'parent_prenom': preinscription.parent_prenom,
             'parent_telephone': preinscription.parent_telephone,
@@ -396,9 +397,36 @@ class PreinscriptionController:
             # Récupérer les commentaires
             commentaires = request.POST.get('commentaires_etablissement', '')
             
-            # Vérifier que la classe est bien présente dans la préinscription
-            if not preinscription.classe_souhaitee:
-                messages.error(request, "La préinscription n'a pas de classe spécifiée. Veuillez d'abord modifier la préinscription.")
+            # Récupérer la classe depuis le formulaire
+            classe_id = request.POST.get('classe', '')
+            classe = None
+            if classe_id:
+                try:
+                    classe = Classe.objects.get(id=classe_id, etablissement=etablissement)
+                except Classe.DoesNotExist:
+                    messages.error(request, "La classe sélectionnée n'existe pas.")
+                    return redirect('directeur:detail_preinscription', preinscription_id=preinscription_id)
+            else:
+                # Si aucune classe n'est sélectionnée, utiliser celle de la préinscription
+                classe = preinscription.classe_souhaitee
+                if not classe:
+                    messages.error(request, "Veuillez sélectionner une classe d'affectation.")
+                    return redirect('directeur:detail_preinscription', preinscription_id=preinscription_id)
+            
+            # Récupérer le statut d'inscription depuis le formulaire
+            statut_inscription = request.POST.get('statut_inscription', 'nouvelle')
+            if statut_inscription not in ['nouvelle', 'reinscription']:
+                statut_inscription = 'nouvelle'
+            
+            # Récupérer la date d'inscription depuis le formulaire
+            date_inscription_str = request.POST.get('date_inscription', '')
+            date_inscription = None
+            if date_inscription_str:
+                try:
+                    from datetime import datetime
+                    date_inscription = datetime.strptime(date_inscription_str, '%Y-%m-%d').date()
+                except ValueError:
+                    messages.error(request, "Format de date invalide.")
                 return redirect('directeur:detail_preinscription', preinscription_id=preinscription_id)
             
             # Récupérer les documents fournis
@@ -419,8 +447,15 @@ class PreinscriptionController:
             
             try:
                 # Valider la préinscription (crée l'élève et le parent)
-                # La classe et le statut sont automatiquement pris de la préinscription
-                eleve, parent = preinscription.valider(etablissement, commentaires, documents)
+                # Passer la classe, le statut et la date depuis le formulaire
+                eleve, parent = preinscription.valider(
+                    etablissement, 
+                    commentaires, 
+                    documents,
+                    classe=classe,
+                    statut_inscription=statut_inscription,
+                    date_inscription=date_inscription
+                )
                 
                 # Vérifier que les tokens QR sont bien générés
                 if not eleve.qr_auth_token:

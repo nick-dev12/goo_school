@@ -773,6 +773,10 @@ def cartes_identite_eleves(request):
         annee_scolaire_active = get_session_active(request, etablissement)
 
     classes_grouped, stats_generales = _build_classes_grouped_data(etablissement, annee_scolaire_active)
+    
+    # Récupérer les personnalisations de la carte d'identité
+    from ..model.carte_identite_personnalisation_model import CarteIdentitePersonnalisation
+    personnalisation = CarteIdentitePersonnalisation.get_or_create_for_etablissement(etablissement)
 
     context = {
         'user': user,
@@ -783,6 +787,7 @@ def cartes_identite_eleves(request):
         'classes_grouped': classes_grouped,
         'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
+        'personnalisation': personnalisation,
     }
 
     return render(request, 'school_admin/directeur/secretaire/cartes_identite_eleves.html', context)
@@ -829,6 +834,10 @@ def carte_identite_eleve(request, eleve_id):
     # Déterminer l'année scolaire à afficher
     annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
     
+    # Récupérer les personnalisations de la carte d'identité
+    from ..model.carte_identite_personnalisation_model import CarteIdentitePersonnalisation
+    personnalisation = CarteIdentitePersonnalisation.get_or_create_for_etablissement(etablissement)
+    
     context = {
         'etablissement': etablissement,
         'is_directeur': isinstance(user, Etablissement),
@@ -837,6 +846,7 @@ def carte_identite_eleve(request, eleve_id):
         'eleve': eleve,
         'annee_scolaire': annee_scolaire_libelle,
         'annee_scolaire_active': annee_scolaire_active,
+        'personnalisation': personnalisation,
     }
     
     return render(request, 'school_admin/directeur/secretaire/carte_identite_eleve.html', context)
@@ -877,18 +887,20 @@ def cartes_identite_classe(request, classe_id):
         return redirect('directeur:creer_annee_scolaire_obligatoire')
     
     # Filtrer les élèves par année scolaire active via InscriptionEleve
-    eleves_ids_inscrits = InscriptionEleve.objects.filter(
+    # Utiliser la même logique que _build_classes_grouped_data
+    from django.db.models.functions import Lower
+    inscriptions = InscriptionEleve.objects.filter(
         annee_scolaire=annee_scolaire_active,
         classe=classe,
         etablissement=etablissement
-    ).values_list('eleve_id', flat=True)
+    ).select_related('eleve').order_by(Lower('eleve__nom'), Lower('eleve__prenom'))
     
-    from django.db.models.functions import Lower
-    eleves_queryset = Eleve.objects.filter(
-        id__in=eleves_ids_inscrits,
-        classe=classe,
-        actif=True
-    ).order_by(Lower('nom'), Lower('prenom'))
+    # Récupérer les élèves depuis les inscriptions (inclure tous les élèves, actifs et désactivés)
+    eleves_list = [inscription.eleve for inscription in inscriptions if inscription.eleve]
+    
+    # Créer un queryset à partir de la liste pour maintenir la compatibilité
+    eleves_ids = [eleve.id for eleve in eleves_list]
+    eleves_queryset = Eleve.objects.filter(id__in=eleves_ids).order_by(Lower('nom'), Lower('prenom'))
     eleves = list(eleves_queryset)
 
     erreurs_qr = []
@@ -907,6 +919,10 @@ def cartes_identite_classe(request, classe_id):
 
     # Déterminer l'année scolaire à afficher
     annee_scolaire_libelle = annee_scolaire_active.libelle if annee_scolaire_active else 'Non spécifiée'
+    
+    # Récupérer les personnalisations de la carte d'identité
+    from ..model.carte_identite_personnalisation_model import CarteIdentitePersonnalisation
+    personnalisation = CarteIdentitePersonnalisation.get_or_create_for_etablissement(etablissement)
 
     context = {
         'etablissement': etablissement,
@@ -917,6 +933,7 @@ def cartes_identite_classe(request, classe_id):
         'eleves': eleves,
         'annee_scolaire': annee_scolaire_libelle,
         'annee_scolaire_active': annee_scolaire_active,
+        'personnalisation': personnalisation,
     }
 
     return render(
@@ -924,6 +941,70 @@ def cartes_identite_classe(request, classe_id):
         'school_admin/directeur/secretaire/cartes_identite_classe.html',
         context
     )
+
+
+@login_required
+def sauvegarder_personnalisation_carte_identite(request):
+    """Sauvegarde les personnalisations de l'en-tête de la carte d'identité"""
+    from django.http import JsonResponse
+    from ..model.carte_identite_personnalisation_model import CarteIdentitePersonnalisation
+    
+    user = request.user
+    
+    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        return JsonResponse({'success': False, 'message': 'Accès non autorisé.'}, status=403)
+    
+    if not etablissement:
+        return JsonResponse({'success': False, 'message': 'Aucun établissement associé.'}, status=400)
+    
+    if request.method == 'POST':
+        try:
+            personnalisation = CarteIdentitePersonnalisation.get_or_create_for_etablissement(etablissement)
+            
+            # Récupérer les données du formulaire
+            pays_nom = request.POST.get('pays_nom', '').strip()
+            devise_pays = request.POST.get('devise_pays', '').strip()
+            titre_carte = request.POST.get('titre_carte', '').strip()
+            devise_etablissement = request.POST.get('devise_etablissement', '').strip()
+            
+            # Validation
+            if not pays_nom:
+                return JsonResponse({'success': False, 'message': 'Le nom du pays est obligatoire.'}, status=400)
+            if not devise_pays:
+                return JsonResponse({'success': False, 'message': 'La devise du pays est obligatoire.'}, status=400)
+            if not titre_carte:
+                return JsonResponse({'success': False, 'message': 'Le titre de la carte est obligatoire.'}, status=400)
+            if not devise_etablissement:
+                return JsonResponse({'success': False, 'message': 'La devise de l\'établissement est obligatoire.'}, status=400)
+            
+            # Mettre à jour
+            personnalisation.pays_nom = pays_nom
+            personnalisation.devise_pays = devise_pays
+            personnalisation.titre_carte = titre_carte
+            personnalisation.devise_etablissement = devise_etablissement
+            personnalisation.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Personnalisation enregistrée avec succès.',
+                'data': {
+                    'pays_nom': personnalisation.pays_nom,
+                    'devise_pays': personnalisation.devise_pays,
+                    'titre_carte': personnalisation.titre_carte,
+                    'devise_etablissement': personnalisation.devise_etablissement,
+                }
+            })
+            
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erreur lors de la sauvegarde de la personnalisation: {str(e)}", exc_info=True)
+            return JsonResponse({'success': False, 'message': f'Une erreur est survenue: {str(e)}'}, status=500)
+    
+    return JsonResponse({'success': False, 'message': 'Méthode non autorisée.'}, status=405)
 
 
 @login_required
@@ -2691,11 +2772,13 @@ def synchroniser_facturation(request):
                 etablissement.date_derniere_facturation = timezone.now()
                 etablissement.save()
                 
+                devise = etablissement.devise_monnaie if hasattr(etablissement, 'devise_monnaie') and etablissement.devise_monnaie else ''
+                devise_text = f" {devise}" if devise else ""
                 messages.success(
                     request, 
                     f"Synchronisation réussie ! "
                     f"Élèves actifs: {eleves_actifs}, "
-                    f"Montant total: {montant_total_calcule} FCFA"
+                    f"Montant total: {montant_total_calcule}{devise_text}"
                 )
                 return redirect('secretaire:dashboard_secretaire')
                 
@@ -2723,6 +2806,7 @@ def synchroniser_facturation(request):
         'montant_actuel': etablissement.montant_total_facturation,
         'nombre_actuel': etablissement.nombre_eleves_factures,
         'annee_scolaire_active': annee_scolaire_active,
+        'devise_etablissement': etablissement.devise_monnaie if hasattr(etablissement, 'devise_monnaie') and etablissement.devise_monnaie else None,
     }
     
     return render(request, 'school_admin/directeur/secretaire/synchroniser_facturation.html', context)

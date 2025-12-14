@@ -313,20 +313,35 @@
 
                     <div class="info-box-modern">
                         <i class="fas fa-info-circle"></i>
-                        <p>La classe a été sélectionnée par le parent lors de la préinscription. Le statut d'inscription est automatiquement défini sur "Nouvelle inscription".</p>
+                        <p>Sélectionnez la classe d'affectation et le type d'inscription pour cet élève.</p>
                     </div>
 
                     <div class="form-grid-modern">
                         <div class="form-group-modern">
-                            <label class="label-modern">
+                            <label class="label-modern" for="classe">
                                 <i class="fas fa-chalkboard"></i>
-                                Classe d'affectation
+                                Classe d'affectation <span class="required-star">*</span>
                             </label>
-                            <input type="text" 
-                                   class="input-modern field-readonly" 
-                                   value="{% if preinscription.classe_souhaitee %}{{ preinscription.classe_souhaitee.nom }} ({{ preinscription.classe_souhaitee.get_niveau_display }}){% else %}Non spécifiée{% endif %}"
-                                   readonly>
-                            <input type="hidden" name="classe" value="{% if preinscription.classe_souhaitee %}{{ preinscription.classe_souhaitee.id }}{% endif %}">
+                            <select class="input-modern {% if field_errors.classe %}input-error{% endif %}" 
+                                    id="classe" 
+                                    name="classe" 
+                                    required>
+                                <option value="">Sélectionnez une classe</option>
+                                {% for classe in classes %}
+                                    <option value="{{ classe.id }}" 
+                                            {% if form_data.classe == classe.id|stringformat:"s" or preinscription.classe_souhaitee.id == classe.id %}selected{% endif %}>
+                                        {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if field_errors.classe %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.classe }}</span>
+                            {% endif %}
+                            {% if preinscription.classe_souhaitee %}
+                                <small style="display: block; margin-top: 5px; color: var(--gray-600); font-size: 0.875rem;">
+                                    <i class="fas fa-info-circle"></i> Classe souhaitée par le parent : {{ preinscription.classe_souhaitee.nom }}
+                                </small>
+                            {% endif %}
                         </div>
                         
                         <div class="form-group-modern">
@@ -338,7 +353,7 @@
                                    class="input-modern {% if field_errors.date_inscription %}input-error{% endif %}" 
                                    id="date_inscription" 
                                    name="date_inscription" 
-                                   value="{{ "now"|date:"Y-m-d" }}"
+                                   value="{{ form_data.date_inscription }}"
                                    required>
                             {% if field_errors.date_inscription %}
                                 <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.date_inscription }}</span>
@@ -347,15 +362,21 @@
                     </div>
 
                     <div class="form-group-modern">
-                        <label class="label-modern">
+                        <label class="label-modern" for="statut_inscription">
                             <i class="fas fa-user-check"></i>
-                            Type d'inscription
+                            Type d'inscription <span class="required-star">*</span>
                         </label>
-                        <input type="text" 
-                               class="input-modern field-readonly" 
-                               value="Nouvelle inscription"
-                               readonly>
-                        <input type="hidden" name="statut_inscription" value="nouvelle">
+                        <select class="input-modern {% if field_errors.statut_inscription %}input-error{% endif %}" 
+                                id="statut_inscription" 
+                                name="statut_inscription" 
+                                required>
+                            <option value="">Sélectionnez un type</option>
+                            <option value="nouvelle" {% if form_data.statut_inscription == 'nouvelle' or preinscription.statut_inscription == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
+                            <option value="reinscription" {% if form_data.statut_inscription == 'reinscription' or preinscription.statut_inscription == 'reinscription' %}selected{% endif %}>Réinscription</option>
+                        </select>
+                        {% if field_errors.statut_inscription %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.statut_inscription }}</span>
+                        {% endif %}
                     </div>
                 </div>
 

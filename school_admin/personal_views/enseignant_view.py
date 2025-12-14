@@ -5513,13 +5513,22 @@ def detail_eleve_enseignant(request, eleve_id):
     
     # Récupérer l'élève
     eleve = get_object_or_404(Eleve, id=eleve_id, actif=True)
-    classe = eleve.classe
     
-    # Récupérer l'année scolaire active
-    etablissement = classe.etablissement if hasattr(classe, 'etablissement') else None
+    # Récupérer l'établissement et l'année scolaire active
+    etablissement = professeur.etablissement if hasattr(professeur, 'etablissement') else None
+    if not etablissement and hasattr(eleve, 'etablissement'):
+        etablissement = eleve.etablissement
+    
     annee_scolaire_active = None
     if etablissement:
         annee_scolaire_active = get_session_active(request, etablissement)
+    
+    # Récupérer la classe active de l'élève pour l'année scolaire active
+    classe = _get_classe_eleve_active(eleve, annee_scolaire_active, etablissement)
+    
+    if not classe:
+        messages.error(request, "Cet élève n'est pas inscrit dans une classe pour l'année scolaire active.")
+        return redirect('enseignant:gestion_eleves')
     
     # Vérifier que le professeur est affecté à cette classe et récupérer toutes les affectations (matières, filtrées par année scolaire active)
     from ..model.affectation_model import AffectationProfesseur
@@ -5533,11 +5542,12 @@ def detail_eleve_enseignant(request, eleve_id):
     affectations = affectations_queryset
     
     if not affectations.exists():
-        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
+        messages.error(request, "Vous n'êtes pas affecté à cette classe pour l'année scolaire active.")
         return redirect('enseignant:gestion_eleves')
     
     # Vérifier le type d'établissement
-    etablissement = classe.etablissement
+    if not etablissement:
+        etablissement = classe.etablissement
     est_secondaire = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
     
     # Récupérer toutes les matières enseignées dans cette classe
@@ -5927,23 +5937,42 @@ def historique_presence_eleve(request, eleve_id):
     professeur = request.user
     from ..model.eleve_model import Eleve
     from ..model.presence_model import Presence
+    from ..utils.session_utils import get_session_active
     from django.shortcuts import get_object_or_404
     from datetime import date, timedelta
     
     # Récupérer l'élève
     eleve = get_object_or_404(Eleve, id=eleve_id, actif=True)
-    classe = eleve.classe
     
-    # Vérifier que le professeur est affecté à cette classe
+    # Récupérer l'établissement et l'année scolaire active
+    etablissement = professeur.etablissement if hasattr(professeur, 'etablissement') else None
+    if not etablissement and hasattr(eleve, 'etablissement'):
+        etablissement = eleve.etablissement
+    
+    annee_scolaire_active = None
+    if etablissement:
+        annee_scolaire_active = get_session_active(request, etablissement)
+    
+    # Récupérer la classe active de l'élève pour l'année scolaire active
+    classe = _get_classe_eleve_active(eleve, annee_scolaire_active, etablissement)
+    
+    if not classe:
+        messages.error(request, "Cet élève n'est pas inscrit dans une classe pour l'année scolaire active.")
+        return redirect('enseignant:gestion_eleves')
+    
+    # Vérifier que le professeur est affecté à cette classe pour l'année scolaire active
     from ..model.affectation_model import AffectationProfesseur
-    affectation = AffectationProfesseur.objects.filter(
+    affectation_queryset = AffectationProfesseur.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_queryset = affectation_queryset.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_queryset.first()
     
     if not affectation:
-        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
+        messages.error(request, "Vous n'êtes pas affecté à cette classe pour l'année scolaire active.")
         return redirect('enseignant:gestion_eleves')
     
     # Récupérer toutes les présences de l'élève (par défaut: année scolaire)
@@ -5956,27 +5985,36 @@ def historique_presence_eleve(request, eleve_id):
         debut_annee = date(today.year - 1, 9, 1)
         fin_annee = date(today.year, 6, 30)
     
-    # Récupération avec option de filtrage
+    # Récupération avec option de filtrage (filtrée par année scolaire active)
     periode_filtree = request.GET.get('periode', 'annee')
     
     if periode_filtree == '30jours':
         date_debut = today - timedelta(days=30)
-        presences = Presence.objects.filter(
+        presences_queryset = Presence.objects.filter(
             eleve=eleve,
             date__gte=date_debut
-        ).order_by('-date')
+        )
+        if annee_scolaire_active:
+            presences_queryset = presences_queryset.filter(annee_scolaire=annee_scolaire_active)
+        presences = presences_queryset.order_by('-date')
     elif periode_filtree == '7jours':
         date_debut = today - timedelta(days=7)
-        presences = Presence.objects.filter(
+        presences_queryset = Presence.objects.filter(
             eleve=eleve,
             date__gte=date_debut
-        ).order_by('-date')
+        )
+        if annee_scolaire_active:
+            presences_queryset = presences_queryset.filter(annee_scolaire=annee_scolaire_active)
+        presences = presences_queryset.order_by('-date')
     else:  # annee
-        presences = Presence.objects.filter(
+        presences_queryset = Presence.objects.filter(
             eleve=eleve,
             date__gte=debut_annee,
             date__lte=fin_annee
-        ).order_by('-date')
+        )
+        if annee_scolaire_active:
+            presences_queryset = presences_queryset.filter(annee_scolaire=annee_scolaire_active)
+        presences = presences_queryset.order_by('-date')
     
     # Statistiques globales
     total_presences = presences.count()
@@ -6612,26 +6650,48 @@ def historique_sanctions_eleve(request, eleve_id):
     professeur = request.user
     from ..model.eleve_model import Eleve
     from ..model.sanction_model import Sanction
+    from ..utils.session_utils import get_session_active
     from django.shortcuts import get_object_or_404
     
     # Récupérer l'élève
     eleve = get_object_or_404(Eleve, id=eleve_id, actif=True)
-    classe = eleve.classe
     
-    # Vérifier que le professeur est affecté à cette classe
+    # Récupérer l'établissement et l'année scolaire active
+    etablissement = professeur.etablissement if hasattr(professeur, 'etablissement') else None
+    if not etablissement and hasattr(eleve, 'etablissement'):
+        etablissement = eleve.etablissement
+    
+    annee_scolaire_active = None
+    if etablissement:
+        annee_scolaire_active = get_session_active(request, etablissement)
+    
+    # Récupérer la classe active de l'élève pour l'année scolaire active
+    classe = _get_classe_eleve_active(eleve, annee_scolaire_active, etablissement)
+    
+    if not classe:
+        messages.error(request, "Cet élève n'est pas inscrit dans une classe pour l'année scolaire active.")
+        return redirect('enseignant:gestion_eleves')
+    
+    # Vérifier que le professeur est affecté à cette classe (filtrée par année scolaire active)
     from ..model.affectation_model import AffectationProfesseur
-    affectation = AffectationProfesseur.objects.filter(
+    affectation_queryset = AffectationProfesseur.objects.filter(
         professeur=professeur,
         classe=classe,
         actif=True
-    ).first()
+    )
+    if annee_scolaire_active:
+        affectation_queryset = affectation_queryset.filter(annee_scolaire=annee_scolaire_active)
+    affectation = affectation_queryset.first()
     
     if not affectation:
-        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
+        messages.error(request, "Vous n'êtes pas affecté à cette classe pour l'année scolaire active.")
         return redirect('enseignant:gestion_eleves')
     
-    # Récupérer toutes les sanctions de l'élève
-    sanctions = Sanction.objects.filter(eleve=eleve).order_by('-date_sanction', '-date_creation')
+    # Récupérer toutes les sanctions de l'élève (filtrées par année scolaire active)
+    sanctions_queryset = Sanction.objects.filter(eleve=eleve)
+    if annee_scolaire_active:
+        sanctions_queryset = sanctions_queryset.filter(annee_scolaire=annee_scolaire_active)
+    sanctions = sanctions_queryset.order_by('-date_sanction', '-date_creation')
     
     # Statistiques
     total_sanctions = sanctions.count()
@@ -7171,87 +7231,100 @@ def emploi_du_temps_enseignant(request):
             creneaux_professeur_queryset = creneaux_professeur_queryset.filter(
                 emploi_du_temps__annee_scolaire_fk=annee_scolaire_active
             )
-        creneaux_professeur = creneaux_professeur_queryset.select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle', 'periode_etablissement').order_by('jour', 'periode_etablissement__ordre', 'heure_debut')
+        creneaux_professeur = creneaux_professeur_queryset.select_related('emploi_du_temps', 'emploi_du_temps__classe', 'matiere', 'salle').order_by('jour', 'heure_debut')
     else:
         creneaux_professeur = CreneauEmploiDuTemps.objects.none()
     
-    # Récupérer la configuration horaire de l'établissement
-    from ..model.configuration_horaire_model import ConfigurationHoraire, PeriodeEtablissement
+    # Organiser les créneaux en grille comme pour le directeur (nouvelle structure)
     from ..controllers.emploi_du_temps_controller import get_matiere_config
-    config_horaire = ConfigurationHoraire.objects.filter(etablissement=professeur.etablissement, actif=True).first()
-    
-    # Organiser les créneaux par période et par jour (comme dans le contrôleur directeur)
+    from datetime import datetime, timedelta
     jours_semaine = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
     
-    periodes_affichage = []
+    # Créer une plage horaire pour chaque heure de début unique des créneaux
+    heures_debut_uniques = sorted(list(set(creneau.heure_debut for creneau in creneaux_professeur)))
     
-    if config_horaire:
-        # Utiliser les périodes de l'établissement
-        # Trier par heure de début pour afficher chronologiquement (de la plus ancienne à la plus récente)
-        periodes = config_horaire.periodes.filter(actif=True).order_by('heure_debut')
+    plages_horaires = []
+    for heure_debut in heures_debut_uniques:
+        # Pour chaque heure de début, créer une plage de 1h
+        dt_debut = datetime.combine(datetime.today(), heure_debut)
+        dt_fin = dt_debut + timedelta(hours=1)
+        heure_fin = dt_fin.time()
         
-        # Créer un dictionnaire pour regrouper les créneaux par groupe_creneau
-        creneaux_groupes = {}
-        for creneau in creneaux_professeur:
-            if creneau.groupe_creneau:
-                if creneau.groupe_creneau not in creneaux_groupes:
-                    creneaux_groupes[creneau.groupe_creneau] = []
-                creneaux_groupes[creneau.groupe_creneau].append(creneau)
+        plages_horaires.append({
+            'debut': heure_debut,
+            'fin': heure_fin,
+            'label': f"{heure_debut.strftime('%H:%M')} - {heure_fin.strftime('%H:%M')}"
+        })
+    
+    # Trier les plages horaires par heure de début (plus tôt en haut)
+    plages_horaires.sort(key=lambda p: p['debut'])
+    
+    # Créer la grille d'emploi du temps (structure similaire aux examens)
+    grille_emploi = {}
+    for jour in jours_semaine:
+        grille_emploi[jour] = {
+            'jour': jour,
+            'plages': {}
+        }
+        for plage in plages_horaires:
+            grille_emploi[jour]['plages'][plage['label']] = []
+    
+    # Remplir la grille avec les créneaux
+    cellules_masquees = {}
+    for creneau in creneaux_professeur:
+        jour = creneau.jour
         
-        for periode in periodes:
-            periode_info = {
-                'nom': periode.nom,
-                'heure_debut': periode.heure_debut,
-                'heure_fin': periode.heure_fin,
-                'duree': periode.duree_minutes,
-                'est_pause': periode.est_pause,
-                'type_periode': periode.type_periode,
-                'creneaux_par_jour': {},
-            }
-            
-            # Pour chaque jour, trouver le créneau correspondant à cette période
-            for jour in jours_semaine:
-                if periode.est_pause:
-                    # C'est une pause: créer un créneau virtuel
-                    periode_info['creneaux_par_jour'][jour] = {
-                        'est_pause': True,
-                        'est_virtual': True,
-                        'nom_pause': periode.nom,
-                        'type_periode': periode.type_periode
-                    }
-                else:
-                    # Chercher un créneau qui utilise cette période
-                    creneau = creneaux_professeur.filter(
-                        jour=jour,
-                        periode_etablissement=periode
-                    ).first()
+        # Trouver la plage horaire correspondante (celle qui commence exactement à l'heure de début du créneau)
+        plage_index = -1
+        for idx, plage in enumerate(plages_horaires):
+            # Le créneau commence exactement à cette plage horaire
+            if plage['debut'] == creneau.heure_debut:
+                plage_index = idx
+                
+                # Calculer le rowspan (nombre de plages horaires que le créneau occupe)
+                # On compte combien de plages horaires sont couvertes par le créneau
+                rowspan = 1
+                creneau_fin = creneau.heure_fin
+                
+                # Parcourir les plages suivantes pour voir combien sont couvertes
+                for i in range(1, len(plages_horaires) - plage_index):
+                    if plage_index + i < len(plages_horaires):
+                        plage_suivante = plages_horaires[plage_index + i]
+                        # Si le créneau se termine après le début de la plage suivante, il couvre cette plage
+                        if creneau_fin > plage_suivante['debut']:
+                            rowspan += 1
+                        else:
+                            break
+                
+                if jour in grille_emploi:
+                    # Ajouter icône et couleur au créneau
+                    matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
+                    icone, couleur = get_matiere_config(matiere_nom)
+                    creneau.matiere_icone = icone
+                    creneau.matiere_couleur = couleur
                     
-                    if creneau:
-                        # Pour les créneaux groupés, on affiche le premier créneau dans toutes les périodes du groupe
-                        if creneau.groupe_creneau:
-                            groupe_creneaux = creneaux_groupes.get(creneau.groupe_creneau, [])
-                            groupe_creneaux_jour = [c for c in groupe_creneaux if c.jour == jour]
-                            groupe_creneaux_jour.sort(key=lambda c: c.periode_etablissement.ordre)
-                            
-                            if groupe_creneaux_jour:
-                                creneau = groupe_creneaux_jour[0]
-                        
-                        # Ajouter icône et couleur au créneau
-                        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
-                        icone, couleur = get_matiere_config(matiere_nom)
-                        creneau.matiere_icone = icone
-                        creneau.matiere_couleur = couleur
-                        
-                        periode_info['creneaux_par_jour'][jour] = creneau
-                    else:
-                        periode_info['creneaux_par_jour'][jour] = None
-            
-            periodes_affichage.append(periode_info)
+                    grille_emploi[jour]['plages'][plage['label']].append({
+                        'creneau': creneau,
+                        'rowspan': rowspan
+                    })
+                
+                # Marquer les cellules suivantes comme masquées
+                if jour not in cellules_masquees:
+                    cellules_masquees[jour] = {}
+                
+                for i in range(1, rowspan):
+                    if plage_index + i < len(plages_horaires):
+                        plage_suivante = plages_horaires[plage_index + i]
+                        cellules_masquees[jour][plage_suivante['label']] = True
+                break
     
     # Statistiques
     total_heures = 0
     for creneau in creneaux_professeur:
-        total_heures += creneau.duree_minutes / 60
+        debut_dt = datetime.combine(datetime.today(), creneau.heure_debut)
+        fin_dt = datetime.combine(datetime.today(), creneau.heure_fin)
+        duree_heures = (fin_dt - debut_dt).total_seconds() / 3600
+        total_heures += duree_heures
     
     nombre_classes = affectations.count()
     nombre_creneaux = creneaux_professeur.count()
@@ -7259,8 +7332,9 @@ def emploi_du_temps_enseignant(request):
     context = {
         'professeur': professeur,
         'jours_semaine': jours_semaine,
-        'periodes_affichage': periodes_affichage,
-        'config_horaire': config_horaire,
+        'grille_emploi': grille_emploi,
+        'plages_horaires': plages_horaires,
+        'cellules_masquees': cellules_masquees,
         'nombre_classes': nombre_classes,
         'nombre_creneaux': nombre_creneaux,
         'total_heures': round(total_heures, 1),

@@ -47,6 +47,7 @@ urlpatterns =[
     path('activites-commerciales/performances/', ActivitesCommercialesController.analyse_performances, name='analyse_performances_commerciaux'),
     path('etablissements/ajouter', ajout_etablissement, name='ajout_etablissement'),
     path('etablissements/detaille/', detaille_etablissement, name='detaille_etablissement'),
+    path('etablissements/supprimer/', supprimer_etablissement, name='supprimer_etablissement'),
     path('etablissements/update/', administrateur_update_etablissement, name='administrateur_update_etablissement'),
     path('etablissements/messages/', message_etablissement, name='message_etablissement'),
     path('etablissements/messages/detail/', detail_message, name='detail_message'),

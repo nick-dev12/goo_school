@@ -27,6 +27,13 @@ class Etablissement(AbstractUser):
     email = models.EmailField(unique=True, verbose_name="Email de l'établissement")
     telephone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Téléphone")
     type_etablissement = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name="Type d'établissement")
+    devise_monnaie = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="Devise de la monnaie",
+        help_text="Devise utilisée dans le pays (ex: XOF, EUR, USD, etc.)"
+    )
     
     # Informations du directeur
     directeur_prenom = models.CharField(max_length=100, verbose_name="Prénom du directeur")

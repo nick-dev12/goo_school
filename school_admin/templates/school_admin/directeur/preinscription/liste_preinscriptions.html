@@ -460,10 +460,6 @@
                             <i class="fas fa-eye"></i>
                             Voir les détails
                         </a>
-                        <button type="button" class="btn-action-small btn-validate" onclick="validerPreinscription({{ preinscription.id }})">
-                            <i class="fas fa-check"></i>
-                            Valider
-                        </button>
                         <button type="button" class="btn-action-small btn-reject" onclick="rejeterPreinscription({{ preinscription.id }})">
                             <i class="fas fa-times"></i>
                             Rejeter
@@ -593,37 +589,7 @@
         // Initialiser la recherche au chargement de la page
         performSearch();
         
-        // Fonctions existantes pour valider/rejeter
-        function validerPreinscription(id) {
-            if (!confirm('Êtes-vous sûr de vouloir valider cette préinscription ?')) {
-                return;
-            }
-            
-            const commentaires = prompt('Commentaires (optionnel) :') || '';
-            
-            const url = '{% url "directeur:valider_preinscription" 999999 %}'.replace('999999', id);
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `commentaires=${encodeURIComponent(commentaires)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Erreur : ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert('Une erreur est survenue.');
-            });
-        }
-        
+        // Fonction pour rejeter une préinscription
         function rejeterPreinscription(id) {
             if (!confirm('Êtes-vous sûr de vouloir rejeter cette préinscription ?')) {
                 return;

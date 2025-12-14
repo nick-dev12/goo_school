@@ -112,6 +112,70 @@
                       <span class="error-message">{{ field_errors.establishment_country }}</span>
                     {% endif %}
                   </div>
+                  <div class="form-group {% if field_errors.establishment_currency %}has-error{% endif %}">
+                    <label for="establishment-currency" class="required">Devise de la monnaie</label>
+                    <select id="establishment-currency" name="establishment_currency" required>
+                      <option value="" {% if not form_data.establishment_currency %}selected{% endif %}>Sélectionner une devise</option>
+                      <!-- Devises UEMOA (Franc CFA Ouest) -->
+                      <option value="XOF" {% if form_data.establishment_currency == 'XOF' %}selected{% endif %}>XOF (Franc CFA Ouest)</option>
+                      <!-- Devises CEMAC (Franc CFA Est) -->
+                      <option value="XAF" {% if form_data.establishment_currency == 'XAF' %}selected{% endif %}>XAF (Franc CFA Est)</option>
+                      <!-- Devises Maghreb -->
+                      <option value="MAD" {% if form_data.establishment_currency == 'MAD' %}selected{% endif %}>MAD (Dirham Marocain)</option>
+                      <option value="TND" {% if form_data.establishment_currency == 'TND' %}selected{% endif %}>TND (Dinar Tunisien)</option>
+                      <option value="DZD" {% if form_data.establishment_currency == 'DZD' %}selected{% endif %}>DZD (Dinar Algérien)</option>
+                      <option value="LYD" {% if form_data.establishment_currency == 'LYD' %}selected{% endif %}>LYD (Dinar Libyen)</option>
+                      <!-- Devises Afrique de l'Ouest -->
+                      <option value="NGN" {% if form_data.establishment_currency == 'NGN' %}selected{% endif %}>NGN (Naira Nigérian)</option>
+                      <option value="GHS" {% if form_data.establishment_currency == 'GHS' %}selected{% endif %}>GHS (Cedi Ghanéen)</option>
+                      <option value="MRU" {% if form_data.establishment_currency == 'MRU' %}selected{% endif %}>MRU (Ouguiya Mauritanien)</option>
+                      <option value="GNF" {% if form_data.establishment_currency == 'GNF' %}selected{% endif %}>GNF (Franc Guinéen)</option>
+                      <option value="SLL" {% if form_data.establishment_currency == 'SLL' %}selected{% endif %}>SLL (Leone Sierra-Léonais)</option>
+                      <option value="LRD" {% if form_data.establishment_currency == 'LRD' %}selected{% endif %}>LRD (Dollar Libérien)</option>
+                      <option value="GMD" {% if form_data.establishment_currency == 'GMD' %}selected{% endif %}>GMD (Dalasi Gambien)</option>
+                      <option value="CVE" {% if form_data.establishment_currency == 'CVE' %}selected{% endif %}>CVE (Escudo Cap-Verdien)</option>
+                      <!-- Devises Afrique de l'Est -->
+                      <option value="KES" {% if form_data.establishment_currency == 'KES' %}selected{% endif %}>KES (Shilling Kenyan)</option>
+                      <option value="ETB" {% if form_data.establishment_currency == 'ETB' %}selected{% endif %}>ETB (Birr Éthiopien)</option>
+                      <option value="TZS" {% if form_data.establishment_currency == 'TZS' %}selected{% endif %}>TZS (Shilling Tanzanien)</option>
+                      <option value="UGX" {% if form_data.establishment_currency == 'UGX' %}selected{% endif %}>UGX (Shilling Ougandais)</option>
+                      <option value="RWF" {% if form_data.establishment_currency == 'RWF' %}selected{% endif %}>RWF (Franc Rwandais)</option>
+                      <option value="BIF" {% if form_data.establishment_currency == 'BIF' %}selected{% endif %}>BIF (Franc Burundais)</option>
+                      <option value="DJF" {% if form_data.establishment_currency == 'DJF' %}selected{% endif %}>DJF (Franc Djiboutien)</option>
+                      <option value="ERN" {% if form_data.establishment_currency == 'ERN' %}selected{% endif %}>ERN (Nakfa Érythréen)</option>
+                      <option value="SOS" {% if form_data.establishment_currency == 'SOS' %}selected{% endif %}>SOS (Shilling Somalien)</option>
+                      <!-- Devises Afrique Centrale -->
+                      <option value="AOA" {% if form_data.establishment_currency == 'AOA' %}selected{% endif %}>AOA (Kwanza Angolais)</option>
+                      <option value="STN" {% if form_data.establishment_currency == 'STN' %}selected{% endif %}>STN (Dobra São-Toméen)</option>
+                      <!-- Devises Afrique Australe -->
+                      <option value="ZAR" {% if form_data.establishment_currency == 'ZAR' %}selected{% endif %}>ZAR (Rand Sud-Africain)</option>
+                      <option value="BWP" {% if form_data.establishment_currency == 'BWP' %}selected{% endif %}>BWP (Pula Botswanais)</option>
+                      <option value="NAD" {% if form_data.establishment_currency == 'NAD' %}selected{% endif %}>NAD (Dollar Namibien)</option>
+                      <option value="ZMW" {% if form_data.establishment_currency == 'ZMW' %}selected{% endif %}>ZMW (Kwacha Zambien)</option>
+                      <option value="ZWL" {% if form_data.establishment_currency == 'ZWL' %}selected{% endif %}>ZWL (Dollar Zimbabwéen)</option>
+                      <option value="MZN" {% if form_data.establishment_currency == 'MZN' %}selected{% endif %}>MZN (Metical Mozambicain)</option>
+                      <option value="MWK" {% if form_data.establishment_currency == 'MWK' %}selected{% endif %}>MWK (Kwacha Malawite)</option>
+                      <option value="LSL" {% if form_data.establishment_currency == 'LSL' %}selected{% endif %}>LSL (Loti Lesothan)</option>
+                      <option value="SZL" {% if form_data.establishment_currency == 'SZL' %}selected{% endif %}>SZL (Lilangeni Eswatinien)</option>
+                      <!-- Devises Océan Indien -->
+                      <option value="MGA" {% if form_data.establishment_currency == 'MGA' %}selected{% endif %}>MGA (Ariary Malgache)</option>
+                      <option value="MUR" {% if form_data.establishment_currency == 'MUR' %}selected{% endif %}>MUR (Roupie Mauricienne)</option>
+                      <option value="SCR" {% if form_data.establishment_currency == 'SCR' %}selected{% endif %}>SCR (Roupie Seychelloise)</option>
+                      <option value="KMF" {% if form_data.establishment_currency == 'KMF' %}selected{% endif %}>KMF (Franc Comorien)</option>
+                      <!-- Devises Afrique du Nord -->
+                      <option value="EGP" {% if form_data.establishment_currency == 'EGP' %}selected{% endif %}>EGP (Livre Égyptienne)</option>
+                      <option value="SDG" {% if form_data.establishment_currency == 'SDG' %}selected{% endif %}>SDG (Livre Soudanaise)</option>
+                      <option value="SSP" {% if form_data.establishment_currency == 'SSP' %}selected{% endif %}>SSP (Livre Sud-Soudanaise)</option>
+                      <!-- Devises Internationales -->
+                      <option value="EUR" {% if form_data.establishment_currency == 'EUR' %}selected{% endif %}>EUR (Euro)</option>
+                      <option value="USD" {% if form_data.establishment_currency == 'USD' %}selected{% endif %}>USD (Dollar US)</option>
+                      <option value="GBP" {% if form_data.establishment_currency == 'GBP' %}selected{% endif %}>GBP (Livre Sterling)</option>
+                    </select>
+                    <span class="form-text">La devise sera automatiquement sélectionnée selon le pays choisi</span>
+                    {% if field_errors.establishment_currency %}
+                      <span class="error-message">{{ field_errors.establishment_currency }}</span>
+                    {% endif %}
+                  </div>
                     <div class="form-group {% if field_errors.establishment_city %}has-error{% endif %}">
                     <label for="establishment-city" class="required">Ville</label>
                     <input type="text" id="establishment-city" name="establishment_city" placeholder="Ville" value="{{ form_data.establishment_city|default:'' }}" required />
@@ -512,12 +576,132 @@
           phoneInstances.push({ iti, hiddenField });
         });
 
+        // Mapping pays -> devise
+        const countryToCurrency = {
+          // Pays de l'UEMOA (Franc CFA Ouest)
+          'sn': 'XOF', // Sénégal
+          'ml': 'XOF', // Mali
+          'bf': 'XOF', // Burkina Faso
+          'ne': 'XOF', // Niger
+          'bj': 'XOF', // Bénin
+          'tg': 'XOF', // Togo
+          'ci': 'XOF', // Côte d'Ivoire
+          'gw': 'XOF', // Guinée-Bissau
+          
+          // Pays de la CEMAC (Franc CFA Est)
+          'cm': 'XAF', // Cameroun
+          'td': 'XAF', // Tchad
+          'cf': 'XAF', // République centrafricaine
+          'cg': 'XAF', // Congo
+          'ga': 'XAF', // Gabon
+          'gq': 'XAF', // Guinée équatoriale
+          
+          // Maghreb
+          'ma': 'MAD', // Maroc
+          'tn': 'TND', // Tunisie
+          'dz': 'DZD', // Algérie
+          'ly': 'LYD', // Libye
+          
+          // Afrique de l'Ouest
+          'ng': 'NGN', // Nigeria
+          'gh': 'GHS', // Ghana
+          'mr': 'MRU', // Mauritanie
+          'gn': 'GNF', // Guinée
+          'sl': 'SLL', // Sierra Leone
+          'lr': 'LRD', // Liberia
+          'gm': 'GMD', // Gambie
+          'cv': 'CVE', // Cap-Vert
+          
+          // Afrique de l'Est
+          'ke': 'KES', // Kenya
+          'et': 'ETB', // Éthiopie
+          'tz': 'TZS', // Tanzanie
+          'ug': 'UGX', // Ouganda
+          'rw': 'RWF', // Rwanda
+          'bi': 'BIF', // Burundi
+          'dj': 'DJF', // Djibouti
+          'er': 'ERN', // Érythrée
+          'so': 'SOS', // Somalie
+          
+          // Afrique Centrale
+          'ao': 'AOA', // Angola
+          'st': 'STN', // São Tomé-et-Príncipe
+          
+          // Afrique Australe
+          'za': 'ZAR', // Afrique du Sud
+          'bw': 'BWP', // Botswana
+          'na': 'NAD', // Namibie
+          'zm': 'ZMW', // Zambie
+          'zw': 'ZWL', // Zimbabwe
+          'mz': 'MZN', // Mozambique
+          'mw': 'MWK', // Malawi
+          'ls': 'LSL', // Lesotho
+          'sz': 'SZL', // Eswatini (Swaziland)
+          
+          // Océan Indien
+          'mg': 'MGA', // Madagascar
+          'mu': 'MUR', // Maurice
+          'sc': 'SCR', // Seychelles
+          'km': 'KMF', // Comores
+          
+          // Afrique du Nord
+          'eg': 'EGP', // Égypte
+          'sd': 'SDG', // Soudan
+          'ss': 'SSP', // Soudan du Sud
+          
+          // Europe
+          'fr': 'EUR', // France
+          'be': 'EUR', // Belgique
+          'de': 'EUR', // Allemagne
+          'es': 'EUR', // Espagne
+          'it': 'EUR', // Italie
+          'pt': 'EUR', // Portugal
+          'nl': 'EUR', // Pays-Bas
+          'at': 'EUR', // Autriche
+          'ie': 'EUR', // Irlande
+          'fi': 'EUR', // Finlande
+          'gr': 'EUR', // Grèce
+          'lu': 'EUR', // Luxembourg
+          
+          // Amérique
+          'us': 'USD', // États-Unis
+          'ca': 'USD', // Canada (utilise aussi CAD mais USD est accepté)
+          'mx': 'USD', // Mexique
+          
+          // Royaume-Uni
+          'gb': 'GBP', // Royaume-Uni
+        };
+
+        // Fonction pour mettre à jour la devise selon le pays
+        function updateCurrencyFromCountry() {
+          const countrySelect = document.getElementById('establishment-country');
+          const currencySelect = document.getElementById('establishment-currency');
+          
+          if (!countrySelect || !currencySelect) {
+            return;
+          }
+          
+          const selectedCountry = (countrySelect.value || '').toLowerCase();
+          const currency = countryToCurrency[selectedCountry];
+          
+          if (currency) {
+            currencySelect.value = currency;
+            // Déclencher un événement change pour notifier le changement
+            currencySelect.dispatchEvent(new Event('change'));
+          }
+        }
+
         if (countrySelect) {
           countrySelect.addEventListener('change', function () {
             const selectedCountry = (countrySelect.value || '').toLowerCase();
             if (!selectedCountry) {
               return;
             }
+            
+            // Mettre à jour la devise selon le pays
+            updateCurrencyFromCountry();
+            
+            // Mettre à jour les champs téléphone
             phoneInstances.forEach(({ iti, hiddenField }) => {
               iti.setCountry(selectedCountry);
               if (hiddenField) {
@@ -525,6 +709,11 @@
               }
             });
           });
+          
+          // Mettre à jour la devise au chargement si un pays est déjà sélectionné
+          if (countrySelect.value) {
+            updateCurrencyFromCountry();
+          }
         }
 
         if (form) {

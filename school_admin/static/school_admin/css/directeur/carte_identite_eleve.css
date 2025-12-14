@@ -599,13 +599,37 @@
 }
 
 .signature-line {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: clamp(8.5px, 1.25vw, 9.5px);
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-width: 0;
+  line-height: 1.2;
 }
 
 .signature-placeholder {
-  height: 18px;
+  height: auto;
+  min-height: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.signature-line span {
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.signature-line span:first-child {
+  flex-shrink: 1;
+  min-width: fit-content;
 }
 
 .idcard-back-footer {
@@ -975,12 +999,12 @@
 
   .idcard-back-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 5px;
+    grid-template-columns: 1fr;
+    gap: 3px;
     background: rgba(15, 23, 42, 0.02);
     border: 1px solid rgba(15, 23, 42, 0.08);
     border-radius: 10px;
-    padding: 5px 8px;
+    padding: 4px 6px;
   }
 
   .idcard-establishment {
@@ -990,13 +1014,37 @@
   }
 
   .signature-line {
-    display: grid;
+    display: flex;
+    align-items: center;
     gap: 3px;
-    font-size: 8px;
+    font-size: 6px;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    min-width: 0;
+    line-height: 1.2;
   }
 
   .signature-placeholder {
-    height: 18px;
+    height: auto;
+    min-height: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .signature-line span {
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .signature-line span:first-child {
+    flex-shrink: 1;
+    min-width: fit-content;
   }
 
   .idcard-back-footer {

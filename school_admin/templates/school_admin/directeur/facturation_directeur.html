@@ -46,7 +46,7 @@
                 <i class="fas fa-franc-sign"></i>
             </div>
             <div class="stat-info">
-                <h3>{{ stats.montant_total|floatformat:0 }} FCFA</h3>
+                <h3>{{ stats.montant_total|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</h3>
                 <p>Montant Total</p>
                 <span class="stat-change">+8% vs mois dernier</span>
             </div>
@@ -187,7 +187,7 @@
                         <i class="fas fa-user-graduate"></i>
                         <span>Montant par élève</span>
                     </div>
-                    <div class="info-value">{{ montant_par_eleve }} FCFA</div>
+                    <div class="info-value">{{ montant_par_eleve }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">
@@ -201,7 +201,7 @@
                         <i class="fas fa-calculator"></i>
                         <span>Montant total calculé</span>
                     </div>
-                    <div class="info-value">{{ montant_total_theorique|floatformat:0 }} FCFA</div>
+                    <div class="info-value">{{ montant_total_theorique|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">
@@ -246,7 +246,7 @@
                         </td>
                         <td>{{ facture.description|truncatechars:50 }}</td>
                         <td>
-                            <strong>{{ facture.montant_total|floatformat:0 }} FCFA</strong>
+                            <strong>{{ facture.montant_total|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</strong>
                         </td>
                         <td>
                             <span class="status-badge status-{{ facture.statut }}">
@@ -306,7 +306,7 @@
                     <span class="urgente-badge">URGENTE</span>
                 </div>
                 <div class="urgente-content">
-                    <p><strong>Montant :</strong> {{ facture.montant_total|floatformat:0 }} FCFA</p>
+                    <p><strong>Montant :</strong> {{ facture.montant_total|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</p>
                     <p><strong>Échéance :</strong> {{ facture.date_echeance|date:"d/m/Y" }}</p>
                     <p><strong>Jours restants :</strong> 
                         {% if facture.jours_restants > 0 %}

@@ -176,18 +176,14 @@ class CreneauEmploiDuTemps(models.Model):
         verbose_name="Jour"
     )
     
-    # Horaires (peuvent être surchargés si periode_etablissement n'est pas utilisée)
+    # Horaires (obligatoires - pas de dépendance aux périodes d'établissement)
     heure_debut = models.TimeField(
         verbose_name="Heure de début",
-        null=True,
-        blank=True,
-        help_text="Laissez vide pour utiliser l'heure de la période d'établissement"
+        help_text="Heure de début du créneau"
     )
     heure_fin = models.TimeField(
         verbose_name="Heure de fin",
-        null=True,
-        blank=True,
-        help_text="Laissez vide pour utiliser l'heure de la période d'établissement"
+        help_text="Heure de fin du créneau"
     )
     
     # Matière
@@ -270,15 +266,11 @@ class CreneauEmploiDuTemps(models.Model):
         return f"{self.get_jour_display()} {self.get_heure_debut()}-{self.get_heure_fin()} - {matiere_nom}"
     
     def get_heure_debut(self):
-        """Retourne l'heure de début (depuis période ou champ direct)"""
-        if self.periode_etablissement:
-            return self.periode_etablissement.heure_debut
+        """Retourne l'heure de début"""
         return self.heure_debut
     
     def get_heure_fin(self):
-        """Retourne l'heure de fin (depuis période ou champ direct)"""
-        if self.periode_etablissement:
-            return self.periode_etablissement.heure_fin
+        """Retourne l'heure de fin"""
         return self.heure_fin
     
     def get_nom_periode(self):
@@ -305,16 +297,15 @@ class CreneauEmploiDuTemps(models.Model):
     
     def clean(self):
         """Validation du créneau"""
-        # Vérifier qu'au moins une source d'horaires est présente
-        if not self.periode_etablissement and (not self.heure_debut or not self.heure_fin):
+        # Vérifier que les heures sont présentes
+        if not self.heure_debut or not self.heure_fin:
             raise ValidationError(
-                "Vous devez soit choisir une période d'établissement, "
-                "soit spécifier les heures de début et de fin."
+                "Les heures de début et de fin sont obligatoires."
             )
         
-        # Si une période est choisie mais que c'est une pause, la matière doit être vide
-        if self.periode_etablissement and self.periode_etablissement.est_pause and self.matiere:
-            raise ValidationError(
-                "Une période de pause ne peut pas avoir de matière associée."
-            )
+        # Vérifier que l'heure de fin est après l'heure de début
+        if self.heure_debut and self.heure_fin and self.heure_fin <= self.heure_debut:
+            raise ValidationError({
+                'heure_fin': "L'heure de fin doit être après l'heure de début."
+            })
 

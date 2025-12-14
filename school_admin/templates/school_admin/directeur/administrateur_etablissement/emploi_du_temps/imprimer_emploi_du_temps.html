@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+{% load static %}
+{% load exam_filters %}
+{% load pagination_tags %}
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emploi du Temps - {{ classe.nom }} - Impression</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}"
+    />
+    <style>
+      @page {
+        size: A4 landscape;
+        margin: 1cm;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Poppins', sans-serif;
+        background: white;
+        color: #1f2937;
+        padding: 20px;
+      }
+
+      .print-header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #3b82f6;
+      }
+
+      .print-header h1 {
+        font-size: 24px;
+        color: #1f2937;
+        margin-bottom: 10px;
+        font-weight: 600;
+      }
+
+      .print-header .info {
+        font-size: 14px;
+        color: #6b7280;
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        flex-wrap: wrap;
+      }
+
+      .print-header .info-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .print-header .info-item i {
+        color: #3b82f6;
+      }
+
+      .calendar-timetable {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 12px;
+        page-break-inside: avoid;
+      }
+
+      .calendar-timetable thead {
+        background: #8b5cf6;
+      }
+
+      .day-header {
+        background: #8b5cf6;
+        color: white;
+        padding: 12px 8px;
+        font-weight: bold;
+        font-size: 13px;
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid #8b7ed8;
+      }
+
+      .time-row {
+        page-break-inside: avoid;
+      }
+
+      .exam-cell {
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        min-height: 60px;
+        vertical-align: top;
+        background: white;
+        width: 200px;
+        max-width: 200px;
+      }
+
+      .empty-cell {
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        min-height: 60px;
+        background: #fafafa;
+        vertical-align: middle;
+        width: 200px;
+        max-width: 200px;
+      }
+
+      .exam-block {
+        border-radius: 6px;
+        padding: 8px;
+        width: 100%;
+        min-height: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 4px;
+        border: 1px solid rgba(0,0,0,0.1);
+        background: white;
+      }
+
+      .exam-block:last-child {
+        margin-bottom: 0;
+      }
+
+      .exam-time {
+        font-weight: 600;
+        font-size: 11px;
+        color: #3b82f6;
+        margin-bottom: 4px;
+      }
+
+      .exam-subject {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1f2937;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .exam-subject i {
+        font-size: 14px;
+      }
+
+      .exam-teacher {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .exam-room {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .exam-teacher i,
+      .exam-room i {
+        font-size: 10px;
+      }
+
+      /* Masquer les boutons d'action lors de l'impression */
+      .creneau-actions {
+        display: none !important;
+      }
+
+      /* Print specific styles */
+      @media print {
+        body {
+          padding: 0;
+        }
+
+        .print-header {
+          margin-bottom: 15px;
+        }
+
+        .print-header h1 {
+          font-size: 22px;
+        }
+
+        .calendar-timetable {
+          font-size: 11px;
+        }
+
+        .day-header {
+          font-size: 12px;
+          padding: 10px 6px;
+        }
+
+        .exam-cell,
+        .empty-cell {
+          padding: 6px;
+          min-height: 50px;
+        }
+
+        .exam-block {
+          padding: 6px;
+          min-height: 35px;
+        }
+
+        .exam-time {
+          font-size: 10px;
+        }
+
+        .exam-subject {
+          font-size: 12px;
+        }
+
+        .exam-teacher,
+        .exam-room {
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header d'impression -->
+    <div class="print-header">
+      <h1>Emploi du Temps - {{ classe.nom }}</h1>
+      <div class="info">
+        <div class="info-item">
+          <i class="fas fa-building"></i>
+          <span>{{ etablissement.nom }}</span>
+        </div>
+        {% if annee_scolaire_active %}
+        <div class="info-item">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Année scolaire : {{ annee_scolaire_active.libelle }}</span>
+        </div>
+        {% endif %}
+        <div class="info-item">
+          <i class="fas fa-users"></i>
+          <span>{{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}</span>
+        </div>
+        {% if emploi_du_temps.date_publication %}
+        <div class="info-item">
+          <i class="fas fa-calendar-check"></i>
+          <span>Publié le {{ emploi_du_temps.date_publication|date:"d/m/Y" }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Tableau de l'emploi du temps -->
+    {% if grille_emploi and plages_horaires %}
+      <table class="calendar-timetable">
+        <thead>
+          <tr>
+            {% for jour in jours_semaine %}
+              <th class="day-header">{{ jour|title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for plage in plages_horaires %}
+            <tr class="time-row">
+              {% for jour in jours_semaine %}
+                {% with jour_masquees=cellules_masquees|dict_value:jour plage_label=plage|dict_value:'label' %}
+                  {% if jour_masquees and jour_masquees|dict_value:plage_label %}
+                    <!-- Cette cellule est masquée par un rowspan, ne rien afficher -->
+                  {% else %}
+                    {% with creneaux_list=grille_emploi|dict_value:jour|dict_value:'plages'|dict_value:plage_label %}
+                      {% if creneaux_list and creneaux_list|length > 0 %}
+                        {% with max_rowspan=creneaux_list.0.rowspan %}
+                          <td class="exam-cell" rowspan="{{ max_rowspan }}">
+                            {% for creneau_data in creneaux_list %}
+                              {% with creneau=creneau_data.creneau %}
+                                {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                  <div class="exam-block" style="border-top: 4px solid {{ creneau.matiere_couleur|default:'#3b82f6' }};">
+                                    <div class="exam-time">
+                                      {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                                    </div>
+                                    <div class="exam-subject">
+                                      <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
+                                      {{ matiere_nom }}
+                                    </div>
+                                    {% if creneau.professeur %}
+                                      <div class="exam-teacher">
+                                        <i class="fas fa-user-tie"></i>
+                                        {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
+                                          {{ prenom_parts.0 }} {{ nom_parts.0 }}
+                                        {% endwith %}
+                                      </div>
+                                    {% endif %}
+                                    {% if creneau.salle %}
+                                      <div class="exam-room">
+                                        <i class="fas fa-building"></i>
+                                        {{ creneau.salle.nom }}
+                                      </div>
+                                    {% endif %}
+                                  </div>
+                                  {% if not forloop.last %}
+                                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e5e7eb;">
+                                  {% endif %}
+                                {% endwith %}
+                              {% endwith %}
+                            {% endfor %}
+                          </td>
+                        {% endwith %}
+                      {% else %}
+                        <td class="empty-cell"></td>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                {% endwith %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: #6b7280;">
+        <i class="fas fa-calendar-times" style="font-size: 48px; margin-bottom: 15px; color: #d1d5db;"></i>
+        <h3>Aucun créneau programmé</h3>
+      </div>
+    {% endif %}
+
+    <script>
+      // Imprimer automatiquement quand la page est chargée
+      window.onload = function() {
+        window.print();
+      };
+    </script>
+  </body>
+</html>

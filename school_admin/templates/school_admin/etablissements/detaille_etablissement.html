@@ -77,7 +77,7 @@
             <button class="btn btn-secondary">
               <i class="fas fa-file-export"></i> Exporter
             </button>
-            <button class="btn btn-danger" id="btn-supprimer-etablissement" data-etablissement-id="{{ etablissement.id }}" data-etablissement-nom="{{ etablissement.nom }}">
+            <button type="button" class="btn btn-danger" id="btn-supprimer-etablissement" data-etablissement-id="{{ etablissement.id }}" data-etablissement-nom="{{ etablissement.nom }}">
               <i class="fas fa-trash-alt"></i> Supprimer
             </button>
           </div>
@@ -859,250 +859,121 @@
             alert(`Vous avez choisi d'${action} cet utilisateur.`);
           });
         });
-      });
-      
-      // Gestion de la suppression d'établissement
-      const btnSupprimer = document.getElementById('btn-supprimer-etablissement');
-      const modalSuppression = document.getElementById('modal-suppression');
-      const btnAnnuler = document.getElementById('btn-annuler-suppression');
-      const btnConfirmer = document.getElementById('btn-confirmer-suppression');
-      const confirmationNom = document.getElementById('confirmation-nom');
-      const nomEtablissementSuppression = document.getElementById('nom-etablissement-suppression');
-      
-      if (btnSupprimer) {
-        const etablissementNom = btnSupprimer.getAttribute('data-etablissement-nom');
-        const etablissementId = btnSupprimer.getAttribute('data-etablissement-id');
         
-        btnSupprimer.addEventListener('click', function() {
-          nomEtablissementSuppression.textContent = etablissementNom;
-          confirmationNom.value = '';
-          btnConfirmer.disabled = true;
-          modalSuppression.style.display = 'block';
-        });
-        
-        btnAnnuler.addEventListener('click', function() {
-          modalSuppression.style.display = 'none';
-          confirmationNom.value = '';
-        });
-        
-        confirmationNom.addEventListener('input', function() {
-          if (confirmationNom.value.trim() === etablissementNom) {
-            btnConfirmer.disabled = false;
-          } else {
-            btnConfirmer.disabled = true;
-          }
-        });
-        
-        btnConfirmer.addEventListener('click', function() {
-          if (confirmationNom.value.trim() !== etablissementNom) {
-            alert('Le nom saisi ne correspond pas. Veuillez réessayer.');
-            return;
-          }
-          
-          // Désactiver le bouton pour éviter les doubles clics
-          btnConfirmer.disabled = true;
-          btnConfirmer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
-          
-          // Créer un formulaire pour envoyer la requête POST
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '{% url "school_admin:supprimer_etablissement" %}';
-          
-          // Ajouter le CSRF token
-          const csrftoken = getCookie('csrftoken');
-          if (csrftoken) {
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = csrftoken;
-            form.appendChild(csrfInput);
-          }
-          
-          // Ajouter l'ID de l'établissement
-          const idInput = document.createElement('input');
-          idInput.type = 'hidden';
-          idInput.name = 'etablissement_id';
-          idInput.value = etablissementId;
-          form.appendChild(idInput);
-          
-          document.body.appendChild(form);
-          form.submit();
-        });
-        
-        // Fermer le modal en cliquant en dehors
-        modalSuppression.addEventListener('click', function(e) {
-          if (e.target === modalSuppression) {
-            modalSuppression.style.display = 'none';
-            confirmationNom.value = '';
-          }
-        });
-      }
-      
-      // Fonction pour récupérer le cookie CSRF
-      function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
+        // Fonction pour récupérer le cookie CSRF
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
             }
           }
+          return cookieValue;
         }
-        return cookieValue;
-      }
-      const btnSupprimer = document.getElementById('btn-supprimer-etablissement');
-      const modalSuppression = document.getElementById('modal-suppression');
-      const btnAnnuler = document.getElementById('btn-annuler-suppression');
-      const btnConfirmer = document.getElementById('btn-confirmer-suppression');
-      const confirmationNom = document.getElementById('confirmation-nom');
-      const nomEtablissementSuppression = document.getElementById('nom-etablissement-suppression');
-      
-      if (btnSupprimer) {
-        const etablissementNom = btnSupprimer.getAttribute('data-etablissement-nom');
-        const etablissementId = btnSupprimer.getAttribute('data-etablissement-id');
         
-        btnSupprimer.addEventListener('click', function() {
-          nomEtablissementSuppression.textContent = etablissementNom;
-          confirmationNom.value = '';
-          btnConfirmer.disabled = true;
-          modalSuppression.style.display = 'block';
-        });
+        // Gestion de la suppression d'établissement
+        const btnSupprimer = document.getElementById('btn-supprimer-etablissement');
+        const modalSuppression = document.getElementById('modal-suppression');
+        const btnAnnuler = document.getElementById('btn-annuler-suppression');
+        const btnConfirmer = document.getElementById('btn-confirmer-suppression');
+        const confirmationNom = document.getElementById('confirmation-nom');
+        const nomEtablissementSuppression = document.getElementById('nom-etablissement-suppression');
         
-        btnAnnuler.addEventListener('click', function() {
-          modalSuppression.style.display = 'none';
-          confirmationNom.value = '';
-        });
-        
-        confirmationNom.addEventListener('input', function() {
-          if (confirmationNom.value.trim() === etablissementNom) {
-            btnConfirmer.disabled = false;
-          } else {
+        if (btnSupprimer && modalSuppression && btnAnnuler && btnConfirmer && confirmationNom && nomEtablissementSuppression) {
+          const etablissementNom = btnSupprimer.getAttribute('data-etablissement-nom');
+          const etablissementId = btnSupprimer.getAttribute('data-etablissement-id');
+          
+          console.log('Bouton supprimer trouvé:', btnSupprimer);
+          console.log('Modal trouvé:', modalSuppression);
+          console.log('Nom établissement:', etablissementNom);
+          console.log('ID établissement:', etablissementId);
+          
+          btnSupprimer.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Clic sur le bouton supprimer');
+            nomEtablissementSuppression.textContent = etablissementNom;
+            confirmationNom.value = '';
             btnConfirmer.disabled = true;
-          }
-        });
-        
-        btnConfirmer.addEventListener('click', function() {
-          if (confirmationNom.value.trim() !== etablissementNom) {
-            alert('Le nom saisi ne correspond pas. Veuillez réessayer.');
-            return;
-          }
+            modalSuppression.style.display = 'block';
+          });
           
-          // Désactiver le bouton pour éviter les doubles clics
-          btnConfirmer.disabled = true;
-          btnConfirmer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
+          btnAnnuler.addEventListener('click', function() {
+            modalSuppression.style.display = 'none';
+            confirmationNom.value = '';
+          });
           
-          // Créer un formulaire pour envoyer la requête POST
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '{% url "school_admin:supprimer_etablissement" %}';
+          confirmationNom.addEventListener('input', function() {
+            if (confirmationNom.value.trim() === etablissementNom) {
+              btnConfirmer.disabled = false;
+            } else {
+              btnConfirmer.disabled = true;
+            }
+          });
           
-          // Ajouter le CSRF token
-          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-          if (csrfToken) {
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = csrfToken.value;
-            form.appendChild(csrfInput);
-          } else {
-            // Récupérer le token depuis les cookies
-            const csrftoken = getCookie('csrftoken');
-            if (csrftoken) {
+          btnConfirmer.addEventListener('click', function() {
+            if (confirmationNom.value.trim() !== etablissementNom) {
+              alert('Le nom saisi ne correspond pas. Veuillez réessayer.');
+              return;
+            }
+            
+            // Désactiver le bouton pour éviter les doubles clics
+            btnConfirmer.disabled = true;
+            btnConfirmer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
+            
+            // Créer un formulaire pour envoyer la requête POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "school_admin:supprimer_etablissement" %}';
+            
+            // Ajouter le CSRF token - essayer d'abord depuis le DOM, puis depuis les cookies
+            let csrfToken = null;
+            const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfTokenInput) {
+              csrfToken = csrfTokenInput.value;
+            } else {
+              csrfToken = getCookie('csrftoken');
+            }
+            
+            if (csrfToken) {
               const csrfInput = document.createElement('input');
               csrfInput.type = 'hidden';
               csrfInput.name = 'csrfmiddlewaretoken';
-              csrfInput.value = csrftoken;
+              csrfInput.value = csrfToken;
               form.appendChild(csrfInput);
+            } else {
+              console.error('Token CSRF non trouvé');
+              alert('Erreur: Token de sécurité non trouvé. Veuillez recharger la page.');
+              btnConfirmer.disabled = false;
+              btnConfirmer.innerHTML = '<i class="fas fa-trash-alt"></i> Supprimer définitivement';
+              return;
             }
-          }
+            
+            // Ajouter l'ID de l'établissement
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'etablissement_id';
+            idInput.value = etablissementId;
+            form.appendChild(idInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+          });
           
-          // Ajouter l'ID de l'établissement
-          const idInput = document.createElement('input');
-          idInput.type = 'hidden';
-          idInput.name = 'etablissement_id';
-          idInput.value = etablissementId;
-          form.appendChild(idInput);
-          
-          document.body.appendChild(form);
-          form.submit();
-        });
-        
-        // Fermer le modal en cliquant en dehors
-        modalSuppression.addEventListener('click', function(e) {
-          if (e.target === modalSuppression) {
-            modalSuppression.style.display = 'none';
-            confirmationNom.value = '';
-          }
-        });
-      }
-      
-      // Fonction pour récupérer le cookie CSRF
-      function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
+          // Fermer le modal en cliquant en dehors
+          modalSuppression.addEventListener('click', function(e) {
+            if (e.target === modalSuppression) {
+              modalSuppression.style.display = 'none';
+              confirmationNom.value = '';
             }
-          }
+          });
         }
-        return cookieValue;
-      }
-    </script>
-    
-    <style>
-      .modal {
-        position: fixed;
-        z-index: 10000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        overflow: auto;
-      }
-      
-      .btn-danger {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: background-color 0.2s;
-      }
-      
-      .btn-danger:hover {
-        background-color: #c82333;
-      }
-      
-      .btn-danger:disabled {
-        background-color: #6c757d;
-        cursor: not-allowed;
-      }
-      
-      .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: background-color 0.2s;
-      }
-      
-      .btn-secondary:hover {
-        background-color: #5a6268;
-      }
-    </style>
+      });
     </script>
     
     <style>

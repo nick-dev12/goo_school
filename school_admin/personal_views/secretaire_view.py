@@ -660,7 +660,14 @@ def inscription_eleves(request):
                     # Récupérer le montant par élève pour le message
                     montant_par_eleve = etablissement.montant_par_eleve
                     
-                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_par_eleve} FCFA. Documents fournis: {documents_text}")
+                    # Formater le montant avec la devise si disponible
+                    devise_etablissement = etablissement.devise_monnaie
+                    if devise_etablissement:
+                        montant_affiche = f"{montant_par_eleve} {devise_etablissement}"
+                    else:
+                        montant_affiche = str(montant_par_eleve)
+                    
+                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_affiche}. Documents fournis: {documents_text}")
                     return redirect('secretaire:reçu_inscription_eleve', eleve_id=eleve.id)
                     
             except Exception as e:

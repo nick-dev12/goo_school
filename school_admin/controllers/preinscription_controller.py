@@ -464,7 +464,17 @@ class PreinscriptionController:
                 if parent and not parent.qr_auth_token:
                     parent.generer_et_sauvegarder_token_qr()
                 
-                messages.success(request, f"Préinscription validée avec succès. L'élève {eleve.nom_complet} a été inscrit.")
+                # Récupérer le montant par élève pour le message
+                montant_par_eleve = etablissement.montant_par_eleve
+                
+                # Formater le montant avec la devise si disponible
+                devise_etablissement = etablissement.devise_monnaie
+                if devise_etablissement:
+                    montant_affiche = f"{montant_par_eleve} {devise_etablissement}"
+                else:
+                    montant_affiche = str(montant_par_eleve)
+                
+                messages.success(request, f"Préinscription validée avec succès. L'élève {eleve.nom_complet} a été inscrit. Montant ajouté: {montant_affiche}.")
                 
                 # Rediriger vers le reçu d'inscription
                 return redirect('secretaire:reçu_inscription_eleve', eleve_id=eleve.id)

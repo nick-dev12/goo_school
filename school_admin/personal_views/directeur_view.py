@@ -1499,7 +1499,17 @@ def reinscription_eleve(request, eleve_id):
                     etablissement.date_derniere_facturation = timezone.now()
                     etablissement.save(update_fields=['date_derniere_facturation'])
                     
-                    messages.success(request, f"L'élève {form_data['nom']} {form_data['prenom']} a été réinscrit avec succès pour l'année scolaire {annee_scolaire_active.libelle} !")
+                    # Récupérer le montant par élève pour le message
+                    montant_par_eleve = etablissement.montant_par_eleve
+                    
+                    # Formater le montant avec la devise si disponible
+                    devise_etablissement = etablissement.devise_monnaie
+                    if devise_etablissement:
+                        montant_affiche = f"{montant_par_eleve} {devise_etablissement}"
+                    else:
+                        montant_affiche = str(montant_par_eleve)
+                    
+                    messages.success(request, f"L'élève {form_data['nom']} {form_data['prenom']} a été réinscrit avec succès pour l'année scolaire {annee_scolaire_active.libelle} ! Montant ajouté: {montant_affiche}.")
                     return redirect('directeur:liste_reinscription')
                     
             except Exception as e:

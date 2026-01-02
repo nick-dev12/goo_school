@@ -229,25 +229,7 @@
                                     {% endif %}
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label class="form-label" for="matieres_secondaires_select">
-                                        <i class="fas fa-books"></i>
-                                        Matières secondaires
-                                        <span class="label-hint">(Optionnel)</span>
-                                    </label>
-                                    <select class="form-control" 
-                                            id="matieres_secondaires_select" 
-                                            name="matieres_secondaires" 
-                                            multiple
-                                            size="5">
-                                        {% for matiere in matieres %}
-                                            <option value="{{ matiere.id }}" {% if matiere.id|stringformat:"s" in form_data.matieres_secondaires %}selected{% endif %}>
-                                                {{ matiere.nom }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <small class="form-text">Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs matières</small>
-                                </div>
+                                
                             </div>
                         {% endif %}
                     </div>

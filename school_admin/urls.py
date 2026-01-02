@@ -9,6 +9,7 @@ from .personal_views.comptable_view import *
 from .controllers.activites_commerciales_controller import ActivitesCommercialesController
 from .personal_views.directeur_view import verifier_bulletin_qr
 from .api_views import fcm_views, fcm_test_views, test_notes_notifications
+from .personal_views.qr_scan_view import scan_qr_eleve, scan_qr_eleve_authenticated
 
 app_name = 'school_admin'
 
@@ -53,6 +54,11 @@ urlpatterns =[
     path('etablissements/messages/detail/', detail_message, name='detail_message'),
     path('annonces/', annonces, name='annonces'),
     path('bulletins/verifier/', verifier_bulletin_qr, name='verifier_bulletin_qr'),
+    
+    # Scan QR Code Élève (route publique)
+    path('scan-qr/eleve/<str:qr_identifier>/', scan_qr_eleve, name='scan_qr_eleve'),
+    # Scan QR Code Élève (route authentifiée pour directeur et personnel administratif)
+    path('scan-qr/eleve/<str:qr_identifier>/authenticated/', scan_qr_eleve_authenticated, name='scan_qr_eleve_authenticated'),
     
     path('parametres/administrateur/', parametres, name='parametres_administrateur'),
     path('management_equipes/', management_equipes, name='management_equipes'),
@@ -156,6 +162,12 @@ urlpatterns =[
         path('ajouter_budget/',ajouter_budget, name='ajouter_budget'),
         path('modifier_budget/<int:budget_id>/',modifier_budget, name='modifier_budget'),
         path('supprimer_budget/<int:budget_id>/',supprimer_budget, name='supprimer_budget'),
+        
+        # Gestion comptabilité des élèves
+        path('comptabilite/eleves/<int:etablissement_id>/',liste_comptabilite_eleves, name='liste_comptabilite_eleves'),
+        path('comptabilite/eleve/<int:eleve_id>/',details_comptabilite_eleve, name='details_comptabilite_eleve'),
+        path('comptabilite/eleve/<int:eleve_id>/paiement/',enregistrer_paiement, name='enregistrer_paiement'),
+        path('comptabilite/verifier-statuts/<int:etablissement_id>/',verifier_statuts_paiement, name='verifier_statuts_paiement'),
 ]
 
 # Inclure les URLs des professeurs

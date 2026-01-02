@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+{% load static %}
+{% load eleve_filters %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comptabilité des Élèves - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-calculator"></i>
+                    Comptabilité des Élèves
+                </h1>
+                <p class="page-subtitle">
+                    Gestion des paiements et suivi de la comptabilité des élèves de {{ etablissement.nom }}
+                </p>
+            </div>
+            <div class="page-actions" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="{% url 'directeur:bilan_comptable_directeur' %}" class="btn-secondary" style="background: var(--success, #10b981); color: white; border: none; font-weight: 600;">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Bilan comptable général</span>
+                </a>
+                <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="btn-secondary" style="background: var(--info, #8b5cf6); color: white; border: none;">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres de comptabilité</span>
+                </a>
+                <a href="{% url 'directeur:gestion_etablissement' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                </a>
+            </div>
+        </div>
+
+        {% if not etablissement.module_comptabilite %}
+        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
+          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
+          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
+            Le module comptabilité n'est pas activé pour cet établissement. 
+            <a href="{% url 'directeur:profil_etablissement' %}" style="color: var(--warning); text-decoration: underline;">
+              Activez-le dans les paramètres de votre profil
+            </a>.
+          </span>
+        </div>
+        {% endif %}
+
+        <!-- Message d'information sur l'année scolaire active -->
+        {% if annee_scolaire_active %}
+        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
+          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
+            <i class="fas fa-calendar-check"></i>
+          </span>
+          <div>
+            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
+              Année scolaire active : {{ annee_scolaire_active.libelle }}
+            </p>
+            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
+              Seuls les élèves inscrits pour cette année scolaire sont affichés.
+            </p>
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
+          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
+          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
+            Aucune année scolaire active. Tous les élèves sont affichés.
+          </span>
+        </div>
+        {% endif %}
+
+        <!-- Statistiques globales -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--info, #8b5cf6);">
+                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">Total élèves</h3>
+                <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ total_eleves }}</p>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--success, #10b981);">
+                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">À jour</h3>
+                <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ eleves_a_jour }}</p>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--accent, #ef4444);">
+                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">Non en règle</h3>
+                <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ eleves_non_en_regle }}</p>
+            </div>
+        </div>
+
+        <!-- Système d'onglets par niveau -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <div class="tabs-nav">
+                    {% for categorie, data in classes_grouped.items %}
+                        <button class="tab-button {% if forloop.first %}active{% endif %}" 
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchMainTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <div class="tab-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div class="tab-info">
+                                    <h4 class="tab-title">{{ categorie }}</h4>
+                                    <p class="tab-subtitle">{{ data.classes|length }} classe{{ data.classes|length|pluralize }}</p>
+                                </div>
+                                <div class="tab-stats">
+                                    <span class="students-count">{{ data.total_eleves }}</span>
+                                    <span class="students-label">élèves</span>
+                                </div>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="tabs-content">
+                {% for categorie, data in classes_grouped.items %}
+                    <div class="tab-panel {% if forloop.first %}active{% endif %}" 
+                         id="tab-{{ forloop.counter }}">
+                        
+                        <!-- Sous-onglets par classe -->
+                        <div class="classes-subtabs">
+                            {% for classe_data in data.classes %}
+                                <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
+                                        data-subtab="classe-{{ classe_data.classe.id }}"
+                                        onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
+                                    <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                    <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Contenu des sous-onglets (classes) -->
+                        {% for classe_data in data.classes %}
+                            <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                                <!-- En-tête de la classe -->
+                                <div class="class-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                                    <div class="class-info" style="flex: 1; min-width: 250px;">
+                                        <h2 class="class-title" style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary, #1f2937); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                                            <i class="fas fa-chalkboard"></i>
+                                            {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                        </h2>
+                                        <p class="class-description" style="color: var(--text-secondary, #6b7280); font-size: 0.875rem; margin: 0;">{{ classe_data.classe.description|default:"Aucune description" }}</p>
+                                    </div>
+                                    <div class="class-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                                        <a href="{% url 'directeur:bilan_comptable_classe_directeur' classe_data.classe.id %}" 
+                                           class="btn-secondary" 
+                                           style="background: var(--success, #10b981); color: white; border: none; font-weight: 600; padding: 0.625rem 1.25rem; font-size: 0.875rem; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease;">
+                                            <i class="fas fa-chart-line"></i>
+                                            <span>Bilan de la classe {{ classe_data.classe.nom }}</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Statistiques spécifiques à la classe -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--info, #8b5cf6);">
+                                        <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
+                                            <i class="fas fa-money-bill-wave" style="margin-right: 0.5rem;"></i>
+                                            Montant total généré
+                                        </h3>
+                                        <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.montant_total_classe|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
+                                    </div>
+                                    <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--success, #10b981);">
+                                        <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
+                                            <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+                                            Montant payé
+                                        </h3>
+                                        <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.montant_total_paye_classe|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
+                                    </div>
+                                    <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--success, #10b981);">
+                                        <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
+                                            <i class="fas fa-user-check" style="margin-right: 0.5rem;"></i>
+                                            Élèves en règle
+                                        </h3>
+                                        <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.eleves_en_regle_classe|default:0 }}</p>
+                                    </div>
+                                    <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--accent, #ef4444);">
+                                        <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
+                                            <i class="fas fa-user-times" style="margin-right: 0.5rem;"></i>
+                                            Élèves non en règle
+                                        </h3>
+                                        <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.eleves_non_en_regle_classe|default:0 }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Liste des élèves -->
+                                <div class="students-section">
+                                    <div class="section-header">
+                                        <h3 class="section-title">
+                                            <i class="fas fa-list"></i>
+                                            Liste des élèves ({{ classe_data.eleves|length }})
+                                        </h3>
+                                    </div>
+
+                                    <!-- Barre de recherche -->
+                                    <div class="search-filter-container" id="search-filter-{{ classe_data.classe.id }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                        <div class="search-box" style="position: relative; margin-bottom: 16px;">
+                                            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                                            <input type="text" 
+                                                   class="search-input" 
+                                                   id="search-input-{{ classe_data.classe.id }}" 
+                                                   placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                                                   oninput="filterStudentsComptabilite('{{ classe_data.classe.id }}')"
+                                                   style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
+                                            <button class="clear-search" 
+                                                    id="clear-search-{{ classe_data.classe.id }}" 
+                                                    onclick="clearSearchComptabilite('{{ classe_data.classe.id }}')" 
+                                                    style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                                            <div class="filter-group" style="flex: 1; min-width: 200px;">
+                                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                                                    <i class="fas fa-tag"></i>
+                                                    Statut de paiement
+                                                </label>
+                                                <select class="filter-select" id="filter-statut-{{ classe_data.classe.id }}" onchange="filterStudentsComptabilite('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                                    <option value="">Tous</option>
+                                                    <option value="a_jour">À jour</option>
+                                                    <option value="en_retard">Non en règle</option>
+                                                    <option value="impaye">Non en règle</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <button class="btn-reset-filters" onclick="resetFiltersComptabilite('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                                <i class="fas fa-redo"></i>
+                                                Réinitialiser
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
+                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                                        </div>
+                                    </div>
+
+                                    {% if classe_data.eleves %}
+                                        <div class="students-list">
+                                            <div class="list-header">
+                                                <div class="list-cell header-cell">Élève</div>
+                                                <div class="list-cell header-cell">Frais d'inscription</div>
+                                                <div class="list-cell header-cell">Total dû</div>
+                                                <div class="list-cell header-cell">Total payé</div>
+                                                <div class="list-cell header-cell">Reste à payer</div>
+                                                <div class="list-cell header-cell">Statut</div>
+                                                <div class="list-cell header-cell">Actions</div>
+                                            </div>
+                                            
+                                            {% for eleve_data in classe_data.eleves %}
+                                                {% with eleve=eleve_data.eleve comptabilite=eleve_data.comptabilite %}
+                                                <div class="list-row" data-statut="{% if eleve_data.est_non_en_regle %}non_en_regle{% else %}a_jour{% endif %}" data-est-non-en-regle="{% if eleve_data.est_non_en_regle %}true{% else %}false{% endif %}">
+                                                    <div class="list-cell student-cell">
+                                                        <div class="student-avatar-small">
+                                                            <i class="fas fa-user"></i>
+                                                        </div>
+                                                        <div class="student-info-compact">
+                                                            <h4 class="student-name">
+                                                                <span class="student-name-full">{{ eleve.nom }} {{ eleve.prenom }}</span>
+                                                                <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
+                                                            </h4>
+                                                            <p class="student-email">{{ eleve.email|default:"Aucun email" }}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Frais d'inscription">
+                                                        <span class="amount-inscription">{{ eleve_data.frais_inscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Total dû">
+                                                        <span class="amount-due">{{ eleve_data.total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Total payé">
+                                                        <span class="amount-paid">{{ eleve_data.total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Reste à payer">
+                                                        <span class="amount-remaining {% if eleve_data.reste_a_payer > 0 %}text-danger{% else %}text-success{% endif %}">
+                                                            {{ eleve_data.reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Statut">
+                                                        {% if eleve_data.est_non_en_regle %}
+                                                            <span class="statut-badge statut-non_en_regle" style="display: inline-block; padding: 0.375rem 0.75rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                                                Non en règle
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="statut-badge statut-a_jour" style="display: inline-block; padding: 0.375rem 0.75rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                                                À jour
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <div class="list-cell" data-label="Actions">
+                                                        <div class="student-actions-compact">
+                                                            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" 
+                                                               class="btn-action-icon" 
+                                                               title="Voir les détails de la comptabilité"
+                                                               style="background: var(--primary, #3b82f6); color: white; padding: 0.625rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; width: 40px; height: 40px; transition: all 0.3s ease;">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endwith %}
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="empty-state">
+                                            <div class="empty-icon">
+                                                <i class="fas fa-user-slash"></i>
+                                            </div>
+                                            <h3 class="empty-title">Aucun élève inscrit</h3>
+                                            <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gestion des onglets principaux
+        function switchMainTab(tabId) {
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.closest('.tab-button').classList.add('active');
+        }
+
+        // Gestion des sous-onglets (classes)
+        function switchClasseTab(event, classeId) {
+            event.stopPropagation();
+            
+            const parentPanel = event.target.closest('.tab-panel');
+            
+            parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(classeId).classList.add('active');
+            event.target.closest('.classe-subtab-btn').classList.add('active');
+        }
+
+        // Fonction de filtrage des élèves pour la comptabilité
+        function filterStudentsComptabilite(classeId) {
+            const searchInput = document.getElementById(`search-input-${classeId}`);
+            const filterStatut = document.getElementById(`filter-statut-${classeId}`);
+            const clearButton = document.getElementById(`clear-search-${classeId}`);
+            const resultsDiv = document.getElementById(`filter-results-${classeId}`);
+            const resultsCount = document.getElementById(`results-count-${classeId}`);
+            
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const statutValue = filterStatut.value;
+            
+            // Afficher/masquer le bouton de suppression de recherche
+            clearButton.style.display = searchTerm ? 'flex' : 'none';
+            
+            // Récupérer toutes les lignes d'élèves de cette classe
+            const classeContent = document.getElementById(`classe-${classeId}`);
+            const rows = classeContent.querySelectorAll('.list-row');
+            
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const studentCell = row.querySelector('.student-name');
+                const studentNumber = row.querySelector('.student-number');
+                const statutBadge = row.querySelector('.statut-badge');
+                const dataStatut = row.getAttribute('data-statut');
+                
+                if (!studentCell) return;
+                
+                const nom = studentCell.textContent.toLowerCase();
+                
+                // Filtrage par recherche (nom)
+                const matchesSearch = !searchTerm || 
+                    nom.includes(searchTerm);
+                
+                // Filtrage par statut
+                let matchesStatut = true;
+                if (statutValue) {
+                    const estNonEnRegle = row.getAttribute('data-est-non-en-regle') === 'true';
+                    if (statutValue === 'non_en_regle') {
+                        matchesStatut = estNonEnRegle;
+                    } else if (statutValue === 'a_jour') {
+                        matchesStatut = !estNonEnRegle;
+                    } else {
+                        matchesStatut = dataStatut === statutValue;
+                    }
+                }
+                
+                // Afficher/masquer la ligne selon les critères
+                if (matchesSearch && matchesStatut) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Afficher/masquer le compteur de résultats
+            if (searchTerm || statutValue) {
+                resultsCount.textContent = visibleCount;
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        }
+        
+        function clearSearchComptabilite(classeId) {
+            const searchInput = document.getElementById(`search-input-${classeId}`);
+            searchInput.value = '';
+            filterStudentsComptabilite(classeId);
+        }
+        
+        function resetFiltersComptabilite(classeId) {
+            const searchInput = document.getElementById(`search-input-${classeId}`);
+            const filterStatut = document.getElementById(`filter-statut-${classeId}`);
+            
+            searchInput.value = '';
+            filterStatut.value = '';
+            
+            filterStudentsComptabilite(classeId);
+        }
+    </script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

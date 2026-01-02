@@ -100,6 +100,19 @@
       <span class="label">Profil</span>
     </a>
   </li>
+    {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
+    {% if can_view_comptabilite or is_directeur %}
+    <li
+      class="bottom-nav-item nav-item-extra nav-item-main-7 nav-item-complementary {% if request.resolver_match.url_name == 'liste_comptabilite_eleves_directeur' or request.resolver_match.url_name == 'details_comptabilite_eleve_directeur' or request.resolver_match.url_name == 'enregistrer_paiement_directeur' or request.resolver_match.url_name == 'parametres_comptabilite_directeur' or request.resolver_match.url_name == 'bilan_comptable_directeur' or request.resolver_match.url_name == 'bilan_comptable_classe_directeur' %}active{% endif %}"
+    >
+      <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}">
+        <span class="icon-wrapper icon-comptabilite"
+          ><i class="fas fa-calculator"></i
+        ></span>
+        <span class="label">Comptabilité</span>
+      </a>
+    </li>
+    {% endif %}
     <li class="bottom-nav-item menu-toggle-item">
       <button
         type="button"

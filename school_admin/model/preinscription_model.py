@@ -461,7 +461,7 @@ class PreinscriptionEleve(models.Model):
             try:
                 # Préparer les valeurs des documents (utiliser ceux fournis ou False par défaut)
                 documents_data = documents if documents else {}
-                InscriptionEleve.objects.update_or_create(
+                inscription_eleve, _ = InscriptionEleve.objects.update_or_create(
                     annee_scolaire=annee_scolaire_active,
                     matricule_eleve=eleve.matricule_eleve,
                     defaults={
@@ -547,7 +547,19 @@ class PreinscriptionEleve(models.Model):
             except Exception as e:
                 raise ValueError(f"Erreur lors de la création de l'inscription parent : {str(e)}")
             
-            # 6. Mettre à jour le statut de la préinscription
+            # 6. Créer les frais d'inscription si le module comptabilité est activé
+            if self.etablissement.module_comptabilite:
+                try:
+                    from ..utils.comptabilite_utils import creer_frais_inscription
+                    type_frais = 'inscription' if statut_inscription == 'nouvelle' else 'reinscription'
+                    creer_frais_inscription(eleve, annee_scolaire_active, type_frais)
+                except Exception as e:
+                    # Logger l'erreur mais ne pas bloquer la validation
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Erreur lors de la création des frais d'inscription pour {eleve.nom_complet}: {str(e)}")
+            
+            # 7. Mettre à jour le statut de la préinscription
             self.statut = 'validee'
             self.date_validation = timezone.now()
             self.valide_par = validateur

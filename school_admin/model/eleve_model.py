@@ -680,7 +680,54 @@ class Eleve(AbstractUser):
 
     def _build_qr_payload(self):
         """Construit la charge utile sécurisée encodée dans le QR code."""
-        payload = {
+        from django.urls import reverse
+        from django.conf import settings
+        
+        # Construire l'URL pour scanner le QR code
+        # Utiliser l'identifiant QR pour la sécurité
+        if self.qr_code_identifier:
+            try:
+                # Construire l'URL relative vers la page de scan
+                url_relative = reverse('school_admin:scan_qr_eleve', kwargs={'qr_identifier': self.qr_code_identifier})
+                
+                # Construire l'URL absolue
+                # Essayer d'utiliser SITE_URL depuis les settings
+                if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
+                    base_url = settings.SITE_URL.rstrip('/')
+                else:
+                    # Fallback : utiliser le domaine par défaut selon l'environnement
+                    if settings.DEBUG:
+                        base_url = 'http://127.0.0.1:8000'
+                    else:
+                        # En production, essayer d'utiliser ALLOWED_HOSTS
+                        if hasattr(settings, 'ALLOWED_HOSTS') and settings.ALLOWED_HOSTS:
+                            host = settings.ALLOWED_HOSTS[0]
+                            base_url = f"https://{host}" if not host.startswith('http') else host
+                        else:
+                            base_url = 'http://127.0.0.1:8000'  # Dernier fallback
+                
+                full_url = f"{base_url}{url_relative}"
+                return full_url
+            except Exception as e:
+                # Fallback vers l'ancien système si l'URL ne peut pas être construite
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Impossible de construire l'URL QR code pour l'élève {self.pk}: {str(e)}")
+                payload = {
+                    'identifier': self.qr_code_identifier,
+                    'eleve_id': self.pk,
+                    'numero_eleve': self.numero_eleve,
+                    'matricule_eleve': self.matricule_eleve,
+                    'nom': self.nom,
+                    'prenom': self.prenom,
+                    'classe': self.classe.nom if self.classe else None,
+                    'etablissement': self.etablissement.nom if self.etablissement else None,
+                    'generated_at': timezone.now().isoformat(),
+                }
+                return json.dumps(payload, ensure_ascii=False)
+        else:
+            # Si pas d'identifiant QR, utiliser l'ancien système
+            payload = {
             'identifier': self.qr_code_identifier,
             'eleve_id': self.pk,
             'numero_eleve': self.numero_eleve,
@@ -709,9 +756,9 @@ class Eleve(AbstractUser):
         payload = self._build_qr_payload()
         qr = qrcode.QRCode(
             version=None,
-            error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=10,
-            border=4,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,  # Haute correction d'erreur pour plus de robustesse
+            box_size=15,  # Augmenté de 10 à 15 pour des points plus gros et faciles à scanner
+            border=3,  # Bordure réduite légèrement pour optimiser l'espace, mais suffisante pour le scan
         )
         qr.add_data(payload)
         qr.make(fit=True)

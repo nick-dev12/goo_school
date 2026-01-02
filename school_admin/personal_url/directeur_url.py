@@ -117,4 +117,19 @@ urlpatterns = [
     path('directeur/annonces/<int:annonce_id>/publier/', publier_annonce, name='publier_annonce'),
     path('directeur/annonces/<int:annonce_id>/archiver/', archiver_annonce, name='archiver_annonce'),
     path('directeur/annonces/<int:annonce_id>/supprimer/', supprimer_annonce, name='supprimer_annonce'),
+    
+    # Gestion comptabilité des élèves
+    path('comptabilite/eleves/', liste_comptabilite_eleves_directeur, name='liste_comptabilite_eleves_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/details/', details_comptabilite_eleve_directeur, name='details_comptabilite_eleve_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/paiement/', enregistrer_paiement_directeur, name='enregistrer_paiement_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/frais-inscription/<int:frais_id>/payer/', payer_frais_inscription_directeur, name='payer_frais_inscription_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/mensualite/<int:mensualite_id>/payer/', payer_mensualite_directeur, name='payer_mensualite_directeur'),
+    path('comptabilite/verifier-statuts/', verifier_statuts_paiement_directeur, name='verifier_statuts_paiement_directeur'),
+    path('comptabilite/parametres/', parametres_comptabilite_directeur, name='parametres_comptabilite_directeur'),
+    path('comptabilite/parametres-groupes/', liste_parametres_groupes_directeur, name='liste_parametres_groupes_directeur'),
+    path('comptabilite/parametres-groupes/ajouter/', ajouter_modifier_parametres_groupe_directeur, name='ajouter_parametres_groupe_directeur'),
+    path('comptabilite/parametres-groupes/<int:parametre_id>/modifier/', ajouter_modifier_parametres_groupe_directeur, name='modifier_parametres_groupe_directeur'),
+    path('comptabilite/parametres-groupes/<int:parametre_id>/supprimer/', supprimer_parametres_groupe_directeur, name='supprimer_parametres_groupe_directeur'),
+    path('comptabilite/bilan/', bilan_comptable_directeur, name='bilan_comptable_directeur'),
+    path('comptabilite/classe/<int:classe_id>/bilan/', bilan_comptable_classe_directeur, name='bilan_comptable_classe_directeur'),
 ]

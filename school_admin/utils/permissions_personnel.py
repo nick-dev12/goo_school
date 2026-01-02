@@ -177,6 +177,28 @@ PERMISSIONS_DISPONIBLES = {
         'description': 'Accès à la gestion des examens',
         'category': 'Examens'
     },
+    
+    # Comptabilité
+    'comptabilite_voir': {
+        'label': 'Accès à la comptabilité',
+        'description': 'Accès à la page principale de comptabilité et aux détails financiers des élèves',
+        'category': 'Comptabilité'
+    },
+    'comptabilite_paiements': {
+        'label': 'Gérer les paiements de la scolarité',
+        'description': 'Effectuer et renseigner les paiements (frais d\'inscription et mensualités)',
+        'category': 'Comptabilité'
+    },
+    'comptabilite_bilans': {
+        'label': 'Accès aux bilans comptables',
+        'description': 'Accès aux bilans comptables (annuels et par classe)',
+        'category': 'Comptabilité'
+    },
+    'comptabilite_scan_qr': {
+        'label': 'Voir la comptabilité via scan QR',
+        'description': 'Accès aux informations de comptabilité lors du scan du QR code d\'un élève',
+        'category': 'Comptabilité'
+    },
 }
 
 # Définition des permissions par fonction
@@ -312,9 +334,22 @@ PERMISSIONS_PAR_FONCTION = {
         'sanctions_liste', 'sanctions_detail', 'sanctions_creer',
         'classes_liste', 'classes_detail',
     ],
+    'secretaire': [
+        'eleves_liste', 'eleves_detail',
+        'notes_liste', 'notes_detail',
+        'presences_liste', 'presences_detail',
+        'classes_liste', 'classes_detail',
+        'professeurs_liste', 'professeurs_detail',
+    ],
     
     # Surveillants
     'surveillant_general': [
+        'eleves_liste', 'eleves_detail',
+        'presences_liste', 'presences_detail',
+        'sanctions_liste', 'sanctions_detail', 'sanctions_creer',
+        'classes_liste', 'classes_detail',
+    ],
+    'surveillant': [
         'eleves_liste', 'eleves_detail',
         'presences_liste', 'presences_detail',
         'sanctions_liste', 'sanctions_detail', 'sanctions_creer',
@@ -329,6 +364,27 @@ PERMISSIONS_PAR_FONCTION = {
         'classes_liste', 'classes_detail',
         'professeurs_liste', 'professeurs_detail',
         'personnel_liste', 'personnel_detail',
+        'comptabilite_voir', 'comptabilite_paiements', 'comptabilite_bilans',  # Accès complet à la comptabilité
+    ],
+    
+    # Comptable
+    'comptable': [
+        'eleves_liste', 'eleves_detail',
+        'comptabilite_voir', 'comptabilite_paiements', 'comptabilite_bilans',  # Accès complet à la comptabilité
+        'classes_liste', 'classes_detail',
+    ],
+    
+    # Intendant
+    'intendant': [
+        'eleves_liste', 'eleves_detail',
+        'classes_liste', 'classes_detail',
+        'professeurs_liste', 'professeurs_detail',
+        'personnel_liste', 'personnel_detail',
+    ],
+    
+    # Autre
+    'autre': [
+        # Aucune permission par défaut, à configurer manuellement
     ],
     
     # Administrateur système
@@ -385,27 +441,51 @@ def has_permission(personnel, permission_key):
         return True
     
     # Récupérer les permissions du personnel
-    permissions = personnel.permissions if personnel.permissions else {}
+    # S'assurer que permissions est un dictionnaire
+    if not hasattr(personnel, 'permissions') or personnel.permissions is None:
+        permissions = {}
+    else:
+        permissions = personnel.permissions if isinstance(personnel.permissions, dict) else {}
     
     # Si la permission est explicitement définie dans personnel.permissions, utiliser cette valeur
     # Cela permet de respecter les désactivations explicites
     if permission_key in permissions:
         permission_value = permissions[permission_key]
-        # Si c'est un booléen False, une chaîne 'False', ou un entier 0, la permission est refusée
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Permission {permission_key} trouvée dans permissions: {permission_value} (type: {type(permission_value)})")
+        
+        # Si c'est un booléen False, la permission est refusée
         if isinstance(permission_value, bool):
+            logger.info(f"Permission {permission_key} retourne: {permission_value} (booléen)")
             return permission_value
+        # Si c'est une chaîne, vérifier les valeurs positives
         if isinstance(permission_value, str):
-            return permission_value.lower() in ('true', '1', 'on', 'yes')
+            result = permission_value.lower() in ('true', '1', 'on', 'yes')
+            logger.info(f"Permission {permission_key} retourne: {result} (chaîne: '{permission_value}')")
+            return result
+        # Si c'est un entier, vérifier si c'est 1
         if isinstance(permission_value, int):
-            return permission_value == 1
+            result = permission_value == 1
+            logger.info(f"Permission {permission_key} retourne: {result} (entier: {permission_value})")
+            return result
         # Pour toute autre valeur, considérer comme False
+        logger.warning(f"Permission {permission_key} a une valeur inattendue: {permission_value} (type: {type(permission_value)})")
         return False
     
     # Si la permission n'est pas explicitement définie, vérifier les permissions par défaut de la fonction
     permissions_defaut = get_permissions_par_fonction(personnel.fonction)
     if permission_key in permissions_defaut:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Permission {permission_key} trouvée dans les permissions par défaut de la fonction {personnel.fonction}")
         return True
     
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Permission {permission_key} non trouvée pour {personnel.username} (fonction: {personnel.fonction})")
     return False
 
 

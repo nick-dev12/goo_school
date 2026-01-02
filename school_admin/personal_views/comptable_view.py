@@ -3157,3 +3157,340 @@ def supprimer_budget(request, budget_id):
         messages.error(request, "Budget non trouvé.")
     
     return redirect('school_admin:gestion_depenses')
+
+
+# ==================== GESTION COMPTABILITÉ DES ÉLÈVES ====================
+
+@comptable_required
+def liste_comptabilite_eleves(request, etablissement_id):
+    """
+    Liste tous les élèves avec leur statut de paiement pour un établissement
+    """
+    from ..model.comptabilite_eleve_model import ComptabiliteEleve
+    from ..model.annee_scolaire_model import AnneeScolaire
+    from django.db.models import Q
+    
+    try:
+        etablissement = Etablissement.objects.get(id=etablissement_id, actif=True)
+    except Etablissement.DoesNotExist:
+        messages.error(request, "Établissement introuvable")
+        return redirect('school_admin:gestion_etablissements')
+    
+    # Vérifier que le module comptabilité est activé
+    if not etablissement.module_comptabilite:
+        messages.warning(request, "Le module comptabilité n'est pas activé pour cet établissement.")
+        return redirect('school_admin:gestion_etablissements')
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = AnneeScolaire.get_session_active(etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active trouvée pour cet établissement.")
+        return redirect('school_admin:gestion_etablissements')
+    
+    # Filtres
+    statut_filter = request.GET.get('statut', '')
+    classe_filter = request.GET.get('classe', '')
+    search_query = request.GET.get('search', '')
+    
+    # Récupérer les comptabilités des élèves
+    comptabilites = ComptabiliteEleve.objects.filter(
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active
+    ).select_related('eleve', 'eleve__classe')
+    
+    # Appliquer les filtres
+    if statut_filter:
+        comptabilites = comptabilites.filter(statut_paiement=statut_filter)
+    
+    if classe_filter:
+        comptabilites = comptabilites.filter(eleve__classe_id=classe_filter)
+    
+    if search_query:
+        comptabilites = comptabilites.filter(
+            Q(eleve__nom__icontains=search_query) |
+            Q(eleve__prenom__icontains=search_query) |
+            Q(eleve__matricule_eleve__icontains=search_query)
+        )
+    
+    # Mettre à jour les statuts avant d'afficher
+    for comptabilite in comptabilites:
+        comptabilite.verifier_statut_paiement()
+    
+    # Récupérer les classes pour le filtre
+    from ..model.classe_model import Classe
+    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+    
+    # Statistiques
+    total_eleves = comptabilites.count()
+    eleves_a_jour = comptabilites.filter(statut_paiement='a_jour').count()
+    eleves_en_retard = comptabilites.filter(statut_paiement='en_retard').count()
+    eleves_impayes = comptabilites.filter(statut_paiement='impaye').count()
+    
+    context = {
+        'etablissement': etablissement,
+        'annee_scolaire': annee_scolaire_active,
+        'comptabilites': comptabilites.order_by('eleve__nom', 'eleve__prenom'),
+        'classes': classes,
+        'statut_filter': statut_filter,
+        'classe_filter': classe_filter,
+        'search_query': search_query,
+        'total_eleves': total_eleves,
+        'eleves_a_jour': eleves_a_jour,
+        'eleves_en_retard': eleves_en_retard,
+        'eleves_impayes': eleves_impayes,
+    }
+    
+    return render(request, 'school_admin/comptabilite/liste_comptabilite_eleves.html', context)
+
+
+@comptable_required
+def details_comptabilite_eleve(request, eleve_id):
+    """
+    Détails complets de la comptabilité d'un élève
+    """
+    from ..model.comptabilite_eleve_model import ComptabiliteEleve, FraisInscription, Mensualite, PaiementEleve
+    from ..model.annee_scolaire_model import AnneeScolaire
+    
+    try:
+        eleve = Eleve.objects.get(id=eleve_id, actif=True)
+    except Eleve.DoesNotExist:
+        messages.error(request, "Élève introuvable")
+        return redirect('school_admin:gestion_etablissements')
+    
+    etablissement = eleve.etablissement
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = AnneeScolaire.get_session_active(etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active trouvée.")
+        return redirect('school_admin:liste_comptabilite_eleves', etablissement_id=etablissement.id)
+    
+    # Récupérer ou créer la comptabilité de l'élève
+    comptabilite, created = ComptabiliteEleve.objects.get_or_create(
+        eleve=eleve,
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active,
+        defaults={'statut_paiement': 'a_jour'}
+    )
+    
+    # Vérifier le statut
+    comptabilite.verifier_statut_paiement()
+    
+    # Récupérer les frais d'inscription
+    frais_inscription = FraisInscription.objects.filter(
+        comptabilite_eleve=comptabilite
+    ).order_by('-date_creation')
+    
+    # Récupérer les mensualités
+    mensualites = Mensualite.objects.filter(
+        comptabilite_eleve=comptabilite
+    ).order_by('annee', 'mois')
+    
+    # Récupérer les paiements
+    paiements = PaiementEleve.objects.filter(
+        eleve=eleve,
+        annee_scolaire=annee_scolaire_active
+    ).order_by('-date_paiement')
+    
+    # Calculer les totaux
+    total_du = comptabilite.calculer_total_du()
+    total_paye = comptabilite.calculer_total_paye()
+    reste_a_payer = total_du - total_paye
+    
+    context = {
+        'eleve': eleve,
+        'etablissement': etablissement,
+        'annee_scolaire': annee_scolaire_active,
+        'comptabilite': comptabilite,
+        'frais_inscription': frais_inscription,
+        'mensualites': mensualites,
+        'paiements': paiements,
+        'total_du': total_du,
+        'total_paye': total_paye,
+        'reste_a_payer': reste_a_payer,
+    }
+    
+    return render(request, 'school_admin/comptabilite/details_comptabilite_eleve.html', context)
+
+
+@comptable_required
+def enregistrer_paiement(request, eleve_id):
+    """
+    Formulaire pour enregistrer un paiement pour un élève
+    """
+    from ..model.comptabilite_eleve_model import FraisInscription, Mensualite, PaiementEleve
+    from ..model.annee_scolaire_model import AnneeScolaire
+    
+    try:
+        eleve = Eleve.objects.get(id=eleve_id, actif=True)
+    except Eleve.DoesNotExist:
+        messages.error(request, "Élève introuvable")
+        return redirect('school_admin:gestion_etablissements')
+    
+    etablissement = eleve.etablissement
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = AnneeScolaire.get_session_active(etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active trouvée.")
+        return redirect('school_admin:liste_comptabilite_eleves', etablissement_id=etablissement.id)
+    
+    # Récupérer les frais d'inscription non payés
+    comptabilite = ComptabiliteEleve.objects.filter(
+        eleve=eleve,
+        annee_scolaire=annee_scolaire_active
+    ).first()
+    
+    frais_inscription_non_payes = []
+    mensualites_non_payees = []
+    
+    if comptabilite:
+        frais_inscription_non_payes = FraisInscription.objects.filter(
+            comptabilite_eleve=comptabilite,
+            statut__in=['en_attente', 'en_retard']
+        ).order_by('date_echeance')
+        
+        mensualites_non_payees = Mensualite.objects.filter(
+            comptabilite_eleve=comptabilite,
+            statut__in=['en_attente', 'en_retard', 'impaye']
+        ).order_by('date_echeance')
+    
+    if request.method == 'POST':
+        type_paiement = request.POST.get('type_paiement')
+        montant = request.POST.get('montant')
+        mode_paiement = request.POST.get('mode_paiement')
+        reference_paiement = request.POST.get('reference_paiement', '')
+        notes = request.POST.get('notes', '')
+        
+        # Validation
+        errors = {}
+        if not type_paiement:
+            errors['type_paiement'] = "Le type de paiement est obligatoire."
+        if not montant:
+            errors['montant'] = "Le montant est obligatoire."
+        else:
+            try:
+                montant_decimal = Decimal(montant)
+                if montant_decimal <= 0:
+                    errors['montant'] = "Le montant doit être positif."
+            except (ValueError, InvalidOperation):
+                errors['montant'] = "Le montant doit être un nombre valide."
+        
+        if not mode_paiement:
+            errors['mode_paiement'] = "Le mode de paiement est obligatoire."
+        
+        if errors:
+            context = {
+                'eleve': eleve,
+                'etablissement': etablissement,
+                'annee_scolaire': annee_scolaire_active,
+                'frais_inscription_non_payes': frais_inscription_non_payes,
+                'mensualites_non_payees': mensualites_non_payees,
+                'errors': errors,
+                'form_data': request.POST,
+            }
+            return render(request, 'school_admin/comptabilite/enregistrer_paiement.html', context)
+        
+        # Créer le paiement
+        try:
+            with transaction.atomic():
+                frais_inscription_obj = None
+                mensualite_obj = None
+                
+                if type_paiement == 'frais_inscription':
+                    frais_id = request.POST.get('frais_inscription_id')
+                    if frais_id:
+                        try:
+                            frais_inscription_obj = FraisInscription.objects.get(
+                                id=frais_id,
+                                eleve=eleve,
+                                annee_scolaire=annee_scolaire_active
+                            )
+                        except FraisInscription.DoesNotExist:
+                            messages.error(request, "Frais d'inscription introuvable.")
+                            return redirect('school_admin:details_comptabilite_eleve', eleve_id=eleve_id)
+                elif type_paiement == 'mensualite':
+                    mensualite_id = request.POST.get('mensualite_id')
+                    if mensualite_id:
+                        try:
+                            mensualite_obj = Mensualite.objects.get(
+                                id=mensualite_id,
+                                eleve=eleve,
+                                annee_scolaire=annee_scolaire_active
+                            )
+                        except Mensualite.DoesNotExist:
+                            messages.error(request, "Mensualité introuvable.")
+                            return redirect('school_admin:details_comptabilite_eleve', eleve_id=eleve_id)
+                
+                # Créer le paiement
+                paiement = PaiementEleve.objects.create(
+                    eleve=eleve,
+                    etablissement=etablissement,
+                    annee_scolaire=annee_scolaire_active,
+                    type_paiement=type_paiement,
+                    frais_inscription=frais_inscription_obj,
+                    mensualite=mensualite_obj,
+                    montant=montant_decimal,
+                    mode_paiement=mode_paiement,
+                    reference_paiement=reference_paiement,
+                    notes=notes,
+                    enregistre_par=request.user
+                )
+                
+                messages.success(request, f"Paiement de {montant_decimal} enregistré avec succès.")
+                return redirect('school_admin:details_comptabilite_eleve', eleve_id=eleve_id)
+        
+        except Exception as e:
+            messages.error(request, f"Erreur lors de l'enregistrement du paiement : {str(e)}")
+    
+    context = {
+        'eleve': eleve,
+        'etablissement': etablissement,
+        'annee_scolaire': annee_scolaire_active,
+        'frais_inscription_non_payes': frais_inscription_non_payes,
+        'mensualites_non_payees': mensualites_non_payees,
+    }
+    
+    return render(request, 'school_admin/comptabilite/enregistrer_paiement.html', context)
+
+
+@comptable_required
+def verifier_statuts_paiement(request, etablissement_id):
+    """
+    Vérifie tous les statuts de paiement des élèves d'un établissement
+    """
+    from ..model.comptabilite_eleve_model import ComptabiliteEleve
+    from ..model.annee_scolaire_model import AnneeScolaire
+    
+    try:
+        etablissement = Etablissement.objects.get(id=etablissement_id, actif=True)
+    except Etablissement.DoesNotExist:
+        messages.error(request, "Établissement introuvable")
+        return redirect('school_admin:gestion_etablissements')
+    
+    # Récupérer l'année scolaire active
+    annee_scolaire_active = AnneeScolaire.get_session_active(etablissement)
+    if not annee_scolaire_active:
+        messages.warning(request, "Aucune année scolaire active trouvée.")
+        return redirect('school_admin:gestion_etablissements')
+    
+    # Récupérer toutes les comptabilités
+    comptabilites = ComptabiliteEleve.objects.filter(
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active
+    )
+    
+    # Vérifier chaque statut
+    compteur_modifies = 0
+    for comptabilite in comptabilites:
+        ancien_statut = comptabilite.statut_paiement
+        nouveau_statut = comptabilite.verifier_statut_paiement()
+        if ancien_statut != nouveau_statut:
+            compteur_modifies += 1
+    
+    messages.success(
+        request,
+        f"Vérification terminée. {compteur_modifies} statut(s) modifié(s) sur {comptabilites.count()} élève(s)."
+    )
+    
+    return redirect('school_admin:liste_comptabilite_eleves', etablissement_id=etablissement_id)

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Informations Élève - {{ eleve.nom_complet }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --danger: #ef4444;
+            --info: #8b5cf6;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --text-primary: var(--gray-800);
+            --text-secondary: var(--gray-600);
+            --text-light: var(--gray-400);
+            --light-bg: #f8f9fa;
+            --border-color: #e9ecef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--light-bg, #f8f9fa);
+            min-height: 100vh;
+            padding: 0;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 1rem;
+        }
+        
+        .header-text {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .header > div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 1rem;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .header h1 i {
+            color: var(--primary);
+        }
+        
+        .header p {
+            font-size: 0.9375rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Photo Section */
+        .photo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .photo-container {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            overflow: hidden;
+            border: 3px solid var(--gray-200);
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-placeholder {
+            font-size: 3rem;
+            color: var(--gray-400);
+        }
+        
+        .photo-section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .photo-section .matricule {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        /* Section Card */
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .section-title i {
+            color: var(--primary);
+        }
+        
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .info-item {
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+        
+        .info-label {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-value {
+            font-size: 1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .info-value a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .info-value a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.1);
+            color: #d97706;
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        /* Alert Box */
+        .alert-box {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border: 1px solid;
+        }
+        
+        .alert-box.info {
+            background: rgba(59, 130, 246, 0.05);
+            color: #1e40af;
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        
+        .alert-box.warning {
+            background: rgba(251, 191, 36, 0.05);
+            color: #92400e;
+            border-color: rgba(251, 191, 36, 0.2);
+        }
+        
+        .alert-box.danger {
+            background: rgba(239, 68, 68, 0.05);
+            color: #991b1b;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+        
+        .alert-box.success {
+            background: rgba(16, 185, 129, 0.05);
+            color: #065f46;
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+        
+        /* Restricted Section */
+        .restricted-section {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .restricted-section i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--gray-400);
+        }
+        
+        .restricted-section h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .restricted-section p {
+            font-size: 0.875rem;
+        }
+        
+        /* Bouton Retour */
+        .btn-retour {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--gray-200, #e5e7eb);
+            color: var(--text-primary, #1f2937);
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .btn-retour:hover {
+            background: var(--gray-300, #d1d5db);
+            transform: translateX(-2px);
+        }
+        
+        .btn-retour i {
+            font-size: 1rem;
+        }
+        
+        /* Tables */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        th, td {
+            padding: 0.875rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+        }
+        
+        tbody tr:hover {
+            background: var(--gray-50);
+        }
+        
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .summary-card-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .summary-card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .summary-card-value.success {
+            color: var(--success);
+        }
+        
+        .summary-card-value.danger {
+            color: var(--danger);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .header {
+                padding: 1.5rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .section-card {
+                padding: 1.5rem 1rem;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .photo-container {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.8125rem;
+            }
+            
+            th, td {
+                padding: 0.625rem;
+            }
+        }
+    </style>
+    <script>
+        function retourPagePrecedente() {
+            // Vérifier si on peut revenir en arrière dans l'historique
+            if (window.history.length > 1) {
+                // Essayer de revenir en arrière
+                window.history.back();
+            } else {
+                // Si pas d'historique, rediriger vers la page d'accueil
+                // Pour les utilisateurs non authentifiés, on peut rediriger vers la page de connexion
+                window.location.href = '/';
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Messages de débogage -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert-box {% if message.tags == 'info' %}info{% elif message.tags == 'warning' %}warning{% elif message.tags == 'error' %}danger{% else %}info{% endif %}" style="margin-bottom: 1rem;">
+                    <i class="fas fa-{% if message.tags == 'info' %}info-circle{% elif message.tags == 'warning' %}exclamation-triangle{% elif message.tags == 'error' %}times-circle{% else %}info-circle{% endif %}"></i>
+                    <div>{{ message }}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-text">
+                    <h1>
+                        <i class="fas fa-qrcode"></i>
+                        Informations Élève
+                    </h1>
+                    <p>Données récupérées via QR Code</p>
+                </div>
+                <button onclick="retourPagePrecedente();" class="btn-retour" title="Retour à la page précédente">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Photo de l'élève -->
+        <div class="photo-section">
+            <div class="photo-container">
+                {% if eleve.photo_profil_eleve %}
+                    <img src="{{ eleve.photo_profil_eleve.url }}" alt="{{ eleve.nom_complet }}">
+                {% else %}
+                    <div class="photo-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <h2>{{ eleve.nom_complet }}</h2>
+            <p class="matricule">{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"N/A" }}</p>
+        </div>
+        
+        <!-- Informations de base (toujours affichées) -->
+        <div class="section-card">
+            <h3 class="section-title">
+                <i class="fas fa-user-graduate"></i>
+                Informations Personnelles
+            </h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Nom</div>
+                    <div class="info-value">{{ eleve.nom }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Prénom</div>
+                    <div class="info-value">{{ eleve.prenom }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Matricule</div>
+                    <div class="info-value">{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"N/A" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Classe</div>
+                    <div class="info-value">{{ classe.nom|default:"Non assignée" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Établissement</div>
+                    <div class="info-value">{{ etablissement.nom }}</div>
+                </div>
+                {% if annee_scolaire_active %}
+                <div class="info-item">
+                    <div class="info-label">Année Scolaire</div>
+                    <div class="info-value">{{ annee_scolaire_active.libelle }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Informations du parent (toujours affichées) -->
+        <div class="section-card">
+            <h3 class="section-title">
+                <i class="fas fa-users"></i>
+                Informations du Parent
+            </h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Nom du Parent</div>
+                    <div class="info-value">{{ parent_inscripteur.nom_complet|default:"Non renseigné" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Téléphone</div>
+                    <div class="info-value">
+                        {% if parent_inscripteur.telephone %}
+                            <a href="tel:{{ parent_inscripteur.telephone }}">
+                                <i class="fas fa-phone"></i> {{ parent_inscripteur.telephone }}
+                            </a>
+                        {% else %}
+                            Non renseigné
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informations de scolarité/comptabilité (uniquement pour directeur et personnel administratif) -->
+        {% if can_access_comptabilite %}
+            {% if comptabilite_info %}
+                <!-- Statut général -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Situation Comptable
+                    </h3>
+                    
+                    <div class="alert-box {% if comptabilite_info.est_a_jour %}success{% elif comptabilite_info.est_non_en_regle %}danger{% else %}warning{% endif %}">
+                        <i class="fas fa-{% if comptabilite_info.est_a_jour %}check-circle{% elif comptabilite_info.est_non_en_regle %}exclamation-triangle{% else %}clock{% endif %}"></i>
+                        <div>
+                            <strong>Statut :</strong> {{ comptabilite_info.statut }}
+                            {% if comptabilite_info.est_non_en_regle %}
+                                <br><small>L'élève n'est pas en règle selon les critères de l'établissement.</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Résumé financier -->
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="summary-card-label">Total Dû</div>
+                            <div class="summary-card-value">{{ comptabilite_info.total_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card-label">Total Payé</div>
+                            <div class="summary-card-value success">{{ comptabilite_info.total_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card-label">Reste à Payer</div>
+                            <div class="summary-card-value {% if comptabilite_info.reste_a_payer > 0 %}danger{% else %}success{% endif %}">
+                                {{ comptabilite_info.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Frais d'inscription -->
+                    <div style="margin-top: 2rem;">
+                        <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Frais d'Inscription
+                        </h4>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Montant</th>
+                                        <th>Montant Payé</th>
+                                        <th>Reste à Payer</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ comptabilite_info.frais_inscription_montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>{{ comptabilite_info.frais_inscription_montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>{{ comptabilite_info.frais_inscription_reste|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>
+                                            {% if comptabilite_info.frais_inscription_paye %}
+                                                <span class="badge badge-success">Payé</span>
+                                            {% else %}
+                                                <span class="badge badge-warning">En attente</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensualités payées -->
+                    {% if comptabilite_info.mensualites_payees %}
+                        <div style="margin-top: 2rem;">
+                            <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
+                                <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                Mensualités Payées ({{ comptabilite_info.mensualites_payees|length }})
+                            </h4>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Période</th>
+                                            <th>Montant</th>
+                                            <th>Date d'Échéance</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for mensualite in comptabilite_info.mensualites_payees %}
+                                        <tr>
+                                            <td>{{ mensualite.periode }}</td>
+                                            <td>{{ mensualite.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                            <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
+                                            <td><span class="badge badge-success">Payé</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Mensualités impayées -->
+                    {% if comptabilite_info.mensualites_impayees %}
+                        <div style="margin-top: 2rem;">
+                            <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
+                                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                                Mensualités Impayées ({{ comptabilite_info.mensualites_impayees|length }})
+                            </h4>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Période</th>
+                                            <th>Montant Total</th>
+                                            <th>Montant Payé</th>
+                                            <th>Reste à Payer</th>
+                                            <th>Date d'Échéance</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for mensualite in comptabilite_info.mensualites_impayees %}
+                                        <tr>
+                                            <td>{{ mensualite.periode }}</td>
+                                            <td>{{ mensualite.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                            <td>{{ mensualite.montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                            <td>{{ mensualite.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                            <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
+                                            <td>
+                                                {% if mensualite.statut == 'paye' %}
+                                                    <span class="badge badge-success">Payé</span>
+                                                {% elif mensualite.statut == 'en_retard' %}
+                                                    <span class="badge badge-warning">En retard</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Impayé</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Mensualités à venir -->
+                    {% if comptabilite_info.mensualites_a_venir %}
+                        <div style="margin-top: 2rem;">
+                            <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
+                                <i class="fas fa-calendar-alt" style="color: var(--info);"></i>
+                                Mensualités à Venir ({{ comptabilite_info.mensualites_a_venir|length }})
+                            </h4>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Période</th>
+                                            <th>Montant</th>
+                                            <th>Date d'Échéance</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for mensualite in comptabilite_info.mensualites_a_venir %}
+                                        <tr>
+                                            <td>{{ mensualite.periode }}</td>
+                                            <td>{{ mensualite.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                            <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
+                                            <td><span class="badge badge-info">À venir</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Situation Comptable
+                    </h3>
+                    <div class="alert-box info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>Aucune information de comptabilité disponible pour cet élève.</div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Section restreinte pour les utilisateurs non autorisés -->
+            <div class="section-card">
+                <div class="restricted-section">
+                    <i class="fas fa-lock"></i>
+                    <h3>Informations Complémentaires</h3>
+                    <p>Pour accéder aux informations détaillées de scolarité et de comptabilité, veuillez vous connecter en tant que directeur ou personnel administratif autorisé.</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Informations supplémentaires (pour directeur et personnel administratif) -->
+        {% if can_access_comptabilite %}
+            {% if eleve.date_naissance or eleve.lieu_naissance or eleve.sexe or eleve.date_inscription or parent_inscripteur.email %}
+            <div class="section-card">
+                <h3 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Informations Supplémentaires
+                </h3>
+                <div class="info-grid">
+                    {% if eleve.date_naissance %}
+                    <div class="info-item">
+                        <div class="info-label">Date de Naissance</div>
+                        <div class="info-value">{{ eleve.date_naissance|date:"d/m/Y" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if eleve.lieu_naissance %}
+                    <div class="info-item">
+                        <div class="info-label">Lieu de Naissance</div>
+                        <div class="info-value">{{ eleve.lieu_naissance }}</div>
+                    </div>
+                    {% endif %}
+                    {% if eleve.sexe %}
+                    <div class="info-item">
+                        <div class="info-label">Sexe</div>
+                        <div class="info-value">{{ eleve.get_sexe_display }}</div>
+                    </div>
+                    {% endif %}
+                    {% if eleve.date_inscription %}
+                    <div class="info-item">
+                        <div class="info-label">Date d'Inscription</div>
+                        <div class="info-value">{{ eleve.date_inscription|date:"d/m/Y" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if parent_inscripteur.email %}
+                    <div class="info-item">
+                        <div class="info-label">Email du Parent</div>
+                        <div class="info-value">
+                            <a href="mailto:{{ parent_inscripteur.email }}">
+                                <i class="fas fa-envelope"></i> {{ parent_inscripteur.email }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>

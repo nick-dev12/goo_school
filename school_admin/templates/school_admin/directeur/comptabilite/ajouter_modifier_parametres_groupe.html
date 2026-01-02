@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% if is_edit %}Modifier{% else %}Ajouter{% endif %} Paramètres Spécifiques - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+    <style>
+        .parametres-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .parametres-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .section-title i {
+            color: var(--primary, #3b82f6);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary, #4b5563);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .form-group label i {
+            color: var(--primary, #3b82f6);
+            font-size: 0.875rem;
+        }
+        .form-group input,
+        .form-group select {
+            padding: 0.75rem;
+            border: 2px solid var(--gray-300, #d1d5db);
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            transition: all 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary, #3b82f6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .form-group small {
+            font-size: 0.8125rem;
+            color: var(--text-light, #9ca3af);
+            margin-top: 0.25rem;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--gray-50, #f9fafb);
+            border-radius: 8px;
+            border: 2px solid var(--gray-200, #e5e7eb);
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+        }
+        .groupes-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .groupe-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--gray-50, #f9fafb);
+            border-radius: 8px;
+            border: 2px solid var(--gray-200, #e5e7eb);
+            transition: all 0.3s;
+        }
+        .groupe-checkbox-item:hover {
+            background: var(--primary-light, rgba(59, 130, 246, 0.1));
+            border-color: var(--primary, #3b82f6);
+        }
+        .groupe-checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .groupe-checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+            font-weight: 500;
+            color: var(--text-primary, #1f2937);
+        }
+        .groupe-checkbox-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .groupe-checkbox-item.disabled label {
+            cursor: not-allowed;
+        }
+        .info-box {
+            background: var(--info-light, rgba(139, 92, 246, 0.1));
+            border-left: 4px solid var(--info, #8b5cf6);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .info-box p {
+            margin: 0;
+            color: var(--text-primary, #1f2937);
+            font-size: 0.9375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .info-box i {
+            color: var(--info, #8b5cf6);
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--gray-200, #e5e7eb);
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--primary, #3b82f6);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-secondary {
+            background: var(--gray-200, #e5e7eb);
+            color: var(--text-primary, #1f2937);
+        }
+        .btn-secondary:hover {
+            background: var(--gray-300, #d1d5db);
+        }
+        @media (max-width: 768px) {
+            .parametres-container {
+                padding: 1rem;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .groupes-checkboxes {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Messages -->
+    {% if messages %}
+        {% include 'school_admin/partials/messages.html' %}
+    {% endif %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-layer-group"></i>
+                    {% if is_edit %}Modifier{% else %}Ajouter{% endif %} Paramètres Spécifiques par Groupe de Classes
+                </h1>
+                <p class="page-subtitle">
+                    {% if is_edit %}Modifier les paramètres spécifiques{% else %}Créer de nouveaux paramètres spécifiques pour des groupes de classes{% endif %}
+                </p>
+            </div>
+            <div class="page-actions" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="{% url 'directeur:liste_parametres_groupes_directeur' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Retour</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="parametres-container">
+            <form method="post" action="{% if is_edit %}{% url 'directeur:modifier_parametres_groupe_directeur' parametre.id %}{% else %}{% url 'directeur:ajouter_parametres_groupe_directeur' %}{% endif %}">
+                {% csrf_token %}
+                
+                <!-- Section Nom et Groupes de Classes -->
+                <div class="parametres-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Informations Générales
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="nom">
+                                <i class="fas fa-tag"></i>
+                                Nom du paramètre
+                            </label>
+                            <input 
+                                type="text" 
+                                id="nom" 
+                                name="nom" 
+                                value="{% if parametre %}{{ parametre.nom }}{% endif %}"
+                                placeholder="Ex: Paramètres pour classes primaires"
+                                required
+                            />
+                            <small>Donnez un nom descriptif à ces paramètres spécifiques</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 1.5rem;">
+                        <label>
+                            <i class="fas fa-layer-group"></i>
+                            Groupes de classes concernés
+                        </label>
+                        {% if groupes_deja_assignes %}
+                        <div class="info-box">
+                            <p>
+                                <i class="fas fa-info-circle"></i>
+                                Les groupes suivants sont déjà assignés à d'autres paramètres : <strong>{{ groupes_deja_assignes|join:", " }}</strong>
+                            </p>
+                        </div>
+                        {% endif %}
+                        <div class="groupes-checkboxes">
+                            {% for groupe in groupes_disponibles %}
+                                <div class="groupe-checkbox-item {% if groupe in groupes_deja_assignes %}disabled{% endif %}">
+                                    <input 
+                                        type="checkbox" 
+                                        id="groupe_{{ forloop.counter }}" 
+                                        name="groupes_classes" 
+                                        value="{{ groupe }}"
+                                        {% if parametre and groupe in parametre.groupes_classes %}checked{% endif %}
+                                        {% if groupe in groupes_deja_assignes %}disabled{% endif %}
+                                    />
+                                    <label for="groupe_{{ forloop.counter }}">{{ groupe }}</label>
+                                </div>
+                            {% empty %}
+                                <p style="color: var(--text-secondary, #6b7280);">Aucun groupe de classes disponible</p>
+                            {% endfor %}
+                        </div>
+                        <small>Sélectionnez un ou plusieurs groupes de classes pour lesquels ces paramètres seront appliqués</small>
+                    </div>
+                </div>
+
+                <!-- Section Montants -->
+                <div class="parametres-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Montants et Facturation
+                    </h2>
+                    
+                    <div class="info-box">
+                        <p>
+                            <i class="fas fa-info-circle"></i>
+                            Type d'établissement : <strong>{{ etablissement.get_type_etablissement_comptabilite_display }}</strong>
+                        </p>
+                    </div>
+                    
+                    <div class="form-grid">
+                        {% if etablissement.type_etablissement_comptabilite == 'prive' %}
+                        <div class="form-group">
+                            <label for="montant_frais_inscription">
+                                <i class="fas fa-user-plus"></i>
+                                Montant frais d'inscription ({{ devise_monnaie|default:"FCFA" }})
+                            </label>
+                            <input 
+                                type="number" 
+                                id="montant_frais_inscription" 
+                                name="montant_frais_inscription" 
+                                value="{% if parametre and parametre.montant_frais_inscription %}{{ parametre.montant_frais_inscription|floatformat:2 }}{% else %}0.00{% endif %}"
+                                step="0.01"
+                                min="0"
+                                required
+                            />
+                            <small>Montant à payer lors de l'inscription d'un nouvel élève</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="montant_frais_reinscription">
+                                <i class="fas fa-redo"></i>
+                                Montant frais de réinscription ({{ devise_monnaie|default:"FCFA" }})
+                            </label>
+                            <input 
+                                type="number" 
+                                id="montant_frais_reinscription" 
+                                name="montant_frais_reinscription" 
+                                value="{% if parametre and parametre.montant_frais_reinscription %}{{ parametre.montant_frais_reinscription|floatformat:2 }}{% else %}0.00{% endif %}"
+                                step="0.01"
+                                min="0"
+                            />
+                            <small>Montant à payer lors de la réinscription</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="montant_mensualite">
+                                <i class="fas fa-calendar-alt"></i>
+                                Montant mensualité mensuelle ({{ devise_monnaie|default:"FCFA" }})
+                            </label>
+                            <input 
+                                type="number" 
+                                id="montant_mensualite" 
+                                name="montant_mensualite" 
+                                value="{% if parametre and parametre.montant_mensualite %}{{ parametre.montant_mensualite|floatformat:2 }}{% else %}0.00{% endif %}"
+                                step="0.01"
+                                min="0"
+                                required
+                            />
+                            <small>Montant à payer chaque mois</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="type_facturation">
+                                <i class="fas fa-clock"></i>
+                                Type de facturation
+                            </label>
+                            <select id="type_facturation" name="type_facturation">
+                                <option value="mensuel" {% if parametre and parametre.type_facturation == 'mensuel' %}selected{% endif %}>Facturation mensuelle</option>
+                                <option value="annuel" {% if parametre and parametre.type_facturation == 'annuel' %}selected{% endif %}>Facturation annuelle</option>
+                            </select>
+                            <small>Détermine si les élèves paient chaque mois ou une seule fois par an</small>
+                        </div>
+                        {% else %}
+                        <div class="form-group">
+                            <label for="montant_facturation_annuelle">
+                                <i class="fas fa-calendar-check"></i>
+                                Montant facturation annuelle ({{ devise_monnaie|default:"FCFA" }})
+                            </label>
+                            <input 
+                                type="number" 
+                                id="montant_facturation_annuelle" 
+                                name="montant_facturation_annuelle" 
+                                value="{% if parametre and parametre.montant_facturation_annuelle %}{{ parametre.montant_facturation_annuelle|floatformat:2 }}{% else %}0.00{% endif %}"
+                                step="0.01"
+                                min="0"
+                                required
+                            />
+                            <small>Montant unique à payer à l'inscription/réinscription pour l'année scolaire</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Section Règles et Autorisations -->
+                <div class="parametres-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-shield-alt"></i>
+                        Règles et Autorisations
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="checkbox-group">
+                            <input 
+                                type="checkbox" 
+                                id="autoriser_retards" 
+                                name="autoriser_retards"
+                                {% if parametre and parametre.autoriser_retards or not parametre %}checked{% endif %}
+                            />
+                            <label for="autoriser_retards">
+                                Autoriser les retards de paiement
+                            </label>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input 
+                                type="checkbox" 
+                                id="autoriser_paiements_partiels" 
+                                name="autoriser_paiements_partiels"
+                                {% if parametre and parametre.autoriser_paiements_partiels or not parametre %}checked{% endif %}
+                            />
+                            <label for="autoriser_paiements_partiels">
+                                Autoriser les paiements partiels
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid" style="margin-top: 1.5rem;">
+                        <div class="form-group">
+                            <label for="delai_tolerance_retard">
+                                <i class="fas fa-hourglass-half"></i>
+                                Délai de tolérance pour retard (jours)
+                            </label>
+                            <input 
+                                type="number" 
+                                id="delai_tolerance_retard" 
+                                name="delai_tolerance_retard" 
+                                value="{% if parametre %}{{ parametre.delai_tolerance_retard }}{% else %}15{% endif %}"
+                                min="0"
+                                required
+                            />
+                            <small>Nombre de jours après l'échéance avant de considérer un paiement en retard</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nombre_max_paiements_partiels">
+                                <i class="fas fa-list-ol"></i>
+                                Nombre maximum de paiements partiels
+                            </label>
+                            <input 
+                                type="number" 
+                                id="nombre_max_paiements_partiels" 
+                                name="nombre_max_paiements_partiels" 
+                                value="{% if parametre %}{{ parametre.nombre_max_paiements_partiels }}{% else %}3{% endif %}"
+                                min="1"
+                                required
+                            />
+                            <small>Nombre maximum de paiements partiels autorisés pour une facture</small>
+                        </div>
+                    </div>
+                    
+                    {% if etablissement.type_etablissement_comptabilite == 'prive' %}
+                    <div class="form-grid" style="margin-top: 1.5rem;">
+                        <div class="form-group">
+                            <label for="jour_versement">
+                                <i class="fas fa-calendar-day"></i>
+                                Jour de versement mensuel
+                            </label>
+                            <input 
+                                type="number" 
+                                id="jour_versement" 
+                                name="jour_versement" 
+                                value="{% if parametre %}{{ parametre.jour_versement }}{% else %}5{% endif %}"
+                                min="1"
+                                max="31"
+                                required
+                            />
+                            <small>Jour du mois où les paiements mensuels doivent être effectués (ex: 5 pour le 5 de chaque mois)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paiement_en_avance" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input 
+                                    type="checkbox" 
+                                    id="paiement_en_avance" 
+                                    name="paiement_en_avance"
+                                    {% if parametre and parametre.paiement_en_avance %}checked{% endif %}
+                                />
+                                <span><i class="fas fa-forward"></i> Paiement en avance</span>
+                            </label>
+                            <small>
+                                Si coché : le paiement effectué le jour de versement est pour le mois en cours.<br>
+                                Si non coché : le paiement effectué le jour de versement est pour le mois précédent.
+                            </small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Section Notifications -->
+                <div class="parametres-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-bell"></i>
+                        Notifications et Rappels
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="checkbox-group">
+                            <input 
+                                type="checkbox" 
+                                id="envoyer_rappels_automatiques" 
+                                name="envoyer_rappels_automatiques"
+                                {% if parametre and parametre.envoyer_rappels_automatiques or not parametre %}checked{% endif %}
+                            />
+                            <label for="envoyer_rappels_automatiques">
+                                Envoyer des rappels automatiques
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid" style="margin-top: 1.5rem;">
+                        <div class="form-group">
+                            <label for="jours_avant_rappel">
+                                <i class="fas fa-calendar-minus"></i>
+                                Jours avant échéance pour rappel
+                            </label>
+                            <input 
+                                type="number" 
+                                id="jours_avant_rappel" 
+                                name="jours_avant_rappel" 
+                                value="{% if parametre %}{{ parametre.jours_avant_rappel }}{% else %}7{% endif %}"
+                                min="0"
+                                required
+                            />
+                            <small>Nombre de jours avant l'échéance pour envoyer un rappel</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="jours_apres_retard_rappel">
+                                <i class="fas fa-calendar-plus"></i>
+                                Jours après retard pour rappel
+                            </label>
+                            <input 
+                                type="number" 
+                                id="jours_apres_retard_rappel" 
+                                name="jours_apres_retard_rappel" 
+                                value="{% if parametre %}{{ parametre.jours_apres_retard_rappel }}{% else %}3{% endif %}"
+                                min="0"
+                                required
+                            />
+                            <small>Nombre de jours après le retard pour envoyer un rappel</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Période de Facturation -->
+                <div class="parametres-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-calendar-range"></i>
+                        Période de Facturation
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="mois_debut_facturation">
+                                <i class="fas fa-play-circle"></i>
+                                Mois de début de facturation
+                            </label>
+                            <select id="mois_debut_facturation" name="mois_debut_facturation" required>
+                                <option value="1" {% if parametre and parametre.mois_debut_facturation == 1 %}selected{% endif %}>01 - Janvier</option>
+                                <option value="2" {% if parametre and parametre.mois_debut_facturation == 2 %}selected{% endif %}>02 - Février</option>
+                                <option value="3" {% if parametre and parametre.mois_debut_facturation == 3 %}selected{% endif %}>03 - Mars</option>
+                                <option value="4" {% if parametre and parametre.mois_debut_facturation == 4 %}selected{% endif %}>04 - Avril</option>
+                                <option value="5" {% if parametre and parametre.mois_debut_facturation == 5 %}selected{% endif %}>05 - Mai</option>
+                                <option value="6" {% if parametre and parametre.mois_debut_facturation == 6 %}selected{% endif %}>06 - Juin</option>
+                                <option value="7" {% if parametre and parametre.mois_debut_facturation == 7 %}selected{% endif %}>07 - Juillet</option>
+                                <option value="8" {% if parametre and parametre.mois_debut_facturation == 8 %}selected{% endif %}>08 - Août</option>
+                                <option value="9" {% if parametre and parametre.mois_debut_facturation == 9 %}selected{% elif not parametre %}selected{% endif %}>09 - Septembre</option>
+                                <option value="10" {% if parametre and parametre.mois_debut_facturation == 10 %}selected{% endif %}>10 - Octobre</option>
+                                <option value="11" {% if parametre and parametre.mois_debut_facturation == 11 %}selected{% endif %}>11 - Novembre</option>
+                                <option value="12" {% if parametre and parametre.mois_debut_facturation == 12 %}selected{% endif %}>12 - Décembre</option>
+                            </select>
+                            <small>Mois de début de la période de facturation</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mois_fin_facturation">
+                                <i class="fas fa-stop-circle"></i>
+                                Mois de fin de facturation
+                            </label>
+                            <select id="mois_fin_facturation" name="mois_fin_facturation" required>
+                                <option value="1" {% if parametre and parametre.mois_fin_facturation == 1 %}selected{% endif %}>01 - Janvier</option>
+                                <option value="2" {% if parametre and parametre.mois_fin_facturation == 2 %}selected{% endif %}>02 - Février</option>
+                                <option value="3" {% if parametre and parametre.mois_fin_facturation == 3 %}selected{% endif %}>03 - Mars</option>
+                                <option value="4" {% if parametre and parametre.mois_fin_facturation == 4 %}selected{% endif %}>04 - Avril</option>
+                                <option value="5" {% if parametre and parametre.mois_fin_facturation == 5 %}selected{% endif %}>05 - Mai</option>
+                                <option value="6" {% if parametre and parametre.mois_fin_facturation == 6 %}selected{% elif not parametre %}selected{% endif %}>06 - Juin</option>
+                                <option value="7" {% if parametre and parametre.mois_fin_facturation == 7 %}selected{% endif %}>07 - Juillet</option>
+                                <option value="8" {% if parametre and parametre.mois_fin_facturation == 8 %}selected{% endif %}>08 - Août</option>
+                                <option value="9" {% if parametre and parametre.mois_fin_facturation == 9 %}selected{% endif %}>09 - Septembre</option>
+                                <option value="10" {% if parametre and parametre.mois_fin_facturation == 10 %}selected{% endif %}>10 - Octobre</option>
+                                <option value="11" {% if parametre and parametre.mois_fin_facturation == 11 %}selected{% endif %}>11 - Novembre</option>
+                                <option value="12" {% if parametre and parametre.mois_fin_facturation == 12 %}selected{% endif %}>12 - Décembre</option>
+                            </select>
+                            <small>Mois de fin de la période de facturation</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Remises -->
+                <div class="parametres-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-percent"></i>
+                        Remises et Réductions
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="checkbox-group">
+                            <input 
+                                type="checkbox" 
+                                id="appliquer_remise_famille_nombreuse" 
+                                name="appliquer_remise_famille_nombreuse"
+                                {% if parametre and parametre.appliquer_remise_famille_nombreuse %}checked{% endif %}
+                            />
+                            <label for="appliquer_remise_famille_nombreuse">
+                                Appliquer remise famille nombreuse
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid" style="margin-top: 1.5rem;">
+                        <div class="form-group">
+                            <label for="pourcentage_remise_famille_nombreuse">
+                                <i class="fas fa-percentage"></i>
+                                Pourcentage de remise famille nombreuse
+                            </label>
+                            <input 
+                                type="number" 
+                                id="pourcentage_remise_famille_nombreuse" 
+                                name="pourcentage_remise_famille_nombreuse" 
+                                value="{% if parametre and parametre.pourcentage_remise_famille_nombreuse %}{{ parametre.pourcentage_remise_famille_nombreuse|floatformat:2 }}{% else %}0.00{% endif %}"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                            />
+                            <small>Pourcentage de remise à appliquer (ex: 10.00 pour 10%)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nombre_enfants_minimum_remise">
+                                <i class="fas fa-users"></i>
+                                Nombre minimum d'enfants pour remise
+                            </label>
+                            <input 
+                                type="number" 
+                                id="nombre_enfants_minimum_remise" 
+                                name="nombre_enfants_minimum_remise" 
+                                value="{% if parametre %}{{ parametre.nombre_enfants_minimum_remise }}{% else %}3{% endif %}"
+                                min="1"
+                                required
+                            />
+                            <small>Nombre minimum d'enfants dans l'établissement pour bénéficier de la remise</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions du formulaire -->
+                <div class="form-actions">
+                    <a href="{% url 'directeur:liste_parametres_groupes_directeur' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if is_edit %}Enregistrer les modifications{% else %}Créer les paramètres{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+

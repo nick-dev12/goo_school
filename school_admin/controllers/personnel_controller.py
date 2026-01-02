@@ -50,11 +50,11 @@ class PersonnelController:
         ]
         
         fonctions_surveillants = [
-            'surveillant_general'
+            'surveillant_general', 'surveillant'
         ]
         
         fonctions_administration = [
-            'secretaire_principal', 'gestionnaire', 'secretaire_vie_scolaire'
+            'secretaire_principal', 'secretaire', 'gestionnaire', 'comptable', 'intendant', 'secretaire_vie_scolaire'
         ]
         
         # Catégoriser chaque personnel
@@ -81,8 +81,13 @@ class PersonnelController:
             'primary': [
                 ('directeur_adjoint_primaire', 'Directeur Adjoint (École Primaire)'),
                 ('secretaire_principal', 'Secrétaire Principal'),
+                ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
+                ('comptable', 'Comptable'),
+                ('intendant', 'Intendant'),
                 ('surveillant_general', 'Surveillant Général'),
+                ('surveillant', 'Surveillant'),
+                ('autre', 'Autre'),
             ],
             'collège': [
                 ('principal_adjoint', 'Principal Adjoint (Collège)'),
@@ -92,7 +97,13 @@ class PersonnelController:
                 ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
                 ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
                 ('surveillant_general', 'Surveillant Général'),
+                ('surveillant', 'Surveillant'),
                 ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+                ('secretaire', 'Secrétaire'),
+                ('gestionnaire', 'Gestionnaire'),
+                ('comptable', 'Comptable'),
+                ('intendant', 'Intendant'),
+                ('autre', 'Autre'),
             ],
             'lycée': [
                 ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
@@ -102,7 +113,13 @@ class PersonnelController:
                 ('censeur_pedagogie', 'Censeur chargé de la Pédagogie'),
                 ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
                 ('surveillant_general', 'Surveillant Général'),
+                ('surveillant', 'Surveillant'),
                 ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+                ('secretaire', 'Secrétaire'),
+                ('gestionnaire', 'Gestionnaire'),
+                ('comptable', 'Comptable'),
+                ('intendant', 'Intendant'),
+                ('autre', 'Autre'),
             ],
             'collège_lycée': [
                 # Direction
@@ -110,6 +127,10 @@ class PersonnelController:
                 ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
                 # Administration
                 ('secretaire_principal', 'Secrétaire Principal'),
+                ('secretaire', 'Secrétaire'),
+                ('gestionnaire', 'Gestionnaire'),
+                ('comptable', 'Comptable'),
+                ('intendant', 'Intendant'),
                 # Pédagogie - Censeurs
                 ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
                 ('censeur_adjoint', 'Censeur Adjoint (Lycées)'),
@@ -119,7 +140,9 @@ class PersonnelController:
                 ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
                 # Vie Scolaire
                 ('surveillant_general', 'Surveillant Général'),
+                ('surveillant', 'Surveillant'),
                 ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+                ('autre', 'Autre'),
             ],
             'mixte': [
                 # Direction générale
@@ -133,7 +156,10 @@ class PersonnelController:
                 ('proviseur_adjoint', 'Proviseur Adjoint (Lycée)'),
                 # Administration
                 ('secretaire_principal', 'Secrétaire Principal'),
+                ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
+                ('comptable', 'Comptable'),
+                ('intendant', 'Intendant'),
                 # Pédagogie - Censeurs
                 ('censeur', 'Censeur'),
                 ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
@@ -144,7 +170,9 @@ class PersonnelController:
                 ('censeur_vie_scolaire', 'Censeur chargé de la Vie Scolaire'),
                 # Vie Scolaire
                 ('surveillant_general', 'Surveillant Général'),
+                ('surveillant', 'Surveillant'),
                 ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
+                ('autre', 'Autre'),
             ],
         }
         

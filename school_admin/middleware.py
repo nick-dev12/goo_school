@@ -59,6 +59,7 @@ class AuthenticationMiddleware:
         public_url_patterns = [
             '/auth/qr/',  # Authentification par QR Code
             '/preinscription/formulaire/',  # Formulaire de préinscription
+            '/scan-qr/eleve/',  # Scan QR Code Élève (page publique)
         ]
 
         technical_urls = {

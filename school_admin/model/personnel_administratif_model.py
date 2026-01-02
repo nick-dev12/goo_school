@@ -29,7 +29,13 @@ class PersonnelAdministratif(AbstractUser):
         
         # Administration
         ('secretaire_principal', 'Secrétaire Principal'),
+        ('secretaire', 'Secrétaire'),
         ('gestionnaire', 'Gestionnaire'),
+        ('comptable', 'Comptable'),
+        ('intendant', 'Intendant'),
+        
+        # Vie Scolaire
+        ('surveillant', 'Surveillant'),
         
         # Pédagogie - Censeurs
         ('censeur', 'Censeur'),
@@ -46,6 +52,7 @@ class PersonnelAdministratif(AbstractUser):
         
         # Autres
         ('administrateur', 'Administrateur Système'),
+        ('autre', 'Autre'),
     ]
     
     # Informations personnelles

@@ -129,9 +129,6 @@
                     <th>Moyenne élève</th>
                     <th>Moyenne × Coefficient</th>
                     <th>Rang</th>
-                    {% if bulletin.est_college_lycee %}
-                    <th>Professeur</th>
-                    {% endif %}
                     <th>Appréciations</th>
                   </tr>
                 </thead>
@@ -177,15 +174,6 @@
                           –
                         {% endif %}
                       </td>
-                      {% if bulletin.est_college_lycee %}
-                      <td>
-                        {% if matiere.professeur %}
-                          {{ matiere.professeur }}
-                        {% else %}
-                          –
-                        {% endif %}
-                      </td>
-                      {% endif %}
                       <td>
                         {% if matiere.appreciation %}
                           <span class="appreciation-text">{{ matiere.appreciation }}</span>
@@ -220,16 +208,6 @@
                 <tr>
                   <th>Moyenne de la classe</th>
                   <td>{% if bulletin.complement_info.moyenne_classe_periode_actuelle %}{{ bulletin.complement_info.moyenne_classe_periode_actuelle|floatformat:2 }}{% else %}–{% endif %}</td>
-                </tr>
-                <tr style="border-top: 1px solid #dee2e6;">
-                  <th style="padding-top: 8px;">PROFESSEUR PRINCIPAL</th>
-                  <td style="padding-top: 8px;">
-                    {% if bulletin.complement_info.professeur_principal %}
-                      {{ bulletin.complement_info.professeur_principal.nom_complet }}
-                    {% else %}
-                      –
-                    {% endif %}
-                  </td>
                 </tr>
               </table>
             </div>

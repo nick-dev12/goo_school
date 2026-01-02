@@ -47,18 +47,26 @@ from datetime import datetime, date
 def _get_user_etablissement(request, required_permission=None):
     """
     Helper pour récupérer l'établissement de l'utilisateur et vérifier les permissions
-    Retourne (etablissement, is_directeur, personnel) ou None si accès refusé
+    Retourne (etablissement, is_directeur, personnel) ou (None, False, None) si accès refusé
     """
     user = request.user
     
+    # Vérifier que l'utilisateur est authentifié
+    if not user.is_authenticated:
+        return None, False, None
+    
+    # Si c'est un établissement (directeur), il a toutes les permissions
     if isinstance(user, Etablissement):
         return user, True, None
     elif isinstance(user, PersonnelAdministratif):
         # Vérifier la permission si nécessaire
         if required_permission and not check_permission(user, required_permission):
             return None, False, None
+        if not user.etablissement:
+            return None, False, None
         return user.etablissement, False, user
     
+    # Pour tous les autres types d'utilisateurs, accès refusé
     return None, False, None
 
 
@@ -1494,6 +1502,17 @@ def reinscription_eleve(request, eleve_id):
                         annee_scolaire=annee_scolaire_active,
                         date_inscription=inscription_date_obj or eleve.date_inscription
                     )
+                    
+                    # Créer les frais d'inscription si le module comptabilité est activé
+                    if etablissement.module_comptabilite:
+                        from ..utils.comptabilite_utils import creer_frais_inscription
+                        try:
+                            creer_frais_inscription(eleve, annee_scolaire_active, 'reinscription')
+                        except Exception as e:
+                            # Logger l'erreur mais ne pas bloquer la réinscription
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f"Erreur lors de la création des frais d'inscription pour {eleve.nom_complet}: {str(e)}")
                     
                     # Mettre à jour la date de dernière facturation
                     etablissement.date_derniere_facturation = timezone.now()
@@ -8677,3 +8696,112 @@ def creer_annee_scolaire_obligatoire(request):
     }
     
     return render(request, 'school_admin/directeur/annees_scolaires/creer_annee_scolaire_obligatoire.html', context)
+
+
+# ==================== GESTION COMPTABILITÉ DES ÉLÈVES (DIRECTEUR) ====================
+# Toutes les fonctions de comptabilité ont été déplacées vers ComptabiliteController
+# Les fonctions suivantes sont des wrappers qui appellent le contrôleur
+
+from ..controllers.comptabilite_controller import ComptabiliteController
+
+@login_required
+def liste_comptabilite_eleves_directeur(request):
+    """
+    Liste tous les élèves avec leur statut de paiement pour l'établissement du directeur
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.liste_comptabilite_eleves_directeur(request)
+
+
+@login_required
+def details_comptabilite_eleve_directeur(request, eleve_id):
+    """
+    Détails complets de la comptabilité d'un élève pour le directeur
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.details_comptabilite_eleve_directeur(request, eleve_id)
+
+
+@login_required
+def enregistrer_paiement_directeur(request, eleve_id):
+    """
+    Formulaire pour enregistrer un paiement pour un élève (directeur)
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.enregistrer_paiement_directeur(request, eleve_id)
+
+
+@login_required
+def payer_frais_inscription_directeur(request, eleve_id, frais_id):
+    """
+    Vue pour enregistrer un paiement partiel ou total des frais d'inscription
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.payer_frais_inscription_directeur(request, eleve_id, frais_id)
+
+
+@login_required
+def payer_mensualite_directeur(request, eleve_id, mensualite_id):
+    """
+    Vue pour enregistrer un paiement partiel ou total d'une mensualité
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.payer_mensualite_directeur(request, eleve_id, mensualite_id)
+
+
+@login_required
+def verifier_statuts_paiement_directeur(request):
+    """
+    Vérifie tous les statuts de paiement des élèves de l'établissement du directeur
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.verifier_statuts_paiement_directeur(request)
+
+
+@login_required
+def parametres_comptabilite_directeur(request):
+    """
+    Page de gestion des paramètres de comptabilité pour l'établissement
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.parametres_comptabilite_directeur(request)
+
+@login_required
+def bilan_comptable_directeur(request):
+    """
+    Page de bilan comptable avec statistiques détaillées par mois et annuelles
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.bilan_comptable_directeur(request)
+
+@login_required
+def liste_parametres_groupes_directeur(request):
+    """
+    Liste des paramètres spécifiques par groupe de classes
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.liste_parametres_groupes_directeur(request)
+
+@login_required
+def ajouter_modifier_parametres_groupe_directeur(request, parametre_id=None):
+    """
+    Créer ou modifier un paramètre spécifique par groupe de classes
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.ajouter_modifier_parametres_groupe_directeur(request, parametre_id)
+
+@login_required
+def supprimer_parametres_groupe_directeur(request, parametre_id):
+    """
+    Supprimer un paramètre spécifique par groupe de classes
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.supprimer_parametres_groupe_directeur(request, parametre_id)
+
+@login_required
+def bilan_comptable_classe_directeur(request, classe_id):
+    """
+    Page de bilan comptable spécifique à une classe avec statistiques détaillées par mois et annuelles
+    Délègue la logique au contrôleur ComptabiliteController
+    """
+    return ComptabiliteController.bilan_comptable_classe_directeur(request, classe_id)

@@ -352,6 +352,48 @@ class EtablissementController:
                 errors['montant_par_eleve'] = "Le montant par élève doit être un nombre valide."
                 return False, "Le montant par élève doit être un nombre valide.", None, errors
             
+            # Validation du type d'établissement (comptabilité)
+            type_comptabilite = data.get('type_etablissement_comptabilite', 'prive')
+            valid_comptabilite_types = ['public', 'prive']
+            if type_comptabilite not in valid_comptabilite_types:
+                errors['type_etablissement_comptabilite'] = "Le type d'établissement (comptabilité) n'est pas valide."
+                return False, "Le type d'établissement (comptabilité) n'est pas valide.", None, errors
+            
+            # Validation des montants selon le type d'établissement
+            montant_frais_inscription = None
+            montant_mensualite = None
+            montant_facturation_annuelle = None
+            
+            if type_comptabilite == 'prive':
+                # Pour les établissements privés : frais d'inscription et mensualité
+                if data.get('montant_frais_inscription'):
+                    try:
+                        montant_frais_inscription = float(data['montant_frais_inscription'])
+                        if montant_frais_inscription < 0:
+                            errors['montant_frais_inscription'] = "Le montant des frais d'inscription ne peut pas être négatif."
+                    except (ValueError, TypeError):
+                        errors['montant_frais_inscription'] = "Le montant des frais d'inscription doit être un nombre valide."
+                
+                if data.get('montant_mensualite'):
+                    try:
+                        montant_mensualite = float(data['montant_mensualite'])
+                        if montant_mensualite < 0:
+                            errors['montant_mensualite'] = "Le montant de la mensualité ne peut pas être négatif."
+                    except (ValueError, TypeError):
+                        errors['montant_mensualite'] = "Le montant de la mensualité doit être un nombre valide."
+            else:
+                # Pour les établissements publics : facturation annuelle
+                if data.get('montant_facturation_annuelle'):
+                    try:
+                        montant_facturation_annuelle = float(data['montant_facturation_annuelle'])
+                        if montant_facturation_annuelle < 0:
+                            errors['montant_facturation_annuelle'] = "Le montant de facturation annuelle ne peut pas être négatif."
+                    except (ValueError, TypeError):
+                        errors['montant_facturation_annuelle'] = "Le montant de facturation annuelle doit être un nombre valide."
+            
+            if errors:
+                return False, "Veuillez corriger les erreurs dans les champs de comptabilité.", None, errors
+            
             email_directeur = data['teacher_email']
             username = email_directeur
             
@@ -397,7 +439,12 @@ class EtablissementController:
                     module_sante=bool(data.get('module_sante')),
                     module_activites=bool(data.get('module_activites')),
                     module_comptabilite=bool(data.get('module_comptabilite')),
-                    module_censeurs=bool(data.get('module_censeurs'))
+                    module_censeurs=bool(data.get('module_censeurs')),
+                    # Configuration de comptabilité interne
+                    type_etablissement_comptabilite=type_comptabilite,
+                    montant_frais_inscription=montant_frais_inscription,
+                    montant_mensualite=montant_mensualite,
+                    montant_facturation_annuelle=montant_facturation_annuelle
                 )
                 
                 # Définir le mot de passe provisoire généré pour l'établissement

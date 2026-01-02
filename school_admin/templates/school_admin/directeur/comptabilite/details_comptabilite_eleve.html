@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détails Comptabilité - {{ eleve.nom }} {{ eleve.prenom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+    <style>
+        .comptabilite-details-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary, #3b82f6);
+        }
+        .summary-card.success {
+            border-left-color: var(--success, #10b981);
+        }
+        .summary-card.warning {
+            border-left-color: var(--warning, #fbbf24);
+        }
+        .summary-card.danger {
+            border-left-color: var(--accent, #ef4444);
+        }
+        .summary-card-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #6b7280);
+            margin-bottom: 0.5rem;
+        }
+        .summary-card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary, #1f2937);
+        }
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .section-title i {
+            color: var(--primary, #3b82f6);
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200, #e5e7eb);
+        }
+        th {
+            background: var(--gray-50, #f9fafb);
+            font-weight: 600;
+            color: var(--text-secondary, #6b7280);
+            font-size: 0.875rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+        }
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--primary, #3b82f6);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--directeur-secondary, #1d4ed8);
+        }
+        .btn-secondary {
+            background: var(--gray-200, #e5e7eb);
+            color: var(--text-primary, #1f2937);
+        }
+        .btn-secondary:hover {
+            background: var(--gray-300, #d1d5db);
+        }
+        .btn-success {
+            background: var(--success, #10b981);
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        @media (max-width: 768px) {
+            .comptabilite-details-container {
+                padding: 1rem;
+            }
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            table {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-calculator"></i>
+                    Détails Comptabilité - {{ eleve.nom }} {{ eleve.prenom }}
+                </h1>
+                <p class="page-subtitle">
+                    Année scolaire : {{ annee_scolaire.libelle }}
+                </p>
+            </div>
+            <div class="page-actions" style="display: flex; gap: 1rem;">
+                <a href="{% url 'directeur:enregistrer_paiement_directeur' eleve.id %}" class="btn btn-success">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Enregistrer un paiement
+                </a>
+                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+
+        <div class="comptabilite-details-container">
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1.5rem;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Résumé financier -->
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="summary-card-label">Total dû</div>
+                    <div class="summary-card-value">{{ total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                </div>
+                <div class="summary-card success">
+                    <div class="summary-card-label">Total payé</div>
+                    <div class="summary-card-value">{{ total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                </div>
+                <div class="summary-card {% if reste_a_payer > 0 %}danger{% else %}success{% endif %}">
+                    <div class="summary-card-label">Reste à payer</div>
+                    <div class="summary-card-value">{{ reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                </div>
+                <div class="summary-card {% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}">
+                    <div class="summary-card-label">Statut</div>
+                    <div class="summary-card-value">
+                        <span class="badge badge-{% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}">
+                            {{ comptabilite.get_statut_paiement_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Frais d'inscription -->
+            <div class="section-card">
+                <h2 class="section-title">
+                    <i class="fas fa-user-plus"></i>
+                    Frais d'inscription / Réinscription
+                </h2>
+                {% if frais_inscription_avec_paiements %}
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Montant à payer</th>
+                                    <th>Montant payé</th>
+                                    <th>Reste à payer</th>
+                                    <th>Date d'échéance</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for frais_data in frais_inscription_avec_paiements %}
+                                    {% with frais=frais_data.frais reste=frais_data.reste_a_payer %}
+                                    <tr>
+                                        <td>{{ frais.get_type_frais_display }}</td>
+                                        <td><strong>{{ frais_data.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
+                                        <td>{{ frais_data.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>
+                                            <span style="color: {% if reste > 0 %}var(--accent, #ef4444){% else %}var(--success, #10b981){% endif %}; font-weight: 600;">
+                                                {{ reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}
+                                            </span>
+                                        </td>
+                                        <td>{{ frais.date_echeance|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge badge-{% if frais.statut == 'paye' %}success{% elif frais.statut == 'en_retard' %}warning{% else %}info{% endif %}">
+                                                {{ frais.get_statut_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if reste > 0 %}
+                                            <button type="button" class="btn btn-success" onclick="openPaiementModal('frais', {{ frais.id }}, {{ frais_data.montant_total|floatformat:0 }}, {{ frais_data.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                                Payer
+                                            </button>
+                                            {% else %}
+                                            <span class="badge badge-success">Payé</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="color: var(--text-secondary, #6b7280);">Aucun frais d'inscription enregistré.</p>
+                {% endif %}
+            </div>
+
+            <!-- Mensualités -->
+            {% if etablissement.type_etablissement_comptabilite == 'prive' %}
+            <div class="section-card">
+                <h2 class="section-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Mensualités
+                </h2>
+                {% if mensualites_avec_paiements %}
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Élève</th>
+                                    <th>Mois</th>
+                                    <th>Montant à payer</th>
+                                    <th>Montant payé</th>
+                                    <th>Reste à payer</th>
+                                    <th>Date d'échéance</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mensualite_data in mensualites_avec_paiements %}
+                                    {% with mensualite=mensualite_data.mensualite reste=mensualite_data.reste_a_payer %}
+                                    <tr>
+                                        <td>{{ eleve.nom }} {{ eleve.prenom }}</td>
+                                        <td>{{ mensualite.periode }}</td>
+                                        <td><strong>{{ mensualite_data.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
+                                        <td>{{ mensualite_data.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>
+                                            <span style="color: {% if reste > 0 %}var(--accent, #ef4444){% else %}var(--success, #10b981){% endif %}; font-weight: 600;">
+                                                {{ reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}
+                                            </span>
+                                        </td>
+                                        <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if mensualite.statut == 'paye' %}
+                                                <span class="badge badge-success">{{ mensualite.get_statut_display }}</span>
+                                            {% elif mensualite.statut == 'en_retard' %}
+                                                <span class="badge badge-warning" style="background-color: #fbbf24; color: #1f2937; font-weight: 600;">{{ mensualite.get_statut_display }}</span>
+                                            {% elif mensualite.statut == 'impaye' %}
+                                                <span class="badge badge-danger" style="background-color: #ef4444; color: white; font-weight: 600;">{{ mensualite.get_statut_display }}</span>
+                                            {% elif mensualite.statut == 'mp' %}
+                                                {# Pour les mois précédents, afficher impayé ou en retard selon le cas #}
+                                                {% if mensualite_data.montant_paye == 0 %}
+                                                    <span class="badge badge-danger" style="background-color: #ef4444; color: white; font-weight: 600;">Impayé</span>
+                                                {% else %}
+                                                    <span class="badge badge-warning" style="background-color: #fbbf24; color: #1f2937; font-weight: 600;">En retard</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge badge-info">{{ mensualite.get_statut_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if reste > 0 %}
+                                            <button type="button" class="btn btn-success" onclick="openPaiementModal('mensualite', {{ mensualite.id }}, {{ mensualite_data.montant_total|floatformat:0 }}, {{ mensualite_data.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                                Payer
+                                            </button>
+                                            {% else %}
+                                            <span class="badge badge-success">Payé</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="color: var(--text-secondary, #6b7280);">Aucune mensualité enregistrée.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Historique des paiements -->
+            <div class="section-card">
+                <h2 class="section-title">
+                    <i class="fas fa-history"></i>
+                    Historique des paiements
+                </h2>
+                {% if paiements %}
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Type</th>
+                                    <th>Méthode</th>
+                                    <th>Référence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for paiement in paiements %}
+                                    <tr>
+                                        <td>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ paiement.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>{{ paiement.get_type_paiement_display|default:"-" }}</td>
+                                        <td>{{ paiement.get_methode_paiement_display|default:"-" }}</td>
+                                        <td>{{ paiement.reference|default:"-" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="color: var(--text-secondary, #6b7280);">Aucun paiement enregistré.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de paiement -->
+    <div class="modal-overlay" id="paiementModal" onclick="closePaiementModalOnOverlay(event)">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-money-bill-wave"></i>
+                    Enregistrer un paiement
+                </h2>
+                <button type="button" class="modal-close" onclick="closePaiementModal()" aria-label="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="paiementForm" action="">
+                    {% csrf_token %}
+                    
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="font-weight: 600; color: var(--text-secondary, #6b5563); margin-bottom: 0.5rem; display: block;">
+                            Montant à payer
+                        </label>
+                        <div style="background: var(--gray-50, #f9fafb); padding: 1rem; border-radius: 8px; border: 2px solid var(--gray-200, #e5e7eb);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary, #6b7280);">Montant total :</span>
+                                <strong id="montantTotal" style="color: var(--text-primary, #1f2937);">0 {{ devise_monnaie|default:"FCFA" }}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary, #6b7280);">Déjà payé :</span>
+                                <strong id="montantPaye" style="color: var(--success, #10b981);">0 {{ devise_monnaie|default:"FCFA" }}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 2px solid var(--gray-200, #e5e7eb);">
+                                <span style="color: var(--text-secondary, #6b7280); font-weight: 600;">Reste à payer :</span>
+                                <strong id="resteAPayer" style="color: var(--accent, #ef4444); font-size: 1.125rem;">0 {{ devise_monnaie|default:"FCFA" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="montant" style="font-weight: 600; color: var(--text-secondary, #6b5563); margin-bottom: 0.5rem; display: block;">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Montant donné par l'élève ({{ devise_monnaie|default:"FCFA" }})
+                        </label>
+                        <input 
+                            type="number" 
+                            id="montant" 
+                            name="montant" 
+                            step="0.01"
+                            min="0"
+                            required
+                            style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.9375rem;"
+                        />
+                        <small style="display: block; margin-top: 0.25rem; color: var(--text-light, #9ca3af); font-size: 0.8125rem;">
+                            Entrez le montant que l'élève a donné. Le reste à payer sera calculé automatiquement.
+                        </small>
+                    </div>
+                    
+                    <!-- Affichage du reste à payer si il y en a un -->
+                    <div class="form-group" id="resteAPayerDisplay" style="margin-bottom: 1.5rem; display: none;">
+                        <label style="font-weight: 600; color: var(--text-secondary, #6b5563); margin-bottom: 0.5rem; display: block;">
+                            <i class="fas fa-calculator"></i>
+                            Reste à payer après ce versement
+                        </label>
+                        <div style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 1rem; border-radius: 8px; border: 2px solid var(--warning, #fbbf24);">
+                            <strong id="resteAPayerApresVersement" style="color: var(--accent, #ef4444); font-size: 1.125rem;">0 {{ devise_monnaie|default:"FCFA" }}</strong>
+                        </div>
+                        <small style="display: block; margin-top: 0.25rem; color: var(--text-light, #9ca3af); font-size: 0.8125rem;">
+                            Montant restant à payer après l'enregistrement de ce paiement
+                        </small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Enregistrer le paiement
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closePaiementModal()">
+                            <i class="fas fa-times"></i>
+                            Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+            overflow-y: auto;
+        }
+        .modal-overlay.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            margin: 2rem auto;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+            margin: 0;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary, #6b7280);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .modal-close:hover {
+            background: var(--gray-100, #f3f4f6);
+            color: var(--text-primary, #1f2937);
+        }
+        .modal-body {
+            padding: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            padding-top: 2rem;
+            border-top: 2px solid var(--gray-200, #e5e7eb);
+            margin-top: 2rem;
+        }
+        @media (max-width: 768px) {
+            .modal-overlay.active {
+                padding: 0;
+            }
+            .modal-container {
+                border-radius: 0;
+                max-height: 100vh;
+                margin: 0;
+            }
+        }
+    </style>
+
+    <script>
+        // Variables pour stocker les montants
+        let currentMontantTotal = 0;
+        let currentMontantPaye = 0;
+        let currentResteAPayer = 0;
+        
+        // Fonction pour mettre à jour l'affichage du reste à payer après versement
+        function updateResteAPayerDisplay() {
+            const montantInput = document.getElementById('montant');
+            const montantSaisi = parseFloat(montantInput.value) || 0;
+            
+            // Calculer le nouveau reste à payer : reste actuel - montant saisi
+            // Le reste actuel est déjà calculé comme (montant total - montant déjà payé)
+            const nouveauResteAPayer = currentResteAPayer - montantSaisi;
+            
+            const resteAPayerDisplay = document.getElementById('resteAPayerDisplay');
+            const resteAPayerApresVersement = document.getElementById('resteAPayerApresVersement');
+            
+            // Valider que le montant saisi ne dépasse pas le reste à payer
+            if (montantSaisi > currentResteAPayer) {
+                montantInput.setCustomValidity('Le montant saisi ne peut pas dépasser le reste à payer.');
+                resteAPayerDisplay.style.display = 'none';
+            } else {
+                montantInput.setCustomValidity('');
+                
+                if (nouveauResteAPayer > 0 && montantSaisi > 0) {
+                    // Afficher le reste à payer après versement
+                    resteAPayerDisplay.style.display = 'block';
+                    resteAPayerApresVersement.textContent = formatMoney(nouveauResteAPayer) + ' {{ devise_monnaie|default:"FCFA" }}';
+                } else if (montantSaisi > 0 && nouveauResteAPayer <= 0) {
+                    // Si le paiement couvre tout le reste, masquer l'affichage
+                    resteAPayerDisplay.style.display = 'none';
+                } else {
+                    // Masquer si aucun montant n'est saisi
+                    resteAPayerDisplay.style.display = 'none';
+                }
+            }
+        }
+        
+        // Fonction simple pour ouvrir le modal de paiement
+        function openPaiementModal(type, id, total, paye, reste) {
+            // Récupérer les valeurs depuis les paramètres
+            const montantTotal = parseFloat(total) || 0;
+            const montantPaye = parseFloat(paye) || 0;
+            // Utiliser le reste passé en paramètre, ou le calculer si nécessaire
+            const resteAPayer = parseFloat(reste) || (montantTotal - montantPaye);
+            
+            // Stocker les valeurs pour les utiliser dans updateResteAPayerDisplay
+            currentMontantTotal = montantTotal;
+            currentMontantPaye = montantPaye;
+            currentResteAPayer = resteAPayer;
+
+            // Mettre à jour les informations affichées dans le modal
+            document.getElementById('montantTotal').textContent = formatMoney(montantTotal) + ' {{ devise_monnaie|default:"FCFA" }}';
+            document.getElementById('montantPaye').textContent = formatMoney(montantPaye) + ' {{ devise_monnaie|default:"FCFA" }}';
+            document.getElementById('resteAPayer').textContent = formatMoney(resteAPayer) + ' {{ devise_monnaie|default:"FCFA" }}';
+
+            // Réinitialiser le champ montant
+            const montantInput = document.getElementById('montant');
+            montantInput.value = '';
+            montantInput.max = resteAPayer > 0 ? resteAPayer.toFixed(2) : montantTotal.toFixed(2);
+            montantInput.min = 0;
+            montantInput.step = 0.01;
+            
+            // Masquer le reste à payer après versement par défaut
+            document.getElementById('resteAPayerDisplay').style.display = 'none';
+            
+            // Retirer l'ancien event listener s'il existe pour éviter les doublons
+            const newInput = montantInput.cloneNode(true);
+            montantInput.parentNode.replaceChild(newInput, montantInput);
+            
+            // Ajouter le nouvel event listener sur le nouvel élément
+            document.getElementById('montant').addEventListener('input', updateResteAPayerDisplay);
+            document.getElementById('montant').addEventListener('change', updateResteAPayerDisplay);
+
+            // Définir l'action du formulaire
+            // IMPORTANT: Utiliser l'ID de l'élève depuis le contexte Django, pas depuis JavaScript
+            const eleveId = {{ eleve.id }};
+            const form = document.getElementById('paiementForm');
+            if (type === 'frais') {
+                // Construire l'URL avec l'ID de l'élève et l'ID du frais
+                form.action = `/comptabilite/eleve/${eleveId}/frais-inscription/${id}/payer/`;
+            } else if (type === 'mensualite') {
+                // Construire l'URL avec l'ID de l'élève et l'ID de la mensualité
+                form.action = `/comptabilite/eleve/${eleveId}/mensualite/${id}/payer/`;
+            }
+
+            // Afficher le modal
+            document.getElementById('paiementModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePaiementModal() {
+            document.getElementById('paiementModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function closePaiementModalOnOverlay(event) {
+            if (event.target === event.currentTarget) {
+                closePaiementModal();
+            }
+        }
+
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('fr-FR', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Fermer la modal avec la touche Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closePaiementModal();
+            }
+        });
+    </script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>
+

@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bilan Comptable - {{ etablissement.nom }}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
+    />
+    <link
+        rel="stylesheet"
+        href="{% static 'school_admin/css/partials/messages.css' %}"
+    />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--gray-50, #f9fafb);
+            color: var(--text-primary, #1f2937);
+            line-height: 1.6;
+        }
+        
+        .bilan-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .page-title-section h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary, #1f2937);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .page-title-section p {
+            color: var(--text-secondary, #6b7280);
+            font-size: 0.9375rem;
+        }
+        
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: var(--primary, #3b82f6);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--gray-200, #e5e7eb);
+            color: var(--text-primary, #1f2937);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        /* Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary, #3b82f6);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card.success {
+            border-left-color: var(--success, #10b981);
+        }
+        
+        .stat-card.warning {
+            border-left-color: var(--warning, #fbbf24);
+        }
+        
+        .stat-card.danger {
+            border-left-color: var(--accent, #ef4444);
+        }
+        
+        .stat-card.info {
+            border-left-color: var(--info, #8b5cf6);
+        }
+        
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-card-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #6b7280);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .stat-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary, #1f2937);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card-subtitle {
+            font-size: 0.8125rem;
+            color: var(--text-light, #9ca3af);
+        }
+        
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        /* Table */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .table thead {
+            background: var(--gray-100, #f3f4f6);
+        }
+        
+        .table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        
+        .table td {
+            padding: 1rem;
+            border-top: 1px solid var(--gray-200, #e5e7eb);
+            color: var(--text-secondary, #6b7280);
+        }
+        
+        .table tbody tr:hover {
+            background: var(--gray-50, #f9fafb);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success, #10b981);
+        }
+        
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--warning, #d97706);
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent, #ef4444);
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--gray-200, #e5e7eb);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--success, #10b981);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.warning {
+            background: var(--warning, #fbbf24);
+        }
+        
+        .progress-fill.danger {
+            background: var(--accent, #ef4444);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .bilan-container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .page-title-section h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card-value {
+                font-size: 1.5rem;
+            }
+            
+            .section {
+                padding: 1rem;
+            }
+            
+            .table {
+                font-size: 0.8125rem;
+            }
+            
+            .table th,
+            .table td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .table th,
+            .table td {
+                font-size: 0.8125rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    
+    <!-- Messages -->
+    {% if messages %}
+        {% include 'school_admin/partials/messages.html' %}
+    {% endif %}
+    
+    <!-- Main Content -->
+    <div class="bilan-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1>
+                    <i class="fas fa-chart-line"></i>
+                    Bilan Comptable
+                </h1>
+                <p>
+                    Statistiques détaillées de la comptabilité pour {{ annee_scolaire_active.libelle }}
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+            </div>
+        </div>
+        
+        <!-- Bilan Annuel -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Bilan Annuel {{ annee_scolaire_active.libelle }}
+                </h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card success">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Élèves</span>
+                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_eleves }}</div>
+                    <div class="stat-card-subtitle">Élèves inscrits</div>
+                </div>
+                
+                <div class="stat-card success">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Élèves à Jour</span>
+                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ eleves_a_jour }}</div>
+                    <div class="stat-card-subtitle">{{ eleves_a_jour|floatformat:0|default:"0" }} / {{ total_eleves }}</div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Élèves en Retard</span>
+                        <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ eleves_en_retard }}</div>
+                    <div class="stat-card-subtitle">{{ eleves_en_retard|floatformat:0|default:"0" }} / {{ total_eleves }}</div>
+                </div>
+                
+                <div class="stat-card danger">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Élèves Impayés</span>
+                        <div class="stat-card-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--accent, #ef4444);">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ eleves_impayes }}</div>
+                    <div class="stat-card-subtitle">{{ eleves_impayes|floatformat:0|default:"0" }} / {{ total_eleves }}</div>
+                </div>
+                
+                <div class="stat-card info">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Dû</span>
+                        <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_du_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="stat-card-subtitle">Montant total à collecter</div>
+                </div>
+                
+                <div class="stat-card success">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Payé</span>
+                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_paye_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="stat-card-subtitle">{{ taux_recouvrement_annuel|floatformat:1|default:"0" }}% de recouvrement</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ taux_recouvrement_annuel|default:0 }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Reste à Payer</span>
+                        <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_reste_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="stat-card-subtitle">Montant restant à collecter</div>
+                </div>
+                
+                <div class="stat-card info">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Paiements</span>
+                        <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_paiements }}</div>
+                    <div class="stat-card-subtitle">{{ total_montant_collecte|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }} collectés</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Graphiques Statistiques -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Visualisations Graphiques
+                </h2>
+            </div>
+            
+            <div class="charts-grid">
+                <!-- Graphique 1: Évolution des Paiements par Mois -->
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-line-chart"></i>
+                        Évolution des Paiements par Mois
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="evolutionPaiementsChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique 2: Répartition des Modes de Paiement -->
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-pie-chart"></i>
+                        Répartition des Modes de Paiement
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="modesPaiementChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique 3: Montants Dûs vs Payés par Mois -->
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-balance-scale"></i>
+                        Montants Dûs vs Payés
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="montantsDusPayesChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique 4: Taux de Recouvrement par Mois -->
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-percentage"></i>
+                        Taux de Recouvrement par Mois
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="tauxRecouvrementChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique 5: Élèves en Retard/Impayés par Mois -->
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Élèves en Retard/Impayés par Mois
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="elevesRetardChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique 6: Statistiques par Classe -->
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chalkboard"></i>
+                        Montants par Classe
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="statistiquesClassesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Détails par Mois -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-calendar-week"></i>
+                    Statistiques par Mois
+                </h2>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Période</th>
+                            <th class="text-center">Élèves Total</th>
+                            <th class="text-center">En Retard</th>
+                            <th class="text-center">Impayés</th>
+                            <th class="text-right">Montant Dû</th>
+                            <th class="text-right">Montant Payé</th>
+                            <th class="text-right">Reste à Payer</th>
+                            <th class="text-right">Taux Recouvrement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mois_key, stats in mois_stats.items %}
+                        <tr>
+                            <td><strong>{{ stats.periode }}</strong></td>
+                            <td class="text-center">{{ stats.eleves_total }}</td>
+                            <td class="text-center">
+                                {% if stats.eleves_en_retard > 0 %}
+                                    <span class="badge badge-warning">{{ stats.eleves_en_retard }}</span>
+                                {% else %}
+                                    <span class="badge badge-success">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if stats.eleves_impayes > 0 %}
+                                    <span class="badge badge-danger">{{ stats.eleves_impayes }}</span>
+                                {% else %}
+                                    <span class="badge badge-success">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">{{ stats.montant_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                            <td class="text-right">{{ stats.montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                            <td class="text-right">
+                                {% if stats.reste_a_payer > 0 %}
+                                    <span style="color: var(--accent, #ef4444); font-weight: 600;">{{ stats.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                {% else %}
+                                    <span style="color: var(--success, #10b981); font-weight: 600;">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
+                                    <span style="font-weight: 600;">{{ stats.taux_recouvrement|floatformat:1|default:"0" }}%</span>
+                                    <div class="progress-bar" style="width: 80px;">
+                                        <div class="progress-fill {% if stats.taux_recouvrement >= 80 %}success{% elif stats.taux_recouvrement >= 50 %}warning{% else %}danger{% endif %}" 
+                                             style="width: {{ stats.taux_recouvrement|default:0 }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
+                                Aucune donnée disponible pour cette période
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Paiements par Mode -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-credit-card"></i>
+                    Paiements par Mode de Paiement
+                </h2>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Mode de Paiement</th>
+                            <th class="text-center">Nombre</th>
+                            <th class="text-right">Montant Total</th>
+                            <th class="text-right">Pourcentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mode, data in paiements_par_mode.items %}
+                        <tr>
+                            <td><strong>{{ data.label }}</strong></td>
+                            <td class="text-center">{{ data.nombre }}</td>
+                            <td class="text-right">{{ data.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                            <td class="text-right">
+                                <span>{{ data.pourcentage|floatformat:1|default:"0" }}%</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
+                                Aucun paiement enregistré
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Statistiques par Classe -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    Statistiques par Classe
+                </h2>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Classe</th>
+                            <th class="text-center">Élèves</th>
+                            <th class="text-center">En Retard</th>
+                            <th class="text-center">Impayés</th>
+                            <th class="text-right">Montant Dû</th>
+                            <th class="text-right">Montant Payé</th>
+                            <th class="text-right">Reste à Payer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for classe_stat in classes_stats %}
+                        <tr>
+                            <td><strong>{{ classe_stat.classe.nom }}</strong></td>
+                            <td class="text-center">{{ classe_stat.nombre_eleves }}</td>
+                            <td class="text-center">
+                                {% if classe_stat.eleves_en_retard > 0 %}
+                                    <span class="badge badge-warning">{{ classe_stat.eleves_en_retard }}</span>
+                                {% else %}
+                                    <span class="badge badge-success">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if classe_stat.eleves_impayes > 0 %}
+                                    <span class="badge badge-danger">{{ classe_stat.eleves_impayes }}</span>
+                                {% else %}
+                                    <span class="badge badge-success">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">{{ classe_stat.montant_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                            <td class="text-right">{{ classe_stat.montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
+                            <td class="text-right">
+                                {% if classe_stat.reste_a_payer > 0 %}
+                                    <span style="color: var(--accent, #ef4444); font-weight: 600;">{{ classe_stat.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                {% else %}
+                                    <span style="color: var(--success, #10b981); font-weight: 600;">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
+                                Aucune classe trouvée
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Détails Frais d'Inscription -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    Détails Frais d'Inscription
+                </h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card info">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Frais Dû</span>
+                        <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
+                            <i class="fas fa-money-bill"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_frais_inscription_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="stat-card-subtitle">Montant total des frais d'inscription</div>
+                </div>
+                
+                <div class="stat-card success">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Frais Payé</span>
+                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_frais_inscription_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="stat-card-subtitle">Montant collecté</div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Reste Frais</span>
+                        <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">{{ total_frais_inscription_reste|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="stat-card-subtitle">Montant restant</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts pour les graphiques Chart.js -->
+    <script>
+        // Configuration globale de Chart.js
+        Chart.defaults.font.family = "'Poppins', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#6b7280';
+        
+        // Données pour les graphiques
+        const moisData = {
+            labels: [
+                {% for mois_key, stats in mois_stats.items %}
+                "{{ stats.periode }}"{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            montantsDus: [
+                {% for mois_key, stats in mois_stats.items %}
+                {{ stats.montant_du|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            montantsPayes: [
+                {% for mois_key, stats in mois_stats.items %}
+                {{ stats.montant_paye|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            montantsCollectes: [
+                {% for mois_key, stats in mois_stats.items %}
+                {{ stats.montant_collecte|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            tauxRecouvrement: [
+                {% for mois_key, stats in mois_stats.items %}
+                {{ stats.taux_recouvrement|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            elevesEnRetard: [
+                {% for mois_key, stats in mois_stats.items %}
+                {{ stats.eleves_en_retard|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            elevesImpayes: [
+                {% for mois_key, stats in mois_stats.items %}
+                {{ stats.eleves_impayes|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        };
+        
+        const modesPaiementData = {
+            labels: [
+                {% for mode, data in paiements_par_mode.items %}
+                "{{ data.label }}"{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            montants: [
+                {% for mode, data in paiements_par_mode.items %}
+                {{ data.montant|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            couleurs: [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
+            ]
+        };
+        
+        const classesData = {
+            labels: [
+                {% for classe_stat in classes_stats %}
+                "{{ classe_stat.classe.nom }}"{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            montantsDus: [
+                {% for classe_stat in classes_stats %}
+                {{ classe_stat.montant_du|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            montantsPayes: [
+                {% for classe_stat in classes_stats %}
+                {{ classe_stat.montant_paye|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        };
+        
+        // Graphique 1: Évolution des Paiements par Mois
+        const ctxEvolutionPaiements = document.getElementById('evolutionPaiementsChart').getContext('2d');
+        new Chart(ctxEvolutionPaiements, {
+            type: 'line',
+            data: {
+                labels: moisData.labels,
+                datasets: [
+                    {
+                        label: 'Montant Collecté',
+                        data: moisData.montantsCollectes,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Montant Payé',
+                        data: moisData.montantsPayes,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique 2: Répartition des Modes de Paiement
+        const ctxModesPaiement = document.getElementById('modesPaiementChart').getContext('2d');
+        new Chart(ctxModesPaiement, {
+            type: 'doughnut',
+            data: {
+                labels: modesPaiementData.labels,
+                datasets: [{
+                    data: modesPaiementData.montants,
+                    backgroundColor: modesPaiementData.couleurs,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': ' + value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }} (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique 3: Montants Dûs vs Payés par Mois
+        const ctxMontantsDusPayes = document.getElementById('montantsDusPayesChart').getContext('2d');
+        new Chart(ctxMontantsDusPayes, {
+            type: 'bar',
+            data: {
+                labels: moisData.labels,
+                datasets: [
+                    {
+                        label: 'Montant Dû',
+                        data: moisData.montantsDus,
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Montant Payé',
+                        data: moisData.montantsPayes,
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique 4: Taux de Recouvrement par Mois
+        const ctxTauxRecouvrement = document.getElementById('tauxRecouvrementChart').getContext('2d');
+        new Chart(ctxTauxRecouvrement, {
+            type: 'line',
+            data: {
+                labels: moisData.labels,
+                datasets: [{
+                    label: 'Taux de Recouvrement (%)',
+                    data: moisData.tauxRecouvrement,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Taux: ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique 5: Élèves en Retard/Impayés par Mois
+        const ctxElevesRetard = document.getElementById('elevesRetardChart').getContext('2d');
+        new Chart(ctxElevesRetard, {
+            type: 'bar',
+            data: {
+                labels: moisData.labels,
+                datasets: [
+                    {
+                        label: 'Élèves en Retard',
+                        data: moisData.elevesEnRetard,
+                        backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                        borderColor: '#fbbf24',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Élèves Impayés',
+                        data: moisData.elevesImpayes,
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' élève(s)';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value + ' élève(s)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique 6: Statistiques par Classe
+        const ctxStatistiquesClasses = document.getElementById('statistiquesClassesChart').getContext('2d');
+        new Chart(ctxStatistiquesClasses, {
+            type: 'bar',
+            data: {
+                labels: classesData.labels,
+                datasets: [
+                    {
+                        label: 'Montant Dû',
+                        data: classesData.montantsDus,
+                        backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Montant Payé',
+                        data: classesData.montantsPayes,
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

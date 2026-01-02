@@ -645,6 +645,18 @@ def inscription_eleves(request):
                         date_inscription=inscription_date_obj or eleve.date_inscription
                     )
                     
+                    # Créer les frais d'inscription si le module comptabilité est activé
+                    if etablissement.module_comptabilite:
+                        from ..utils.comptabilite_utils import creer_frais_inscription
+                        type_frais = 'inscription' if form_data['statut'] == 'nouvelle' else 'reinscription'
+                        try:
+                            creer_frais_inscription(eleve, annee_scolaire_active, type_frais)
+                        except Exception as e:
+                            # Logger l'erreur mais ne pas bloquer l'inscription
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f"Erreur lors de la création des frais d'inscription pour {eleve.nom_complet}: {str(e)}")
+                    
                     # La facturation de l'établissement est automatiquement mise à jour
                     # par la méthode save() du modèle Eleve via recalculer_facturation()
                     

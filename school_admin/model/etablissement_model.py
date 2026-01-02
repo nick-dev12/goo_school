@@ -131,6 +131,48 @@ class Etablissement(AbstractUser):
         verbose_name="Nombre d'élèves facturés"
     )
     
+    # Comptabilité interne de l'établissement
+    TYPE_COMPTABILITE_CHOICES = [
+        ('public', 'Établissement public'),
+        ('prive', 'Établissement privé'),
+    ]
+    
+    type_etablissement_comptabilite = models.CharField(
+        max_length=10,
+        choices=TYPE_COMPTABILITE_CHOICES,
+        default='prive',
+        verbose_name="Type d'établissement (comptabilité)",
+        help_text="Détermine le système de facturation : Public (annuel unique) ou Privé (inscription + mensualités)"
+    )
+    
+    # Montants pour établissements privés
+    montant_frais_inscription = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant des frais d'inscription",
+        help_text="Montant des frais d'inscription/réinscription (établissements privés uniquement)"
+    )
+    
+    montant_mensualite = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant de la mensualité",
+        help_text="Montant de la mensualité mensuelle (établissements privés uniquement)"
+    )
+    
+    # Montant pour établissements publics
+    montant_facturation_annuelle = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant de facturation annuelle",
+        help_text="Montant annuel unique à payer à l'inscription/réinscription (établissements publics uniquement)"
+    )
     
     username = models.CharField(unique=True, max_length=100, verbose_name="Nom d'utilisateur", default="")
     USERNAME_FIELD = 'username'

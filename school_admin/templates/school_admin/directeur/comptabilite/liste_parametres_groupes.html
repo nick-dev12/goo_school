@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -25,7 +27,7 @@
         rel="stylesheet"
         href="{% static 'school_admin/css/partials/messages.css' %}"
     />
-    <style>
+    {% trans "<style>
         .parametres-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -128,7 +130,7 @@
         .info-item-value.amount {
             color: var(--primary, #3b82f6);
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -146,24 +148,24 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-layer-group"></i>
-                    Paramètres Spécifiques par Groupe de Classes
+                    {% trans "Paramètres Spécifiques par Groupe de Classes" %}
                 </h1>
                 <p class="page-subtitle">
-                    Gérer les paramètres de comptabilité spécifiques pour des groupes de classes
+                    {% trans "Gérer les paramètres de comptabilité spécifiques pour des groupes de classes" %}
                 </p>
             </div>
             <div class="page-actions" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <a href="{% url 'directeur:ajouter_parametres_groupe_directeur' %}" class="btn btn-primary" style="background: var(--primary, #3b82f6); color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-plus"></i>
-                    Ajouter des paramètres spécifiques
+                    {% trans "Ajouter des paramètres spécifiques" %}
                 </a>
                 <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="btn-secondary">
                     <i class="fas fa-cog"></i>
-                    <span>Paramètres généraux</span>
+                    <span>{% trans "Paramètres généraux" %}</span>
                 </a>
                 <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
+                    <span>{% trans "Retour" %}</span>
                 </a>
             </div>
         </div>
@@ -185,13 +187,13 @@
                                 <div class="parametre-card-actions">
                                     <a href="{% url 'directeur:modifier_parametres_groupe_directeur' parametre.id %}" class="btn btn-secondary" style="background: var(--warning, #fbbf24); color: white; text-decoration: none;">
                                         <i class="fas fa-edit"></i>
-                                        Modifier
+                                        {% trans "Modifier" %}
                                     </a>
                                     <form method="post" action="{% url 'directeur:supprimer_parametres_groupe_directeur' parametre.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paramètre spécifique ?');">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-secondary" style="background: var(--accent, #ef4444); color: white; border: none;">
                                             <i class="fas fa-trash"></i>
-                                            Supprimer
+                                            {% trans "Supprimer" %}
                                         </button>
                                     </form>
                                 </div>
@@ -199,25 +201,25 @@
                             <div class="parametre-info">
                                 {% if etablissement.type_etablissement_comptabilite == 'prive' %}
                                     <div class="info-item">
-                                        <span class="info-item-label">Frais d'inscription</span>
+                                        <span class="info-item-label">{% trans "Frais d'inscription" %}</span>
                                         <span class="info-item-value amount">{{ parametre.montant_frais_inscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
                                     </div>
                                     <div class="info-item">
-                                        <span class="info-item-label">Mensualité</span>
+                                        <span class="info-item-label">{% trans "Mensualité" %}</span>
                                         <span class="info-item-value amount">{{ parametre.montant_mensualite|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
                                     </div>
                                 {% else %}
                                     <div class="info-item">
-                                        <span class="info-item-label">Facturation annuelle</span>
+                                        <span class="info-item-label">{% trans "Facturation annuelle" %}</span>
                                         <span class="info-item-value amount">{{ parametre.montant_facturation_annuelle|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
                                     </div>
                                 {% endif %}
                                 <div class="info-item">
-                                    <span class="info-item-label">Type de facturation</span>
+                                    <span class="info-item-label">{% trans "Type de facturation" %}</span>
                                     <span class="info-item-value">{{ parametre.get_type_facturation_display }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-item-label">Délai de tolérance</span>
+                                    <span class="info-item-label">{% trans "Délai de tolérance" %}</span>
                                     <span class="info-item-value">{{ parametre.delai_tolerance_retard }} jours</span>
                                 </div>
                             </div>
@@ -227,11 +229,11 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-layer-group"></i>
-                    <h3>Aucun paramètre spécifique configuré</h3>
-                    <p>Aucun paramètre spécifique par groupe de classes n'a encore été configuré.</p>
+                    <h3>{% trans "Aucun paramètre spécifique configuré" %}</h3>
+                    <p>{% trans "Aucun paramètre spécifique par groupe de classes n'a encore été configuré." %}</p>
                     <a href="{% url 'directeur:ajouter_parametres_groupe_directeur' %}" class="btn btn-primary" style="background: var(--primary, #3b82f6); color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-plus"></i>
-                        Ajouter des paramètres spécifiques
+                        {% trans "Ajouter des paramètres spécifiques" %}
                     </a>
                 </div>
             {% endif %}

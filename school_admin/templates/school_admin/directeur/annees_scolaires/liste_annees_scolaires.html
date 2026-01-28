@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.40/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
-    <style>
+    {% trans "<style>
         body { font-family: 'Poppins', sans-serif; background: var(--gray-50, #f9fafb); margin: 0; padding: 0; }
         .main-content { max-width: 1200px; margin: 0 auto; padding: 2rem; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
@@ -23,16 +25,16 @@
         .badge-inactive { background: var(--gray-200, #e5e7eb); color: var(--gray-600, #4b5563); }
         .actions { display: flex; gap: 0.5rem; }
         .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-    </style>
+    </style>" %}
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
     
     <div class="main-content">
         <div class="page-header">
-            <h1 class="page-title"><i class="fas fa-calendar-alt"></i> Gestion des Années Scolaires</h1>
+            <h1 class="page-title"><i class="fas fa-calendar-alt"></i> {% trans "Gestion des Années Scolaires" %}</h1>
             <a href="{% url 'directeur:creer_annee_scolaire' %}" class="btn-primary">
-                <i class="fas fa-plus"></i> Créer une année scolaire
+                <i class="fas fa-plus"></i> {% trans "Créer une année scolaire" %}
             </a>
         </div>
         
@@ -40,11 +42,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Libellé</th>
-                        <th>Période</th>
-                        <th>Statut</th>
-                        <th>Session</th>
-                        <th>Actions</th>
+                        <th>{% trans "Libellé" %}</th>
+                        <th>{% trans "Période" %}</th>
+                        <th>{% trans "Statut" %}</th>
+                        <th>{% trans "Session" %}</th>
+                        <th>{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,34 +56,34 @@
                         <td>{{ annee.date_debut|date:"d/m/Y" }} - {{ annee.date_fin|date:"d/m/Y" }}</td>
                         <td>
                             {% if annee.est_en_cours %}
-                                <span class="badge badge-active">En cours</span>
+                                <span class="badge badge-active">{% trans "En cours" %}</span>
                             {% elif annee.est_future %}
-                                <span class="badge">À venir</span>
+                                <span class="badge">{% trans "À venir" %}</span>
                             {% else %}
-                                <span class="badge badge-inactive">Terminée</span>
+                                <span class="badge badge-inactive">{% trans "Terminée" %}</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if annee.est_active %}
-                                <span class="badge badge-active">Active</span>
+                                <span class="badge badge-active">{% trans "Active" %}</span>
                             {% else %}
-                                <span class="badge badge-inactive">Inactive</span>
+                                <span class="badge badge-inactive">{% trans "Inactive" %}</span>
                             {% endif %}
                             {% if annee.est_ouverte %}
-                                <span class="badge" style="background: var(--info-light, rgba(139, 92, 246, 0.1)); color: var(--info, #8b5cf6);">Ouverte</span>
+                                <span class="badge" style="background: var(--info-light, rgba(139, 92, 246, 0.1)); color: var(--info, #8b5cf6);">{% trans "Ouverte" %}</span>
                             {% endif %}
                         </td>
                         <td class="actions">
-                            <a href="{% url 'directeur:detail_annee_scolaire' annee.id %}" class="btn-sm btn-primary">Détails</a>
+                            <a href="{% url 'directeur:detail_annee_scolaire' annee.id %}" class="btn-sm btn-primary">{% trans "Détails" %}</a>
                             {% if not annee.est_active %}
-                                <a href="{% url 'directeur:activer_annee_scolaire' annee.id %}" class="btn-sm btn-primary">Activer</a>
+                                <a href="{% url 'directeur:activer_annee_scolaire' annee.id %}" class="btn-sm btn-primary">{% trans "Activer" %}</a>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="5" style="text-align: center; padding: 2rem;">
-                            <p>Aucune année scolaire créée. <a href="{% url 'directeur:creer_annee_scolaire' %}">Créer la première</a></p>
+                            <p>{% trans "Aucune année scolaire créée." %} <a href="{% url 'directeur:creer_annee_scolaire' %}">{% trans "Créer la première" %}</a></p>
                         </td>
                     </tr>
                     {% endfor %}

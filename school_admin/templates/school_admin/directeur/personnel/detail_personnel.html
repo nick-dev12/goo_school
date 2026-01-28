@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load permissions_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,7 +26,7 @@
             <div class="header-left">
                 <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour à la liste</span>
+                    <span>{% trans "Retour à la liste" %}</span>
                 </a>
                 <div class="page-title-section">
                     <h1 class="page-title">
@@ -39,7 +41,7 @@
             <div class="header-actions">
                 <button type="button" class="btn-action btn-primary" onclick="toggleFormModifier()">
                     <i class="fas fa-edit"></i>
-                    <span id="btnModifierText">Modifier</span>
+                    <span id="btn{% trans "Modifier" %}Text">{% trans "Modifier" %}</span>
                 </button>
                 <a href="{% url 'personnel:toggle_actif' personnel.id %}" class="btn-action {% if personnel.actif %}btn-danger{% else %}btn-success{% endif %}">
                     <i class="fas fa-{% if personnel.actif %}pause{% else %}play{% endif %}"></i>
@@ -54,7 +56,7 @@
                 <div class="form-modifier-header">
                     <h2>
                         <i class="fas fa-user-edit"></i>
-                        Modifier le Personnel
+                        {% trans "Modifier le Personnel" %}
                     </h2>
                     <button type="button" class="btn-close-form" onclick="toggleFormModifier()">
                         <i class="fas fa-times"></i>
@@ -76,7 +78,7 @@
                         
                         {% if field_errors_modifier %}
                             <div class="alert alert-danger">
-                                <strong>Erreurs détectées :</strong>
+                                <strong>{% trans "Erreurs détectées :" %}</strong>
                                 <ul>
                                     {% for field, errors in field_errors_modifier.items %}
                                         {% for error in errors %}
@@ -91,13 +93,13 @@
                         <div class="form-section">
                             <h3 class="section-title-form">
                                 <i class="fas fa-user"></i>
-                                Informations Personnelles
+                                {% trans "Informations Personnelles" %}
                             </h3>
                             
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label for="nom_modifier" class="form-label">
-                                        Nom <span class="required">*</span>
+                                        {% trans "Nom" %} <span class="required">*</span>
                                     </label>
                                     <input type="text" 
                                            id="nom_modifier" 
@@ -109,7 +111,7 @@
                                 
                                 <div class="form-group">
                                     <label for="prenom_modifier" class="form-label">
-                                        Prénom <span class="required">*</span>
+                                        {% trans "Prénom <span class=\"required\">*</span>" %}
                                     </label>
                                     <input type="text" 
                                            id="prenom_modifier" 
@@ -121,7 +123,7 @@
                                 
                                 <div class="form-group">
                                     <label for="email_modifier" class="form-label">
-                                        Email <span class="required">*</span>
+                                        {% trans "Email" %} <span class="required">*</span>
                                     </label>
                                     <input type="email" 
                                            id="email_modifier" 
@@ -133,7 +135,7 @@
                                 
                                 <div class="form-group">
                                     <label for="telephone_modifier" class="form-label">
-                                        Téléphone <span class="required">*</span>
+                                        {% trans "Téléphone <span class=\"required\">*</span>" %}
                                     </label>
                                     <input type="tel" 
                                            id="telephone_modifier" 
@@ -149,19 +151,19 @@
                         <div class="form-section">
                             <h3 class="section-title-form">
                                 <i class="fas fa-briefcase"></i>
-                                Fonction
+                                {% trans "Fonction" %}
                             </h3>
                             
                             <div class="form-group">
                                 <label for="fonction_modifier" class="form-label">
-                                    Fonction <span class="required">*</span>
+                                    {% trans "Fonction" %} <span class="required">*</span>
                                 </label>
                                 <select id="fonction_modifier" 
                                         name="fonction" 
                                         class="form-input" 
                                         required
                                         onchange="updatePermissionsByFunctionModifier()">
-                                    <option value="">Sélectionnez une fonction</option>
+                                    <option value="">{% trans "Sélectionnez une fonction" %}</option>
                                     {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
                                         {% for code, label in fonctions_disponibles %}
                                             <option value="{{ code }}" {% if form_data_modifier.fonction == code or not form_data_modifier and personnel.fonction == code %}selected{% endif %}>
@@ -177,7 +179,7 @@
                         <div class="form-section">
                             <h3 class="section-title-form">
                                 <i class="fas fa-key"></i>
-                                Autorisations
+                                {% trans "Autorisations" %}
                             </h3>
                             
                             <div class="permissions-container-form">
@@ -210,11 +212,11 @@
                     <div class="form-modifier-footer">
                         <button type="button" class="btn-form btn-cancel" onclick="toggleFormModifier()">
                             <i class="fas fa-times"></i>
-                            Annuler
+                            {% trans "Annuler" %}
                         </button>
                         <button type="submit" class="btn-form btn-submit">
                             <i class="fas fa-save"></i>
-                            Enregistrer les modifications
+                            {% trans "Enregistrer les modifications" %}
                         </button>
                     </div>
                 </form>
@@ -242,15 +244,15 @@
             <div class="tabs-header">
                 <a href="?onglet=informations" class="tab-item {% if onglet_actif == 'informations' or not onglet_actif %}active{% endif %}">
                     <i class="fas fa-user"></i>
-                    <span>Informations</span>
+                    <span>{% trans "Informations" %}</span>
                 </a>
                 <a href="?onglet=connexion" class="tab-item {% if onglet_actif == 'connexion' %}active{% endif %}">
                     <i class="fas fa-key"></i>
-                    <span>Connexion</span>
+                    <span>{% trans "Connexion" %}</span>
                 </a>
                 <a href="?onglet=autorisations" class="tab-item {% if onglet_actif == 'autorisations' %}active{% endif %}">
                     <i class="fas fa-shield-alt"></i>
-                    <span>Autorisations</span>
+                    <span>{% trans "Autorisations" %}</span>
                 </a>
             </div>
 
@@ -264,27 +266,27 @@
                             <div class="info-section">
                                 <h3 class="section-title">
                                     <i class="fas fa-user"></i>
-                                    Informations Personnelles
+                                    {% trans "Informations Personnelles" %}
                                 </h3>
                                 <table class="info-table">
                                     <tr>
-                                        <td class="info-label-cell">Nom complet</td>
+                                        <td class="info-label-cell">{% trans "Nom complet" %}</td>
                                         <td class="info-value-cell">{{ personnel.nom }} {{ personnel.prenom }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Email</td>
+                                        <td class="info-label-cell">{% trans "Email" %}</td>
                                         <td class="info-value-cell">
                                             <a href="mailto:{{ personnel.email }}" class="link-email">{{ personnel.email }}</a>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Téléphone</td>
+                                        <td class="info-label-cell">{% trans "Téléphone" %}</td>
                                         <td class="info-value-cell">
                                             <a href="tel:{{ personnel.telephone }}" class="link-phone">{{ personnel.telephone }}</a>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Initiales</td>
+                                        <td class="info-label-cell">{% trans "Initiales" %}</td>
                                         <td class="info-value-cell">{{ personnel.initiales }}</td>
                                     </tr>
                                 </table>
@@ -294,25 +296,25 @@
                             <div class="info-section">
                                 <h3 class="section-title">
                                     <i class="fas fa-briefcase"></i>
-                                    Informations Professionnelles
+                                    {% trans "Informations Professionnelles" %}
                                 </h3>
                                 <table class="info-table">
                                     <tr>
-                                        <td class="info-label-cell">Fonction</td>
+                                        <td class="info-label-cell">{% trans "Fonction" %}</td>
                                         <td class="info-value-cell">
                                             <span class="badge-matiere">{{ personnel.get_fonction_display }}</span>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Établissement</td>
+                                        <td class="info-label-cell">{% trans "Établissement" %}</td>
                                         <td class="info-value-cell">{{ personnel.etablissement.nom }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Type d'établissement</td>
+                                        <td class="info-label-cell">{% trans "Type d'établissement" %}</td>
                                         <td class="info-value-cell">{{ personnel.etablissement.get_type_etablissement_display }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Numéro d'employé</td>
+                                        <td class="info-label-cell">{% trans "Numéro d'employé" %}</td>
                                         <td class="info-value-cell">
                                             <span class="badge-employee">{{ personnel.numero_employe|default:"N/A" }}</span>
                                         </td>
@@ -324,29 +326,29 @@
                             <div class="info-section">
                                 <h3 class="section-title">
                                     <i class="fas fa-building"></i>
-                                    Informations Administratives
+                                    {% trans "Informations Administratives" %}
                                 </h3>
                                 <table class="info-table">
                                     <tr>
-                                        <td class="info-label-cell">Date de création</td>
+                                        <td class="info-label-cell">{% trans "Date de création" %}</td>
                                         <td class="info-value-cell">{{ personnel.date_creation|date:"d/m/Y à H:i" }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Dernière modification</td>
+                                        <td class="info-label-cell">{% trans "Dernière modification" %}</td>
                                         <td class="info-value-cell">{{ personnel.date_modification|date:"d/m/Y à H:i" }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Dernière connexion</td>
+                                        <td class="info-label-cell">{% trans "Dernière connexion" %}</td>
                                         <td class="info-value-cell">
                                             {% if personnel.last_login %}
                                                 {{ personnel.last_login|date:"d/m/Y à H:i" }}
                                             {% else %}
-                                                <span class="text-muted">Jamais connecté</span>
+                                                <span class="text-muted">{% trans "Jamais connecté" %}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Statut</td>
+                                        <td class="info-label-cell">{% trans "Statut" %}</td>
                                         <td class="info-value-cell">
                                             <span class="badge-status {% if personnel.actif %}active{% else %}inactive{% endif %}">
                                                 {% if personnel.actif %}Actif{% else %}Inactif{% endif %}
@@ -367,7 +369,7 @@
                                 <div class="card-icon connexion">
                                     <i class="fas fa-key"></i>
                                 </div>
-                                <h2 class="card-title">Informations de Connexion</h2>
+                                <h2 class="card-title">{% trans "Informations de Connexion" %}</h2>
                             </div>
                             <div class="card-content">
                                 {% if personnel.mot_de_passe_provisoire %}
@@ -376,8 +378,8 @@
                                             <i class="fas fa-exclamation-triangle"></i>
                                         </div>
                                         <div class="alert-content">
-                                            <h4>Mot de passe provisoire actif</h4>
-                                            <p>Le membre du personnel utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion.</p>
+                                            <h4>{% trans "Mot de passe provisoire actif" %}</h4>
+                                            <p>{% trans "Le membre du personnel utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion." %}</p>
                                         </div>
                                     </div>
                                     
@@ -385,7 +387,7 @@
                                         <div class="connexion-item">
                                             <div class="connexion-label">
                                                 <i class="fas fa-id-card"></i>
-                                                <span>Identifiant de connexion</span>
+                                                <span>{% trans "Identifiant de connexion" %}</span>
                                             </div>
                                             <div class="connexion-value">
                                                 <code class="connexion-code">{{ personnel.username }}</code>
@@ -398,7 +400,7 @@
                                         <div class="connexion-item">
                                             <div class="connexion-label">
                                                 <i class="fas fa-lock"></i>
-                                                <span>Mot de passe provisoire</span>
+                                                <span>{% trans "Mot de passe provisoire" %}</span>
                                             </div>
                                             <div class="connexion-value">
                                                 <code class="connexion-code password-code">{{ personnel.mot_de_passe_provisoire }}</code>
@@ -414,11 +416,11 @@
                                             <i class="fas fa-info-circle"></i>
                                         </div>
                                         <div class="instruction-content">
-                                            <h5>Instructions de première connexion</h5>
+                                            <h5>{% trans "Instructions de première connexion" %}</h5>
                                             <ol>
-                                                <li>Utilisez l'identifiant de connexion et le mot de passe provisoire ci-dessus</li>
-                                                <li>Vous serez invité à changer votre mot de passe après la connexion</li>
-                                                <li>Conservez ces informations en lieu sûr jusqu'à la première connexion</li>
+                                                <li>{% trans "Utilisez l'identifiant de connexion et le mot de passe provisoire ci-dessus" %}</li>
+                                                <li>{% trans "Vous serez invité à changer votre mot de passe après la connexion" %}</li>
+                                                <li>{% trans "Conservez ces informations en lieu sûr jusqu'à la première connexion" %}</li>
                                             </ol>
                                         </div>
                                     </div>
@@ -428,8 +430,8 @@
                                             <i class="fas fa-info-circle"></i>
                                         </div>
                                         <div class="alert-content">
-                                            <h4>Mot de passe personnalisé</h4>
-                                            <p>Le membre du personnel a déjà changé son mot de passe provisoire.</p>
+                                            <h4>{% trans "Mot de passe personnalisé" %}</h4>
+                                            <p>{% trans "Le membre du personnel a déjà changé son mot de passe provisoire." %}</p>
                                         </div>
                                     </div>
                                     
@@ -437,7 +439,7 @@
                                         <div class="connexion-item">
                                             <div class="connexion-label">
                                                 <i class="fas fa-id-card"></i>
-                                                <span>Identifiant de connexion</span>
+                                                <span>{% trans "Identifiant de connexion" %}</span>
                                             </div>
                                             <div class="connexion-value">
                                                 <code class="connexion-code">{{ personnel.username }}</code>
@@ -461,17 +463,17 @@
                                 <div class="card-icon autorisations">
                                     <i class="fas fa-shield-alt"></i>
                                 </div>
-                                <h2 class="card-title">Autorisations et Permissions</h2>
+                                <h2 class="card-title">{% trans "Autorisations et Permissions" %}</h2>
                             </div>
                             <div class="card-content">
                                 <div class="permissions-overview">
                                     <div class="permission-summary">
                                         <div class="summary-item">
-                                            <span class="summary-label">Fonction</span>
+                                            <span class="summary-label">{% trans "Fonction" %}</span>
                                             <span class="summary-value">{{ personnel.get_fonction_display }}</span>
                                         </div>
                                         <div class="summary-item">
-                                            <span class="summary-label">Permissions actives</span>
+                                            <span class="summary-label">{% trans "Permissions actives" %}</span>
                                             <span class="summary-value">{{ user_permissions|length }} permission(s)</span>
                                         </div>
                                     </div>

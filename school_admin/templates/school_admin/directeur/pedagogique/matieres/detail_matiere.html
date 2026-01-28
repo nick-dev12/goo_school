@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static notes_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -27,15 +28,15 @@
         <div class="page-actions">
             <a href="{% url 'matiere:liste_matieres' %}" class="btn-add btn-secondary">
                 <i class="fas fa-arrow-left"></i>
-                <span>Retour à la liste</span>
+                <span>{% trans "Retour à la liste" %}</span>
             </a>
             <button class="btn-add btn-primary" onclick="toggleEditForm()">
                 <i class="fas fa-edit"></i>
-                <span>Modifier</span>
+                <span>{% trans "Modifier" %}</span>
             </button>
             <button class="btn-add btn-danger" onclick="confirmDelete({{ matiere.id }})">
                 <i class="fas fa-trash"></i>
-                <span>Supprimer</span>
+                <span>{% trans "Supprimer" %}</span>
             </button>
         </div>
     </div>
@@ -55,7 +56,7 @@
                     <div class="matiere-badges">
                         <span class="badge badge-level">{{ matiere.niveau_display }}</span>
                         {% if est_lycee and coefficients_existants %}
-                            <span class="badge badge-coefficient">Coeff: Variable par groupe</span>
+                            <span class="badge badge-coefficient">{% trans "Coeff: Variable par groupe" %}</span>
                         {% else %}
                             <span class="badge badge-coefficient">Coeff: {{ matiere.coefficient }}</span>
                         {% endif %}
@@ -71,21 +72,21 @@
                     <div class="info-item">
                         <i class="fas fa-code"></i>
                         <div>
-                            <strong>Code</strong>
+                            <strong>{% trans "Code" %}</strong>
                             <span>{{ matiere.code }}</span>
                         </div>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-calendar"></i>
                         <div>
-                            <strong>Créée le</strong>
+                            <strong>{% trans "Créée le" %}</strong>
                             <span>{{ matiere.date_creation|date:"d/m/Y à H:i" }}</span>
                         </div>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-graduation-cap"></i>
                         <div>
-                            <strong>Niveau</strong>
+                            <strong>{% trans "Niveau" %}</strong>
                             <span>{{ matiere.niveau_display }}</span>
                         </div>
                     </div>
@@ -93,7 +94,7 @@
                         <div class="info-item" style="grid-column: 1 / -1;">
                             <i class="fas fa-weight-hanging"></i>
                             <div style="width: 100%;">
-                                <strong>Coefficients par groupe</strong>
+                                <strong>{% trans "Coefficients par groupe" %}</strong>
                                 <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
                                     {% for groupe_nom, classes_groupe in classes_par_groupe.items %}
                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f5f5f5; border-radius: 6px;">
@@ -115,7 +116,7 @@
                         <div class="info-item">
                             <i class="fas fa-weight-hanging"></i>
                             <div>
-                                <strong>Coefficient</strong>
+                                <strong>{% trans "Coefficient" %}</strong>
                                 <span>{{ matiere.coefficient }}</span>
                             </div>
                         </div>
@@ -132,7 +133,7 @@
             <div class="card-header">
                 <h3>
                     <i class="fas fa-users"></i>
-                    Classes associées
+                    {% trans "Classes associées" %}
                 </h3>
                 <span class="count-badge">{{ classes_associees.count }}</span>
             </div>
@@ -169,7 +170,7 @@
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-users"></i>
-                        <p>Aucune classe associée</p>
+                        <p>{% trans "Aucune classe associée" %}</p>
                     </div>
                 {% endif %}
             </div>
@@ -180,7 +181,7 @@
             <div class="card-header">
                 <h3>
                     <i class="fas fa-chalkboard-teacher"></i>
-                    Professeurs principaux
+                    {% trans "Professeurs principaux" %}
                 </h3>
                 <span class="count-badge">{{ professeurs_principaux.count }}</span>
             </div>
@@ -205,7 +206,7 @@
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-chalkboard-teacher"></i>
-                        <p>Aucun professeur principal</p>
+                        <p>{% trans "Aucun professeur principal" %}</p>
                     </div>
                 {% endif %}
             </div>
@@ -216,7 +217,7 @@
             <div class="card-header">
                 <h3>
                     <i class="fas fa-user-graduate"></i>
-                    Professeurs secondaires
+                    {% trans "Professeurs secondaires" %}
                 </h3>
                 <span class="count-badge">{{ professeurs_secondaires.count }}</span>
             </div>
@@ -241,7 +242,7 @@
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-user-graduate"></i>
-                        <p>Aucun professeur secondaire</p>
+                        <p>{% trans "Aucun professeur secondaire" %}</p>
                     </div>
                 {% endif %}
             </div>
@@ -252,7 +253,7 @@
     <div class="edit-form-container" id="editFormContainer" style="display: none;">
         <div class="form-card">
             <div class="form-header">
-                <h2>Modifier la matière</h2>
+                <h2>{% trans "Modifier la matière" %}</h2>
                 <button class="btn-close" onclick="toggleEditForm()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -265,21 +266,21 @@
                 {% if field_errors %}
                     <div class="alert alert-error">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+                        <strong>{% trans "Erreurs détectées :" %}</strong> {% trans "Veuillez corriger les champs marqués en rouge." %}
                     </div>
                 {% endif %}
 
                 <div class="form-group">
                     <label class="form-label" for="nom">
                         <i class="fas fa-book"></i>
-                        Nom de la matière *
+                        {% trans "Nom de la matière *" %}
                     </label>
                     <input type="text" 
                            class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
                            id="nom" 
                            name="nom" 
                            value="{{ form_data.nom }}"
-                           placeholder="Ex: Mathématiques">
+                           placeholder="{% trans "Ex: Mathématiques" %}">
                     {% if field_errors.nom %}
                         <div class="invalid-feedback">{{ field_errors.nom }}</div>
                     {% endif %}
@@ -288,12 +289,12 @@
                 <div class="form-group">
                     <label class="form-label" for="type_matiere">
                         <i class="fas fa-tag"></i>
-                        Type *
+                        {% trans "Type *" %}
                     </label>
                     <select class="form-control {% if field_errors.type_matiere %}is-invalid{% endif %}" 
                             id="type_matiere" 
                             name="type_matiere">
-                        <option value="">Sélectionnez un type</option>
+                        <option value="">{% trans "Sélectionnez un type" %}</option>
                         {% for value, label in type_choices %}
                             <option value="{{ value }}" {% if form_data.type_matiere == value %}selected{% endif %}>
                                 {{ label }}
@@ -310,11 +311,11 @@
                     <div class="form-group">
                         <label class="form-label">
                             <i class="fas fa-users"></i>
-                            Classes concernées et Coefficients par groupe
+                            {% trans "Classes concernées et Coefficients par groupe" %}
                         </label>
                         <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
                             <i class="fas fa-info-circle"></i>
-                            Pour les établissements de type lycée, vous devez définir un coefficient pour chaque groupe de classes sélectionné.
+                            {% trans "Pour les établissements de type lycée, vous devez définir un coefficient pour chaque groupe de classes sélectionné." %}
                         </p>
                         <div class="classes-selection-with-coefficient">
                             {% for groupe in groupes_classes %}
@@ -354,7 +355,7 @@
                             {% empty %}
                                 <div class="no-classes">
                                     <i class="fas fa-exclamation-circle"></i>
-                                    <p>Aucune classe disponible</p>
+                                    <p>{% trans "Aucune classe disponible" %}</p>
                                 </div>
                             {% endfor %}
                         </div>
@@ -367,7 +368,7 @@
                     <div class="form-group">
                         <label class="form-label" for="coefficient">
                             <i class="fas fa-weight-hanging"></i>
-                            Coefficient
+                            {% trans "Coefficient" %}
                         </label>
                         <input type="number" 
                                class="form-control {% if field_errors.coefficient %}is-invalid{% endif %}" 
@@ -386,11 +387,11 @@
                     <div class="form-group">
                         <label class="form-label">
                             <i class="fas fa-users"></i>
-                            Classes concernées (Sélection par groupe)
+                            {% trans "Classes concernées (Sélection par groupe)" %}
                         </label>
                         <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
                             <i class="fas fa-info-circle"></i>
-                            Cocher un groupe sélectionne toutes les classes de ce groupe
+                            {% trans "Cocher un groupe sélectionne toutes les classes de ce groupe" %}
                         </p>
                         <div class="classes-selection">
                             {% for groupe in groupes_classes %}
@@ -410,7 +411,7 @@
                             {% empty %}
                                 <div class="no-classes">
                                     <i class="fas fa-exclamation-circle"></i>
-                                    <p>Aucune classe disponible</p>
+                                    <p>{% trans "Aucune classe disponible" %}</p>
                                 </div>
                             {% endfor %}
                         </div>
@@ -420,11 +421,11 @@
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" onclick="toggleEditForm()">
                         <i class="fas fa-times"></i>
-                        <span>Annuler</span>
+                        <span>{% trans "Annuler" %}</span>
                     </button>
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-save"></i>
-                        <span>Enregistrer</span>
+                        <span>{% trans "Enregistrer" %}</span>
                     </button>
                 </div>
             </form>

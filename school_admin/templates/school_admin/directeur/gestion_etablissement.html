@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestion de l'Établissement - {{ etablissement.nom }}</title>
+    <title>{% trans "Institution Management" %} - {{ etablissement.nom }}</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet"
@@ -33,17 +35,17 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-school"></i>
-                    Gestion de l'Établissement
+                    {% trans "Gestion de l'Établissement" %}
                 </h1>
                 <p class="page-subtitle">
-                    Gérez les informations, paramètres et organisation de votre établissement
+                    {% trans "Gérez les informations, paramètres et organisation de votre établissement" %}
                 </p>
             </div>
         </div>
 
         <!-- Navigation Links Container -->
         <div class="navigation-container">
-            <h2 class="section-title">Outils de gestion de l'établissement</h2>
+            <h2 class="section-title">{% trans "Outils de gestion de l'établissement" %}</h2>
             
             <div class="nav-cards-grid">
                 <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card">
@@ -52,8 +54,8 @@
                         <i class="fas fa-chalkboard"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Classes</h3>
-                        <p>Gestion des classes</p>
+                        <h3>{% trans "Classes" %}</h3>
+                        <p>{% trans "Gestion des classes" %}</p>
                     </div>
                 </a>
                 
@@ -63,8 +65,8 @@
                         <i class="fas fa-book-open"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Matières</h3>
-                        <p>Organisation des matières et classes</p>
+                        <h3>{% trans "Matières" %}</h3>
+                        <p>{% trans "Organisation des matières et classes" %}</p>
                     </div>
                 </a>
 
@@ -74,8 +76,8 @@
                         <i class="fas fa-door-open"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Salles</h3>
-                        <p>Gestion des salles</p>
+                        <h3>{% trans "Salles" %}</h3>
+                        <p>{% trans "Gestion des salles" %}</p>
                     </div>
                 </a>
                
@@ -85,8 +87,8 @@
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Périodes scolaires</h3>
-                        <p>Trimestres et semestres</p>
+                        <h3>{% trans "Périodes scolaires" %}</h3>
+                        <p>{% trans "Trimestres et semestres" %}</p>
                     </div>
                 </a>
                 
@@ -97,8 +99,8 @@
                         <i class="fas fa-calculator"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Comptabilité</h3>
-                        <p>Gestion des paiements des élèves</p>
+                        <h3>{% trans "Comptabilité" %}</h3>
+                        <p>{% trans "Gestion des paiements des élèves" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -107,15 +109,15 @@
 
         <!-- Dernières actions établissement -->
         {% comment %} <div class="recent-actions-section">
-            <h2 class="section-title">Dernières actions établissement</h2>
+            <h2 class="section-title">{% trans "Dernières actions établissement" %}</h2>
             <div class="actions-list">
                 <div class="action-item">
                     <div class="action-icon success">
                         <i class="fas fa-school"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Informations de l'établissement mises à jour</p>
-                        <span class="action-time">Il y a 30 minutes</span>
+                        <p class="action-text">{% trans "Informations de l'établissement mises à jour" %}</p>
+                        <span class="action-time">{% trans "Il y a 30 minutes" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -123,8 +125,8 @@
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Nouvelle année scolaire configurée</p>
-                        <span class="action-time">Il y a 2 heures</span>
+                        <p class="action-text">{% trans "Nouvelle année scolaire configurée" %}</p>
+                        <span class="action-time">{% trans "Il y a 2 heures" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -132,8 +134,8 @@
                         <i class="fas fa-door-open"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Nouvelle salle de classe ajoutée</p>
-                        <span class="action-time">Hier</span>
+                        <p class="action-text">{% trans "Nouvelle salle de classe ajoutée" %}</p>
+                        <span class="action-time">{% trans "Hier" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -141,8 +143,8 @@
                         <i class="fas fa-cogs"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Paramètres de sécurité modifiés</p>
-                        <span class="action-time">Il y a 2 jours</span>
+                        <p class="action-text">{% trans "Paramètres de sécurité modifiés" %}</p>
+                        <span class="action-time">{% trans "Il y a 2 jours" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -150,8 +152,8 @@
                         <i class="fas fa-database"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Sauvegarde automatique effectuée</p>
-                        <span class="action-time">Il y a 3 jours</span>
+                        <p class="action-text">{% trans "Sauvegarde automatique effectuée" %}</p>
+                        <span class="action-time">{% trans "Il y a 3 jours" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -159,8 +161,8 @@
                         <i class="fas fa-chart-bar"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Rapport mensuel généré</p>
-                        <span class="action-time">Il y a 5 jours</span>
+                        <p class="action-text">{% trans "Rapport mensuel généré" %}</p>
+                        <span class="action-time">{% trans "Il y a 5 jours" %}</span>
                     </div>
                 </div>
             </div>

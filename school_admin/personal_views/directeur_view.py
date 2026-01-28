@@ -3223,13 +3223,29 @@ def _build_bulletin_context(request, classe_id, eleve_id):
     from ..model.periode_model import PeriodeScolaire
     from ..model.matiere_model import Matiere
     from ..model.presence_model import Presence
+    from ..model.inscription_eleve_model import InscriptionEleve
     from ..utils.session_utils import get_session_active
 
     # Récupérer l'année scolaire active
     annee_scolaire_active = _get_session_directeur(request, etablissement)
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
-    eleve = get_object_or_404(Eleve, id=eleve_id, classe=classe, etablissement=etablissement, actif=True)
+    
+    # Récupérer l'élève et vérifier qu'il appartient à la classe via InscriptionEleve
+    # Ne pas filtrer par classe=classe car les élèves sont liés via InscriptionEleve
+    eleve = get_object_or_404(Eleve, id=eleve_id, etablissement=etablissement, actif=True)
+    
+    # Vérifier que l'élève est bien inscrit dans cette classe pour l'année scolaire active
+    if annee_scolaire_active:
+        inscription = InscriptionEleve.objects.filter(
+            eleve=eleve,
+            classe=classe,
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire_active
+        ).first()
+        if not inscription:
+            # Si pas d'inscription trouvée, retourner None pour éviter l'erreur
+            return None, None
 
     # Récupérer la période depuis le paramètre GET ou utiliser la première période active
     periode_param = request.GET.get('periode')
@@ -4636,6 +4652,9 @@ def voir_bulletin_eleve(request, classe_id, eleve_id):
     context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)
     if redirect_response:
         return redirect_response
+    if not context:
+        messages.error(request, "L'élève n'est pas inscrit dans cette classe pour l'année scolaire active.")
+        return redirect('directeur:bulletins_notes')
     return render(request, 'school_admin/directeur/voir_bulletin_eleve.html', context)
 
 
@@ -4645,6 +4664,9 @@ def imprimer_bulletin_eleve(request, classe_id, eleve_id):
     context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)
     if redirect_response:
         return redirect_response
+    if not context:
+        messages.error(request, "L'élève n'est pas inscrit dans cette classe pour l'année scolaire active.")
+        return redirect('directeur:bulletins_notes')
     return render(request, 'school_admin/directeur/imprimer_bulletin_eleve.html', context)
 
 

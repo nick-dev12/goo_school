@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load pagination_tags %}
 {% load notes_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,16 +25,16 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-chart-line"></i>
-                    Notes et Résultats
+                    {% trans "Notes et Résultats" %}
                 </h1>
                 <p class="page-subtitle">
-                    Consultation des moyennes par classe et par matière
+                    {% trans "Consultation des moyennes par classe et par matière" %}
                 </p>
             </div>
             <div class="page-actions">
                 <a href="{% url 'directeur:gestion_eleves' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour
+                    {% trans "Retour" %}
                 </a>
             </div>
         </div>
@@ -48,7 +50,7 @@
                     Année scolaire active : {{ annee_scolaire_active.libelle }}
                 </p>
                 <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-                    Seuls les élèves et les notes de cette session sont affichés.
+                    {% trans "Seuls les élèves et les notes de cette session sont affichés." %}
                 </p>
             </div>
         </div>
@@ -56,7 +58,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
             <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
             <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-                Aucune année scolaire active. Toutes les données sont affichées.
+                {% trans "Aucune année scolaire active. Toutes les données sont affichées." %}
             </span>
         </div>
         {% endif %}
@@ -128,16 +130,16 @@
                                 <div class="class-header-actions">
                                     <a href="{% url 'directeur:justifications_notes' %}?classe={{ classe_data.classe.id }}" 
                                        class="btn-justification" 
-                                       title="Voir les demandes de justification de notes">
+                                       title="{% trans "Voir les demandes de justification de notes" %}">
                                         <i class="fas fa-scale-balanced"></i>
-                                        Demandes de justification
+                                        {% trans "Demandes de justification" %}
                                     </a>
                                     <a href="{% url 'directeur:imprimer_releve_notes' classe_data.classe.id %}" 
                                        class="btn-print-releve" 
                                        target="_blank"
-                                       title="Imprimer le relevé de notes de la classe">
+                                       title="{% trans "Imprimer le relevé de notes de la classe" %}">
                                         <i class="fas fa-print"></i>
-                                        Imprimer le relevé de notes
+                                        {% trans "Imprimer le relevé de notes" %}
                                     </a>
                                 </div>
                             </div>
@@ -152,7 +154,7 @@
                                             <input type="text" 
                                                    class="search-input" 
                                                    id="search-input-notes-primaire-{{ classe_data.classe.id }}" 
-                                                   placeholder="Rechercher un élève (nom, prénom...)"
+                                                   placeholder="{% trans "Rechercher un élève (nom, prénom...)" %}"
                                                    oninput="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')"
                                                    style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
                                             <button class="clear-search" 
@@ -167,39 +169,39 @@
                                             <div class="filter-group" style="flex: 1; min-width: 200px;">
                                                 <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                                     <i class="fas fa-chart-line"></i>
-                                                    Performance
+                                                    {% trans "Performance" %}
                                                 </label>
                                                 <select class="filter-select" id="filter-performance-primaire-{{ classe_data.classe.id }}" onchange="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                    <option value="">Toutes les performances</option>
-                                                    <option value="excellent">Excellent (≥ 16/20)</option>
-                                                    <option value="bien">Bien (≥ 14/20)</option>
-                                                    <option value="assez-bien">Assez bien (≥ 12/20)</option>
-                                                    <option value="passable">Passable (≥ 10/20)</option>
-                                                    <option value="insuffisant">Insuffisant (< 10/20)</option>
+                                                    <option value="">{% trans "Toutes les performances" %}</option>
+                                                    <option value="excellent">{% trans "Excellent (≥ 16/20)" %}</option>
+                                                    <option value="bien">{% trans "Bien (≥ 14/20)" %}</option>
+                                                    <option value="assez-bien">{% trans "Assez bien (≥ 12/20)" %}</option>
+                                                    <option value="passable">{% trans "Passable (≥ 10/20)" %}</option>
+                                                    <option value="insuffisant">{% trans "Insuffisant (" %}< 10/20)</option>
                                                 </select>
                                             </div>
                                             
                                             <div class="filter-group" style="flex: 1; min-width: 200px;">
                                                 <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                                     <i class="fas fa-book"></i>
-                                                    Matières complétées
+                                                    {% trans "Matières complétées" %}
                                                 </label>
                                                 <select class="filter-select" id="filter-matieres-primaire-{{ classe_data.classe.id }}" onchange="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                    <option value="">Tous les élèves</option>
-                                                    <option value="all">Toutes les matières</option>
-                                                    <option value="partial">Partiellement</option>
-                                                    <option value="none">Aucune matière</option>
+                                                    <option value="">{% trans "Tous les élèves" %}</option>
+                                                    <option value="all">{% trans "Toutes les matières" %}</option>
+                                                    <option value="partial">{% trans "Partiellement" %}</option>
+                                                    <option value="none">{% trans "Aucune matière" %}</option>
                                                 </select>
                                             </div>
                                             
                                             <button class="btn-reset-filters" onclick="resetNotesPrimaireFilters('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                                 <i class="fas fa-redo"></i>
-                                                Réinitialiser
+                                                {% trans "Réinitialiser" %}
                                             </button>
                                         </div>
                                         
                                         <div class="filter-results" id="filter-results-notes-primaire-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                                            <span id="results-count-notes-primaire-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                                            <span id="results-count-notes-primaire-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                         </div>
                                     </div>
                                     
@@ -208,9 +210,9 @@
                                         <table class="notes-results-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Rang</th>
-                                                    <th>Élève</th>
-                                                    <th>Matricule</th>
+                                                    <th>{% trans "Rang" %}</th>
+                                                    <th>{% trans "Élève" %}</th>
+                                                    <th>{% trans "Matricule" %}</th>
                                                     {% for matiere in classe_data.matieres %}
                                                         <th class="matiere-header" title="{{ matiere }}">
                                                             <div class="matiere-header-content">
@@ -218,8 +220,8 @@
                                                                 <button class="btn-details-matiere" 
                                                                         data-periode-id="{{ classe_data.periode_id|default_if_none:'' }}"
                                                                         onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere|escapejs }}', event)"
-                                                                        title="Voir les détails des notes">
-                                                                    <i class="fas fa-eye"></i> Détails
+                                                                        title="{% trans "Voir les détails des notes" %}">
+                                                                    <i class="fas fa-eye"></i> {% trans "Détails" %}
                                                                 </button>
                                                             </div>
                                                         </th>
@@ -332,7 +334,7 @@
                                 {% else %}
                                     <div class="empty-state">
                                         <i class="fas fa-chalkboard-teacher"></i>
-                                        <p>Aucune matière n'est enseignée dans cette classe</p>
+                                        <p>{% trans "Aucune matière n'est enseignée dans cette classe" %}</p>
                                     </div>
                                 {% endif %}
                             {% elif classe_data.matieres %}
@@ -345,7 +347,7 @@
                                         <input type="text" 
                                                class="search-input" 
                                                id="search-input-notes-{{ classe_data.classe.id }}" 
-                                               placeholder="Rechercher un élève (nom, prénom...)"
+                                               placeholder="{% trans "Rechercher un élève (nom, prénom...)" %}"
                                                oninput="filterNotesStudents('{{ classe_data.classe.id }}')"
                                                style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
                                         <button class="clear-search" 
@@ -360,39 +362,39 @@
                                         <div class="filter-group" style="flex: 1; min-width: 200px;">
                                             <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                                 <i class="fas fa-chart-line"></i>
-                                                Performance
+                                                {% trans "Performance" %}
                                             </label>
                                             <select class="filter-select" id="filter-performance-{{ classe_data.classe.id }}" onchange="filterNotesStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                <option value="">Toutes les performances</option>
-                                                <option value="excellent">Excellent (≥ 16/20)</option>
-                                                <option value="bien">Bien (≥ 14/20)</option>
-                                                <option value="assez-bien">Assez bien (≥ 12/20)</option>
-                                                <option value="passable">Passable (≥ 10/20)</option>
-                                                <option value="insuffisant">Insuffisant (< 10/20)</option>
+                                                <option value="">{% trans "Toutes les performances" %}</option>
+                                                <option value="excellent">{% trans "Excellent (≥ 16/20)" %}</option>
+                                                <option value="bien">{% trans "Bien (≥ 14/20)" %}</option>
+                                                <option value="assez-bien">{% trans "Assez bien (≥ 12/20)" %}</option>
+                                                <option value="passable">{% trans "Passable (≥ 10/20)" %}</option>
+                                                <option value="insuffisant">{% trans "Insuffisant (" %}< 10/20)</option>
                                             </select>
                                         </div>
                                         
                                         <div class="filter-group" style="flex: 1; min-width: 200px;">
                                             <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                                 <i class="fas fa-book"></i>
-                                                Matières complétées
+                                                {% trans "Matières complétées" %}
                                             </label>
                                             <select class="filter-select" id="filter-matieres-{{ classe_data.classe.id }}" onchange="filterNotesStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                <option value="">Tous les élèves</option>
-                                                <option value="all">Toutes les matières</option>
-                                                <option value="partial">Partiellement</option>
-                                                <option value="none">Aucune matière</option>
+                                                <option value="">{% trans "Tous les élèves" %}</option>
+                                                <option value="all">{% trans "Toutes les matières" %}</option>
+                                                <option value="partial">{% trans "Partiellement" %}</option>
+                                                <option value="none">{% trans "Aucune matière" %}</option>
                                             </select>
                                         </div>
                                         
                                         <button class="btn-reset-filters" onclick="resetNotesFilters('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                             <i class="fas fa-redo"></i>
-                                            Réinitialiser
+                                            {% trans "Réinitialiser" %}
                                         </button>
                                     </div>
                                     
                                     <div class="filter-results" id="filter-results-notes-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                                        <span id="results-count-notes-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                                        <span id="results-count-notes-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                     </div>
                                 </div>
                                 
@@ -401,8 +403,8 @@
                                     <table class="notes-results-table">
                                         <thead>
                                             <tr>
-                                                <th>Rang</th>
-                                                <th>Élève</th>
+                                                <th>{% trans "Rang" %}</th>
+                                                <th>{% trans "Élève" %}</th>
                                                 {% for matiere in classe_data.matieres %}
                                                     <th class="matiere-header" title="{{ matiere.nom }}">
                                                         <div class="matiere-header-content">
@@ -410,8 +412,8 @@
                                                             <button class="btn-details-matiere" 
                                                                     data-periode-id="{{ classe_data.periode_id|default_if_none:'' }}"
                                                                     onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere.nom|escapejs }}', event)"
-                                                                    title="Voir les détails des notes">
-                                                                <i class="fas fa-eye"></i> Détails
+                                                                    title="{% trans "Voir les détails des notes" %}">
+                                                                <i class="fas fa-eye"></i> {% trans "Détails" %}
                                                             </button>
                                                         </div>
                                                     </th>
@@ -524,7 +526,7 @@
                             {% else %}
                                 <div class="empty-state">
                                     <i class="fas fa-chalkboard-teacher"></i>
-                                    <p>Aucun professeur affecté à cette classe</p>
+                                    <p>{% trans "Aucun professeur affecté à cette classe" %}</p>
                                 </div>
                             {% endif %}
                         </div>
@@ -550,7 +552,7 @@
             <div class="modal-body" id="modal-body-content">
                 <div class="loading-spinner">
                     <i class="fas fa-spinner fa-spin"></i>
-                    Chargement des données...
+                    {% trans "Chargement des données..." %}
                 </div>
             </div>
         </div>

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/liste_annonces.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <title>Gestion des Annonces - Directeur</title>
+    <title>{% trans "Gestion des Annonces - Directeur" %}</title>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -15,11 +17,11 @@
         <!-- Header Section -->
         <div class="page-header">
             <div class="header-content">
-                <h1><i class="fas fa-bullhorn"></i> Gestion des Annonces</h1>
-                <p>Publiez des annonces importantes pour votre établissement</p>
+                <h1><i class="fas fa-bullhorn"></i> {% trans "Gestion des Annonces" %}</h1>
+                <p>{% trans "Publiez des annonces importantes pour votre établissement" %}</p>
             </div>
             <a href="{% url 'directeur:creer_annonce' %}" class="btn-primary">
-                <i class="fas fa-plus"></i> Nouvelle annonce
+                <i class="fas fa-plus"></i> {% trans "Nouvelle annonce" %}
             </a>
         </div>
 
@@ -34,7 +36,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seules les annonces de cette année scolaire sont affichées.
+              {% trans "Seules les annonces de cette année scolaire sont affichées." %}
             </p>
           </div>
         </div>
@@ -42,7 +44,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Toutes les annonces sont affichées.
+            {% trans "Aucune année scolaire active. Toutes les annonces sont affichées." %}
           </span>
         </div>
         {% endif %}
@@ -55,7 +57,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ total_annonces }}</h3>
-                    <p>Total des annonces</p>
+                    <p>{% trans "Total des annonces" %}</p>
                 </div>
             </div>
 
@@ -65,7 +67,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ annonces_publiees }}</h3>
-                    <p>Annonces publiées</p>
+                    <p>{% trans "Annonces publiées" %}</p>
                 </div>
             </div>
 
@@ -75,7 +77,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ annonces_brouillon }}</h3>
-                    <p>Brouillons</p>
+                    <p>{% trans "Brouillons" %}</p>
                 </div>
             </div>
 
@@ -85,7 +87,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ annonces_archivees }}</h3>
-                    <p>Annonces archivées</p>
+                    <p>{% trans "Annonces archivées" %}</p>
                 </div>
             </div>
         </div>
@@ -94,16 +96,16 @@
         <div class="filters-section">
             <form method="get" action="{% url 'directeur:annonces_directeur' %}" class="filters-form">
                 <div class="filter-group">
-                    <label for="statut"><i class="fas fa-filter"></i> Filtrer par statut :</label>
+                    <label for="statut"><i class="fas fa-filter"></i> {% trans "Filtrer par statut :" %}</label>
                     <select name="statut" id="statut" onchange="this.form.submit()">
-                        <option value="">Tous les statuts</option>
-                        <option value="publiee" {% if statut_filtre == 'publiee' %}selected{% endif %}>Publiées</option>
-                        <option value="brouillon" {% if statut_filtre == 'brouillon' %}selected{% endif %}>Brouillons</option>
-                        <option value="archivee" {% if statut_filtre == 'archivee' %}selected{% endif %}>Archivées</option>
+                        <option value="">{% trans "Tous les statuts" %}</option>
+                        <option value="publiee" {% if statut_filtre == 'publiee' %}selected{% endif %}>{% trans "Publiées" %}</option>
+                        <option value="brouillon" {% if statut_filtre == 'brouillon' %}selected{% endif %}>{% trans "Brouillons" %}</option>
+                        <option value="archivee" {% if statut_filtre == 'archivee' %}selected{% endif %}>{% trans "Archivées" %}</option>
                     </select>
                 </div>
                 <a href="{% url 'directeur:annonces_directeur' %}" class="btn-reset">
-                    <i class="fas fa-redo"></i> Réinitialiser
+                    <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
                 </a>
             </form>
         </div>
@@ -152,16 +154,16 @@
                                 {% if annonce.fichier_joint %}
                                     <div class="fichier-joint">
                                         <i class="fas fa-paperclip"></i>
-                                        <span>Fichier joint</span>
+                                        <span>{% trans "Fichier joint" %}</span>
                                     </div>
                                 {% endif %}
                             </div>
 
                             <div class="annonce-actions">
-                                <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="btn-action btn-view" title="Aperçu">
+                                <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="btn-action btn-view" title="{% trans "Aperçu" %}">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="btn-action btn-edit" title="Modifier">
+                                <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="btn-action btn-edit" title="{% trans "Modifier" %}">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 
@@ -194,7 +196,7 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-bullhorn"></i>
-                    <h3>Aucune annonce</h3>
+                    <h3>{% trans "Aucune annonce" %}</h3>
                     <p>
                         {% if statut_filtre %}
                             Aucune annonce ne correspond à vos critères de filtrage.
@@ -203,7 +205,7 @@
                         {% endif %}
                     </p>
                     <a href="{% url 'directeur:creer_annonce' %}" class="btn-primary">
-                        <i class="fas fa-plus"></i> Créer une annonce
+                        <i class="fas fa-plus"></i> {% trans "Créer une annonce" %}
                     </a>
                 </div>
             {% endif %}

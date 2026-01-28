@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +19,7 @@
       <div class="header-actions">
         <a href="{% url 'directeur:dashboard_directeur' %}" class="btn-secondary">
           <i class="fas fa-arrow-left"></i>
-          Retour
+          {% trans "Retour" %}
         </a>
       </div>
       <div class="header-title">
@@ -70,23 +72,23 @@
       <div class="overview-right">
         {% if is_personnel_administratif %}
           <div class="overview-director">
-            <h3>Établissement</h3>
+            <h3>{% trans "Établissement" %}</h3>
             <p>{{ etablissement.nom }}</p>
             <span class="director-contact"><i class="fas fa-map-marker-alt"></i> {{ etablissement.ville }}, {{ etablissement.pays }}</span>
           </div>
           <div class="overview-stats">
             <div class="stat-tag">
-              <span class="stat-label">Identifiant</span>
+              <span class="stat-label">{% trans "Identifiant" %}</span>
               <span class="stat-value">{{ personnel.username }}</span>
             </div>
             <div class="stat-tag">
-              <span class="stat-label">Numéro employé</span>
+              <span class="stat-label">{% trans "Numéro employé" %}</span>
               <span class="stat-value">{{ personnel.numero_employe }}</span>
             </div>
           </div>
         {% else %}
           <div class="overview-director">
-            <h3>Responsable</h3>
+            <h3>{% trans "Responsable" %}</h3>
             <p>{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}</p>
             <span class="director-contact"><i class="fas fa-at"></i> {{ etablissement.directeur_email }}</span>
             {% if etablissement.directeur_telephone %}
@@ -95,11 +97,11 @@
           </div>
           <div class="overview-stats">
             <div class="stat-tag">
-              <span class="stat-label">Code établissement</span>
+              <span class="stat-label">{% trans "Code établissement" %}</span>
               <span class="stat-value">{{ etablissement.code_etablissement }}</span>
             </div>
             <div class="stat-tag">
-              <span class="stat-label">Compte</span>
+              <span class="stat-label">{% trans "Compte" %}</span>
               <span class="stat-value">{{ etablissement.username }}</span>
             </div>
           </div>
@@ -111,11 +113,11 @@
       <div class="tabs-bar" role="tablist">
         <button class="tab-link {% if active_tab == 'informations' %}active{% endif %}" data-target="#tab-informations" data-tab="informations" type="button">Informations {% if is_personnel_administratif %}personnelles{% else %}générales{% endif %}</button>
         {% if is_directeur %}
-        <button class="tab-link {% if active_tab == 'logo' %}active{% endif %}" data-target="#tab-logo" data-tab="logo" type="button">Logo</button>
-        <button class="tab-link {% if active_tab == 'modules' %}active{% endif %}" data-target="#tab-modules" data-tab="modules" type="button">Modules activés</button>
-        <button class="tab-link {% if active_tab == 'facturation' %}active{% endif %}" data-target="#tab-facturation" data-tab="facturation" type="button">Facturation</button>
+        <button class="tab-link {% if active_tab == 'logo' %}active{% endif %}" data-target="#tab-logo" data-tab="logo" type="button">{% trans "Logo" %}</button>
+        <button class="tab-link {% if active_tab == 'modules' %}active{% endif %}" data-target="#tab-modules" data-tab="modules" type="button">{% trans "Modules activés" %}</button>
+        <button class="tab-link {% if active_tab == 'facturation' %}active{% endif %}" data-target="#tab-facturation" data-tab="facturation" type="button">{% trans "Facturation" %}</button>
         {% endif %}
-        <button class="tab-link {% if active_tab == 'securite' %}active{% endif %}" data-target="#tab-securite" data-tab="securite" type="button">Sécurité</button>
+        <button class="tab-link {% if active_tab == 'securite' %}active{% endif %}" data-target="#tab-securite" data-tab="securite" type="button">{% trans "Sécurité" %}</button>
       </div>
 
       <div class="tabs-content">
@@ -127,35 +129,35 @@
 
             {% if is_personnel_administratif %}
               <div class="form-block">
-                <h3>Informations personnelles</h3>
+                <h3>{% trans "Informations personnelles" %}</h3>
                 <div class="form-row-inline">
                   <div class="form-column">
-                    <label for="prenom">Prénom*</label>
+                    <label for="prenom">{% trans "Prénom*" %}</label>
                     <input type="text" id="prenom" name="prenom" value="{{ personnel.prenom }}" required>
                   </div>
                   <div class="form-column">
-                    <label for="nom">Nom*</label>
+                    <label for="nom">{% trans "Nom*" %}</label>
                     <input type="text" id="nom" name="nom" value="{{ personnel.nom }}" required>
                   </div>
                 </div>
                 <div class="form-row">
-                  <label for="email">Email*</label>
+                  <label for="email">{% trans "Email*" %}</label>
                   <input type="email" id="email" name="email" value="{{ personnel.email }}" required>
                 </div>
                 <div class="form-row">
-                  <label for="telephone">Téléphone</label>
+                  <label for="telephone">{% trans "Téléphone" %}</label>
                   <input type="text" id="telephone" name="telephone" value="{{ personnel.telephone|default:'' }}">
                 </div>
               </div>
             {% else %}
               <div class="form-block">
-                <h3>Établissement</h3>
+                <h3>{% trans "Établissement" %}</h3>
                 <div class="form-row">
-                  <label for="nom">Nom*</label>
+                  <label for="nom">{% trans "Nom*" %}</label>
                   <input type="text" id="nom" name="nom" value="{{ etablissement.nom }}" required>
                 </div>
                 <div class="form-row">
-                  <label for="type_etablissement">Type*</label>
+                  <label for="type_etablissement">{% trans "Type*" %}</label>
                   <select id="type_etablissement" name="type_etablissement" required>
                     {% for value, label in etablissement.TYPE_CHOICES %}
                       <option value="{{ value }}" {% if etablissement.type_etablissement == value %}selected{% endif %}>{{ label }}</option>
@@ -163,51 +165,51 @@
                   </select>
                 </div>
                 <div class="form-row">
-                  <label for="adresse">Adresse*</label>
+                  <label for="adresse">{% trans "Adresse*" %}</label>
                   <input type="text" id="adresse" name="adresse" value="{{ etablissement.adresse }}" required>
                 </div>
                 <div class="form-row-inline">
                   <div class="form-column">
-                    <label for="ville">Ville*</label>
+                    <label for="ville">{% trans "Ville*" %}</label>
                     <input type="text" id="ville" name="ville" value="{{ etablissement.ville }}" required>
                   </div>
                   <div class="form-column">
-                    <label for="pays">Pays*</label>
+                    <label for="pays">{% trans "Pays*" %}</label>
                     <input type="text" id="pays" name="pays" value="{{ etablissement.pays }}" required>
                   </div>
                 </div>
               </div>
 
               <div class="form-block">
-                <h3>Contact</h3>
+                <h3>{% trans "Contact" %}</h3>
                 <div class="form-row">
-                  <label for="email">Email*</label>
+                  <label for="email">{% trans "Email*" %}</label>
                   <input type="email" id="email" name="email" value="{{ etablissement.email }}" required>
                 </div>
                 <div class="form-row">
-                  <label for="telephone">Téléphone</label>
+                  <label for="telephone">{% trans "Téléphone" %}</label>
                   <input type="text" id="telephone" name="telephone" value="{{ etablissement.telephone|default:'' }}">
                 </div>
               </div>
 
               <div class="form-block">
-                <h3>Directeur</h3>
+                <h3>{% trans "Directeur" %}</h3>
                 <div class="form-row-inline">
                   <div class="form-column">
-                    <label for="directeur_prenom">Prénom*</label>
+                    <label for="directeur_prenom">{% trans "Prénom*" %}</label>
                     <input type="text" id="directeur_prenom" name="directeur_prenom" value="{{ etablissement.directeur_prenom }}" required>
                   </div>
                   <div class="form-column">
-                    <label for="directeur_nom">Nom*</label>
+                    <label for="directeur_nom">{% trans "Nom*" %}</label>
                     <input type="text" id="directeur_nom" name="directeur_nom" value="{{ etablissement.directeur_nom }}" required>
                   </div>
                 </div>
                 <div class="form-row">
-                  <label for="directeur_email">Email*</label>
+                  <label for="directeur_email">{% trans "Email*" %}</label>
                   <input type="email" id="directeur_email" name="directeur_email" value="{{ etablissement.directeur_email }}" required>
                 </div>
                 <div class="form-row">
-                  <label for="directeur_telephone">Téléphone</label>
+                  <label for="directeur_telephone">{% trans "Téléphone" %}</label>
                   <input type="text" id="directeur_telephone" name="directeur_telephone" value="{{ etablissement.directeur_telephone|default:'' }}">
                 </div>
               </div>
@@ -216,7 +218,7 @@
             <div class="form-actions">
               <button type="submit" class="btn-primary">
                 <i class="fas fa-save"></i>
-                Enregistrer les modifications
+                {% trans "Enregistrer les modifications" %}
               </button>
             </div>
           </form>
@@ -231,9 +233,9 @@
               {% else %}
                 <div class="logo-placeholder" id="logo-placeholder">
                   <i class="fas fa-image"></i>
-                  <p>Aucun logo défini</p>
+                  <p>{% trans "Aucun logo défini" %}</p>
                 </div>
-                <img src="" alt="Prévisualisation logo" id="logo-preview-image" style="display:none;">
+                <img src="" alt="{% trans "Prévisualisation logo" %}" id="logo-preview-image" style="display:none;">
               {% endif %}
             </div>
             <div class="logo-actions">
@@ -243,13 +245,13 @@
                 <input type="hidden" name="active_tab" value="logo" id="active_tab_logo_upload">
                 <label for="logo" class="file-input-label">
                   <i class="fas fa-upload"></i>
-                  Sélectionner un logo
+                  {% trans "Sélectionner un logo" %}
                 </label>
                 <input type="file" id="logo" name="logo" accept="image/*" required>
-                <span class="file-name" id="logo-file-name">Aucun fichier sélectionné</span>
+                <span class="file-name" id="logo-file-name">{% trans "Aucun fichier sélectionné" %}</span>
                 <button type="submit" class="btn-primary">
                   <i class="fas fa-check"></i>
-                  Mettre à jour
+                  {% trans "Mettre à jour" %}
                 </button>
               </form>
               <form action="{% url 'directeur:profil_etablissement' %}" method="post" class="logo-form">
@@ -258,7 +260,7 @@
                 <input type="hidden" name="active_tab" value="logo" id="active_tab_logo_delete">
                 <button type="submit" class="btn-danger">
                   <i class="fas fa-trash"></i>
-                  Supprimer le logo
+                  {% trans "Supprimer le logo" %}
                 </button>
               </form>
             </div>
@@ -290,31 +292,31 @@
           <div class="facturation-card">
             <div class="facturation-row">
               <div class="facturation-item">
-                <span class="fact-label">Type de facturation</span>
+                <span class="fact-label">{% trans "Type de facturation" %}</span>
                 <span class="fact-value">{{ facturation.type|title }}</span>
               </div>
               <div class="facturation-item">
-                <span class="fact-label">Montant par élève</span>
+                <span class="fact-label">{% trans "Montant par élève" %}</span>
                 <span class="fact-value">{{ facturation.montant_par_eleve }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</span>
               </div>
             </div>
             <div class="facturation-row">
               <div class="facturation-item">
-                <span class="fact-label">Montant total</span>
+                <span class="fact-label">{% trans "Montant total" %}</span>
                 <span class="fact-value">{{ facturation.montant_total_facturation }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</span>
               </div>
               <div class="facturation-item">
-                <span class="fact-label">Statut</span>
+                <span class="fact-label">{% trans "Statut" %}</span>
                 <span class="fact-status">{{ facturation.statut|title }}</span>
               </div>
             </div>
             <div class="facturation-row">
               <div class="facturation-item">
-                <span class="fact-label">Dernière facturation</span>
+                <span class="fact-label">{% trans "Dernière facturation" %}</span>
                 <span class="fact-value">{% if facturation.date_derniere_facturation %}{{ facturation.date_derniere_facturation|date:'d/m/Y H:i' }}{% else %}Non définie{% endif %}</span>
               </div>
               <div class="facturation-item">
-                <span class="fact-label">Élèves facturés</span>
+                <span class="fact-label">{% trans "Élèves facturés" %}</span>
                 <span class="fact-value">{{ facturation.nombre_eleves_factures }}</span>
               </div>
             </div>
@@ -325,8 +327,8 @@
         <div class="tab-panel {% if active_tab == 'securite' %}active{% endif %}" id="tab-securite" role="tabpanel">
           <div class="security-panel">
             <div class="security-header">
-              <h3><i class="fas fa-shield-alt"></i> Sécurité du compte</h3>
-              <p>Gérez la sécurité de votre compte en modifiant votre mot de passe.</p>
+              <h3><i class="fas fa-shield-alt"></i> {% trans "Sécurité du compte" %}</h3>
+              <p>{% trans "Gérez la sécurité de votre compte en modifiant votre mot de passe." %}</p>
             </div>
 
             {% if messages %}
@@ -346,12 +348,12 @@
               <input type="hidden" name="active_tab" value="securite" id="active_tab_securite">
 
               <div class="form-block">
-                <h3>Changer le mot de passe</h3>
+                <h3>{% trans "Changer le mot de passe" %}</h3>
                 
                 <div class="form-row">
-                  <label for="current_password">Mot de passe actuel*</label>
+                  <label for="current_password">{% trans "Mot de passe actuel*" %}</label>
                   <div class="password-input-wrapper">
-                    <input type="password" id="current_password" name="current_password" placeholder="Entrez votre mot de passe actuel" required>
+                    <input type="password" id="current_password" name="current_password" placeholder="{% trans "Entrez votre mot de passe actuel" %}" required>
                     <button type="button" class="toggle-password" data-target="current_password" aria-label="Afficher/Masquer le mot de passe">
                       <i class="fas fa-eye"></i>
                     </button>
@@ -359,20 +361,20 @@
                 </div>
 
                 <div class="form-row">
-                  <label for="new_password">Nouveau mot de passe*</label>
+                  <label for="new_password">{% trans "Nouveau mot de passe*" %}</label>
                   <div class="password-input-wrapper">
-                    <input type="password" id="new_password" name="new_password" placeholder="Entrez un nouveau mot de passe (min. 8 caractères)" required>
+                    <input type="password" id="new_password" name="new_password" placeholder="{% trans "Entrez un nouveau mot de passe (min. 8 caractères)" %}" required>
                     <button type="button" class="toggle-password" data-target="new_password" aria-label="Afficher/Masquer le mot de passe">
                       <i class="fas fa-eye"></i>
                     </button>
                   </div>
-                  <small class="form-hint">Le mot de passe doit contenir au moins 8 caractères</small>
+                  <small class="form-hint">{% trans "Le mot de passe doit contenir au moins 8 caractères" %}</small>
                 </div>
 
                 <div class="form-row">
-                  <label for="confirm_password">Confirmer le nouveau mot de passe*</label>
+                  <label for="confirm_password">{% trans "Confirmer le nouveau mot de passe*" %}</label>
                   <div class="password-input-wrapper">
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirmez votre nouveau mot de passe" required>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="{% trans "Confirmez votre nouveau mot de passe" %}" required>
                     <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Afficher/Masquer le mot de passe">
                       <i class="fas fa-eye"></i>
                     </button>
@@ -380,12 +382,12 @@
                 </div>
 
                 <div class="password-tips">
-                  <h4><i class="fas fa-info-circle"></i> Conseils pour un mot de passe sécurisé :</h4>
+                  <h4><i class="fas fa-info-circle"></i> {% trans "Conseils pour un mot de passe sécurisé :" %}</h4>
                   <ul>
-                    <li>Au moins 8 caractères</li>
-                    <li>Combinaison de lettres, chiffres et symboles</li>
-                    <li>Ne pas utiliser d'informations personnelles</li>
-                    <li>Ne pas réutiliser un ancien mot de passe</li>
+                    <li>{% trans "Au moins 8 caractères" %}</li>
+                    <li>{% trans "Combinaison de lettres, chiffres et symboles" %}</li>
+                    <li>{% trans "Ne pas utiliser d'informations personnelles" %}</li>
+                    <li>{% trans "Ne pas réutiliser un ancien mot de passe" %}</li>
                   </ul>
                 </div>
               </div>
@@ -393,7 +395,7 @@
               <div class="form-actions">
                 <button type="submit" class="btn-primary">
                   <i class="fas fa-save"></i>
-                  Enregistrer le nouveau mot de passe
+                  {% trans "Enregistrer le nouveau mot de passe" %}
                 </button>
               </div>
             </form>
@@ -403,7 +405,7 @@
     </section>
   </div>
 
-  <script>
+  {% trans "<script>
     const tabLinks = document.querySelectorAll('.tab-link');
     const tabPanels = document.querySelectorAll('.tab-panel');
 
@@ -564,6 +566,6 @@
         this.parentElement.style.display = 'none';
       });
     });
-  </script>
+  </script>" %}
 </body>
 </html>

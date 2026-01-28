@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load eleve_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,7 +40,7 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-calculator"></i>
-                    Comptabilité des Élèves
+                    {% trans "Comptabilité des Élèves" %}
                 </h1>
                 <p class="page-subtitle">
                     Gestion des paiements et suivi de la comptabilité des élèves de {{ etablissement.nom }}
@@ -47,15 +49,15 @@
             <div class="page-actions" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <a href="{% url 'directeur:bilan_comptable_directeur' %}" class="btn-secondary" style="background: var(--success, #10b981); color: white; border: none; font-weight: 600;">
                     <i class="fas fa-chart-line"></i>
-                    <span>Bilan comptable général</span>
+                    <span>{% trans "Bilan comptable général" %}</span>
                 </a>
                 <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="btn-secondary" style="background: var(--info, #8b5cf6); color: white; border: none;">
                     <i class="fas fa-cog"></i>
-                    <span>Paramètres de comptabilité</span>
+                    <span>{% trans "Paramètres de comptabilité" %}</span>
                 </a>
                 <a href="{% url 'directeur:gestion_etablissement' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
+                    <span>{% trans "Retour" %}</span>
                 </a>
             </div>
         </div>
@@ -64,9 +66,9 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Le module comptabilité n'est pas activé pour cet établissement. 
+            {% trans "Le module comptabilité n'est pas activé pour cet établissement." %}
             <a href="{% url 'directeur:profil_etablissement' %}" style="color: var(--warning); text-decoration: underline;">
-              Activez-le dans les paramètres de votre profil
+              {% trans "Activez-le dans les paramètres de votre profil" %}
             </a>.
           </span>
         </div>
@@ -83,7 +85,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seuls les élèves inscrits pour cette année scolaire sont affichés.
+              {% trans "Seuls les élèves inscrits pour cette année scolaire sont affichés." %}
             </p>
           </div>
         </div>
@@ -91,7 +93,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Tous les élèves sont affichés.
+            {% trans "Aucune année scolaire active. Tous les élèves sont affichés." %}
           </span>
         </div>
         {% endif %}
@@ -99,15 +101,15 @@
         <!-- Statistiques globales -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
             <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--info, #8b5cf6);">
-                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">Total élèves</h3>
+                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">{% trans "Total élèves" %}</h3>
                 <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ total_eleves }}</p>
             </div>
             <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--success, #10b981);">
-                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">À jour</h3>
+                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">{% trans "À jour" %}</h3>
                 <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ eleves_a_jour }}</p>
             </div>
             <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--accent, #ef4444);">
-                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">Non en règle</h3>
+                <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">{% trans "Non en règle" %}</h3>
                 <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ eleves_non_en_regle }}</p>
             </div>
         </div>
@@ -130,7 +132,7 @@
                                 </div>
                                 <div class="tab-stats">
                                     <span class="students-count">{{ data.total_eleves }}</span>
-                                    <span class="students-label">élèves</span>
+                                    <span class="students-label">{% trans "élèves" %}</span>
                                 </div>
                             </div>
                         </button>
@@ -183,28 +185,28 @@
                                     <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--info, #8b5cf6);">
                                         <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
                                             <i class="fas fa-money-bill-wave" style="margin-right: 0.5rem;"></i>
-                                            Montant total généré
+                                            {% trans "Montant total généré" %}
                                         </h3>
                                         <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.montant_total_classe|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
                                     </div>
                                     <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--success, #10b981);">
                                         <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
                                             <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
-                                            Montant payé
+                                            {% trans "Montant payé" %}
                                         </h3>
                                         <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.montant_total_paye_classe|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
                                     </div>
                                     <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--success, #10b981);">
                                         <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
                                             <i class="fas fa-user-check" style="margin-right: 0.5rem;"></i>
-                                            Élèves en règle
+                                            {% trans "Élèves en règle" %}
                                         </h3>
                                         <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.eleves_en_regle_classe|default:0 }}</p>
                                     </div>
                                     <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--accent, #ef4444);">
                                         <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
                                             <i class="fas fa-user-times" style="margin-right: 0.5rem;"></i>
-                                            Élèves non en règle
+                                            {% trans "Élèves non en règle" %}
                                         </h3>
                                         <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ classe_data.eleves_non_en_regle_classe|default:0 }}</p>
                                     </div>
@@ -226,7 +228,7 @@
                                             <input type="text" 
                                                    class="search-input" 
                                                    id="search-input-{{ classe_data.classe.id }}" 
-                                                   placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                                                   placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
                                                    oninput="filterStudentsComptabilite('{{ classe_data.classe.id }}')"
                                                    style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
                                             <button class="clear-search" 
@@ -241,37 +243,37 @@
                                             <div class="filter-group" style="flex: 1; min-width: 200px;">
                                                 <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                                     <i class="fas fa-tag"></i>
-                                                    Statut de paiement
+                                                    {% trans "Statut de paiement" %}
                                                 </label>
                                                 <select class="filter-select" id="filter-statut-{{ classe_data.classe.id }}" onchange="filterStudentsComptabilite('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                    <option value="">Tous</option>
-                                                    <option value="a_jour">À jour</option>
-                                                    <option value="en_retard">Non en règle</option>
-                                                    <option value="impaye">Non en règle</option>
+                                                    <option value="">{% trans "Tous" %}</option>
+                                                    <option value="a_jour">{% trans "À jour" %}</option>
+                                                    <option value="en_retard">{% trans "Non en règle" %}</option>
+                                                    <option value="impaye">{% trans "Non en règle" %}</option>
                                                 </select>
                                             </div>
                                             
                                             <button class="btn-reset-filters" onclick="resetFiltersComptabilite('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                                 <i class="fas fa-redo"></i>
-                                                Réinitialiser
+                                                {% trans "Réinitialiser" %}
                                             </button>
                                         </div>
                                         
                                         <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                         </div>
                                     </div>
 
                                     {% if classe_data.eleves %}
                                         <div class="students-list">
                                             <div class="list-header">
-                                                <div class="list-cell header-cell">Élève</div>
-                                                <div class="list-cell header-cell">Frais d'inscription</div>
-                                                <div class="list-cell header-cell">Total dû</div>
-                                                <div class="list-cell header-cell">Total payé</div>
-                                                <div class="list-cell header-cell">Reste à payer</div>
-                                                <div class="list-cell header-cell">Statut</div>
-                                                <div class="list-cell header-cell">Actions</div>
+                                                <div class="list-cell header-cell">{% trans "Élève" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Frais d'inscription" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Total dû" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Total payé" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Reste à payer" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Statut" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Actions" %}</div>
                                             </div>
                                             
                                             {% for eleve_data in classe_data.eleves %}
@@ -311,11 +313,11 @@
                                                     <div class="list-cell" data-label="Statut">
                                                         {% if eleve_data.est_non_en_regle %}
                                                             <span class="statut-badge statut-non_en_regle" style="display: inline-block; padding: 0.375rem 0.75rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-                                                                Non en règle
+                                                                {% trans "Non en règle" %}
                                                             </span>
                                                         {% else %}
                                                             <span class="statut-badge statut-a_jour" style="display: inline-block; padding: 0.375rem 0.75rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                                                                À jour
+                                                                {% trans "À jour" %}
                                                             </span>
                                                         {% endif %}
                                                     </div>
@@ -324,7 +326,7 @@
                                                         <div class="student-actions-compact">
                                                             <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" 
                                                                class="btn-action-icon" 
-                                                               title="Voir les détails de la comptabilité"
+                                                               title="{% trans "Voir les détails de la comptabilité" %}"
                                                                style="background: var(--primary, #3b82f6); color: white; padding: 0.625rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; width: 40px; height: 40px; transition: all 0.3s ease;">
                                                                 <i class="fas fa-eye"></i>
                                                             </a>
@@ -339,8 +341,8 @@
                                             <div class="empty-icon">
                                                 <i class="fas fa-user-slash"></i>
                                             </div>
-                                            <h3 class="empty-title">Aucun élève inscrit</h3>
-                                            <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                                            <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
+                                            <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
                                         </div>
                                     {% endif %}
                                 </div>

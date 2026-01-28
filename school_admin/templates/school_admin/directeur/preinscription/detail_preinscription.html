@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,7 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
-    <style>
+    {% trans "<style>
         .detail-container {
             max-width: 1000px;
             margin: 0 auto;
@@ -218,7 +220,7 @@
                 justify-content: center;
             }
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -231,11 +233,11 @@
             <div class="page-title-section">
                 <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-back" style="margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--gray-600);">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour à la liste</span>
+                    <span>{% trans "Retour à la liste" %}</span>
                 </a>
                 <h1 class="page-title">
                     <i class="fas fa-file-alt"></i>
-                    Détails de la préinscription
+                    {% trans "Détails de la préinscription" %}
                 </h1>
                 <p class="page-subtitle">
                     {{ preinscription.nom }} {{ preinscription.prenom }}
@@ -252,7 +254,7 @@
                 <div class="detail-card-header">
                     <h2>
                         <i class="fas fa-info-circle"></i>
-                        Statut de la préinscription
+                        {% trans "Statut de la préinscription" %}
                     </h2>
                     <span class="status-badge-large {{ preinscription.statut }}">
                         {% if preinscription.statut == 'en_attente' %}
@@ -268,7 +270,7 @@
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-calendar-alt"></i>
-                            Date de soumission
+                            {% trans "Date de soumission" %}
                         </div>
                         <div class="info-value">{{ preinscription.date_soumission|date:"d/m/Y à H:i" }}</div>
                     </div>
@@ -276,7 +278,7 @@
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-check-double"></i>
-                            Date de validation
+                            {% trans "Date de validation" %}
                         </div>
                         <div class="info-value">{{ preinscription.date_validation|date:"d/m/Y à H:i" }}</div>
                     </div>
@@ -285,7 +287,7 @@
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-user-check"></i>
-                            Validé par
+                            {% trans "Validé par" %}
                         </div>
                         <div class="info-value">{{ preinscription.valide_par.directeur_prenom }} {{ preinscription.valide_par.directeur_nom }}</div>
                     </div>
@@ -297,41 +299,41 @@
             <div class="detail-card">
                 <h2 class="section-title">
                     <i class="fas fa-user-graduate"></i>
-                    Informations de l'élève
+                    {% trans "Informations de l'élève" %}
                 </h2>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-id-card"></i>
-                            Nom complet
+                            {% trans "Nom complet" %}
                         </div>
                         <div class="info-value">{{ preinscription.nom }} {{ preinscription.prenom }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-calendar-alt"></i>
-                            Date de naissance
+                            {% trans "Date de naissance" %}
                         </div>
                         <div class="info-value">{{ preinscription.date_naissance|date:"d/m/Y" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-map-marker-alt"></i>
-                            Lieu de naissance
+                            {% trans "Lieu de naissance" %}
                         </div>
                         <div class="info-value">{{ preinscription.lieu_naissance }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-venus-mars"></i>
-                            Sexe
+                            {% trans "Sexe" %}
                         </div>
                         <div class="info-value">{{ preinscription.get_sexe_display }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-flag"></i>
-                            Nationalité
+                            {% trans "Nationalité" %}
                         </div>
                         <div class="info-value">{{ preinscription.nationalite }}</div>
                     </div>
@@ -339,7 +341,7 @@
                     <div class="info-item" style="grid-column: 1 / -1;">
                         <div class="info-label">
                             <i class="fas fa-home"></i>
-                            Adresse
+                            {% trans "Adresse" %}
                         </div>
                         <div class="info-value">{{ preinscription.adresse }}</div>
                     </div>
@@ -351,14 +353,14 @@
             <div class="detail-card">
                 <h2 class="section-title">
                     <i class="fas fa-graduation-cap"></i>
-                    Informations scolaires
+                    {% trans "Informations scolaires" %}
                 </h2>
                 <div class="info-grid">
                     {% if preinscription.classe_souhaitee %}
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-chalkboard"></i>
-                            Classe souhaitée
+                            {% trans "Classe souhaitée" %}
                         </div>
                         <div class="info-value">{{ preinscription.classe_souhaitee.nom }} ({{ preinscription.classe_souhaitee.get_niveau_display }})</div>
                     </div>
@@ -366,7 +368,7 @@
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-user-check"></i>
-                            Type d'inscription
+                            {% trans "Type d'inscription" %}
                         </div>
                         <div class="info-value">{{ preinscription.get_statut_inscription_display }}</div>
                     </div>
@@ -377,27 +379,27 @@
             <div class="detail-card">
                 <h2 class="section-title">
                     <i class="fas fa-user-friends"></i>
-                    Informations du parent/tuteur
+                    {% trans "Informations du parent/tuteur" %}
                 </h2>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-id-card"></i>
-                            Nom complet
+                            {% trans "Nom complet" %}
                         </div>
                         <div class="info-value">{{ preinscription.parent_prenom }} {{ preinscription.parent_nom }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-phone"></i>
-                            Téléphone
+                            {% trans "Téléphone" %}
                         </div>
                         <div class="info-value">{{ preinscription.parent_telephone }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-link"></i>
-                            Lien avec l'élève
+                            {% trans "Lien avec l'élève" %}
                         </div>
                         <div class="info-value">{{ preinscription.get_parent_lien_display }}</div>
                     </div>
@@ -405,7 +407,7 @@
                     <div class="info-item">
                         <div class="info-label">
                             <i class="fas fa-briefcase"></i>
-                            Profession
+                            {% trans "Profession" %}
                         </div>
                         <div class="info-value">{{ preinscription.parent_profession }}</div>
                     </div>
@@ -414,7 +416,7 @@
                     <div class="info-item" style="grid-column: 1 / -1;">
                         <div class="info-label">
                             <i class="fas fa-home"></i>
-                            Adresse
+                            {% trans "Adresse" %}
                         </div>
                         <div class="info-value">{{ preinscription.parent_adresse }}</div>
                     </div>
@@ -428,7 +430,7 @@
                 <div class="comment-box">
                     <h4>
                         <i class="fas fa-comment-alt"></i>
-                        Commentaires du parent
+                        {% trans "Commentaires du parent" %}
                     </h4>
                     <p>{{ preinscription.commentaires_parent }}</p>
                 </div>
@@ -440,7 +442,7 @@
                 <div class="comment-box">
                     <h4>
                         <i class="fas fa-sticky-note"></i>
-                        Commentaires de l'établissement
+                        {% trans "Commentaires de l'établissement" %}
                     </h4>
                     <p>{{ preinscription.commentaires_etablissement }}</p>
                 </div>
@@ -453,15 +455,15 @@
                 <div class="actions-container">
                     <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-action btn-back">
                         <i class="fas fa-arrow-left"></i>
-                        <span>Retour</span>
+                        <span>{% trans "Retour" %}</span>
                     </a>
                     <button type="button" class="btn-action btn-validate" onclick="validerPreinscription()">
                         <i class="fas fa-check"></i>
-                        <span>Valider la préinscription</span>
+                        <span>{% trans "Valider la préinscription" %}</span>
                     </button>
                     <button type="button" class="btn-action btn-reject" onclick="rejeterPreinscription()">
                         <i class="fas fa-times"></i>
-                        <span>Rejeter la préinscription</span>
+                        <span>{% trans "Rejeter la préinscription" %}</span>
                     </button>
                 </div>
             </div>
@@ -470,7 +472,7 @@
                 <div class="actions-container">
                     <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-action btn-back">
                         <i class="fas fa-arrow-left"></i>
-                        <span>Retour à la liste</span>
+                        <span>{% trans "Retour à la liste" %}</span>
                     </a>
                 </div>
             </div>
@@ -478,7 +480,7 @@
         </div>
     </div>
 
-    <script>
+    {% trans "<script>
         function validerPreinscription() {
             if (!confirm('Êtes-vous sûr de vouloir valider cette préinscription ?')) {
                 return;
@@ -538,7 +540,7 @@
                 alert('Une erreur est survenue.');
             });
         }
-    </script>
+    </script>" %}
 </body>
 </html>
 

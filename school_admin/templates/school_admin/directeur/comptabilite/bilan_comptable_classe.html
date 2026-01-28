@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,7 +24,7 @@
         href="{% static 'school_admin/css/partials/messages.css' %}"
     />
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    {% trans "<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -385,7 +387,7 @@
                 font-size: 0.8125rem;
             }
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -416,7 +418,7 @@
             <div class="page-actions">
                 <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour
+                    {% trans "Retour" %}
                 </a>
             </div>
         </div>
@@ -433,18 +435,18 @@
             <div class="stats-grid">
                 <div class="stat-card success">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Total Élèves</span>
+                        <span class="stat-card-title">{% trans "Total Élèves" %}</span>
                         <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
                             <i class="fas fa-users"></i>
                         </div>
                     </div>
                     <div class="stat-card-value">{{ total_eleves }}</div>
-                    <div class="stat-card-subtitle">Élèves de la classe</div>
+                    <div class="stat-card-subtitle">{% trans "Élèves de la classe" %}</div>
                 </div>
                 
                 <div class="stat-card success">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Élèves à Jour</span>
+                        <span class="stat-card-title">{% trans "Élèves à Jour" %}</span>
                         <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
                             <i class="fas fa-check-circle"></i>
                         </div>
@@ -455,7 +457,7 @@
                 
                 <div class="stat-card warning">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Élèves en Retard</span>
+                        <span class="stat-card-title">{% trans "Élèves en Retard" %}</span>
                         <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
@@ -466,7 +468,7 @@
                 
                 <div class="stat-card danger">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Élèves Impayés</span>
+                        <span class="stat-card-title">{% trans "Élèves Impayés" %}</span>
                         <div class="stat-card-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--accent, #ef4444);">
                             <i class="fas fa-times-circle"></i>
                         </div>
@@ -477,18 +479,18 @@
                 
                 <div class="stat-card info">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Total Dû</span>
+                        <span class="stat-card-title">{% trans "Total Dû" %}</span>
                         <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
                             <i class="fas fa-money-bill-wave"></i>
                         </div>
                     </div>
                     <div class="stat-card-value">{{ total_du_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                    <div class="stat-card-subtitle">Montant total à collecter</div>
+                    <div class="stat-card-subtitle">{% trans "Montant total à collecter" %}</div>
                 </div>
                 
                 <div class="stat-card success">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Total Payé</span>
+                        <span class="stat-card-title">{% trans "Total Payé" %}</span>
                         <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
                             <i class="fas fa-check"></i>
                         </div>
@@ -502,18 +504,18 @@
                 
                 <div class="stat-card warning">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Reste à Payer</span>
+                        <span class="stat-card-title">{% trans "Reste à Payer" %}</span>
                         <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
                             <i class="fas fa-clock"></i>
                         </div>
                     </div>
                     <div class="stat-card-value">{{ total_reste_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                    <div class="stat-card-subtitle">Montant restant à collecter</div>
+                    <div class="stat-card-subtitle">{% trans "Montant restant à collecter" %}</div>
                 </div>
                 
                 <div class="stat-card info">
                     <div class="stat-card-header">
-                        <span class="stat-card-title">Total Paiements</span>
+                        <span class="stat-card-title">{% trans "Total Paiements" %}</span>
                         <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
                             <i class="fas fa-receipt"></i>
                         </div>
@@ -529,7 +531,7 @@
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-chart-bar"></i>
-                    Visualisations Graphiques
+                    {% trans "Visualisations Graphiques" %}
                 </h2>
             </div>
             
@@ -538,7 +540,7 @@
                 <div class="chart-container">
                     <h3 class="chart-title">
                         <i class="fas fa-line-chart"></i>
-                        Évolution des Paiements par Mois
+                        {% trans "Évolution des Paiements par Mois" %}
                     </h3>
                     <div class="chart-wrapper">
                         <canvas id="evolutionPaiementsChart"></canvas>
@@ -549,7 +551,7 @@
                 <div class="chart-container">
                     <h3 class="chart-title">
                         <i class="fas fa-pie-chart"></i>
-                        Répartition des Modes de Paiement
+                        {% trans "Répartition des Modes de Paiement" %}
                     </h3>
                     <div class="chart-wrapper">
                         <canvas id="modesPaiementChart"></canvas>
@@ -560,7 +562,7 @@
                 <div class="chart-container">
                     <h3 class="chart-title">
                         <i class="fas fa-balance-scale"></i>
-                        Montants Dûs vs Payés
+                        {% trans "Montants Dûs vs Payés" %}
                     </h3>
                     <div class="chart-wrapper">
                         <canvas id="montantsDusPayesChart"></canvas>
@@ -571,7 +573,7 @@
                 <div class="chart-container">
                     <h3 class="chart-title">
                         <i class="fas fa-percentage"></i>
-                        Taux de Recouvrement par Mois
+                        {% trans "Taux de Recouvrement par Mois" %}
                     </h3>
                     <div class="chart-wrapper">
                         <canvas id="tauxRecouvrementChart"></canvas>
@@ -582,7 +584,7 @@
                 <div class="chart-container">
                     <h3 class="chart-title">
                         <i class="fas fa-exclamation-triangle"></i>
-                        Élèves en Retard/Impayés par Mois
+                        {% trans "Élèves en Retard/Impayés par Mois" %}
                     </h3>
                     <div class="chart-wrapper">
                         <canvas id="elevesRetardChart"></canvas>
@@ -596,7 +598,7 @@
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-calendar-week"></i>
-                    Statistiques par Mois
+                    {% trans "Statistiques par Mois" %}
                 </h2>
             </div>
             
@@ -604,14 +606,14 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Période</th>
-                            <th class="text-center">Élèves Total</th>
-                            <th class="text-center">En Retard</th>
-                            <th class="text-center">Impayés</th>
-                            <th class="text-right">Montant Dû</th>
-                            <th class="text-right">Montant Payé</th>
-                            <th class="text-right">Reste à Payer</th>
-                            <th class="text-right">Taux Recouvrement</th>
+                            <th>{% trans "Période" %}</th>
+                            <th class="text-center">{% trans "Élèves Total" %}</th>
+                            <th class="text-center">{% trans "En Retard" %}</th>
+                            <th class="text-center">{% trans "Impayés" %}</th>
+                            <th class="text-right">{% trans "Montant Dû" %}</th>
+                            <th class="text-right">{% trans "Montant Payé" %}</th>
+                            <th class="text-right">{% trans "Reste à Payer" %}</th>
+                            <th class="text-right">{% trans "Taux Recouvrement" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -655,7 +657,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="8" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
-                                Aucune donnée disponible pour cette période
+                                {% trans "Aucune donnée disponible pour cette période" %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -669,7 +671,7 @@
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-credit-card"></i>
-                    Paiements par Mode de Paiement
+                    {% trans "Paiements par Mode de Paiement" %}
                 </h2>
             </div>
             
@@ -677,10 +679,10 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Mode de Paiement</th>
-                            <th class="text-center">Nombre</th>
-                            <th class="text-right">Montant Total</th>
-                            <th class="text-right">Pourcentage</th>
+                            <th>{% trans "Mode de Paiement" %}</th>
+                            <th class="text-center">{% trans "Nombre" %}</th>
+                            <th class="text-right">{% trans "Montant Total" %}</th>
+                            <th class="text-right">{% trans "Pourcentage" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -696,7 +698,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="4" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
-                                Aucun paiement enregistré
+                                {% trans "Aucun paiement enregistré" %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -710,7 +712,7 @@
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-user-graduate"></i>
-                    Statistiques par Élève
+                    {% trans "Statistiques par Élève" %}
                 </h2>
             </div>
             
@@ -718,11 +720,11 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Élève</th>
-                            <th class="text-center">Statut</th>
-                            <th class="text-right">Montant Dû</th>
-                            <th class="text-right">Montant Payé</th>
-                            <th class="text-right">Reste à Payer</th>
+                            <th>{% trans "Élève" %}</th>
+                            <th class="text-center">{% trans "Statut" %}</th>
+                            <th class="text-right">{% trans "Montant Dû" %}</th>
+                            <th class="text-right">{% trans "Montant Payé" %}</th>
+                            <th class="text-right">{% trans "Reste à Payer" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -734,11 +736,11 @@
                             </td>
                             <td class="text-center">
                                 {% if eleve_stat.statut == 'a_jour' %}
-                                    <span class="badge badge-success">À jour</span>
+                                    <span class="badge badge-success">{% trans "À jour" %}</span>
                                 {% elif eleve_stat.statut == 'en_retard' %}
-                                    <span class="badge badge-warning">En retard</span>
+                                    <span class="badge badge-warning">{% trans "En retard" %}</span>
                                 {% elif eleve_stat.statut == 'impaye' %}
-                                    <span class="badge badge-danger">Impayé</span>
+                                    <span class="badge badge-danger">{% trans "Impayé" %}</span>
                                 {% endif %}
                             </td>
                             <td class="text-right">{{ eleve_stat.montant_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
@@ -754,7 +756,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="5" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
-                                Aucun élève trouvé
+                                {% trans "Aucun élève trouvé" %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -765,7 +767,7 @@
     </div>
     
     <!-- Scripts pour les graphiques Chart.js -->
-    <script>
+    {% trans "<script>
         // Configuration globale de Chart.js
         Chart.defaults.font.family = "'Poppins', sans-serif";
         Chart.defaults.font.size = 12;
@@ -1065,7 +1067,7 @@
                 }
             }
         });
-    </script>
+    </script>" %}
 </body>
 </html>
 

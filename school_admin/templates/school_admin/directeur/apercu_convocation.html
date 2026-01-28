@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,28 +29,28 @@
 
         <!-- Titre du document -->
         <div class="document-title">
-            <h2>CONVOCATION</h2>
+            <h2>{% trans "CONVOCATION" %}</h2>
         </div>
 
         <!-- Corps de la convocation -->
         <div class="convocation-body">
             <div class="destinataire-section">
-                <p class="destinataire-label">À l'attention de :</p>
+                <p class="destinataire-label">{% trans "À l'attention de :" %}</p>
                 <div class="destinataire-box">
-                    <p><strong>Parent(s) / Tuteur(s) légal(aux) de :</strong></p>
+                    <p><strong>{% trans "Parent(s) / Tuteur(s) légal(aux) de :" %}</strong></p>
                     <p class="eleve-nom-convocation">{{ eleve.nom|upper }} {{ eleve.prenom }}</p>
-                    <p>Élève en classe de <strong>{{ eleve.classe.nom }}</strong></p>
-                    <p>Numéro d'élève : <strong>{{ eleve.numero_eleve }}</strong></p>
+                    <p>{% trans "Élève en classe de" %} <strong>{{ eleve.classe.nom }}</strong></p>
+                    <p>{% trans "Numéro d'élève :" %} <strong>{{ eleve.numero_eleve }}</strong></p>
                 </div>
             </div>
 
             <div class="objet-section">
-                <p class="objet-label">Objet :</p>
+                <p class="objet-label">{% trans "Objet :" %}</p>
                 <p class="objet-text">{{ convocation.objet }}</p>
             </div>
 
             <div class="message-section">
-                <p class="message-intro">Madame, Monsieur,</p>
+                <p class="message-intro">{% trans "Madame, Monsieur," %}</p>
                 
                 <p class="message-text">
                     {{ convocation.motif|linebreaks }}
@@ -56,30 +58,30 @@
 
                 <div class="rdv-box">
                     <div class="rdv-item">
-                        <span class="rdv-label">Date :</span>
+                        <span class="rdv-label">{% trans "Date :" %}</span>
                         <span class="rdv-value">{{ convocation.date_convocation|date:"d/m/Y" }}</span>
                     </div>
                     <div class="rdv-item">
-                        <span class="rdv-label">Heure :</span>
+                        <span class="rdv-label">{% trans "Heure :" %}</span>
                         <span class="rdv-value">{{ convocation.heure_convocation }}</span>
                     </div>
                     <div class="rdv-item">
-                        <span class="rdv-label">Lieu :</span>
+                        <span class="rdv-label">{% trans "Lieu :" %}</span>
                         <span class="rdv-value">{{ convocation.lieu }}</span>
                     </div>
                 </div>
 
                 <p class="message-text">
-                    Votre présence est <strong>vivement souhaitée</strong>.
+                    {% trans "Votre présence est" %} <strong>{% trans "vivement souhaitée" %}</strong>.
                 </p>
 
                 <p class="message-text">
-                    En cas d'empêchement, nous vous prions de bien vouloir prendre contact avec 
-                    l'établissement pour convenir d'un autre rendez-vous.
+                    {% trans "En cas d'empêchement, nous vous prions de bien vouloir prendre contact avec" %}
+                    {% trans "l'établissement pour convenir d'un autre rendez-vous." %}
                 </p>
 
                 <p class="message-formule">
-                    Nous vous prions d'agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
+                    {% trans "Nous vous prions d'agréer, Madame, Monsieur, l'expression de nos salutations distinguées." %}
                 </p>
             </div>
 
@@ -91,7 +93,7 @@
         <!-- Signature -->
         <div class="signature-section">
             <div class="signature-box">
-                <p class="signature-title">Le Directeur</p>
+                <p class="signature-title">{% trans "Le Directeur" %}</p>
                 <div class="signature-line"></div>
                 <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
             </div>
@@ -109,15 +111,15 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer la convocation
+            {% trans "Imprimer la convocation" %}
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>" %}
 </body>
 </html>
 

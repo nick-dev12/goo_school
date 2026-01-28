@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -46,11 +48,11 @@
             <div class="page-actions">
                 <a href="{% url 'directeur:generer_convocation' eleve.id %}" class="btn-primary">
                     <i class="fas fa-plus"></i>
-                    <span>Nouvelle convocation</span>
+                    <span>{% trans "Nouvelle convocation" %}</span>
                 </a>
                 <a href="{% url 'directeur:convocation_liste' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour à la liste</span>
+                    <span>{% trans "Retour à la liste" %}</span>
                 </a>
             </div>
         </div>
@@ -66,7 +68,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seules les convocations de cette année scolaire sont affichées.
+              {% trans "Seules les convocations de cette année scolaire sont affichées." %}
             </p>
           </div>
         </div>
@@ -74,7 +76,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Toutes les convocations sont affichées.
+            {% trans "Aucune année scolaire active. Toutes les convocations sont affichées." %}
           </span>
         </div>
         {% endif %}
@@ -122,7 +124,7 @@
                                     </span>
                                     {% if convocation.est_passee %}
                                         <span class="passee-badge">
-                                            <i class="fas fa-history"></i> Passée
+                                            <i class="fas fa-history"></i> {% trans "Passée" %}
                                         </span>
                                     {% endif %}
                                 </div>
@@ -133,20 +135,20 @@
                                 <div class="convocation-info">
                                     <div class="info-row">
                                         <i class="fas fa-calendar"></i>
-                                        <span><strong>Date :</strong> {{ convocation.date_convocation|date:"d/m/Y" }}</span>
+                                        <span><strong>{% trans "Date :" %}</strong> {{ convocation.date_convocation|date:"d/m/Y" }}</span>
                                     </div>
                                     <div class="info-row">
                                         <i class="fas fa-clock"></i>
-                                        <span><strong>Heure :</strong> {{ convocation.heure_convocation }}</span>
+                                        <span><strong>{% trans "Heure :" %}</strong> {{ convocation.heure_convocation }}</span>
                                     </div>
                                     <div class="info-row">
                                         <i class="fas fa-map-marker-alt"></i>
-                                        <span><strong>Lieu :</strong> {{ convocation.lieu }}</span>
+                                        <span><strong>{% trans "Lieu :" %}</strong> {{ convocation.lieu }}</span>
                                     </div>
                                 </div>
 
                                 <div class="convocation-motif">
-                                    <p class="motif-label"><i class="fas fa-file-alt"></i> Motif :</p>
+                                    <p class="motif-label"><i class="fas fa-file-alt"></i> {% trans "Motif :" %}</p>
                                     <p class="motif-text">{{ convocation.motif|truncatewords:20 }}</p>
                                 </div>
 
@@ -164,13 +166,13 @@
                                    target="_blank"
                                    title="Imprimer">
                                     <i class="fas fa-print"></i>
-                                    Imprimer
+                                    {% trans "Imprimer" %}
                                 </a>
                                 <a href="#" 
                                    class="btn-action btn-details"
-                                   title="Voir les détails">
+                                   title="{% trans "Voir les détails" %}">
                                     <i class="fas fa-eye"></i>
-                                    Détails
+                                    {% trans "Détails" %}
                                 </a>
                             </div>
                         </div>
@@ -181,13 +183,13 @@
                     <div class="empty-icon">
                         <i class="fas fa-inbox"></i>
                     </div>
-                    <h3 class="empty-title">Aucune convocation</h3>
+                    <h3 class="empty-title">{% trans "Aucune convocation" %}</h3>
                     <p class="empty-description">
-                        Cet élève n'a encore reçu aucune convocation.
+                        {% trans "Cet élève n'a encore reçu aucune convocation." %}
                     </p>
                     <a href="{% url 'directeur:generer_convocation' eleve.id %}" class="btn-primary">
                         <i class="fas fa-plus"></i>
-                        Créer une convocation
+                        {% trans "Créer une convocation" %}
                     </a>
                 </div>
             {% endif %}

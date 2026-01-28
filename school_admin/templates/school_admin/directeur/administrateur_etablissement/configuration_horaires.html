@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,7 +25,7 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-clock"></i>
-                    Configuration des Horaires
+                    {% trans "Configuration des Horaires" %}
                 </h1>
                 <p class="page-subtitle">
                     Définissez les horaires de cours et les pauses pour {{ etablissement.nom }}
@@ -32,7 +34,7 @@
             <div class="page-actions">
                 <button type="button" class="btn-add btn-primary" id="btnOuvrirModalPeriodes">
                     <i class="fas fa-cogs"></i>
-                    <span>Gérer les Périodes</span>
+                    <span>{% trans "Gérer les Périodes" %}</span>
                 </button>
             </div>
         </div>
@@ -42,7 +44,7 @@
         <div class="alert alert-info" style="background: var(--primary-light, rgba(59, 130, 246, 0.1)); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--primary, #3b82f6); display: flex; align-items: center; gap: 0.75rem;">
             <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6);"></i>
             <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-                Configuration des horaires pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+                {% trans "Configuration des horaires pour l'année scolaire" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
             </span>
         </div>
         {% endif %}
@@ -52,20 +54,20 @@
             <div class="form-card-header">
                 <h2>
                     <i class="fas fa-calendar-alt"></i>
-                    Horaires d'Établissement
+                    {% trans "Horaires d'Établissement" %}
                 </h2>
                 {% if configuration.heure_debut_cours and not request.GET.mode == 'edit' %}
                     <div class="form-card-header-actions">
                         <a href="?mode=edit" class="btn-edit">
                             <i class="fas fa-edit"></i>
-                            <span>Modifier</span>
+                            <span>{% trans "Modifier" %}</span>
                         </a>
                         <form method="post" action="{% url 'administrateur_etablissement:configuration_horaires' %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir réinitialiser cette configuration ?');">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="supprimer">
                             <button type="submit" class="btn-delete">
                                 <i class="fas fa-trash"></i>
-                                <span>Supprimer</span>
+                                <span>{% trans "Supprimer" %}</span>
                             </button>
                         </form>
                     </div>
@@ -79,7 +81,7 @@
                     <div class="info-grid">
                         <div class="info-item" style="border-left-color: #667eea;">
                             <div class="info-item-label">
-                                <i class="fas fa-sun"></i> Heure de début des cours
+                                <i class="fas fa-sun"></i> {% trans "Heure de début des cours" %}
                             </div>
                             <div class="info-item-value">
                                 {{ form_data.heure_debut_cours }}
@@ -87,7 +89,7 @@
                         </div>
                         <div class="info-item" style="border-left-color: #764ba2;">
                             <div class="info-item-label">
-                                <i class="fas fa-moon"></i> Heure de fin des cours
+                                <i class="fas fa-moon"></i> {% trans "Heure de fin des cours" %}
                             </div>
                             <div class="info-item-value">
                                 {{ form_data.heure_fin_cours }}
@@ -101,7 +103,7 @@
                             {% if pauses %}
                                 <div class="pauses-section">
                                     <h3 class="pauses-title">
-                                        <i class="fas fa-coffee"></i> Pauses configurées
+                                        <i class="fas fa-coffee"></i> {% trans "Pauses configurées" %}
                                     </h3>
                                     <div class="pauses-grid">
                                         {% for periode in pauses %}
@@ -135,7 +137,7 @@
                     <div class="form-group">
                         <label class="form-label" for="heure_debut_cours">
                             <i class="fas fa-sun"></i>
-                            Heure de début des cours *
+                            {% trans "Heure de début des cours *" %}
                         </label>
                         <input type="time" 
                                class="form-control {% if field_errors.heure_debut_cours %}is-invalid{% endif %}" 
@@ -151,7 +153,7 @@
                     <div class="form-group">
                         <label class="form-label" for="heure_fin_cours">
                             <i class="fas fa-moon"></i>
-                            Heure de fin des cours *
+                            {% trans "Heure de fin des cours *" %}
                         </label>
                         <input type="time" 
                                class="form-control {% if field_errors.heure_fin_cours %}is-invalid{% endif %}" 
@@ -168,11 +170,11 @@
                     <div class="form-actions">
                         <a href="{% url 'directeur:gestion_pedagogique' %}" class="btn-cancel">
                             <i class="fas fa-times"></i>
-                            <span>Annuler</span>
+                            <span>{% trans "Annuler" %}</span>
                         </a>
                         <button type="submit" class="btn-submit">
                             <i class="fas fa-save"></i>
-                            <span>Enregistrer</span>
+                            <span>{% trans "Enregistrer" %}</span>
                         </button>
                     </div>
                 </form>
@@ -192,11 +194,11 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Nom</th>
-                                <th>Type</th>
-                                <th>Horaire</th>
-                                <th>Durée</th>
-                                <th>Actions</th>
+                                <th>{% trans "Nom" %}</th>
+                                <th>{% trans "Type" %}</th>
+                                <th>{% trans "Horaire" %}</th>
+                                <th>{% trans "Durée" %}</th>
+                                <th>{% trans "Actions" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -223,7 +225,7 @@
                                                     onclick="openEditPeriodeModal(this)"
                                                     style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.875rem;">
                                                 <i class="fas fa-pen"></i>
-                                                Modifier
+                                                {% trans "Modifier" %}
                                             </button>
                                             <button type="button"
                                                     class="btn-action-delete"
@@ -232,7 +234,7 @@
                                                     onclick="openDeletePeriodeModal(this)"
                                                     style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.875rem;">
                                                 <i class="fas fa-trash"></i>
-                                                Supprimer
+                                                {% trans "Supprimer" %}
                                             </button>
                                         </div>
                                     </td>
@@ -252,7 +254,7 @@
         <div class="modal-creneau-header">
           <h2 class="modal-creneau-title">
             <i class="fas fa-calendar-alt"></i>
-            Gestion des Périodes
+            {% trans "Gestion des Périodes" %}
           </h2>
           <button type="button" class="modal-creneau-close" id="btnFermerModalPeriodes">
             <i class="fas fa-times"></i>
@@ -265,7 +267,7 @@
           <div class="alert alert-info modal-alert-info">
             <i class="fas fa-info-circle"></i>
             <span>
-              Gestion des périodes pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+              {% trans "Gestion des périodes pour l'année scolaire" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
             </span>
           </div>
           {% endif %}
@@ -275,7 +277,7 @@
             <div class="form-card-header-creneau">
               <h2 class="form-card-title-creneau">
                 <i class="fas fa-plus-circle"></i>
-                Ajouter une Période
+                {% trans "Ajouter une Période" %}
               </h2>
             </div>
             
@@ -287,26 +289,26 @@
                 <div class="form-group">
                   <label for="nom" class="form-label required">
                     <i class="fas fa-tag"></i>
-                    Nom de la période
+                    {% trans "Nom de la période" %}
                   </label>
                   <input type="text" 
                          class="form-control" 
                          id="nom" 
                          name="nom" 
-                         placeholder="Ex: Période 7"
+                         placeholder="{% trans "Ex: Période 7" %}"
                          required>
                 </div>
                 
                 <div class="form-group">
                   <label for="type_periode" class="form-label required">
                     <i class="fas fa-list"></i>
-                    Type de période
+                    {% trans "Type de période" %}
                   </label>
                   <select class="form-control" id="type_periode" name="type_periode" required>
-                    <option value="">Sélectionnez un type</option>
-                    <option value="cours">Période de cours</option>
-                    <option value="pause">Pause/Récréation</option>
-                    <option value="dejeuner">Pause déjeuner</option>
+                    <option value="">{% trans "Sélectionnez un type" %}</option>
+                    <option value="cours">{% trans "Période de cours" %}</option>
+                    <option value="pause">{% trans "Pause/Récréation" %}</option>
+                    <option value="dejeuner">{% trans "Pause déjeuner" %}</option>
                   </select>
                 </div>
               </div>
@@ -315,7 +317,7 @@
                 <div class="form-group">
                   <label for="heure_debut" class="form-label required">
                     <i class="fas fa-clock"></i>
-                    Heure de début
+                    {% trans "Heure de début" %}
                   </label>
                   <input type="time" 
                          class="form-control" 
@@ -327,7 +329,7 @@
                 <div class="form-group">
                   <label for="heure_fin" class="form-label required">
                     <i class="fas fa-clock"></i>
-                    Heure de fin
+                    {% trans "Heure de fin" %}
                   </label>
                   <input type="time" 
                          class="form-control" 
@@ -340,7 +342,7 @@
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                   <i class="fas fa-plus"></i>
-                  <span>Ajouter la Période</span>
+                  <span>{% trans "Ajouter la Période" %}</span>
                 </button>
               </div>
             </form>
@@ -355,7 +357,7 @@
         <div class="modal-header" style="padding: 1.5rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;">
           <h3 id="editModalTitle" style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
             <i class="fas fa-pen-to-square"></i>
-            Modifier la période
+            {% trans "Modifier la période" %}
           </h3>
           <button type="button" class="modal-close" onclick="closePeriodeModal('periodeEditModal')" aria-label="Fermer la fenêtre" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.1rem;">
             <i class="fas fa-times"></i>
@@ -367,32 +369,32 @@
           <input type="hidden" name="periode_id" id="edit_periode_id">
           <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label for="edit_nom" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Nom de la période</label>
-              <input type="text" id="edit_nom" name="nom" required placeholder="Ex: Période 1" style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
+              <label for="edit_nom" style="font-size: 0.9rem; font-weight: 600; color: #374151;">{% trans "Nom de la période" %}</label>
+              <input type="text" id="edit_nom" name="nom" required placeholder="{% trans "Ex: Période 1" %}" style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
             </div>
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label for="edit_type" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Type de période</label>
+              <label for="edit_type" style="font-size: 0.9rem; font-weight: 600; color: #374151;">{% trans "Type de période" %}</label>
               <select id="edit_type" name="type_periode" required style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
-                <option value="cours">Période de cours</option>
-                <option value="pause">Pause / Récréation</option>
-                <option value="dejeuner">Pause déjeuner</option>
+                <option value="cours">{% trans "Période de cours" %}</option>
+                <option value="pause">{% trans "Pause / Récréation" %}</option>
+                <option value="dejeuner">{% trans "Pause déjeuner" %}</option>
               </select>
             </div>
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label for="edit_heure_debut" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Heure de début</label>
+              <label for="edit_heure_debut" style="font-size: 0.9rem; font-weight: 600; color: #374151;">{% trans "Heure de début" %}</label>
               <input type="time" id="edit_heure_debut" name="heure_debut" required style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
             </div>
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label for="edit_heure_fin" style="font-size: 0.9rem; font-weight: 600; color: #374151;">Heure de fin</label>
+              <label for="edit_heure_fin" style="font-size: 0.9rem; font-weight: 600; color: #374151;">{% trans "Heure de fin" %}</label>
               <input type="time" id="edit_heure_fin" name="heure_fin" required style="padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.95rem;">
             </div>
           </div>
           <div class="modal-footer" style="padding: 1.25rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e7eb; background: #f9fafb;">
             <button type="button" class="btn-secondary" onclick="closePeriodeModal('periodeEditModal')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
-              Annuler
+              {% trans "Annuler" %}
             </button>
             <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
-              Mettre à jour
+              {% trans "Mettre à jour" %}
             </button>
           </div>
         </form>
@@ -405,7 +407,7 @@
         <div class="modal-header" style="padding: 1.5rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: white;">
           <h3 id="deleteModalTitle" style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
             <i class="fas fa-triangle-exclamation"></i>
-            Supprimer la période
+            {% trans "Supprimer la période" %}
           </h3>
           <button type="button" class="modal-close" onclick="closePeriodeModal('periodeDeleteModal')" aria-label="Fermer la fenêtre" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.1rem;">
             <i class="fas fa-times"></i>
@@ -417,23 +419,23 @@
           <input type="hidden" name="periode_id" id="delete_periode_id">
           <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
             <p style="color: #374151; line-height: 1.5;">
-              Vous êtes sur le point de supprimer la période
+              {% trans "Vous êtes sur le point de supprimer la période" %}
               <strong id="delete_periode_name" style="color: #ef4444;"></strong>.
-              Cette action est définitive et supprimera tous les créneaux associés à cette période.
+              {% trans "Cette action est définitive et supprimera tous les créneaux associés à cette période." %}
             </p>
             <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(239, 68, 68, 0.08); padding: 0.85rem 1rem; border-radius: 12px;">
               <i class="fas fa-circle-info" style="color: #dc2626;"></i>
               <span style="font-size: 0.9rem; color: #991b1b;">
-                Assurez-vous qu'aucune plage horaire active n'utilise cette période avant de confirmer.
+                {% trans "Assurez-vous qu'aucune plage horaire active n'utilise cette période avant de confirmer." %}
               </span>
             </div>
           </div>
           <div class="modal-footer" style="padding: 1.25rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e7eb; background: #f9fafb;">
             <button type="button" class="btn-secondary" onclick="closePeriodeModal('periodeDeleteModal')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
-              Annuler
+              {% trans "Annuler" %}
             </button>
             <button type="submit" class="btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; cursor: pointer;">
-              Supprimer définitivement
+              {% trans "Supprimer définitivement" %}
             </button>
           </div>
         </form>

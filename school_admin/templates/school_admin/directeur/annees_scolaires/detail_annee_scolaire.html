@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
-    <style>
+    {% trans "<style>
 
         body { font-family: 'Poppins', sans-serif; background: var(--gray-50, #f9fafb); margin: 0 auto; padding: 0; }
         .main-content-container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
@@ -32,7 +34,7 @@
         .btn-warning { background: var(--warning, #fbbf24); color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; }
         .btn-warning:hover { background: #d97706; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(251, 191, 36, 0.3); }
         .actions-container { margin-top: 2rem; }
-    </style>
+    </style>" %}
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -43,74 +45,74 @@
         <div class="detail-container">
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Libellé</div>
+                    <div class="info-label">{% trans "Libellé" %}</div>
                     <div class="info-value">{{ annee_scolaire.libelle }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Période</div>
+                    <div class="info-label">{% trans "Période" %}</div>
                     <div class="info-value">{{ annee_scolaire.date_debut|date:"d/m/Y" }} - {{ annee_scolaire.date_fin|date:"d/m/Y" }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Statut</div>
+                    <div class="info-label">{% trans "Statut" %}</div>
                     <div class="info-value">
                         {% if annee_scolaire.est_active %}
-                            <span class="badge badge-active">Session Active</span>
+                            <span class="badge badge-active">{% trans "Session Active" %}</span>
                         {% else %}
-                            <span class="badge">Inactive</span>
+                            <span class="badge">{% trans "Inactive" %}</span>
                         {% endif %}
                         {% if annee_scolaire.est_ouverte %}
-                            <span class="badge" style="background: var(--info-light, rgba(139, 92, 246, 0.1)); color: var(--info, #8b5cf6);">Session Ouverte</span>
+                            <span class="badge" style="background: var(--info-light, rgba(139, 92, 246, 0.1)); color: var(--info, #8b5cf6);">{% trans "Session Ouverte" %}</span>
                         {% endif %}
                     </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Durée</div>
+                    <div class="info-label">{% trans "Durée" %}</div>
                     <div class="info-value">{{ annee_scolaire.duree_jours }} jours</div>
                 </div>
             </div>
             
-            <h2>Statistiques</h2>
+            <h2>{% trans "Statistiques" %}</h2>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value">{{ statistiques.nombre_eleves }}</div>
-                    <div class="stat-label">Élèves</div>
+                    <div class="stat-label">{% trans "Élèves" %}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ statistiques.nombre_evaluations }}</div>
-                    <div class="stat-label">Évaluations</div>
+                    <div class="stat-label">{% trans "Évaluations" %}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ statistiques.nombre_notes }}</div>
-                    <div class="stat-label">Notes</div>
+                    <div class="stat-label">{% trans "Notes" %}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ statistiques.nombre_moyennes }}</div>
-                    <div class="stat-label">Moyennes</div>
+                    <div class="stat-label">{% trans "Moyennes" %}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ statistiques.nombre_presences }}</div>
-                    <div class="stat-label">Présences</div>
+                    <div class="stat-label">{% trans "Présences" %}</div>
                 </div>
             </div>
             
             <div class="actions-container" style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
                 <a href="{% url 'directeur:gestion_periodes_scolaires' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour
+                    {% trans "Retour" %}
                 </a>
                 <a href="{% url 'directeur:modifier_annee_scolaire' annee_scolaire.id %}" class="btn-primary">
                     <i class="fas fa-edit"></i>
-                    Modifier
+                    {% trans "Modifier" %}
                 </a>
                 {% if annee_scolaire.est_active %}
                     <a href="{% url 'directeur:desactiver_annee_scolaire' annee_scolaire.id %}" class="btn-warning" onclick="return confirm('Êtes-vous sûr de vouloir désactiver cette session ?');">
                         <i class="fas fa-times-circle"></i>
-                        Désactiver la session
+                        {% trans "Désactiver la session" %}
                     </a>
                 {% else %}
                     <a href="{% url 'directeur:activer_annee_scolaire' annee_scolaire.id %}" class="btn-success">
                         <i class="fas fa-check-circle"></i>
-                        Activer la session
+                        {% trans "Activer la session" %}
                     </a>
                 {% endif %}
             </div>

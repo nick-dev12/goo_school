@@ -1,6 +1,8 @@
 {% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,12 +20,12 @@
             <div class="header-content">
                 <div class="header-title">
                     <i class="fas fa-link"></i>
-                    <h1>Affectations Salles-Classes</h1>
-                    <p>Gérez les affectations des salles aux classes</p>
+                    <h1>{% trans "Affectations Salles-Classes" %}</h1>
+                    <p>{% trans "Gérez les affectations des salles aux classes" %}</p>
                 </div>
                 <button class="btn-add-affectation" id="addAffectationBtn">
                     <i class="fas fa-plus"></i>
-                    <span>Nouvelle affectation</span>
+                    <span>{% trans "Nouvelle affectation" %}</span>
                 </button>
             </div>
         </div>
@@ -37,7 +39,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.total_affectations }}</div>
-                        <div class="stat-label">Total Affectations</div>
+                        <div class="stat-label">{% trans "Total Affectations" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -46,7 +48,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.affectations_actives }}</div>
-                        <div class="stat-label">Actives</div>
+                        <div class="stat-label">{% trans "Actives" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -55,7 +57,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.classes_affectees }}</div>
-                        <div class="stat-label">Classes Affectées</div>
+                        <div class="stat-label">{% trans "Classes Affectées" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -64,7 +66,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.salles_utilisees }}</div>
-                        <div class="stat-label">Salles Utilisées</div>
+                        <div class="stat-label">{% trans "Salles Utilisées" %}</div>
                     </div>
                 </div>
             </div>
@@ -75,15 +77,15 @@
             <div class="tabs-nav">
                 <button class="tab-btn active" data-tab="par-classe">
                     <i class="fas fa-chalkboard-teacher"></i>
-                    Par Classe
+                    {% trans "Par Classe" %}
                 </button>
                 <button class="tab-btn" data-tab="par-salle">
                     <i class="fas fa-door-open"></i>
-                    Par Salle
+                    {% trans "Par Salle" %}
                 </button>
                 <button class="tab-btn" data-tab="calendrier">
                     <i class="fas fa-calendar-alt"></i>
-                    Calendrier
+                    {% trans "Calendrier" %}
                 </button>
             </div>
 
@@ -120,11 +122,11 @@
                                             <div class="summary-stats">
                                                 <div class="stat-item">
                                                     <span class="stat-value">{{ groupe.total_affectations }}</span>
-                                                    <span class="stat-label">AFFECTATIONS</span>
+                                                    <span class="stat-label">{% trans "AFFECTATIONS" %}</span>
                                                 </div>
                                                 <div class="stat-item">
                                                     <span class="stat-value">{{ groupe.total_salles }}</span>
-                                                    <span class="stat-label">SALLES</span>
+                                                    <span class="stat-label">{% trans "SALLES" %}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -142,14 +144,14 @@
                                                             <p>{{ data.classe.niveau|title }}</p>
                                                         </div>
                                                         <div class="classe-status">
-                                                            <span class="status-badge active">ACTIVE</span>
+                                                            <span class="status-badge active">{% trans "ACTIVE" %}</span>
                                                         </div>
                                                     </div>
                                                     
                                                     <div class="classe-details">
                                                         <div class="detail-item">
                                                             <i class="fas fa-door-open"></i>
-                                                            <span class="detail-label">Salles affectées:</span>
+                                                            <span class="detail-label">{% trans "Salles affectées:" %}</span>
                                                             <div class="salles-list">
                                                                 {% for affectation in data.affectations %}
                                                                     <span class="salle-tag">
@@ -160,7 +162,7 @@
                                                         </div>
                                                         <div class="detail-item">
                                                             <i class="fas fa-calendar-day"></i>
-                                                            <span class="detail-label">Horaires:</span>
+                                                            <span class="detail-label">{% trans "Horaires:" %}</span>
                                                             <div class="horaires-list">
                                                                 {% for affectation in data.affectations %}
                                                                     <span class="horaire-tag">
@@ -177,11 +179,11 @@
                                                     <div class="classe-actions">
                                                         <a href="#" class="btn-action btn-detail">
                                                             <i class="fas fa-eye"></i>
-                                                            Détails
+                                                            {% trans "Détails" %}
                                                         </a>
                                                         <a href="#" class="btn-action btn-edit">
                                                             <i class="fas fa-edit"></i>
-                                                            Modifier
+                                                            {% trans "Modifier" %}
                                                         </a>
                                                     </div>
                                                 </div>
@@ -196,11 +198,11 @@
                             <div class="empty-icon">
                                 <i class="fas fa-link"></i>
                             </div>
-                            <h3>Aucune affectation trouvée</h3>
-                            <p>Commencez par créer des affectations entre vos classes et salles</p>
+                            <h3>{% trans "Aucune affectation trouvée" %}</h3>
+                            <p>{% trans "Commencez par créer des affectations entre vos classes et salles" %}</p>
                             <button class="btn-add-affectation" id="addAffectationBtnEmpty">
                                 <i class="fas fa-plus"></i>
-                                <span>Créer la première affectation</span>
+                                <span>{% trans "Créer la première affectation" %}</span>
                             </button>
                         </div>
                     {% endif %}
@@ -238,11 +240,11 @@
                                             <div class="summary-stats">
                                                 <div class="stat-item">
                                                     <span class="stat-value">{{ groupe.total_affectations }}</span>
-                                                    <span class="stat-label">AFFECTATIONS</span>
+                                                    <span class="stat-label">{% trans "AFFECTATIONS" %}</span>
                                                 </div>
                                                 <div class="stat-item">
                                                     <span class="stat-value">{{ groupe.total_classes }}</span>
-                                                    <span class="stat-label">CLASSES</span>
+                                                    <span class="stat-label">{% trans "CLASSES" %}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -260,14 +262,14 @@
                                                             <p>{{ data.salle.numero }} - {{ data.salle.get_type_salle_display }}</p>
                                                         </div>
                                                         <div class="salle-status">
-                                                            <span class="status-badge active">ACTIVE</span>
+                                                            <span class="status-badge active">{% trans "ACTIVE" %}</span>
                                                         </div>
                                                     </div>
                                                     
                                                     <div class="salle-details">
                                                         <div class="detail-item">
                                                             <i class="fas fa-chalkboard-teacher"></i>
-                                                            <span class="detail-label">Classes affectées:</span>
+                                                            <span class="detail-label">{% trans "Classes affectées:" %}</span>
                                                             <div class="classes-list">
                                                                 {% for affectation in data.affectations %}
                                                                     <span class="classe-tag">
@@ -278,7 +280,7 @@
                                                         </div>
                                                         <div class="detail-item">
                                                             <i class="fas fa-calendar-day"></i>
-                                                            <span class="detail-label">Horaires:</span>
+                                                            <span class="detail-label">{% trans "Horaires:" %}</span>
                                                             <div class="horaires-list">
                                                                 {% for affectation in data.affectations %}
                                                                     <span class="horaire-tag">
@@ -295,11 +297,11 @@
                                                     <div class="salle-actions">
                                                         <a href="#" class="btn-action btn-detail">
                                                             <i class="fas fa-eye"></i>
-                                                            Détails
+                                                            {% trans "Détails" %}
                                                         </a>
                                                         <a href="#" class="btn-action btn-edit">
                                                             <i class="fas fa-edit"></i>
-                                                            Modifier
+                                                            {% trans "Modifier" %}
                                                         </a>
                                                     </div>
                                                 </div>
@@ -314,8 +316,8 @@
                             <div class="empty-icon">
                                 <i class="fas fa-door-open"></i>
                             </div>
-                            <h3>Aucune salle affectée</h3>
-                            <p>Les salles n'ont pas encore été affectées à des classes.</p>
+                            <h3>{% trans "Aucune salle affectée" %}</h3>
+                            <p>{% trans "Les salles n'ont pas encore été affectées à des classes." %}</p>
                         </div>
                     {% endif %}
                 </div>
@@ -326,9 +328,9 @@
                         <div class="calendar-icon">
                             <i class="fas fa-calendar-alt"></i>
                         </div>
-                        <h3>Calendrier des Affectations</h3>
-                        <p>Cette fonctionnalité sera disponible dans une future version</p>
-                        <p>Elle permettra de visualiser les affectations sous forme de calendrier hebdomadaire</p>
+                        <h3>{% trans "Calendrier des Affectations" %}</h3>
+                        <p>{% trans "Cette fonctionnalité sera disponible dans une future version" %}</p>
+                        <p>{% trans "Elle permettra de visualiser les affectations sous forme de calendrier hebdomadaire" %}</p>
                     </div>
                 </div>
             </div>
@@ -341,7 +343,7 @@
             <div class="modal-header">
                 <h2 class="modal-title">
                     <i class="fas fa-plus"></i>
-                    Nouvelle affectation
+                    {% trans "Nouvelle affectation" %}
                 </h2>
                 <button class="modal-close" id="closeModal">
                     <i class="fas fa-times"></i>
@@ -351,18 +353,18 @@
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="classe" class="form-label">Classe *</label>
+                        <label for="classe" class="form-label">{% trans "Classe *" %}</label>
                         <select id="classe" name="classe" class="form-control" required>
-                            <option value="">Sélectionnez une classe</option>
+                            <option value="">{% trans "Sélectionnez une classe" %}</option>
                             {% for classe in etablissement.classes.all %}
                                 <option value="{{ classe.id }}">{{ classe.nom }} ({{ classe.niveau }})</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="salle" class="form-label">Salle *</label>
+                        <label for="salle" class="form-label">{% trans "Salle *" %}</label>
                         <select id="salle" name="salle" class="form-control" required>
-                            <option value="">Sélectionnez une salle</option>
+                            <option value="">{% trans "Sélectionnez une salle" %}</option>
                             {% for salle in etablissement.salles.all %}
                                 <option value="{{ salle.id }}">{{ salle.nom }} ({{ salle.numero }})</option>
                             {% endfor %}
@@ -372,55 +374,55 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="jour_semaine" class="form-label">Jour de la semaine *</label>
+                        <label for="jour_semaine" class="form-label">{% trans "Jour de la semaine *" %}</label>
                         <select id="jour_semaine" name="jour_semaine" class="form-control" required>
-                            <option value="">Sélectionnez un jour</option>
-                            <option value="lundi">Lundi</option>
-                            <option value="mardi">Mardi</option>
-                            <option value="mercredi">Mercredi</option>
-                            <option value="jeudi">Jeudi</option>
-                            <option value="vendredi">Vendredi</option>
-                            <option value="samedi">Samedi</option>
-                            <option value="dimanche">Dimanche</option>
+                            <option value="">{% trans "Sélectionnez un jour" %}</option>
+                            <option value="lundi">{% trans "Lundi" %}</option>
+                            <option value="mardi">{% trans "Mardi" %}</option>
+                            <option value="mercredi">{% trans "Mercredi" %}</option>
+                            <option value="jeudi">{% trans "Jeudi" %}</option>
+                            <option value="vendredi">{% trans "Vendredi" %}</option>
+                            <option value="samedi">{% trans "Samedi" %}</option>
+                            <option value="dimanche">{% trans "Dimanche" %}</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="periode" class="form-label">Période *</label>
+                        <label for="periode" class="form-label">{% trans "Période *" %}</label>
                         <select id="periode" name="periode" class="form-control" required>
-                            <option value="">Sélectionnez une période</option>
-                            <option value="matin">Matin</option>
-                            <option value="apres_midi">Après-midi</option>
-                            <option value="soir">Soir</option>
-                            <option value="journee_complete">Journée complète</option>
+                            <option value="">{% trans "Sélectionnez une période" %}</option>
+                            <option value="matin">{% trans "Matin" %}</option>
+                            <option value="apres_midi">{% trans "Après-midi" %}</option>
+                            <option value="soir">{% trans "Soir" %}</option>
+                            <option value="journee_complete">{% trans "Journée complète" %}</option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="heure_debut" class="form-label">Heure de début</label>
+                        <label for="heure_debut" class="form-label">{% trans "Heure de début" %}</label>
                         <input type="time" id="heure_debut" name="heure_debut" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="heure_fin" class="form-label">Heure de fin</label>
+                        <label for="heure_fin" class="form-label">{% trans "Heure de fin" %}</label>
                         <input type="time" id="heure_fin" name="heure_fin" class="form-control">
                     </div>
                 </div>
                 
                 
                 <div class="form-group">
-                    <label for="commentaire" class="form-label">Commentaire</label>
-                    <textarea id="commentaire" name="commentaire" class="form-control" rows="3" placeholder="Commentaire sur cette affectation..."></textarea>
+                    <label for="commentaire" class="form-label">{% trans "Commentaire" %}</label>
+                    <textarea id="commentaire" name="commentaire" class="form-control" rows="3" placeholder="{% trans "Commentaire sur cette affectation..." %}"></textarea>
                 </div>
                 
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" id="cancelAdd">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-save"></i>
-                        Créer l'affectation
+                        {% trans "Créer l'affectation" %}
                     </button>
                 </div>
             </form>

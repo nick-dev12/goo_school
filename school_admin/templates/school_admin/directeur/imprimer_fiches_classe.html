@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiches d'Inscription - {{ classe.nom }} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_inscription.css' %}">
-    <style>
+    {% trans "<style>
         /* Style spécifique pour l'impression multiple */
         .fiche-container {
             page-break-after: always;
@@ -16,7 +18,7 @@
         .fiche-container:last-child {
             page-break-after: auto;
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     {% for eleve in eleves %}
@@ -38,7 +40,7 @@
 
         <!-- Titre du document -->
         <div class="document-title">
-            <h2>FICHE D'INSCRIPTION / RÉINSCRIPTION</h2>
+            <h2>{% trans "FICHE D'INSCRIPTION / RÉINSCRIPTION" %}</h2>
             {% if annee_scolaire_active %}
             <p class="document-subtitle">Année scolaire {{ annee_scolaire_active.libelle }}</p>
             {% else %}
@@ -52,39 +54,39 @@
             <div class="section-box">
                 <h3 class="section-title">
                     <i class="fas fa-user"></i>
-                    Informations personnelles de l'élève
+                    {% trans "Informations personnelles de l'élève" %}
                 </h3>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">Nom :</span>
+                        <span class="info-label">{% trans "Nom :" %}</span>
                         <span class="info-value">{{ eleve.nom|upper }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Prénom :</span>
+                        <span class="info-label">{% trans "Prénom :" %}</span>
                         <span class="info-value">{{ eleve.prenom }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Numéro d'élève :</span>
+                        <span class="info-label">{% trans "Numéro d'élève :" %}</span>
                         <span class="info-value">{{ eleve.numero_eleve }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Date de naissance :</span>
+                        <span class="info-label">{% trans "Date de naissance :" %}</span>
                         <span class="info-value">{{ eleve.date_naissance|date:"d/m/Y" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Lieu de naissance :</span>
+                        <span class="info-label">{% trans "Lieu de naissance :" %}</span>
                         <span class="info-value">{{ eleve.lieu_naissance }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Sexe :</span>
+                        <span class="info-label">{% trans "Sexe :" %}</span>
                         <span class="info-value">{{ eleve.get_sexe_display }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Âge :</span>
+                        <span class="info-label">{% trans "Âge :" %}</span>
                         <span class="info-value">{{ eleve.age }} ans</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Nationalité :</span>
+                        <span class="info-label">{% trans "Nationalité :" %}</span>
                         <span class="info-value">{{ eleve.nationalite|default:"Non renseignée" }}</span>
                     </div>
                 </div>
@@ -94,19 +96,19 @@
             <div class="section-box">
                 <h3 class="section-title">
                     <i class="fas fa-address-book"></i>
-                    Coordonnées
+                    {% trans "Coordonnées" %}
                 </h3>
                 <div class="info-grid">
                     <div class="info-item full-width">
-                        <span class="info-label">Adresse :</span>
+                        <span class="info-label">{% trans "Adresse :" %}</span>
                         <span class="info-value">{{ eleve.adresse|default:"Non renseignée" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Téléphone :</span>
+                        <span class="info-label">{% trans "Téléphone :" %}</span>
                         <span class="info-value">{{ eleve.telephone|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Email :</span>
+                        <span class="info-label">{% trans "Email :" %}</span>
                         <span class="info-value">{{ eleve.email|default:"Non renseigné" }}</span>
                     </div>
                 </div>
@@ -116,23 +118,23 @@
             <div class="section-box">
                 <h3 class="section-title">
                     <i class="fas fa-graduation-cap"></i>
-                    Informations de scolarité
+                    {% trans "Informations de scolarité" %}
                 </h3>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">Classe :</span>
+                        <span class="info-label">{% trans "Classe :" %}</span>
                         <span class="info-value">{{ eleve.classe.nom }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Niveau :</span>
+                        <span class="info-label">{% trans "Niveau :" %}</span>
                         <span class="info-value">{{ eleve.classe.get_niveau_display }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Date d'inscription :</span>
+                        <span class="info-label">{% trans "Date d'inscription :" %}</span>
                         <span class="info-value">{{ eleve.date_inscription|date:"d/m/Y" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Statut :</span>
+                        <span class="info-label">{% trans "Statut :" %}</span>
                         <span class="info-value">{{ eleve.get_statut_display|default:"Actif" }}</span>
                     </div>
                 </div>
@@ -142,43 +144,43 @@
             <div class="section-box">
                 <h3 class="section-title">
                     <i class="fas fa-users"></i>
-                    Informations des parents/tuteurs
+                    {% trans "Informations des parents/tuteurs" %}
                 </h3>
                 <div class="info-grid">
                     <div class="info-item full-width">
-                        <span class="info-label">Nom du père :</span>
+                        <span class="info-label">{% trans "Nom du père :" %}</span>
                         <span class="info-value">{{ eleve.nom_pere|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Téléphone du père :</span>
+                        <span class="info-label">{% trans "Téléphone du père :" %}</span>
                         <span class="info-value">{{ eleve.telephone_pere|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Profession du père :</span>
+                        <span class="info-label">{% trans "Profession du père :" %}</span>
                         <span class="info-value">{{ eleve.profession_pere|default:"Non renseignée" }}</span>
                     </div>
                     <div class="info-item full-width">
-                        <span class="info-label">Nom de la mère :</span>
+                        <span class="info-label">{% trans "Nom de la mère :" %}</span>
                         <span class="info-value">{{ eleve.nom_mere|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Téléphone de la mère :</span>
+                        <span class="info-label">{% trans "Téléphone de la mère :" %}</span>
                         <span class="info-value">{{ eleve.telephone_mere|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Profession de la mère :</span>
+                        <span class="info-label">{% trans "Profession de la mère :" %}</span>
                         <span class="info-value">{{ eleve.profession_mere|default:"Non renseignée" }}</span>
                     </div>
                     <div class="info-item full-width">
-                        <span class="info-label">Tuteur légal :</span>
+                        <span class="info-label">{% trans "Tuteur légal :" %}</span>
                         <span class="info-value">{{ eleve.tuteur_legal|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Téléphone du tuteur :</span>
+                        <span class="info-label">{% trans "Téléphone du tuteur :" %}</span>
                         <span class="info-value">{{ eleve.telephone_tuteur|default:"Non renseigné" }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Lien de parenté :</span>
+                        <span class="info-label">{% trans "Lien de parenté :" %}</span>
                         <span class="info-value">{{ eleve.lien_tuteur|default:"Non renseigné" }}</span>
                     </div>
                 </div>
@@ -188,24 +190,24 @@
             <div class="section-box">
                 <h3 class="section-title">
                     <i class="fas fa-file-signature"></i>
-                    Engagement et signatures
+                    {% trans "Engagement et signatures" %}
                 </h3>
                 <p class="engagement-text">
-                    Je soussigné(e), parent/tuteur légal de <strong>{{ eleve.nom_complet }}</strong>, 
-                    certifie l'exactitude des informations fournies ci-dessus et m'engage à respecter 
+                    {% trans "Je soussigné(e), parent/tuteur légal de" %} <strong>{{ eleve.nom_complet }}</strong>, 
+                    {% trans "certifie l'exactitude des informations fournies ci-dessus et m'engage à respecter" %}
                     le règlement intérieur de l'établissement <strong>{{ etablissement.nom }}</strong> 
                     pour l'année scolaire {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}.
                 </p>
                 
                 <div class="signatures-section">
                     <div class="signature-box">
-                        <p class="signature-title">Signature du parent/tuteur</p>
+                        <p class="signature-title">{% trans "Signature du parent/tuteur" %}</p>
                         <div class="signature-line"></div>
-                        <p class="signature-date">Date : ________________</p>
+                        <p class="signature-date">{% trans "Date : ________________" %}</p>
                     </div>
                     
                     <div class="signature-box">
-                        <p class="signature-title">Cachet et signature du directeur</p>
+                        <p class="signature-title">{% trans "Cachet et signature du directeur" %}</p>
                         <div class="signature-line"></div>
                         <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
                     </div>
@@ -230,11 +232,11 @@
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>" %}
 </body>
 </html>
 

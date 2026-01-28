@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Impression - Bulletins de {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <title>{% trans "Print" %} - {% trans "Report Cards of" %} {{ classe.nom }} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.2" />
@@ -28,7 +30,7 @@
               </div>
               <div class="header-info">
                 <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
-                <p class="bulletin-titre">BULLETIN DE NOTES</p>
+                <p class="bulletin-titre">{% trans "BULLETIN DE NOTES" %}</p>
                 <p class="etablissement-adresse">
                   {% if etablissement.adresse %}{{ etablissement.adresse }}{% endif %}
                   {% if etablissement.ville %}{% if etablissement.adresse %}, {% endif %}{{ etablissement.ville }}{% endif %}
@@ -52,27 +54,27 @@
             <div class="header-right">
               <div class="document-info-header">
                 <div class="info-item-header">
-                  <span class="info-label-header">Année scolaire :</span>
+                  <span class="info-label-header">{% trans "Année scolaire :" %}</span>
                   <span class="info-value-header">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ bulletin.periode.annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
                 </div>
                 <div class="info-item-header">
-                  <span class="info-label-header">Période :</span>
+                  <span class="info-label-header">{% trans "Période :" %}</span>
                   <span class="info-value-header">{{ bulletin.periode.nom_periode }}</span>
                 </div>
                 <div class="info-item-header">
-                  <span class="info-label-header">Date d'édition :</span>
+                  <span class="info-label-header">{% trans "Date d'édition :" %}</span>
                   <span class="info-value-header">{{ date_generation|date:"d/m/Y" }}</span>
                 </div>
                 <div class="info-item-header">
-                  <span class="info-label-header">Effectif :</span>
+                  <span class="info-label-header">{% trans "Effectif :" %}</span>
                   <span class="info-value-header">{{ bulletin.classe_effectif }} élève{{ bulletin.classe_effectif|pluralize }}</span>
                 </div>
               </div>
               <div class="bulletin-security-card">
                 {% if bulletin.bulletin_qr_image_url %}
-                  <img src="{{ bulletin.bulletin_qr_image_url }}" alt="QR code de vérification du bulletin" class="security-qr-image">
+                  <img src="{{ bulletin.bulletin_qr_image_url }}" alt="{% trans "QR code de vérification du bulletin" %}" class="security-qr-image">
                 {% else %}
-                  <div class="security-qr-placeholder">QR code indisponible</div>
+                  <div class="security-qr-placeholder">{% trans "QR code indisponible" %}</div>
                 {% endif %}
                 
               </div>
@@ -80,7 +82,7 @@
             </div>
 
             <div class="header_titre">
-              <h1 class="titre_bulletin">BULLETIN DE NOTES</h1>
+              <h1 class="titre_bulletin">{% trans "BULLETIN DE NOTES" %}</h1>
             </div>
           </header>
 
@@ -88,27 +90,27 @@
           <section class="student-info-section">
             <div class="student-info-grid">
               <div class="info-item">
-                <span class="label">Nom de l'élève</span>
+                <span class="label">{% trans "Nom de l'élève" %}</span>
                 <span class="value">{{ eleve.nom_complet }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Matricule</span>
+                <span class="label">{% trans "Matricule" %}</span>
                 <span class="value">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Classe</span>
+                <span class="label">{% trans "Classe" %}</span>
                 <span class="value">{{ bulletin.classe.nom }} – {{ bulletin.classe.get_niveau_display }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Date de naissance</span>
+                <span class="label">{% trans "Date de naissance" %}</span>
                 <span class="value">{% if eleve.date_naissance %}{{ eleve.date_naissance|date:"d/m/Y" }}{% else %}-{% endif %}</span>
               </div>
               <div class="info-item">
-                <span class="label">Lieu de naissance</span>
+                <span class="label">{% trans "Lieu de naissance" %}</span>
                 <span class="value">{{ eleve.lieu_naissance|default:'-' }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Sexe</span>
+                <span class="label">{% trans "Sexe" %}</span>
                 <span class="value">{% if eleve.sexe == 'M' %}Masculin{% elif eleve.sexe == 'F' %}Féminin{% else %}-{% endif %}</span>
               </div>
             </div>
@@ -120,16 +122,16 @@
               <table class="bulletin-main-table">
                 <thead>
                   <tr>
-                    <th>Matière</th>
-                    <th>Moyenne de classe</th>
+                    <th>{% trans "Matière" %}</th>
+                    <th>{% trans "Moyenne de classe" %}</th>
                     {% if bulletin.has_note_examen %}
-                    <th>Note d'examen</th>
+                    <th>{% trans "Note d'examen" %}</th>
                     {% endif %}
-                    <th>Coefficient</th>
-                    <th>Moyenne élève</th>
-                    <th>Moyenne × Coefficient</th>
-                    <th>Rang</th>
-                    <th>Appréciations</th>
+                    <th>{% trans "Coefficient" %}</th>
+                    <th>{% trans "Moyenne élève" %}</th>
+                    <th>{% trans "Moyenne × Coefficient" %}</th>
+                    <th>{% trans "Rang" %}</th>
+                    <th>{% trans "Appréciations" %}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,7 +180,7 @@
                         {% if matiere.appreciation %}
                           <span class="appreciation-text">{{ matiere.appreciation }}</span>
                         {% if matiere.appreciation_source == 'initiale' %}
-                            <span class="appreciation-origin">Initiale</span>
+                            <span class="appreciation-origin">{% trans "Initiale" %}</span>
                         {% endif %}
                         {% else %}
                           –
@@ -195,18 +197,18 @@
           <div class="bulletin-summary-container">
             <!-- PROFIL DE LA CLASSE -->
             <div class="class-profile-section">
-              <h3>PROFIL DE LA CLASSE</h3>
+              <h3>{% trans "PROFIL DE LA CLASSE" %}</h3>
               <table class="complementary-table">
                 <tr>
-                  <th>Forte moyenne trim</th>
+                  <th>{% trans "Forte moyenne trim" %}</th>
                   <td>{% if bulletin.complement_info.forte_moyenne_classe %}{{ bulletin.complement_info.forte_moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
                 </tr>
                 <tr>
-                  <th>Faible moyenne trim</th>
+                  <th>{% trans "Faible moyenne trim" %}</th>
                   <td>{% if bulletin.complement_info.faible_moyenne_classe %}{{ bulletin.complement_info.faible_moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
                 </tr>
                 <tr>
-                  <th>Moyenne de la classe</th>
+                  <th>{% trans "Moyenne de la classe" %}</th>
                   <td>{% if bulletin.complement_info.moyenne_classe_periode_actuelle %}{{ bulletin.complement_info.moyenne_classe_periode_actuelle|floatformat:2 }}{% else %}–{% endif %}</td>
                 </tr>
               </table>
@@ -214,14 +216,14 @@
 
             <!-- BILAN -->
             <div class="bilan-section">
-              <h3>BILAN</h3>
+              <h3>{% trans "BILAN" %}</h3>
               <table class="complementary-table">
                 <thead>
                   <tr>
-                    <th>Moyenne</th>
-                    <th>Apprenant</th>
-                    <th>Classe</th>
-                    <th>Rang</th>
+                    <th>{% trans "Moyenne" %}</th>
+                    <th>{% trans "Apprenant" %}</th>
+                    <th>{% trans "Classe" %}</th>
+                    <th>{% trans "Rang" %}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,7 +246,7 @@
                   {% endif %}
                   {% if bulletin.complement_info.moyenne_annuelle is not None %}
                   <tr>
-                    <th>Moyenne annuelle</th>
+                    <th>{% trans "Moyenne annuelle" %}</th>
                     <td>{{ bulletin.complement_info.moyenne_annuelle|floatformat:2 }}</td>
                     <td>{% if bulletin.complement_info.moyenne_annuelle_classe %}{{ bulletin.complement_info.moyenne_annuelle_classe|floatformat:2 }}{% else %}–{% endif %}</td>
                     <td>{% if bulletin.complement_info.rang_annuel %}{{ bulletin.complement_info.rang_annuel }}{% else %}–{% endif %}</td>
@@ -258,13 +260,13 @@
           <section class="complementary-section">
             <table class="complementary-table">
               <tr>
-                <th>Absences justifiées</th>
+                <th>{% trans "Absences justifiées" %}</th>
                 <td>{{ bulletin.complement_info.absences_justifiees }}</td>
-                <th>Absences non justifiées</th>
+                <th>{% trans "Absences non justifiées" %}</th>
                 <td>{{ bulletin.complement_info.absences_non_justifiees }}</td>
               </tr>
               <tr>
-                <th>Appréciation générale</th>
+                <th>{% trans "Appréciation générale" %}</th>
                 <td colspan="3">
                   {% if bulletin.complement_info.appreciation_generale %}
                     {% if bulletin.complement_info.moyenne_generale_validee %}
@@ -279,7 +281,7 @@
               </tr>
               {% if bulletin.complement_info.decision_conseil %}
                 <tr>
-                  <th>Décision du conseil</th>
+                  <th>{% trans "Décision du conseil" %}</th>
                   <td colspan="3">
                     {% if bulletin.complement_info.moyenne_annuelle is not None and bulletin.complement_info.moyenne_passage is not None %}
                       {% if bulletin.complement_info.moyenne_annuelle >= bulletin.complement_info.moyenne_passage %}
@@ -299,7 +301,7 @@
           <!-- Signatures -->
           <section class="footer-signatures">
             <div class="signature-block">
-              <span class="signature-label">Le chef d'établissement</span>
+              <span class="signature-label">{% trans "Le chef d'établissement" %}</span>
               <span class="signature-line"></span>
             </div>
           </section>
@@ -318,19 +320,19 @@
     <div class="print-actions no-print">
       <a href="{{ retour_url }}" class="btn-action btn-back">
         <i class="fas fa-arrow-left"></i>
-        Retour
+        {% trans "Retour" %}
       </a>
       <button type="button" class="btn-action btn-print-portrait" onclick="imprimerEnPortrait()">
         <i class="fas fa-file-alt"></i>
-        Imprimer en mode portrait
+        {% trans "Imprimer en mode portrait" %}
       </button>
       <button type="button" class="btn-action btn-print-landscape" onclick="imprimerEnPaysage()">
         <i class="fas fa-file-alt"></i>
-        Imprimer en mode paysage
+        {% trans "Imprimer en mode paysage" %}
       </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
       let printStyleSheet = null;
 
@@ -366,7 +368,7 @@
           document.body.classList.remove('print-landscape');
         }, 100);
       }
-    </script>
+    </script>" %}
   </body>
 </html>
 

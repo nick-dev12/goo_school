@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,11 +24,11 @@
             </div>
             <div class="header-right">
                 <div class="info-item">
-                    <span class="info-label">Année scolaire :</span>
+                    <span class="info-label">{% trans "Année scolaire :" %}</span>
                     <span class="info-value">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Date d'impression :</span>
+                    <span class="info-label">{% trans "Date d'impression :" %}</span>
                     <span class="info-value">{{ date_generation|date:"d/m/Y" }}</span>
                 </div>
             </div>
@@ -37,7 +39,7 @@
 
         <!-- Titre du document -->
         <div class="document-title">
-            <h2>LISTE NOMINATIVE DES ÉLÈVES</h2>
+            <h2>{% trans "LISTE NOMINATIVE DES ÉLÈVES" %}</h2>
             <p class="document-subtitle">{{ classe.nom }} - {{ classe.get_niveau_display }}</p>
         </div>
 
@@ -45,19 +47,19 @@
         <div class="classe-info-box">
             <div class="info-row">
                 <div class="info-item">
-                    <span class="info-label">Classe :</span>
+                    <span class="info-label">{% trans "Classe :" %}</span>
                     <span class="info-value">{{ classe.nom }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Niveau :</span>
+                    <span class="info-label">{% trans "Niveau :" %}</span>
                     <span class="info-value">{{ classe.get_niveau_display }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Effectif :</span>
+                    <span class="info-label">{% trans "Effectif :" %}</span>
                     <span class="info-value">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Capacité :</span>
+                    <span class="info-label">{% trans "Capacité :" %}</span>
                     <span class="info-value">{{ classe.capacite_max }} places</span>
                 </div>
             </div>
@@ -69,11 +71,11 @@
             <table class="liste-table">
                 <thead>
                     <tr>
-                        <th class="col-numero">N°</th>
-                        <th class="col-nom">Nom</th>
-                        <th class="col-prenom">Prénom</th>
-                        <th class="col-date">Date de naissance</th>
-                        <th class="col-sexe">Sexe</th>
+                        <th class="col-numero">{% trans "N°" %}</th>
+                        <th class="col-nom">{% trans "Nom" %}</th>
+                        <th class="col-prenom">{% trans "Prénom" %}</th>
+                        <th class="col-date">{% trans "Date de naissance" %}</th>
+                        <th class="col-sexe">{% trans "Sexe" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -91,14 +93,14 @@
         </div>
         {% else %}
         <div class="empty-message">
-            <p>Aucun élève inscrit dans cette classe.</p>
+            <p>{% trans "Aucun élève inscrit dans cette classe." %}</p>
         </div>
         {% endif %}
 
         <!-- Résumé -->
         <div class="resume-section">
             <p class="resume-text">
-                <strong>Total :</strong> {{ nombre_eleves }} élève{{ nombre_eleves|pluralize }} inscrit{{ nombre_eleves|pluralize }} 
+                <strong>{% trans "Total :" %}</strong> {{ nombre_eleves }} élève{{ nombre_eleves|pluralize }} inscrit{{ nombre_eleves|pluralize }} 
                 dans la classe {{ classe.nom }} pour l'année scolaire {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}.
             </p>
         </div>
@@ -113,7 +115,7 @@
                 </div>
                 <div class="footer-right">
                     <div class="signature-box">
-                        <p class="signature-title">Le Directeur</p>
+                        <p class="signature-title">{% trans "Le Directeur" %}</p>
                         <div class="signature-line"></div>
                         <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
                     </div>
@@ -126,15 +128,15 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer la liste
+            {% trans "Imprimer la liste" %}
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>" %}
 </body>
 </html>
 

@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load pagination_tags %}
 {% load permissions_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -34,7 +36,7 @@
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
   <!-- intl-tel-input CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
-  <style>
+  {% trans "<style>
     .country-search-wrapper {
       position: relative;
       width: 100%;
@@ -188,7 +190,7 @@
     .edit-form-header .btn-close:hover {
       background: rgba(255, 255, 255, 0.3);
     }
-  </style>
+  </style>" %}
 </head>
 <body>
   <!-- Header -->
@@ -202,11 +204,11 @@
           <div class="header-actions">
             <a href="{% url 'secretaire:liste_eleves' %}" class="btn-secondary">
               <i class="fas fa-arrow-left"></i>
-              Retour à la liste
+              {% trans "Retour à la liste" %}
             </a>
             <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="btn-primary">
               <i class="fas fa-print"></i>
-              Imprimer le reçu
+              {% trans "Imprimer le reçu" %}
             </a>
           </div>
         </div>
@@ -226,7 +228,7 @@
             Année scolaire active : {{ annee_scolaire_active.libelle }}
           </p>
           <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-            Seules les données (notes, présences, sanctions) de cette session sont affichées.
+            {% trans "Seules les données (notes, présences, sanctions) de cette session sont affichées." %}
           </p>
         </div>
       </div>
@@ -234,7 +236,7 @@
       <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
         <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
         <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-          Aucune année scolaire active. Toutes les données sont affichées.
+          {% trans "Aucune année scolaire active. Toutes les données sont affichées." %}
         </span>
       </div>
       {% endif %}
@@ -267,19 +269,19 @@
           <div class="student-actions-header">
             <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="btn-action btn-receipt" style="background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
               <i class="fas fa-file-invoice"></i>
-              Voir le reçu
+              {% trans "Voir le reçu" %}
             </a>
             <button type="button" class="btn-action btn-photo" onclick="openPhotoModal()">
               <i class="fas fa-camera"></i>
-              Mettre à jour la photo
+              {% trans "Mettre à jour la photo" %}
             </button>
             <button type="button" class="btn-action btn-edit" onclick="toggleEditForm()">
               <i class="fas fa-edit"></i>
-              Modifier
+              {% trans "Modifier" %}
             </button>
             <button type="button" class="btn-action btn-transfer" onclick="toggleTransferForm()">
               <i class="fas fa-exchange-alt"></i>
-              Transférer
+              {% trans "Transférer" %}
             </button>
             <a href="{% url 'secretaire:desactiver_compte_eleve' eleve.id %}" 
                class="btn-action {% if eleve.actif %}btn-deactivate{% else %}btn-activate{% endif %}"
@@ -296,33 +298,33 @@
           <div class="info-tabs">
             <button class="tab-button active" onclick="showTab('personal')">
               <i class="fas fa-user"></i>
-              Personnel
+              {% trans "Personnel" %}
             </button>
             <button class="tab-button" onclick="showTab('academic')">
               <i class="fas fa-graduation-cap"></i>
-              Académique
+              {% trans "Académique" %}
             </button>
             {% if can_view_presences %}
             <button class="tab-button" onclick="showTab('presences')">
               <i class="fas fa-clipboard-check"></i>
-              Présences
+              {% trans "Présences" %}
             </button>
             {% endif %}
             {% if can_view_notes %}
             <button class="tab-button" onclick="showTab('notes')">
               <i class="fas fa-chart-line"></i>
-              Notes
+              {% trans "Notes" %}
             </button>
             {% endif %}
             {% if can_view_sanctions %}
             <button class="tab-button" onclick="showTab('sanctions')">
               <i class="fas fa-gavel"></i>
-              Sanctions
+              {% trans "Sanctions" %}
             </button>
             {% endif %}
             <button class="tab-button" onclick="showTab('login')">
               <i class="fas fa-key"></i>
-              Connexion
+              {% trans "Connexion" %}
             </button>
           </div>
         </div>
@@ -335,31 +337,31 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-user"></i>
-                Informations personnelles
+                {% trans "Informations personnelles" %}
               </h3>
               <div class="info-grid">
                 <div class="info-field">
-                  <label class="field-label">Nom complet</label>
+                  <label class="field-label">{% trans "Nom complet" %}</label>
                   <div class="field-value">{{ eleve.nom_complet }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Date de naissance</label>
+                  <label class="field-label">{% trans "Date de naissance" %}</label>
                   <div class="field-value">{{ eleve.date_naissance|date:"d/m/Y" }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Lieu de naissance</label>
+                  <label class="field-label">{% trans "Lieu de naissance" %}</label>
                   <div class="field-value">{{ eleve.lieu_naissance }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Sexe</label>
+                  <label class="field-label">{% trans "Sexe" %}</label>
                   <div class="field-value">{{ eleve.get_sexe_display }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Nationalité</label>
+                  <label class="field-label">{% trans "Nationalité" %}</label>
                   <div class="field-value">{{ eleve.nationalite }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Âge</label>
+                  <label class="field-label">{% trans "Âge" %}</label>
                   <div class="field-value">{{ eleve.age }} ans</div>
                 </div>
               </div>
@@ -370,24 +372,24 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-address-book"></i>
-                Informations de contact de l'élève
+                {% trans "Informations de contact de l'élève" %}
               </h3>
               <div class="info-grid">
                 {% if eleve.adresse %}
                 <div class="info-field full-width">
-                  <label class="field-label">Adresse</label>
+                  <label class="field-label">{% trans "Adresse" %}</label>
                   <div class="field-value">{{ eleve.adresse }}</div>
                 </div>
                 {% endif %}
                 {% if eleve.telephone %}
                 <div class="info-field">
-                  <label class="field-label">Téléphone</label>
+                  <label class="field-label">{% trans "Téléphone" %}</label>
                   <div class="field-value">{{ eleve.telephone }}</div>
                 </div>
                 {% endif %}
                 {% if eleve.email %}
                 <div class="info-field">
-                  <label class="field-label">Email</label>
+                  <label class="field-label">{% trans "Email" %}</label>
                   <div class="field-value">{{ eleve.email }}</div>
                 </div>
                 {% endif %}
@@ -399,7 +401,7 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-user-tie"></i>
-                Parent inscripteur
+                {% trans "Parent inscripteur" %}
               </h3>
               {% if parent_inscripteur %}
                 <div class="responsible-type">
@@ -410,60 +412,60 @@
                 </div>
                 <div class="info-grid">
                   <div class="info-field">
-                    <label class="field-label">Nom complet</label>
+                    <label class="field-label">{% trans "Nom complet" %}</label>
                     <div class="field-value">{{ parent_inscripteur.nom_complet }}</div>
                   </div>
                   
                   <div class="info-field">
-                    <label class="field-label">Matricule parental</label>
+                    <label class="field-label">{% trans "Matricule parental" %}</label>
                     <div class="field-value">{{ parent_inscripteur.matricule_parental }}</div>
                   </div>
                   
                   {% if parent_inscripteur.telephone %}
                   <div class="info-field">
-                    <label class="field-label">Téléphone</label>
+                    <label class="field-label">{% trans "Téléphone" %}</label>
                     <div class="field-value">{{ parent_inscripteur.telephone }}</div>
                   </div>
                   {% endif %}
                   
                   {% if parent_inscripteur.email %}
                   <div class="info-field">
-                    <label class="field-label">Email</label>
+                    <label class="field-label">{% trans "Email" %}</label>
                     <div class="field-value">{{ parent_inscripteur.email }}</div>
                   </div>
                   {% endif %}
                   
                   {% if parent_inscripteur.adresse %}
                   <div class="info-field full-width">
-                    <label class="field-label">Adresse</label>
+                    <label class="field-label">{% trans "Adresse" %}</label>
                     <div class="field-value">{{ parent_inscripteur.adresse }}</div>
                   </div>
                   {% endif %}
                   
                   {% if parent_inscripteur.profession %}
                   <div class="info-field">
-                    <label class="field-label">Profession</label>
+                    <label class="field-label">{% trans "Profession" %}</label>
                     <div class="field-value">{{ parent_inscripteur.profession }}</div>
                   </div>
                   {% endif %}
                   
                   {% if lien_inscripteur %}
                   <div class="info-field">
-                    <label class="field-label">Lien avec l'élève</label>
+                    <label class="field-label">{% trans "Lien avec l'élève" %}</label>
                     <div class="field-value">{{ lien_inscripteur.get_type_lien_display }}</div>
                   </div>
                   {% endif %}
                   
                   <div class="info-field">
-                    <label class="field-label">Date d'inscription</label>
+                    <label class="field-label">{% trans "Date d'inscription" %}</label>
                     <div class="field-value">{{ parent_inscripteur.date_creation|date:"d/m/Y à H:i" }}</div>
                   </div>
                 </div>
               {% else %}
                 <div class="no-data-message">
                   <i class="fas fa-exclamation-triangle"></i>
-                  <p>Aucun parent inscripteur trouvé dans la base de données.</p>
-                  <small>Les informations du parent peuvent être dans les champs de l'élève (ancien système).</small>
+                  <p>{% trans "Aucun parent inscripteur trouvé dans la base de données." %}</p>
+                  <small>{% trans "Les informations du parent peuvent être dans les champs de l'élève (ancien système)." %}</small>
                 </div>
               {% endif %}
             </div>
@@ -472,13 +474,13 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-file-alt"></i>
-                Documents fournis
+                {% trans "Documents fournis" %}
                 <span class="documents-progress">{{ eleve.nombre_documents_fournis }}/12</span>
               </h3>
               {% if eleve.documents_fournis_liste %}
                 <div class="documents-categories">
                   <div class="document-category">
-                    <h4 class="category-title">Documents d'identité</h4>
+                    <h4 class="category-title">{% trans "Documents d'identité" %}</h4>
                     <div class="documents-list">
                       {% for document in eleve.documents_fournis_liste %}
                         {% if "Acte de naissance" in document or "CNI" in document or "Passeport" in document %}
@@ -491,7 +493,7 @@
                     </div>
                   </div>
                   <div class="document-category">
-                    <h4 class="category-title">Documents scolaires</h4>
+                    <h4 class="category-title">{% trans "Documents scolaires" %}</h4>
                     <div class="documents-list">
                       {% for document in eleve.documents_fournis_liste %}
                         {% if "Bulletin" in document or "Certificat" in document or "Livret" in document %}
@@ -504,7 +506,7 @@
                     </div>
                   </div>
                   <div class="document-category">
-                    <h4 class="category-title">Documents médicaux</h4>
+                    <h4 class="category-title">{% trans "Documents médicaux" %}</h4>
                     <div class="documents-list">
                       {% for document in eleve.documents_fournis_liste %}
                         {% if "médical" in document or "vaccination" in document or "assurance" in document %}
@@ -517,7 +519,7 @@
                     </div>
                   </div>
                   <div class="document-category">
-                    <h4 class="category-title">Documents administratifs</h4>
+                    <h4 class="category-title">{% trans "Documents administratifs" %}</h4>
                     <div class="documents-list">
                       {% for document in eleve.documents_fournis_liste %}
                         {% if "domicile" in document or "photo" in document or "autorisation" in document %}
@@ -533,7 +535,7 @@
               {% else %}
                 <div class="no-documents">
                   <i class="fas fa-exclamation-triangle"></i>
-                  <span>Aucun document fourni</span>
+                  <span>{% trans "Aucun document fourni" %}</span>
                 </div>
               {% endif %}
             </div>
@@ -544,33 +546,33 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-graduation-cap"></i>
-                Informations académiques
+                {% trans "Informations académiques" %}
               </h3>
               <div class="info-grid">
                 <div class="info-field highlight-field">
-                  <label class="field-label">Matricule</label>
+                  <label class="field-label">{% trans "Matricule" %}</label>
                   <div class="field-value matricule-display">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Classe actuelle</label>
+                  <label class="field-label">{% trans "Classe actuelle" %}</label>
                   <div class="field-value">{{ eleve.classe.nom }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Niveau</label>
+                  <label class="field-label">{% trans "Niveau" %}</label>
                   <div class="field-value">{{ eleve.classe.get_niveau_display }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Statut d'inscription</label>
+                  <label class="field-label">{% trans "Statut d'inscription" %}</label>
                   <div class="field-value">
                     <span class="status-badge status-{{ eleve.statut }}">{{ eleve.get_statut_display }}</span>
                   </div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Date d'inscription</label>
+                  <label class="field-label">{% trans "Date d'inscription" %}</label>
                   <div class="field-value">{{ eleve.date_inscription|date:"d/m/Y" }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Capacité de la classe</label>
+                  <label class="field-label">{% trans "Capacité de la classe" %}</label>
                   <div class="field-value">{{ eleve.classe.capacite_max }} élèves</div>
                 </div>
               </div>
@@ -583,7 +585,7 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-clipboard-check"></i>
-                Présences et Absences
+                {% trans "Présences et Absences" %}
               </h3>
               
               {% if presences_par_mois %}
@@ -607,35 +609,35 @@
                         <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
                         <div class="stat-content">
                           <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'presents' }}</div>
-                          <div class="stat-label">Présents</div>
+                          <div class="stat-label">{% trans "Présents" %}</div>
                         </div>
                       </div>
                       <div class="stat-card stat-danger">
                         <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
                         <div class="stat-content">
                           <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'absents' }}</div>
-                          <div class="stat-label">Absents</div>
+                          <div class="stat-label">{% trans "Absents" %}</div>
                         </div>
                       </div>
                       <div class="stat-card stat-warning">
                         <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
                         <div class="stat-content">
                           <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'absents_justifies' }}</div>
-                          <div class="stat-label">Absents Justifiés</div>
+                          <div class="stat-label">{% trans "Absents Justifiés" %}</div>
                         </div>
                       </div>
                       <div class="stat-card stat-info">
                         <div class="stat-icon"><i class="fas fa-clock"></i></div>
                         <div class="stat-content">
                           <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'retards' }}</div>
-                          <div class="stat-label">Retards</div>
+                          <div class="stat-label">{% trans "Retards" %}</div>
                         </div>
                       </div>
                       <div class="stat-card stat-primary">
                         <div class="stat-icon"><i class="fas fa-percentage"></i></div>
                         <div class="stat-content">
                           <div class="stat-value">{{ stats_presences_par_mois|get_item:mois_key|get_item:'taux_presence' }}%</div>
-                          <div class="stat-label">Taux de présence</div>
+                          <div class="stat-label">{% trans "Taux de présence" %}</div>
                         </div>
                       </div>
                     </div>
@@ -645,10 +647,10 @@
                       <table class="presences-table">
                         <thead>
                           <tr>
-                            <th>Date</th>
-                            <th>Statut</th>
-                            <th>Justificatif</th>
-                            <th>Remarque</th>
+                            <th>{% trans "Date" %}</th>
+                            <th>{% trans "Statut" %}</th>
+                            <th>{% trans "Justificatif" %}</th>
+                            <th>{% trans "Remarque" %}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -672,7 +674,7 @@
                                 {% if item.presence.type_justificatif %}
                                   {{ item.presence.get_type_justificatif_display }}
                                   {% if item.presence.justificatif_valide %}
-                                    <i class="fas fa-check text-success" title="Validé"></i>
+                                    <i class="fas fa-check text-success" title="{% trans "Validé" %}"></i>
                                   {% endif %}
                                 {% else %}
                                   -
@@ -689,7 +691,7 @@
               {% else %}
                 <div class="empty-state">
                   <i class="fas fa-clipboard-list"></i>
-                  <p>Aucune donnée de présence disponible</p>
+                  <p>{% trans "Aucune donnée de présence disponible" %}</p>
                 </div>
               {% endif %}
             </div>
@@ -703,7 +705,7 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-table"></i>
-                Tableau des notes par matière
+                {% trans "Tableau des notes par matière" %}
               </h3>
               
               {% if periodes_actives %}
@@ -778,10 +780,10 @@
                 <table class="notes-summary-table">
                   <thead>
                     <tr>
-                      <th>Matière</th>
-                      <th>Moyenne</th>
-                      <th>Statut</th>
-                      <th>Actions</th>
+                      <th>{% trans "Matière" %}</th>
+                      <th>{% trans "Moyenne" %}</th>
+                      <th>{% trans "Statut" %}</th>
+                      <th>{% trans "Actions" %}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -800,14 +802,14 @@
                           </td>
                           <td>
                             {% if moy and moy.soumis %}
-                              <span class="badge success-badge"><i class="fas fa-check-circle"></i> Soumis</span>
+                              <span class="badge success-badge"><i class="fas fa-check-circle"></i> {% trans "Soumis" %}</span>
                             {% else %}
-                              <span class="badge warning-badge"><i class="fas fa-clock"></i> En attente</span>
+                              <span class="badge warning-badge"><i class="fas fa-clock"></i> {% trans "En attente" %}</span>
                             {% endif %}
                           </td>
                           <td>
                             <button type="button" class="btn-details" onclick="showNoteDetails('{{ mat.id }}', '{{ mat.nom }}', {{ periode.id }})">
-                              <i class="fas fa-eye"></i> Détails
+                              <i class="fas fa-eye"></i> {% trans "Détails" %}
                             </button>
                           </td>
                         </tr>
@@ -822,7 +824,7 @@
               <div id="noteDetailsModal" class="notes-detail-modal">
                 <div class="notes-detail-modal-content">
                   <div class="notes-detail-modal-header">
-                    <h3 id="modalMatiereTitle">Détails des notes - <span id="matiereName"></span></h3>
+                    <h3 id="modalMatiereTitle">{% trans "Détails des notes -" %} <span id="matiereName"></span></h3>
                     <button type="button" class="notes-detail-modal-close" onclick="closeNoteDetails()">
                       <i class="fas fa-times"></i>
                     </button>
@@ -1030,7 +1032,7 @@
               {% else %}
                 <div class="empty-state">
                   <i class="fas fa-book"></i>
-                  <p>Aucune matière affectée à cette classe</p>
+                  <p>{% trans "Aucune matière affectée à cette classe" %}</p>
                 </div>
               {% endif %}
             </div>
@@ -1039,7 +1041,7 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-chart-line"></i>
-                Relevé de Notes
+                {% trans "Relevé de Notes" %}
               </h3>
               
               {% if notes_par_trimestre %}
@@ -1047,13 +1049,13 @@
                 <div class="sub-tabs-container">
                   <div class="sub-tabs">
                     <button class="sub-tab-button active" onclick="showSubTab('notes-trimestre1')">
-                      Trimestre 1
+                      {% trans "Trimestre 1" %}
                     </button>
                     <button class="sub-tab-button" onclick="showSubTab('notes-trimestre2')">
-                      Trimestre 2
+                      {% trans "Trimestre 2" %}
                     </button>
                     <button class="sub-tab-button" onclick="showSubTab('notes-trimestre3')">
-                      Trimestre 3
+                      {% trans "Trimestre 3" %}
                     </button>
                   </div>
                 </div>
@@ -1087,7 +1089,7 @@
                       <div id="modal-notes-{{ trimestre }}" class="notes-modal-backdrop" style="display: none;">
                         <div class="notes-modal">
                           <div class="notes-modal-header">
-                            <h3 id="modal-title-{{ trimestre }}">Notes détaillées</h3>
+                            <h3 id="modal-title-{{ trimestre }}">{% trans "Notes détaillées" %}</h3>
                             <button class="btn-close-modal" onclick="closeMatiereModal('{{ trimestre }}')">
                               <i class="fas fa-times"></i>
                             </button>
@@ -1126,7 +1128,7 @@
                     {% else %}
                       <div class="empty-state">
                         <i class="fas fa-file-alt"></i>
-                        <p>Aucune note pour ce trimestre</p>
+                        <p>{% trans "Aucune note pour ce trimestre" %}</p>
                       </div>
                     {% endif %}
                   </div>
@@ -1134,7 +1136,7 @@
               {% else %}
                 <div class="empty-state">
                   <i class="fas fa-chart-bar"></i>
-                  <p>Aucune note disponible</p>
+                  <p>{% trans "Aucune note disponible" %}</p>
                 </div>
               {% endif %}
             </div>
@@ -1148,7 +1150,7 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-gavel"></i>
-                Historique des Sanctions
+                {% trans "Historique des Sanctions" %}
               </h3>
               
               {% if sanctions_eleve %}
@@ -1158,35 +1160,35 @@
                     <div class="stat-icon"><i class="fas fa-list"></i></div>
                     <div class="stat-content">
                       <div class="stat-value">{{ stats_sanctions.total }}</div>
-                      <div class="stat-label">Total sanctions</div>
+                      <div class="stat-label">{% trans "Total sanctions" %}</div>
                     </div>
                   </div>
                   <div class="stat-card stat-danger">
                     <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="stat-content">
                       <div class="stat-value">{{ stats_sanctions.graves }}</div>
-                      <div class="stat-label">Sanctions graves</div>
+                      <div class="stat-label">{% trans "Sanctions graves" %}</div>
                     </div>
                   </div>
                   <div class="stat-card stat-warning">
                     <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
                     <div class="stat-content">
                       <div class="stat-value">{{ stats_sanctions.moyennes }}</div>
-                      <div class="stat-label">Sanctions moyennes</div>
+                      <div class="stat-label">{% trans "Sanctions moyennes" %}</div>
                     </div>
                   </div>
                   <div class="stat-card stat-info">
                     <div class="stat-icon"><i class="fas fa-info-circle"></i></div>
                     <div class="stat-content">
                       <div class="stat-value">{{ stats_sanctions.legeres }}</div>
-                      <div class="stat-label">Sanctions légères</div>
+                      <div class="stat-label">{% trans "Sanctions légères" %}</div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Timeline des sanctions -->
                 <div class="sanctions-timeline">
-                  <h4 class="timeline-title">Historique chronologique</h4>
+                  <h4 class="timeline-title">{% trans "Historique chronologique" %}</h4>
                   {% for sanction in sanctions_eleve %}
                     <div class="timeline-item gravite-{{ sanction.gravite }}">
                       <div class="timeline-marker"></div>
@@ -1206,7 +1208,7 @@
                             {{ sanction.get_type_sanction_display }}
                           </h5>
                           <p class="sanction-raison">
-                            <strong>Raison :</strong> {{ sanction.get_raison_display }}
+                            <strong>{% trans "Raison :" %}</strong> {{ sanction.get_raison_display }}
                           </p>
                           {% if sanction.description %}
                             <p class="sanction-description">{{ sanction.description }}</p>
@@ -1214,7 +1216,7 @@
                           <div class="sanction-meta">
                             <span class="meta-item">
                               <i class="fas fa-user"></i>
-                              Attribué par : <strong>{{ sanction.attribue_par_nom }}</strong> ({{ sanction.get_attribue_par_type_display }})
+                              {% trans "Attribué par :" %} <strong>{{ sanction.attribue_par_nom }}</strong> ({{ sanction.get_attribue_par_type_display }})
                             </span>
                             <span class="meta-item">
                               <i class="fas fa-clock"></i>
@@ -1229,8 +1231,8 @@
               {% else %}
                 <div class="empty-state">
                   <i class="fas fa-check-circle"></i>
-                  <p>Aucune sanction enregistrée</p>
-                  <small>Cet élève n'a reçu aucune sanction disciplinaire</small>
+                  <p>{% trans "Aucune sanction enregistrée" %}</p>
+                  <small>{% trans "Cet élève n'a reçu aucune sanction disciplinaire" %}</small>
                 </div>
               {% endif %}
             </div>
@@ -1244,19 +1246,19 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-key"></i>
-                Informations de connexion
+                {% trans "Informations de connexion" %}
               </h3>
               <div class="info-grid">
                 <div class="info-field">
-                  <label class="field-label">Nom d'utilisateur</label>
+                  <label class="field-label">{% trans "Nom d'utilisateur" %}</label>
                   <div class="field-value">{{ eleve.username }}</div>
                 </div>
                 <div class="info-field highlight-field">
-                  <label class="field-label">Mot de passe provisoire</label>
+                  <label class="field-label">{% trans "Mot de passe provisoire" %}</label>
                   <div class="field-value password-display">{{ eleve.mot_de_passe_provisoire }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Statut du compte</label>
+                  <label class="field-label">{% trans "Statut du compte" %}</label>
                   <div class="field-value">
                     <span class="status-badge status-{% if eleve.is_active %}active{% else %}inactive{% endif %}">
                       {% if eleve.is_active %}Actif{% else %}Inactif{% endif %}
@@ -1271,23 +1273,23 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-user-shield"></i>
-                Informations de connexion du parent
+                {% trans "Informations de connexion du parent" %}
               </h3>
               <div class="info-grid">
                 <div class="info-field">
-                  <label class="field-label">Nom d'utilisateur (Parent)</label>
+                  <label class="field-label">{% trans "Nom d'utilisateur (Parent)" %}</label>
                   <div class="field-value">{{ parent_inscripteur.username }}</div>
                 </div>
                 <div class="info-field highlight-field">
-                  <label class="field-label">Mot de passe provisoire (Parent)</label>
+                  <label class="field-label">{% trans "Mot de passe provisoire (Parent)" %}</label>
                   <div class="field-value password-display">{{ parent_inscripteur.mot_de_passe_provisoire }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Matricule parental</label>
+                  <label class="field-label">{% trans "Matricule parental" %}</label>
                   <div class="field-value">{{ parent_inscripteur.matricule_parental }}</div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Statut du compte parent</label>
+                  <label class="field-label">{% trans "Statut du compte parent" %}</label>
                   <div class="field-value">
                     <span class="status-badge status-{% if parent_inscripteur.is_active %}active{% else %}inactive{% endif %}">
                       {% if parent_inscripteur.is_active %}Actif{% else %}Inactif{% endif %}
@@ -1295,17 +1297,17 @@
                   </div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Dernière connexion</label>
+                  <label class="field-label">{% trans "Dernière connexion" %}</label>
                   <div class="field-value">
                     {% if parent_inscripteur.last_login %}
                       {{ parent_inscripteur.last_login|date:"d/m/Y à H:i" }}
                     {% else %}
-                      <span class="text-muted">Jamais connecté</span>
+                      <span class="text-muted">{% trans "Jamais connecté" %}</span>
                     {% endif %}
                   </div>
                 </div>
                 <div class="info-field">
-                  <label class="field-label">Date de création du compte</label>
+                  <label class="field-label">{% trans "Date de création du compte" %}</label>
                   <div class="field-value">{{ parent_inscripteur.date_creation|date:"d/m/Y à H:i" }}</div>
                 </div>
               </div>
@@ -1314,12 +1316,12 @@
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-user-shield"></i>
-                Informations de connexion du parent
+                {% trans "Informations de connexion du parent" %}
               </h3>
               <div class="no-data-message">
                 <i class="fas fa-exclamation-triangle"></i>
-                <p>Aucun compte parent associé trouvé.</p>
-                <small>Le parent n'a pas encore de compte de connexion dans le système.</small>
+                <p>{% trans "Aucun compte parent associé trouvé." %}</p>
+                <small>{% trans "Le parent n'a pas encore de compte de connexion dans le système." %}</small>
               </div>
             </div>
             {% endif %}
@@ -1333,7 +1335,7 @@
           <div class="photo-modal-header">
             <h3>
               <i class="fas fa-camera"></i>
-              Mettre à jour la photo de l'élève
+              {% trans "Mettre à jour la photo de l'élève" %}
             </h3>
             <button type="button" class="btn-close-modal" onclick="closePhotoModal()">
               <i class="fas fa-times"></i>
@@ -1344,30 +1346,30 @@
             <input type="hidden" name="form_type" value="photo_upload" />
 
             <p class="photo-form-intro">
-              Téléversez une photo récente de l'élève (format JPG, PNG ou WEBP, taille maximale 5 Mo).
+              {% trans "Téléversez une photo récente de l'élève (format JPG, PNG ou WEBP, taille maximale 5 Mo)." %}
             </p>
 
             <div class="photo-source-options">
               <label class="photo-source-option">
                 <input type="radio" name="photo_source" value="gallery" checked onclick="switchPhotoSource('gallery')" />
-                <span><i class="fas fa-images"></i> Depuis la galerie</span>
+                <span><i class="fas fa-images"></i> {% trans "Depuis la galerie" %}</span>
               </label>
               <label class="photo-source-option">
                 <input type="radio" name="photo_source" value="camera" onclick="switchPhotoSource('camera')" />
-                <span><i class="fas fa-camera"></i> Prendre une photo</span>
+                <span><i class="fas fa-camera"></i> {% trans "Prendre une photo" %}</span>
               </label>
             </div>
 
             <div class="photo-input-panels">
               <div class="photo-input-panel active" data-source="gallery">
-                <label class="panel-title">Sélectionner un fichier</label>
+                <label class="panel-title">{% trans "Sélectionner un fichier" %}</label>
                 <input type="file" name="photo_fichier" accept="image/*" class="photo-file-input" />
-                <small class="panel-hint">Choisissez une photo existante sur votre appareil.</small>
+                <small class="panel-hint">{% trans "Choisissez une photo existante sur votre appareil." %}</small>
               </div>
               <div class="photo-input-panel" data-source="camera">
-                <label class="panel-title">Capturer depuis l'appareil photo</label>
+                <label class="panel-title">{% trans "Capturer depuis l'appareil photo" %}</label>
                 <input type="file" name="photo_camera" accept="image/*" capture="environment" class="photo-file-input" />
-                <small class="panel-hint">Utilisez la caméra de l'appareil pour prendre une photo immédiate.</small>
+                <small class="panel-hint">{% trans "Utilisez la caméra de l'appareil pour prendre une photo immédiate." %}</small>
               </div>
             </div>
 
@@ -1384,11 +1386,11 @@
             <div class="photo-form-actions">
               <button type="button" class="btn-secondary" onclick="closePhotoModal()">
                 <i class="fas fa-times"></i>
-                Annuler
+                {% trans "Annuler" %}
               </button>
               <button type="submit" class="btn-primary">
                 <i class="fas fa-cloud-upload-alt"></i>
-                Enregistrer la photo
+                {% trans "Enregistrer la photo" %}
               </button>
             </div>
           </form>
@@ -1401,7 +1403,7 @@
           <div class="transfer-form-header">
             <h3>
               <i class="fas fa-exchange-alt"></i>
-              Transférer l'élève vers une autre classe
+              {% trans "Transférer l'élève vers une autre classe" %}
             </h3>
             <button type="button" class="btn-close" onclick="toggleTransferForm()">
               <i class="fas fa-times"></i>
@@ -1410,7 +1412,7 @@
           <form method="POST" action="{% url 'secretaire:transfer_eleve' eleve.id %}" class="transfer-form">
             {% csrf_token %}
             <div class="form-group">
-              <label class="form-label" for="current_class">Classe actuelle</label>
+              <label class="form-label" for="current_class">{% trans "Classe actuelle" %}</label>
               <input
                 type="text"
                 id="current_class"
@@ -1420,14 +1422,14 @@
               />
             </div>
             <div class="form-group">
-              <label class="form-label" for="new_class">Nouvelle classe <span class="required-label">*</span></label>
+              <label class="form-label" for="new_class">{% trans "Nouvelle classe" %} <span class="required-label">*</span></label>
               <select
                 id="new_class"
                 name="new_class"
                 class="form-select"
                 required
               >
-                <option value="">Sélectionner une classe</option>
+                <option value="">{% trans "Sélectionner une classe" %}</option>
                 {% for classe in classes %}
                   {% if classe.id != eleve.classe.id %}
                     <option value="{{ classe.id }}" {% if classe.places_disponibles <= 0 %}disabled{% endif %}>
@@ -1443,23 +1445,23 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" for="transfer_reason">Raison du transfert</label>
+              <label class="form-label" for="transfer_reason">{% trans "Raison du transfert" %}</label>
               <textarea
                 id="transfer_reason"
                 name="transfer_reason"
                 class="form-textarea"
                 rows="3"
-                placeholder="Expliquez la raison du transfert..."
+                placeholder="{% trans "Expliquez la raison du transfert..." %}"
               ></textarea>
             </div>
             <div class="form-actions">
               <button type="button" class="btn-secondary" onclick="toggleTransferForm()">
                 <i class="fas fa-times"></i>
-                Annuler
+                {% trans "Annuler" %}
               </button>
               <button type="submit" class="btn-primary">
                 <i class="fas fa-exchange-alt"></i>
-                Transférer l'élève
+                {% trans "Transférer l'élève" %}
               </button>
             </div>
           </form>
@@ -1472,7 +1474,7 @@
           <div class="edit-form-header">
             <h3>
               <i class="fas fa-edit"></i>
-              Modifier les informations de l'élève
+              {% trans "Modifier les informations de l'élève" %}
             </h3>
             <button type="button" class="btn-close" onclick="toggleEditForm()">
               <i class="fas fa-times"></i>

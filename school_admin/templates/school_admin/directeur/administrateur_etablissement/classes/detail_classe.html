@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load exam_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,15 +50,15 @@
           <div class="page-actions">
             <button type="button" class="btn-action btn-edit" id="btnModifierClasse">
               <i class="fas fa-edit"></i>
-              <span>Modifier</span>
+              <span>{% trans "Modifier" %}</span>
             </button>
             <button type="button" class="btn-action btn-delete" id="btnSupprimerClasse">
               <i class="fas fa-trash"></i>
-              <span>Supprimer</span>
+              <span>{% trans "Supprimer" %}</span>
             </button>
             <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-back">
               <i class="fas fa-arrow-left"></i>
-              <span>Retour à la liste</span>
+              <span>{% trans "Retour à la liste" %}</span>
             </a>
           </div>
         </div>
@@ -90,18 +92,18 @@
               
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label" for="nom">Nom de la classe *</label>
+                  <label class="form-label" for="nom">{% trans "Nom de la classe *" %}</label>
                   <input type="text" 
                          class="form-control" 
                          id="nom" 
                          name="nom" 
                          value="{{ classe.nom }}"
-                         placeholder="Ex: 6ème A, Terminale S, etc."
+                         placeholder="{% trans "Ex: 6ème A, Terminale S, etc." %}"
                          required>
                 </div>
                 
                 <div class="form-group">
-                  <label class="form-label" for="capacite_max">Capacité maximale *</label>
+                  <label class="form-label" for="capacite_max">{% trans "Capacité maximale *" %}</label>
                   <input type="number" 
                          class="form-control" 
                          id="capacite_max" 
@@ -116,22 +118,22 @@
               </div>
               
               <div class="form-group">
-                <label class="form-label" for="description">Description (optionnel)</label>
+                <label class="form-label" for="description">{% trans "Description (optionnel)" %}</label>
                 <textarea class="form-control" 
                           id="description" 
                           name="description" 
                           rows="3"
-                          placeholder="Description de la classe...">{{ classe.description|default:"" }}</textarea>
+                          placeholder="{% trans "Description de la classe..." %}">{{ classe.description|default:"" }}</textarea>
               </div>
               
               <div class="form-actions">
                 <button type="button" class="btn-cancel" id="btnAnnulerModif">
                   <i class="fas fa-times"></i>
-                  <span>Annuler</span>
+                  <span>{% trans "Annuler" %}</span>
                 </button>
                 <button type="submit" class="btn-submit">
                   <i class="fas fa-save"></i>
-                  <span>Enregistrer les modifications</span>
+                  <span>{% trans "Enregistrer les modifications" %}</span>
                 </button>
               </div>
             </form>
@@ -144,7 +146,7 @@
             <div class="modal-header">
               <h3 class="modal-title">
                 <i class="fas fa-exclamation-triangle"></i>
-                Confirmer la suppression
+                {% trans "Confirmer la suppression" %}
               </h3>
             </div>
             
@@ -157,11 +159,11 @@
             <div class="modal-actions">
               <button type="button" class="btn-cancel" id="btnCancelDelete">
                 <i class="fas fa-times"></i>
-                <span>Annuler</span>
+                <span>{% trans "Annuler" %}</span>
               </button>
               <button type="button" class="btn-danger" id="btnConfirmDelete">
                 <i class="fas fa-trash"></i>
-                <span>Supprimer</span>
+                <span>{% trans "Supprimer" %}</span>
               </button>
             </div>
           </div>
@@ -196,7 +198,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ stats_eleves.total }}</div>
-                <div class="stat-label">Élèves</div>
+                <div class="stat-label">{% trans "Élèves" %}</div>
               </div>
             </div>
             <div class="stat-item">
@@ -205,7 +207,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ nombre_enseignants }}</div>
-                <div class="stat-label">Enseignants</div>
+                <div class="stat-label">{% trans "Enseignants" %}</div>
               </div>
             </div>
             <div class="stat-item">
@@ -214,7 +216,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ classe.taux_occupation }}%</div>
-                <div class="stat-label">Occupation</div>
+                <div class="stat-label">{% trans "Occupation" %}</div>
               </div>
             </div>
             <div class="stat-item">
@@ -223,7 +225,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ classe.date_creation|date:"d/m/Y" }}</div>
-                <div class="stat-label">Créée le</div>
+                <div class="stat-label">{% trans "Créée le" %}</div>
               </div>
             </div>
           </div>
@@ -234,7 +236,7 @@
           <div class="tabs-nav">
             <button class="tab-btn active" data-tab="overview">
               <i class="fas fa-info-circle"></i>
-              <span>Vue d'ensemble</span>
+              <span>{% trans "Vue d'ensemble" %}</span>
             </button>
             <button class="tab-btn" data-tab="enseignants">
               <i class="fas fa-chalkboard-teacher"></i>
@@ -246,11 +248,11 @@
             </button>
             <button class="tab-btn" data-tab="statistiques">
               <i class="fas fa-chart-bar"></i>
-              <span>Statistiques</span>
+              <span>{% trans "Statistiques" %}</span>
             </button>
             <button class="tab-btn" data-tab="releve-notes">
               <i class="fas fa-clipboard-list"></i>
-              <span>Relevé de notes</span>
+              <span>{% trans "Relevé de notes" %}</span>
             </button>
           </div>
 
@@ -263,27 +265,27 @@
                   <div class="info-card">
                     <h3 class="card-title">
                       <i class="fas fa-info-circle"></i>
-                      Informations Générales
+                      {% trans "Informations Générales" %}
                     </h3>
                     <div class="info-list">
                       <div class="info-item">
                         <i class="fas fa-code"></i>
-                        <span class="info-label">Code:</span>
+                        <span class="info-label">{% trans "Code:" %}</span>
                         <span class="info-value">{{ classe.code_classe }}</span>
                       </div>
                       <div class="info-item">
                         <i class="fas fa-users"></i>
-                        <span class="info-label">Capacité:</span>
+                        <span class="info-label">{% trans "Capacité:" %}</span>
                         <span class="info-value">{{ classe.capacite_max }} élèves</span>
                       </div>
                       <div class="info-item">
                         <i class="fas fa-chart-pie"></i>
-                        <span class="info-label">Occupation:</span>
+                        <span class="info-label">{% trans "Occupation:" %}</span>
                         <span class="info-value">{{ classe.taux_occupation }}%</span>
                       </div>
                       <div class="info-item">
                         <i class="fas fa-calendar-edit"></i>
-                        <span class="info-label">Modifiée:</span>
+                        <span class="info-label">{% trans "Modifiée:" %}</span>
                         <span class="info-value">{{ classe.date_modification|date:"d/m/Y" }}</span>
                       </div>
                     </div>
@@ -292,7 +294,7 @@
                   <div class="info-card">
                     <h3 class="card-title">
                       <i class="fas fa-school"></i>
-                      Établissement
+                      {% trans "Établissement" %}
                     </h3>
                     <div class="etablissement-info">
                       <div class="etablissement-card">
@@ -313,7 +315,7 @@
                   <div class="info-card full-width">
                     <h3 class="card-title">
                       <i class="fas fa-align-left"></i>
-                      Description
+                      {% trans "Description" %}
                     </h3>
                     <div class="description-content">
                       <p>{{ classe.description }}</p>
@@ -333,7 +335,7 @@
                       <div class="enseignants-group">
                         <h3 class="group-title">
                           <i class="fas fa-crown"></i>
-                          Professeurs Principaux
+                          {% trans "Professeurs Principaux" %}
                         </h3>
                         <div class="enseignants-grid">
                           {% for affectation in enseignants_principaux %}
@@ -347,7 +349,7 @@
                                   <p class="enseignant-matiere">{% if affectation.matiere %}{{ affectation.matiere.nom }}{% else %}{{ affectation.professeur.matiere_principale.nom }}{% endif %}</p>
                                 </div>
                                 <div class="enseignant-status">
-                                  <span class="status-badge principal">Principal</span>
+                                  <span class="status-badge principal">{% trans "Principal" %}</span>
                                 </div>
                               </div>
                               <div class="enseignant-details">
@@ -375,7 +377,7 @@
                       <div class="enseignants-group">
                         <h3 class="group-title">
                           <i class="fas fa-chalkboard"></i>
-                          Professeurs Classiques
+                          {% trans "Professeurs Classiques" %}
                         </h3>
                         <div class="enseignants-grid">
                           {% for affectation in enseignants_classiques %}
@@ -389,7 +391,7 @@
                                   <p class="enseignant-matiere">{% if affectation.matiere %}{{ affectation.matiere.nom }}{% else %}{{ affectation.professeur.matiere_principale.nom }}{% endif %}</p>
                                 </div>
                                 <div class="enseignant-status">
-                                  <span class="status-badge classique">Classique</span>
+                                  <span class="status-badge classique">{% trans "Classique" %}</span>
                                 </div>
                               </div>
                               <div class="enseignant-details">
@@ -417,11 +419,11 @@
                     <div class="empty-icon">
                       <i class="fas fa-chalkboard-teacher"></i>
                     </div>
-                    <h3>Aucun enseignant affecté</h3>
-                    <p>Cette classe n'a pas encore d'enseignants affectés.</p>
+                    <h3>{% trans "Aucun enseignant affecté" %}</h3>
+                    <p>{% trans "Cette classe n'a pas encore d'enseignants affectés." %}</p>
                     <a href="{% url 'affectation:affectation_professeurs' %}" class="btn-primary">
                       <i class="fas fa-plus"></i>
-                      Affecter des enseignants
+                      {% trans "Affecter des enseignants" %}
                     </a>
                   </div>
                 {% endif %}
@@ -622,7 +624,7 @@
                             <input type="text" 
                                    class="search-input" 
                                    id="search-input-eleves-{{ classe.id }}" 
-                                   placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                                   placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
                                    oninput="filterClasseEleves('{{ classe.id }}')"
                                    style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
                             <button class="clear-search" 
@@ -637,36 +639,36 @@
                             <div class="filter-group" style="flex: 1; min-width: 180px;">
                                 <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                     <i class="fas fa-user-tag"></i>
-                                    Statut
+                                    {% trans "Statut" %}
                                 </label>
                                 <select class="filter-select" id="filter-statut-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="nouvelle">Nouvelle inscription</option>
-                                    <option value="transfert">Transfert</option>
-                                    <option value="reinscription">Réinscription</option>
+                                    <option value="">{% trans "Tous les statuts" %}</option>
+                                    <option value="nouvelle">{% trans "Nouvelle inscription" %}</option>
+                                    <option value="transfert">{% trans "Transfert" %}</option>
+                                    <option value="reinscription">{% trans "Réinscription" %}</option>
                                 </select>
                             </div>
                             
                             <div class="filter-group" style="flex: 1; min-width: 180px;">
                                 <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                     <i class="fas fa-venus-mars"></i>
-                                    Sexe
+                                    {% trans "Sexe" %}
                                 </label>
                                 <select class="filter-select" id="filter-sexe-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                    <option value="">Tous</option>
-                                    <option value="M">Masculin</option>
-                                    <option value="F">Féminin</option>
+                                    <option value="">{% trans "Tous" %}</option>
+                                    <option value="M">{% trans "Masculin" %}</option>
+                                    <option value="F">{% trans "Féminin" %}</option>
                                 </select>
                             </div>
                             
                             <button class="btn-reset-filters" onclick="resetClasseFilters('{{ classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                 <i class="fas fa-redo"></i>
-                                Réinitialiser
+                                {% trans "Réinitialiser" %}
                             </button>
                         </div>
                         
                         <div class="filter-results" id="filter-results-eleves-{{ classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                            <span id="results-count-eleves-{{ classe.id }}">0</span> résultat(s) trouvé(s)
+                            <span id="results-count-eleves-{{ classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                         </div>
                     </div>
                     
@@ -674,12 +676,12 @@
                       <table class="eleves-table">
                         <thead>
                           <tr>
-                            <th>Élève</th>
-                            <th>Matricule</th>
-                            <th>Sexe</th>
-                            <th>Statut</th>
-                            <th>Date de Naissance</th>
-                            <th style="text-align: center;">Actions</th>
+                            <th>{% trans "Élève" %}</th>
+                            <th>{% trans "Matricule" %}</th>
+                            <th>{% trans "Sexe" %}</th>
+                            <th>{% trans "Statut" %}</th>
+                            <th>{% trans "Date de Naissance" %}</th>
+                            <th style="text-align: center;">{% trans "Actions" %}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -723,21 +725,21 @@
                             <td>{{ eleve.date_naissance|date:"d/m/Y" }}</td>
                             <td>
                               <div class="actions-cell">
-                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-eleve btn-details" title="Détails de l'élève">
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-eleve btn-details" title="{% trans "Détails de l" %}'élève">
                                   <i class="fas fa-eye"></i>
-                                  Détails
+                                  {% trans "Détails" %}
                                 </a>
-                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#notes-tab" class="btn-action-eleve btn-notes" title="Notes de l'élève">
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#notes-tab" class="btn-action-eleve btn-notes" title="{% trans "Notes de l" %}'élève">
                                   <i class="fas fa-chart-line"></i>
-                                  Notes
+                                  {% trans "Notes" %}
                                 </a>
-                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#sanctions-tab" class="btn-action-eleve btn-sanctions" title="Sanctions de l'élève">
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#sanctions-tab" class="btn-action-eleve btn-sanctions" title="{% trans "Sanctions de l" %}'élève">
                                   <i class="fas fa-gavel"></i>
-                                  Sanctions
+                                  {% trans "Sanctions" %}
                                 </a>
-                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#presences-tab" class="btn-action-eleve btn-absences" title="Absences de l'élève">
+                                <a href="{% url 'secretaire:detail_eleve' eleve.id %}#presences-tab" class="btn-action-eleve btn-absences" title="{% trans "Absences de l" %}'élève">
                                   <i class="fas fa-calendar-times"></i>
-                                  Absences
+                                  {% trans "Absences" %}
                                 </a>
                               </div>
                             </td>
@@ -752,8 +754,8 @@
                     <div class="empty-icon">
                       <i class="fas fa-user-graduate"></i>
                     </div>
-                    <h3>Aucun élève inscrit</h3>
-                    <p>Cette classe n'a pas encore d'élèves inscrits.</p>
+                    <h3>{% trans "Aucun élève inscrit" %}</h3>
+                    <p>{% trans "Cette classe n'a pas encore d'élèves inscrits." %}</p>
                   </div>
                 {% endif %}
               </div>
@@ -766,31 +768,31 @@
                   <div class="stats-card">
                     <h3 class="card-title">
                       <i class="fas fa-user-graduate"></i>
-                      Statistiques des Élèves
+                      {% trans "Statistiques des Élèves" %}
                     </h3>
                     <div class="stats-list">
                       <div class="stat-item">
-                        <span class="stat-label">Total des élèves:</span>
+                        <span class="stat-label">{% trans "Total des élèves:" %}</span>
                         <span class="stat-value">{{ stats_eleves.total }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Garçons:</span>
+                        <span class="stat-label">{% trans "Garçons:" %}</span>
                         <span class="stat-value">{{ stats_eleves.masculin }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Filles:</span>
+                        <span class="stat-label">{% trans "Filles:" %}</span>
                         <span class="stat-value">{{ stats_eleves.feminin }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Nouveaux:</span>
+                        <span class="stat-label">{% trans "Nouveaux:" %}</span>
                         <span class="stat-value">{{ stats_eleves.nouveaux }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Transferts:</span>
+                        <span class="stat-label">{% trans "Transferts:" %}</span>
                         <span class="stat-value">{{ stats_eleves.transferts }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Réinscriptions:</span>
+                        <span class="stat-label">{% trans "Réinscriptions:" %}</span>
                         <span class="stat-value">{{ stats_eleves.reinscriptions }}</span>
                       </div>
                     </div>
@@ -799,19 +801,19 @@
                   <div class="stats-card">
                     <h3 class="card-title">
                       <i class="fas fa-chalkboard-teacher"></i>
-                      Statistiques des Enseignants
+                      {% trans "Statistiques des Enseignants" %}
                     </h3>
                     <div class="stats-list">
                       <div class="stat-item">
-                        <span class="stat-label">Total des enseignants:</span>
+                        <span class="stat-label">{% trans "Total des enseignants:" %}</span>
                         <span class="stat-value">{{ nombre_enseignants }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Professeurs principaux:</span>
+                        <span class="stat-label">{% trans "Professeurs principaux:" %}</span>
                         <span class="stat-value">{{ enseignants_principaux.count }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Professeurs classiques:</span>
+                        <span class="stat-label">{% trans "Professeurs classiques:" %}</span>
                         <span class="stat-value">{{ enseignants_classiques.count }}</span>
                       </div>
                     </div>
@@ -820,24 +822,24 @@
                   <div class="stats-card">
                     <h3 class="card-title">
                       <i class="fas fa-chart-pie"></i>
-                      Occupation de la Classe
+                      {% trans "Occupation de la Classe" %}
                     </h3>
                     <div class="occupation-chart">
                       <div class="chart-circle">
                         <div class="chart-percentage">{{ classe.taux_occupation }}%</div>
-                        <div class="chart-label">Occupation</div>
+                        <div class="chart-label">{% trans "Occupation" %}</div>
                       </div>
                       <div class="chart-details">
                         <div class="chart-item">
-                          <span class="chart-label">Élèves inscrits:</span>
+                          <span class="chart-label">{% trans "Élèves inscrits:" %}</span>
                           <span class="chart-value">{{ stats_eleves.total }}</span>
                         </div>
                         <div class="chart-item">
-                          <span class="chart-label">Capacité maximale:</span>
+                          <span class="chart-label">{% trans "Capacité maximale:" %}</span>
                           <span class="chart-value">{{ classe.capacite_max }}</span>
                         </div>
                         <div class="chart-item">
-                          <span class="chart-label">Places disponibles:</span>
+                          <span class="chart-label">{% trans "Places disponibles:" %}</span>
                           <span class="chart-value">{{ classe.places_disponibles }}</span>
                         </div>
                       </div>
@@ -850,7 +852,7 @@
             <!-- Relevé de Notes Tab -->
             <div class="tab-panel" id="releve-notes">
               <div class="panel-content">
-                <style>
+                {% trans "<style>
                   /* Styles améliorés pour le relevé de notes */
                   .releve-table-wrapper {
                     margin-top: 20px;
@@ -1120,7 +1122,7 @@
                   .periode-tab-content.active {
                     display: block;
                   }
-                </style>
+                </style>" %}
                 <!-- Sous-onglets par période -->
                 <div class="periode-tabs">
                   {% for periode in periodes %}
@@ -1156,16 +1158,16 @@
                       <table class="releve-table">
                         <thead>
                           <tr>
-                            <th class="th-rang">Rang</th>
-                            <th class="th-eleve">Élève</th>
+                            <th class="th-rang">{% trans "Rang" %}</th>
+                            <th class="th-eleve">{% trans "Élève" %}</th>
                             {% for matiere in matieres_classe %}
                             <th class="th-matiere">
                               <div class="matiere-header-content">
                                 <span class="matiere-nom">{{ matiere.nom }}</span>
                                 <button class="btn-details-matiere" 
                                         onclick="ouvrirDetailsMatiere('{{ classe.id }}', '{{ matiere.nom|escapejs }}', event)"
-                                        title="Voir les détails des notes">
-                                  <i class="fas fa-eye"></i> Détails
+                                        title="{% trans "Voir les détails des notes" %}">
+                                  <i class="fas fa-eye"></i> {% trans "Détails" %}
                                 </button>
                               </div>
                             </th>
@@ -1215,8 +1217,8 @@
                     {% else %}
                     <div class="empty-state">
                       <i class="fas fa-clipboard"></i>
-                      <h3>Aucune matière ou élève</h3>
-                      <p>Cette classe n'a pas encore de matières enseignées ou d'élèves inscrits.</p>
+                      <h3>{% trans "Aucune matière ou élève" %}</h3>
+                      <p>{% trans "Cette classe n'a pas encore de matières enseignées ou d'élèves inscrits." %}</p>
                     </div>
                     {% endif %}
                   </div>
@@ -1233,7 +1235,7 @@
         <div class="classe-actions">
           <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-action btn-back">
             <i class="fas fa-arrow-left"></i>
-            <span>Retour à la liste</span>
+            <span>{% trans "Retour à la liste" %}</span>
           </a>
           <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
             <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>

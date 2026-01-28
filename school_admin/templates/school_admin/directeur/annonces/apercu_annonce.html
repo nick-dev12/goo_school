@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,15 +17,15 @@
         <!-- Header Section -->
         <div class="page-header">
             <div class="header-content">
-                <h1><i class="fas fa-eye"></i> Aperçu de l'Annonce</h1>
-                <p>Voici comment votre annonce apparaîtra aux destinataires</p>
+                <h1><i class="fas fa-eye"></i> {% trans "Aperçu de l'Annonce" %}</h1>
+                <p>{% trans "Voici comment votre annonce apparaîtra aux destinataires" %}</p>
             </div>
             <div class="header-actions">
                 <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="btn-secondary">
-                    <i class="fas fa-edit"></i> Modifier
+                    <i class="fas fa-edit"></i> {% trans "Modifier" %}
                 </a>
                 <a href="{% url 'directeur:annonces_directeur' %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Retour
+                    <i class="fas fa-arrow-left"></i> {% trans "Retour" %}
                 </a>
             </div>
         </div>
@@ -48,12 +50,12 @@
                     <div class="annonce-meta">
                         <div class="meta-item">
                             <i class="fas fa-user"></i>
-                            <span><strong>Auteur :</strong> {{ annonce.get_nom_auteur }}</span>
+                            <span><strong>{% trans "Auteur :" %}</strong> {{ annonce.get_nom_auteur }}</span>
                         </div>
                         <div class="meta-item">
                             <i class="fas fa-calendar"></i>
                             <span>
-                                <strong>Date :</strong>
+                                <strong>{% trans "Date :" %}</strong>
                                 {% if annonce.date_publication %}
                                     {{ annonce.date_publication|date:"d/m/Y à H:i" }}
                                 {% else %}
@@ -63,7 +65,7 @@
                         </div>
                         <div class="meta-item">
                             <i class="fas fa-users"></i>
-                            <span><strong>Destinataires :</strong> {{ annonce.get_destinataires_display }}</span>
+                            <span><strong>{% trans "Destinataires :" %}</strong> {{ annonce.get_destinataires_display }}</span>
                         </div>
                     </div>
                 </div>
@@ -78,7 +80,7 @@
                     <div class="annonce-fichier-preview">
                         <div class="fichier-header">
                             <i class="fas fa-paperclip"></i>
-                            <h3>Fichier joint</h3>
+                            <h3>{% trans "Fichier joint" %}</h3>
                         </div>
                         <div class="fichier-content">
                             <div class="fichier-info">
@@ -89,7 +91,7 @@
                                 </div>
                             </div>
                             <a href="{{ annonce.fichier_joint.url }}" class="btn-download" download>
-                                <i class="fas fa-download"></i> Télécharger
+                                <i class="fas fa-download"></i> {% trans "Télécharger" %}
                             </a>
                         </div>
                     </div>
@@ -107,14 +109,14 @@
 
             <!-- Actions rapides -->
             <div class="quick-actions">
-                <h3><i class="fas fa-bolt"></i> Actions rapides</h3>
+                <h3><i class="fas fa-bolt"></i> {% trans "Actions rapides" %}</h3>
                 <div class="actions-list">
                     {% if annonce.statut == 'brouillon' %}
                         <form method="post" action="{% url 'directeur:publier_annonce' annonce.id %}">
                             {% csrf_token %}
                             <button type="submit" class="action-btn btn-publish" onclick="return confirm('Voulez-vous publier cette annonce ?')">
                                 <i class="fas fa-paper-plane"></i>
-                                <span>Publier cette annonce</span>
+                                <span>{% trans "Publier cette annonce" %}</span>
                             </button>
                         </form>
                     {% elif annonce.statut == 'publiee' %}
@@ -122,27 +124,27 @@
                             {% csrf_token %}
                             <button type="submit" class="action-btn btn-archive" onclick="return confirm('Voulez-vous archiver cette annonce ?')">
                                 <i class="fas fa-archive"></i>
-                                <span>Archiver cette annonce</span>
+                                <span>{% trans "Archiver cette annonce" %}</span>
                             </button>
                         </form>
                     {% endif %}
 
                     <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="action-btn btn-edit">
                         <i class="fas fa-edit"></i>
-                        <span>Modifier cette annonce</span>
+                        <span>{% trans "Modifier cette annonce" %}</span>
                     </a>
 
                     <form method="post" action="{% url 'directeur:supprimer_annonce' annonce.id %}">
                         {% csrf_token %}
                         <button type="submit" class="action-btn btn-delete" onclick="return confirm('Voulez-vous vraiment supprimer cette annonce ?')">
                             <i class="fas fa-trash"></i>
-                            <span>Supprimer cette annonce</span>
+                            <span>{% trans "Supprimer cette annonce" %}</span>
                         </button>
                     </form>
 
                     <a href="{% url 'directeur:imprimer_annonce' annonce.id %}" target="_blank" class="action-btn btn-print">
                         <i class="fas fa-print"></i>
-                        <span>Imprimer l'annonce</span>
+                        <span>{% trans "Imprimer l'annonce" %}</span>
                     </a>
                 </div>
             </div>

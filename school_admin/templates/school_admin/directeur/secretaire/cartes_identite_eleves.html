@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load eleve_filters %}
 {% load pagination_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,7 +40,7 @@
         <div class="page-title-section">
           <h1 class="page-title">
             <i class="fas fa-id-card"></i>
-            Cartes d'identité scolaires
+            {% trans "Cartes d'identité scolaires" %}
           </h1>
           <p class="page-subtitle">
             Consultez et imprimez les cartes d'identité des élèves de {{ etablissement.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% endif %}
@@ -47,7 +49,7 @@
         <div class="page-actions">
           <a href="{% url 'directeur:gestion_eleves' %}" class="btn-secondary">
             <i class="fas fa-arrow-left"></i>
-            <span>Retour à la gestion des élèves</span>
+            <span>{% trans "Retour à la gestion des élèves" %}</span>
           </a>
         </div>
       </div>
@@ -69,7 +71,7 @@
                   </div>
                   <div class="tab-stats">
                     <span class="students-count">{{ data.total_eleves }}</span>
-                    <span class="students-label">élèves</span>
+                    <span class="students-label">{% trans "élèves" %}</span>
                   </div>
                 </div>
               </button>
@@ -100,15 +102,15 @@
                         <i class="fas fa-id-card"></i>
                         {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
                       </h2>
-                      <p class="class-description">Sélectionnez un élève pour afficher sa carte d'identité.</p>
+                      <p class="class-description">{% trans "Sélectionnez un élève pour afficher sa carte d'identité." %}</p>
                     </div>
                     <div class="class-stats">
                       <div class="stat-item">
-                        <span class="stat-label">Inscrits</span>
+                        <span class="stat-label">{% trans "Inscrits" %}</span>
                         <span class="stat-value">{{ classe_data.stats.total_eleves }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Capacité</span>
+                        <span class="stat-label">{% trans "Capacité" %}</span>
                         <span class="stat-value">{{ classe_data.classe.capacite_max }}</span>
                       </div>
                     </div>
@@ -122,14 +124,14 @@
                       </h3>
                       <div class="section-actions">
                         <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}"
-                           class="btn-print-liste" target="_blank">
+                           {% trans "class=\"btn-print-liste\" target=\"_blank\">" %}
                           <i class="fas fa-print"></i>
-                          Imprimer liste
+                          {% trans "Imprimer liste" %}
                         </a>
                         <a href="{% url 'secretaire:cartes_identite_classe' classe_data.classe.id %}"
                            class="btn-print-cards" target="_blank">
                           <i class="fas fa-id-card"></i>
-                          Imprimer les cartes
+                          {% trans "Imprimer les cartes" %}
                         </a>
                       </div>
                     </div>
@@ -140,7 +142,7 @@
                         <input type="text"
                                class="search-input"
                                id="search-input-{{ classe_data.classe.id }}"
-                               placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                               placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
                                oninput="filterStudents('{{ classe_data.classe.id }}')">
                         <button class="clear-search" id="clear-search-{{ classe_data.classe.id }}" onclick="clearSearch('{{ classe_data.classe.id }}')" style="display: none;">
                           <i class="fas fa-times"></i>
@@ -151,9 +153,9 @@
                     {% if classe_data.eleves %}
                       <div class="students-list">
                         <div class="list-header">
-                          <div class="list-cell header-cell">Élève</div>
-                          <div class="list-cell header-cell">Numéro</div>
-                          <div class="list-cell header-cell">Carte d'identité</div>
+                          <div class="list-cell header-cell">{% trans "Élève" %}</div>
+                          <div class="list-cell header-cell">{% trans "Numéro" %}</div>
+                          <div class="list-cell header-cell">{% trans "Carte d'identité" %}</div>
                         </div>
 
                         {% for eleve_data in classe_data.eleves %}
@@ -182,7 +184,7 @@
                               <div class="student-actions-compact">
                                 <a href="{% url 'secretaire:carte_identite_eleve' eleve_data.eleve.id %}"
                                    class="btn-action-small btn-view"
-                                   title="Voir la carte d'identité" target="_blank">
+                                   title="{% trans "Voir la carte d" %}'identité" target="_blank">
                                   <i class="fas fa-id-card"></i>
                                 </a>
                               </div>
@@ -195,11 +197,11 @@
                         <div class="empty-icon">
                           <i class="fas fa-user-slash"></i>
                         </div>
-                        <h3 class="empty-title">Aucun élève inscrit</h3>
-                        <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                        <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
+                        <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
                         <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
                           <i class="fas fa-user-plus"></i>
-                          Inscrire un élève
+                          {% trans "Inscrire un élève" %}
                         </a>
                       </div>
                     {% endif %}

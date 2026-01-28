@@ -1,6 +1,8 @@
 {% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,12 +20,12 @@
             <div class="header-content">
                 <div class="header-title">
                     <i class="fas fa-door-open"></i>
-                    <h1>Gestion des Salles</h1>
+                    <h1>{% trans "Gestion des Salles" %}</h1>
                     <p>Gérez les salles de {{ etablissement.nom }}</p>
                 </div>
                 <button class="btn-add-salle" id="addSalleBtn">
                     <i class="fas fa-plus"></i>
-                    <span>Ajouter une salle</span>
+                    <span>{% trans "Ajouter une salle" %}</span>
                 </button>
             </div>
         </div>
@@ -37,7 +39,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.total }}</div>
-                        <div class="stat-label">Total Salles</div>
+                        <div class="stat-label">{% trans "Total Salles" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -46,7 +48,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.actives }}</div>
-                        <div class="stat-label">Actives</div>
+                        <div class="stat-label">{% trans "Actives" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -55,7 +57,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.inactives }}</div>
-                        <div class="stat-label">Inactives</div>
+                        <div class="stat-label">{% trans "Inactives" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -64,7 +66,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.total_capacite }}</div>
-                        <div class="stat-label">Capacité Totale</div>
+                        <div class="stat-label">{% trans "Capacité Totale" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -73,7 +75,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.disponibles }}</div>
-                        <div class="stat-label">Disponibles</div>
+                        <div class="stat-label">{% trans "Disponibles" %}</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -82,7 +84,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number">{{ stats.maintenance }}</div>
-                        <div class="stat-label">En Maintenance</div>
+                        <div class="stat-label">{% trans "En Maintenance" %}</div>
                     </div>
                 </div>
             </div>
@@ -120,19 +122,19 @@
                                 <div class="type-stats">
                                     <div class="stat-item">
                                         <span class="stat-number">{{ data.total_capacite }}</span>
-                                        <span class="stat-label">Capacité</span>
+                                        <span class="stat-label">{% trans "Capacité" %}</span>
                                     </div>
                                     <div class="stat-item">
                                         <span class="stat-number">{{ data.salles_disponibles }}</span>
-                                        <span class="stat-label">Disponibles</span>
+                                        <span class="stat-label">{% trans "Disponibles" %}</span>
                                     </div>
                                     <div class="stat-item">
                                         <span class="stat-number">{{ data.salles_occupees }}</span>
-                                        <span class="stat-label">Occupées</span>
+                                        <span class="stat-label">{% trans "Occupées" %}</span>
                                     </div>
                                     <div class="stat-item">
                                         <span class="stat-number">{{ data.salles_maintenance }}</span>
-                                        <span class="stat-label">Maintenance</span>
+                                        <span class="stat-label">{% trans "Maintenance" %}</span>
                                     </div>
                                 </div>
                             </div>
@@ -165,12 +167,12 @@
                                             <div class="detail-row">
                                                 <div class="detail-item">
                                                     <i class="fas fa-users"></i>
-                                                    <span class="detail-label">Capacité:</span>
+                                                    <span class="detail-label">{% trans "Capacité:" %}</span>
                                                     <span class="detail-value">{{ salle.capacite_max }}</span>
                                                 </div>
                                                 <div class="detail-item">
                                                     <i class="fas fa-calendar-plus"></i>
-                                                    <span class="detail-label">Créée:</span>
+                                                    <span class="detail-label">{% trans "Créée:" %}</span>
                                                     <span class="detail-value">{{ salle.date_creation|date:"d/m/Y" }}</span>
                                                 </div>
                                             </div>
@@ -179,12 +181,12 @@
                                             <div class="detail-row">
                                                 <div class="detail-item">
                                                     <i class="fas fa-edit"></i>
-                                                    <span class="detail-label">Modifiée:</span>
+                                                    <span class="detail-label">{% trans "Modifiée:" %}</span>
                                                     <span class="detail-value">{{ salle.date_modification|date:"d/m/Y" }}</span>
                                                 </div>
                                                 <div class="detail-item">
                                                     <i class="fas fa-building"></i>
-                                                    <span class="detail-label">Type:</span>
+                                                    <span class="detail-label">{% trans "Type:" %}</span>
                                                     <span class="detail-value">{{ salle.type_display }}</span>
                                                 </div>
                                             </div>
@@ -193,7 +195,7 @@
                                         <div class="salle-actions">
                                             <a href="{% url 'salle:detail_salle' salle.id %}" class="btn-action btn-detail">
                                                 <i class="fas fa-eye"></i>
-                                                <span>Détails</span>
+                                                <span>{% trans "Détails" %}</span>
                                             </a>
                                             <a href="{% url 'salle:toggle_actif' salle.id %}" class="btn-action btn-toggle {% if salle.actif %}active{% endif %}">
                                                 <i class="fas fa-{% if salle.actif %}pause{% else %}play{% endif %}"></i>
@@ -211,11 +213,11 @@
                     <div class="empty-icon">
                         <i class="fas fa-door-open"></i>
                     </div>
-                    <h3>Aucune salle trouvée</h3>
-                    <p>Commencez par ajouter des salles à votre établissement</p>
+                    <h3>{% trans "Aucune salle trouvée" %}</h3>
+                    <p>{% trans "Commencez par ajouter des salles à votre établissement" %}</p>
                     <button class="btn-add-salle" id="addSalleBtnEmpty">
                         <i class="fas fa-plus"></i>
-                        <span>Ajouter la première salle</span>
+                        <span>{% trans "Ajouter la première salle" %}</span>
                     </button>
                 </div>
             {% endif %}
@@ -228,7 +230,7 @@
             <div class="modal-header">
                 <h2 class="modal-title">
                     <i class="fas fa-plus"></i>
-                    Ajouter une nouvelle salle
+                    {% trans "Ajouter une nouvelle salle" %}
                 </h2>
                 <button class="modal-close" id="closeModal">
                     <i class="fas fa-times"></i>
@@ -237,56 +239,56 @@
             <form class="modal-form" method="post" action="{% url 'salle:ajouter_salle' %}">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="nom" class="form-label">Nom de la salle *</label>
-                    <input type="text" id="nom" name="nom" class="form-control" placeholder="Ex: Salle de Sciences, Laboratoire 1, etc." required>
+                    <label for="nom" class="form-label">{% trans "Nom de la salle *" %}</label>
+                    <input type="text" id="nom" name="nom" class="form-control" placeholder="{% trans "Ex: Salle de Sciences, Laboratoire 1, etc." %}" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="numero" class="form-label">Numéro de salle *</label>
+                    <label for="numero" class="form-label">{% trans "Numéro de salle *" %}</label>
                     <input type="text" id="numero" name="numero" class="form-control" placeholder="Ex: A101, LAB-01, etc." required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="type_salle" class="form-label">Type de salle *</label>
+                    <label for="type_salle" class="form-label">{% trans "Type de salle *" %}</label>
                     <select id="type_salle" name="type_salle" class="form-control" required>
-                        <option value="">Sélectionnez un type</option>
-                        <option value="classe">Salle de Classe</option>
-                        <option value="laboratoire">Laboratoire</option>
-                        <option value="bibliotheque">Bibliothèque</option>
-                        <option value="salle_informatique">Salle d'Informatique</option>
-                        <option value="salle_art">Salle d'Arts</option>
-                        <option value="salle_musique">Salle de Musique</option>
-                        <option value="salle_sport">Salle de Sport</option>
-                        <option value="amphitheatre">Amphithéâtre</option>
-                        <option value="salle_reunion">Salle de Réunion</option>
-                        <option value="bureau">Bureau</option>
-                        <option value="autre">Autre</option>
+                        <option value="">{% trans "Sélectionnez un type" %}</option>
+                        <option value="classe">{% trans "Salle de Classe" %}</option>
+                        <option value="laboratoire">{% trans "Laboratoire" %}</option>
+                        <option value="bibliotheque">{% trans "Bibliothèque" %}</option>
+                        <option value="salle_informatique">{% trans "Salle d'Informatique" %}</option>
+                        <option value="salle_art">{% trans "Salle d'Arts" %}</option>
+                        <option value="salle_musique">{% trans "Salle de Musique" %}</option>
+                        <option value="salle_sport">{% trans "Salle de Sport" %}</option>
+                        <option value="amphitheatre">{% trans "Amphithéâtre" %}</option>
+                        <option value="salle_reunion">{% trans "Salle de Réunion" %}</option>
+                        <option value="bureau">{% trans "Bureau" %}</option>
+                        <option value="autre">{% trans "Autre" %}</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
-                    <label for="capacite_max" class="form-label">Capacité maximale *</label>
+                    <label for="capacite_max" class="form-label">{% trans "Capacité maximale *" %}</label>
                     <input type="number" id="capacite_max" name="capacite_max" class="form-control" min="1" placeholder="30" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="etat" class="form-label">État de la salle</label>
+                    <label for="etat" class="form-label">{% trans "État de la salle" %}</label>
                     <select id="etat" name="etat" class="form-control">
-                        <option value="disponible">Disponible</option>
-                        <option value="occupee">Occupée</option>
-                        <option value="maintenance">En Maintenance</option>
-                        <option value="fermee">Fermée</option>
+                        <option value="disponible">{% trans "Disponible" %}</option>
+                        <option value="occupee">{% trans "Occupée" %}</option>
+                        <option value="maintenance">{% trans "En Maintenance" %}</option>
+                        <option value="fermee">{% trans "Fermée" %}</option>
                     </select>
                 </div>
                 
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" id="cancelAdd">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-save"></i>
-                        Ajouter la salle
+                        {% trans "Ajouter la salle" %}
                     </button>
                 </div>
             </form>

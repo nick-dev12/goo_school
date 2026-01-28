@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-    <style>
+    {% trans "<style>
         .reinscription-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -197,7 +199,7 @@
                 display: none;
             }
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -214,13 +216,13 @@
                 <div class="page-title-reinscription">
                     <h1>
                         <i class="fas fa-redo"></i>
-                        Réinscription des Élèves
+                        {% trans "Réinscription des Élèves" %}
                     </h1>
-                    <p>Liste des élèves éligibles à la réinscription pour l'année scolaire active</p>
+                    <p>{% trans "Liste des élèves éligibles à la réinscription pour l'année scolaire active" %}</p>
                 </div>
                 <a href="{% url 'directeur:gestion_eleves' %}" class="btn-back">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
+                    <span>{% trans "Retour" %}</span>
                 </a>
             </div>
 
@@ -235,7 +237,7 @@
                         Année scolaire active : {{ annee_scolaire_active.libelle }}
                     </p>
                     <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-                        Les élèves ci-dessous peuvent être réinscrits pour cette session.
+                        {% trans "Les élèves ci-dessous peuvent être réinscrits pour cette session." %}
                     </p>
                 </div>
             </div>
@@ -249,17 +251,17 @@
                         <input type="text" 
                                name="search" 
                                value="{{ search_query }}" 
-                               placeholder="Nom, prénom ou matricule de l'élève..."
+                               placeholder="{% trans "Nom, prénom ou matricule de l" %}'élève..."
                                autocomplete="off"
                                style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; transition: all 0.2s;">
                     </div>
                     <div style="min-width: 200px;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700, #374151); font-size: 0.875rem;">
-                            <i class="fas fa-chalkboard"></i> Classe
+                            <i class="fas fa-chalkboard"></i> {% trans "Classe" %}
                         </label>
                         <select name="classe" 
                                 style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; background: white; cursor: pointer; transition: all 0.2s;">
-                            <option value="">Toutes les classes</option>
+                            <option value="">{% trans "Toutes les classes" %}</option>
                             {% for classe in classes %}
                                 <option value="{{ classe.id }}" {% if classe_id == classe.id|stringformat:"s" %}selected{% endif %}>
                                     {{ classe.nom }} ({{ classe.get_niveau_display }})
@@ -269,7 +271,7 @@
                     </div>
                     <button type="submit" style="padding: 0.75rem 1.5rem; background: var(--primary, #3b82f6); color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
                         <i class="fas fa-search"></i>
-                        <span>Rechercher</span>
+                        <span>{% trans "Rechercher" %}</span>
                     </button>
                 </form>
             </div>
@@ -282,12 +284,12 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Nom</th>
-                                <th>Prénom</th>
-                                <th>Matricule</th>
-                                <th>Dernière classe</th>
-                                <th>Dernière année</th>
-                                <th>Actions</th>
+                                <th>{% trans "Nom" %}</th>
+                                <th>{% trans "Prénom" %}</th>
+                                <th>{% trans "Matricule" %}</th>
+                                <th>{% trans "Dernière classe" %}</th>
+                                <th>{% trans "Dernière année" %}</th>
+                                <th>{% trans "Actions" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -300,7 +302,7 @@
                                     {% if data.derniere_classe %}
                                         {{ data.derniere_classe.nom }}
                                     {% else %}
-                                        <span style="color: var(--gray-400, #9ca3af);">Non renseigné</span>
+                                        <span style="color: var(--gray-400, #9ca3af);">{% trans "Non renseigné" %}</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -313,7 +315,7 @@
                                 <td>
                                     <a href="{% url 'directeur:reinscription_eleve' data.eleve.id %}" class="btn-reinscrire">
                                         <i class="fas fa-redo"></i>
-                                        <span>Réinscrire</span>
+                                        <span>{% trans "Réinscrire" %}</span>
                                     </a>
                                 </td>
                             </tr>
@@ -324,9 +326,9 @@
                 {% else %}
                 <div class="empty-state">
                     <i class="fas fa-user-slash"></i>
-                    <h3>Aucun élève trouvé</h3>
+                    <h3>{% trans "Aucun élève trouvé" %}</h3>
                     <p>
-                        Aucun élève ne correspond à votre recherche.
+                        {% trans "Aucun élève ne correspond à votre recherche." %}
                         {% if search_query %}
                             <br>Nom recherché : "{{ search_query }}"
                         {% endif %}
@@ -345,10 +347,10 @@
             <!-- Message d'information si aucune recherche -->
             <div class="empty-state" style="background: white; padding: 3rem 1rem; border-radius: 12px; box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1));">
                 <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; color: var(--gray-300, #d1d5db);"></i>
-                <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gray-700, #374151);">Rechercher un élève</h3>
+                <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gray-700, #374151);">{% trans "Rechercher un élève" %}</h3>
                 <p style="color: var(--gray-500, #6b7280);">
-                    Utilisez la barre de recherche ci-dessus pour trouver un élève à réinscrire.<br>
-                    Vous pouvez rechercher par nom, prénom, matricule et/ou filtrer par classe.
+                    {% trans "Utilisez la barre de recherche ci-dessus pour trouver un élève à réinscrire.<br>" %}
+                    {% trans "Vous pouvez rechercher par nom, prénom, matricule et/ou filtrer par classe." %}
                 </p>
             </div>
             {% endif %}

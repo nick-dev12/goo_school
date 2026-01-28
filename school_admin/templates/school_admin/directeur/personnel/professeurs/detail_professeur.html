@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static notes_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,7 +22,7 @@
             <div class="header-left">
                 <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour à la liste</span>
+                    <span>{% trans "Retour à la liste" %}</span>
                 </a>
                 <div class="page-title-section">
                     <h1 class="page-title">
@@ -36,7 +37,7 @@
             <div class="header-actions">
                 <a href="{% url 'professeur:modifier_professeur' professeur.id %}" class="btn-action btn-edit">
                     <i class="fas fa-edit"></i>
-                    <span>Modifier</span>
+                    <span>{% trans "Modifier" %}</span>
                 </a>
                 <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" style="display: inline;">
                     {% csrf_token %}
@@ -65,20 +66,20 @@
             <div class="tabs-header">
                 <a href="?onglet=informations" class="tab-item {% if onglet_actif == 'informations' %}active{% endif %}">
                     <i class="fas fa-user"></i>
-                    <span>Informations</span>
+                    <span>{% trans "Informations" %}</span>
                 </a>
                 <a href="?onglet=connexion" class="tab-item {% if onglet_actif == 'connexion' %}active{% endif %}">
                     <i class="fas fa-key"></i>
-                    <span>Connexion</span>
+                    <span>{% trans "Connexion" %}</span>
                 </a>
                 <a href="?onglet=classes" class="tab-item {% if onglet_actif == 'classes' %}active{% endif %}">
                     <i class="fas fa-users-class"></i>
-                    <span>Classes affectées</span>
+                    <span>{% trans "Classes affectées" %}</span>
                 </a>
                 {% if etablissement.type_etablissement == 'primary' and affectations_primaire %}
                     <a href="?onglet=cahier_notes" class="tab-item {% if onglet_actif == 'cahier_notes' %}active{% endif %}">
                         <i class="fas fa-book-open"></i>
-                        <span>Cahier de notes</span>
+                        <span>{% trans "Cahier de notes" %}</span>
                     </a>
                 {% endif %}
             </div>
@@ -93,21 +94,21 @@
                             <div class="info-section">
                                 <h3 class="section-title">
                                     <i class="fas fa-user"></i>
-                                    Informations Personnelles
+                                    {% trans "Informations Personnelles" %}
                                 </h3>
                                 <table class="info-table">
                                     <tr>
-                                        <td class="info-label-cell">Nom complet</td>
+                                        <td class="info-label-cell">{% trans "Nom complet" %}</td>
                                         <td class="info-value-cell">{{ professeur.nom }} {{ professeur.prenom }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Email</td>
+                                        <td class="info-label-cell">{% trans "Email" %}</td>
                                         <td class="info-value-cell">
                                             <a href="mailto:{{ professeur.email }}" class="link-email">{{ professeur.email }}</a>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Téléphone</td>
+                                        <td class="info-label-cell">{% trans "Téléphone" %}</td>
                                         <td class="info-value-cell">
                                             <a href="tel:{{ professeur.telephone }}" class="link-phone">{{ professeur.telephone }}</a>
                                         </td>
@@ -119,19 +120,19 @@
                             <div class="info-section">
                                 <h3 class="section-title">
                                     <i class="fas fa-briefcase"></i>
-                                    Informations Professionnelles
+                                    {% trans "Informations Professionnelles" %}
                                 </h3>
                                 <table class="info-table">
                                     {% if professeur.etablissement.type_etablissement == 'primary' %}
                                         <!-- Pour les professeurs primaires, afficher les matières depuis les affectations -->
                                         <tr>
-                                            <td class="info-label-cell">Type d'enseignant</td>
+                                            <td class="info-label-cell">{% trans "Type d'enseignant" %}</td>
                                             <td class="info-value-cell">
-                                                <span class="badge-matiere">Enseignant Primaire Polyvalent</span>
+                                                <span class="badge-matiere">{% trans "Enseignant Primaire Polyvalent" %}</span>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td class="info-label-cell">Matières enseignées</td>
+                                            <td class="info-label-cell">{% trans "Matières enseignées" %}</td>
                                             <td class="info-value-cell">
                                                 <div class="matieres-secondaires-container">
                                                     <div class="matieres-secondaires-list">
@@ -147,7 +148,7 @@
                                                                 </div>
                                                             {% endfor %}
                                                         {% else %}
-                                                            <span class="text-muted">Aucune affectation</span>
+                                                            <span class="text-muted">{% trans "Aucune affectation" %}</span>
                                                         {% endif %}
                                                     </div>
                                                 </div>
@@ -156,13 +157,13 @@
                                     {% else %}
                                         <!-- Pour les professeurs secondaire, afficher matière principale et secondaires -->
                                         <tr>
-                                            <td class="info-label-cell">Matière principale</td>
+                                            <td class="info-label-cell">{% trans "Matière principale" %}</td>
                                             <td class="info-value-cell">
                                                 <span class="badge-matiere">{{ professeur.matiere_display }}</span>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td class="info-label-cell">Matières secondaires</td>
+                                            <td class="info-label-cell">{% trans "Matières secondaires" %}</td>
                                             <td class="info-value-cell">
                                                 <div class="matieres-secondaires-container">
                                                     <div class="matieres-secondaires-list">
@@ -176,18 +177,18 @@
                                                                 </span>
                                                             {% endfor %}
                                                         {% else %}
-                                                            <span class="text-muted">Aucune matière secondaire</span>
+                                                            <span class="text-muted">{% trans "Aucune matière secondaire" %}</span>
                                                         {% endif %}
                                                     </div>
                                                     <button type="button" class="btn-add-matiere-secondary" onclick="ouvrirModalAjoutMatiere({{ professeur.id }})">
-                                                        <i class="fas fa-plus"></i> Ajouter une matière
+                                                        <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
                                                     </button>
                                                 </div>
                                             </td>
                                         </tr>
                                     {% endif %}
                                     <tr>
-                                        <td class="info-label-cell">Niveau d'enseignement</td>
+                                        <td class="info-label-cell">{% trans "Niveau d'enseignement" %}</td>
                                         <td class="info-value-cell">
                                             <span class="badge-niveau">{{ professeur.niveau_display }}</span>
                                         </td>
@@ -199,25 +200,25 @@
                             <div class="info-section">
                                 <h3 class="section-title">
                                     <i class="fas fa-building"></i>
-                                    Informations Administratives
+                                    {% trans "Informations Administratives" %}
                                 </h3>
                                 <table class="info-table">
                                     <tr>
-                                        <td class="info-label-cell">Numéro d'employé</td>
+                                        <td class="info-label-cell">{% trans "Numéro d'employé" %}</td>
                                         <td class="info-value-cell">
                                             <span class="badge-employee">{{ professeur.numero_employe }}</span>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Établissement</td>
+                                        <td class="info-label-cell">{% trans "Établissement" %}</td>
                                         <td class="info-value-cell">{{ professeur.etablissement.nom }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Date d'embauche</td>
+                                        <td class="info-label-cell">{% trans "Date d'embauche" %}</td>
                                         <td class="info-value-cell">{{ professeur.date_embauche|date:"d/m/Y" }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Statut</td>
+                                        <td class="info-label-cell">{% trans "Statut" %}</td>
                                         <td class="info-value-cell">
                                             <span class="badge-status {% if professeur.actif %}active{% else %}inactive{% endif %}">
                                                 {% if professeur.actif %}Actif{% else %}Inactif{% endif %}
@@ -225,11 +226,11 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Date de création du compte</td>
+                                        <td class="info-label-cell">{% trans "Date de création du compte" %}</td>
                                         <td class="info-value-cell">{{ professeur.date_creation|date:"d/m/Y à H:i" }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="info-label-cell">Dernière modification</td>
+                                        <td class="info-label-cell">{% trans "Dernière modification" %}</td>
                                         <td class="info-value-cell">{{ professeur.date_modification|date:"d/m/Y à H:i" }}</td>
                                     </tr>
                                 </table>
@@ -246,7 +247,7 @@
                                 <div class="card-icon connexion">
                                     <i class="fas fa-key"></i>
                                 </div>
-                                <h2 class="card-title">Informations de Connexion</h2>
+                                <h2 class="card-title">{% trans "Informations de Connexion" %}</h2>
                             </div>
                             <div class="card-content">
                                 {% if professeur.mot_de_passe_provisoire %}
@@ -255,8 +256,8 @@
                                             <i class="fas fa-exclamation-triangle"></i>
                                         </div>
                                         <div class="alert-content">
-                                            <h4>Mot de passe provisoire actif</h4>
-                                            <p>Le professeur utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion.</p>
+                                            <h4>{% trans "Mot de passe provisoire actif" %}</h4>
+                                            <p>{% trans "Le professeur utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion." %}</p>
                                         </div>
                                     </div>
                                     
@@ -264,7 +265,7 @@
                                         <div class="connexion-item">
                                             <div class="connexion-label">
                                                 <i class="fas fa-id-card"></i>
-                                                <span>Identifiant de connexion</span>
+                                                <span>{% trans "Identifiant de connexion" %}</span>
                                             </div>
                                             <div class="connexion-value">
                                                 <code class="connexion-code">{{ professeur.username }}</code>
@@ -277,7 +278,7 @@
                                         <div class="connexion-item">
                                             <div class="connexion-label">
                                                 <i class="fas fa-lock"></i>
-                                                <span>Mot de passe provisoire</span>
+                                                <span>{% trans "Mot de passe provisoire" %}</span>
                                             </div>
                                             <div class="connexion-value">
                                                 <code class="connexion-code password-code">{{ professeur.mot_de_passe_provisoire }}</code>
@@ -293,11 +294,11 @@
                                             <i class="fas fa-info-circle"></i>
                                         </div>
                                         <div class="instruction-content">
-                                            <h5>Instructions de première connexion</h5>
+                                            <h5>{% trans "Instructions de première connexion" %}</h5>
                                             <ol>
-                                                <li>Utilisez l'identifiant de connexion et le mot de passe provisoire ci-dessus</li>
-                                                <li>Vous serez invité à changer votre mot de passe après la connexion</li>
-                                                <li>Choisissez un mot de passe sécurisé d'au moins 8 caractères</li>
+                                                <li>{% trans "Utilisez l'identifiant de connexion et le mot de passe provisoire ci-dessus" %}</li>
+                                                <li>{% trans "Vous serez invité à changer votre mot de passe après la connexion" %}</li>
+                                                <li>{% trans "Choisissez un mot de passe sécurisé d'au moins 8 caractères" %}</li>
                                             </ol>
                                         </div>
                                     </div>
@@ -305,8 +306,8 @@
                                     <div class="alert alert-success">
                                         <i class="fas fa-check-circle"></i>
                                         <div>
-                                            <strong>Mot de passe personnalisé</strong>
-                                            <p>Le professeur a défini son propre mot de passe sécurisé.</p>
+                                            <strong>{% trans "Mot de passe personnalisé" %}</strong>
+                                            <p>{% trans "Le professeur a défini son propre mot de passe sécurisé." %}</p>
                                         </div>
                                     </div>
                                     
@@ -314,7 +315,7 @@
                                         <div class="connexion-item">
                                             <div class="connexion-label">
                                                 <i class="fas fa-id-card"></i>
-                                                <span>Identifiant de connexion</span>
+                                                <span>{% trans "Identifiant de connexion" %}</span>
                                             </div>
                                             <div class="connexion-value">
                                                 <code class="connexion-code">{{ professeur.username }}</code>
@@ -338,7 +339,7 @@
                                 <div class="card-icon classes">
                                     <i class="fas fa-users-class"></i>
                                 </div>
-                                <h2 class="card-title">Classes Affectées</h2>
+                                <h2 class="card-title">{% trans "Classes Affectées" %}</h2>
                             </div>
                             <div class="card-content">
                                 {% if affectations_primaire %}
@@ -392,7 +393,7 @@
                                 {% else %}
                                     <div class="empty-state-small">
                                         <i class="fas fa-users-class"></i>
-                                        <p>Aucune classe affectée</p>
+                                        <p>{% trans "Aucune classe affectée" %}</p>
                                     </div>
                                 {% endif %}
                             </div>
@@ -453,12 +454,12 @@
                                                     <table class="notes-detail-table">
                                                         <thead>
                                                             <tr>
-                                                                <th rowspan="2" class="eleve-col-header">Élève</th>
+                                                                <th rowspan="2" class="eleve-col-header">{% trans "Élève" %}</th>
                                                                 {% if matiere_info.evaluations %}
-                                                                    <th colspan="{{ matiere_info.evaluations|length }}" class="evals-header">Évaluations</th>
+                                                                    <th colspan="{{ matiere_info.evaluations|length }}" class="evals-header">{% trans "Évaluations" %}</th>
                                                                 {% endif %}
-                                                                <th rowspan="2" class="moyenne-col-header">Moyenne</th>
-                                                                <th rowspan="2" class="appreciation-col-header">Appréciation</th>
+                                                                <th rowspan="2" class="moyenne-col-header">{% trans "Moyenne" %}</th>
+                                                                <th rowspan="2" class="appreciation-col-header">{% trans "Appréciation" %}</th>
                                                             </tr>
                                                             <tr>
                                                                 {% for eval in matiere_info.evaluations %}
@@ -487,7 +488,7 @@
                                                                             {% with note_data=eleve_data.notes_evaluations|get_item:eval.id %}
                                                                                 {% if note_data.note_obj %}
                                                                                     {% if note_data.note_obj.absent %}
-                                                                                        <span class="note-absent">ABS</span>
+                                                                                        <span class="note-absent">{% trans "ABS" %}</span>
                                                                                     {% elif note_data.note_obj.note is not None %}
                                                                                         <span class="note-valeur" style="color: {{ note_data.couleur }};">
                                                                                             {{ note_data.note_obj.note|floatformat:2 }}
@@ -529,7 +530,7 @@
                                             {% else %}
                                                 <div class="empty-state-modal">
                                                     <i class="fas fa-clipboard-list"></i>
-                                                    <p>Aucune note enregistrée pour cette matière</p>
+                                                    <p>{% trans "Aucune note enregistrée pour cette matière" %}</p>
                                                 </div>
                                             {% endif %}
                                         </div>
@@ -539,7 +540,7 @@
                         {% empty %}
                             <div class="empty-state-small">
                                 <i class="fas fa-inbox"></i>
-                                <p>Aucune donnée de notes disponible</p>
+                                <p>{% trans "Aucune donnée de notes disponible" %}</p>
                             </div>
                         {% endfor %}
                     </div>
@@ -552,7 +553,7 @@
     <div id="modal-ajout-matiere" class="modal-overlay-matiere" style="display: none;">
         <div class="modal-content-matiere">
             <div class="modal-header-matiere">
-                <h3><i class="fas fa-plus-circle"></i> Ajouter une matière secondaire</h3>
+                <h3><i class="fas fa-plus-circle"></i> {% trans "Ajouter une matière secondaire" %}</h3>
                 <button type="button" class="btn-close-modal-matiere" onclick="fermerModalAjoutMatiere()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -564,9 +565,9 @@
                     <input type="hidden" name="professeur_id" id="professeur_id" value="{{ professeur.id }}">
                     
                     <div class="form-group-matiere">
-                        <label for="matiere_id">Sélectionnez une matière :</label>
+                        <label for="matiere_id">{% trans "Sélectionnez une matière :" %}</label>
                         <select name="matiere_id" id="matiere_id" class="form-control-matiere" required>
-                            <option value="">-- Choisir une matière --</option>
+                            <option value="">{% trans "-- Choisir une matière --" %}</option>
                             {% for matiere in matieres_disponibles %}
                                 <option value="{{ matiere.id }}">{{ matiere.nom }}</option>
                             {% endfor %}
@@ -575,10 +576,10 @@
                     
                     <div class="modal-actions">
                         <button type="button" class="btn-cancel-matiere" onclick="fermerModalAjoutMatiere()">
-                            <i class="fas fa-times"></i> Annuler
+                            <i class="fas fa-times"></i> {% trans "Annuler" %}
                         </button>
                         <button type="submit" class="btn-submit-matiere">
-                            <i class="fas fa-check"></i> Ajouter
+                            <i class="fas fa-check"></i> {% trans "Ajouter" %}
                         </button>
                     </div>
                 </form>

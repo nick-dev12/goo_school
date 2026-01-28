@@ -1,4 +1,5 @@
 {% load static %}
+{% load i18n %}
 {% load permissions_tags %}
 <link
   rel="stylesheet"
@@ -14,7 +15,7 @@
     >
       <a href="{% url 'directeur:dashboard_directeur' %}">
         <span class="icon-wrapper icon-home"><i class="fas fa-home"></i></span>
-        <span class="label">Accueil</span>
+        <span class="label">{% trans "Accueil" %}</span>
       </a>
     </li>
     {% check_permission request.user "classes_liste" as can_view_classes %}
@@ -26,7 +27,7 @@
         <span class="icon-wrapper icon-etablissement"
           ><i class="fas fa-school"></i
         ></span>
-        <span class="label">Établissement</span>
+        <span class="label">{% trans "Établissement" %}</span>
       </a>
     </li>
     {% endif %}
@@ -38,7 +39,7 @@
         <span class="icon-wrapper icon-pedagogie"
           ><i class="fas fa-graduation-cap"></i
         ></span>
-        <span class="label">Pédagogie</span>
+        <span class="label">{% trans "Pédagogie" %}</span>
       </a>
     </li>
     {% endif %}
@@ -49,7 +50,7 @@
         <span class="icon-wrapper icon-eleves"
           ><i class="fas fa-user-graduate"></i
         ></span>
-        <span class="label">Élèves</span>
+        <span class="label">{% trans "Élèves" %}</span>
       </a>
     </li>
     {% endif %}
@@ -60,7 +61,7 @@
         <span class="icon-wrapper icon-administration"
           ><i class="fas fa-file-alt"></i
         ></span>
-        <span class="label">Administration</span>
+        <span class="label">{% trans "Administration" %}</span>
       </a>
     </li>
     {% endif %}
@@ -73,7 +74,7 @@
         <span class="icon-wrapper icon-annonces"
           ><i class="fas fa-bullhorn"></i
         ></span>
-        <span class="label">Annonces</span>
+        <span class="label">{% trans "Annonces" %}</span>
       </a>
     </li>
     {% endif %}
@@ -86,7 +87,7 @@
         <span class="icon-wrapper icon-examens"
           ><i class="fas fa-clipboard-list"></i
         ></span>
-        <span class="label">Examens</span>
+        <span class="label">{% trans "Examens" %}</span>
       </a>
     </li>
     {% endif %}
@@ -97,7 +98,7 @@
       <span class="icon-wrapper icon-profil"
         ><i class="fas fa-user-cog"></i
       ></span>
-      <span class="label">Profil</span>
+      <span class="label">{% trans "Profil" %}</span>
     </a>
   </li>
     {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
@@ -109,7 +110,7 @@
         <span class="icon-wrapper icon-comptabilite"
           ><i class="fas fa-calculator"></i
         ></span>
-        <span class="label">Comptabilité</span>
+        <span class="label">{% trans "Comptabilité" %}</span>
       </a>
     </li>
     {% endif %}
@@ -125,7 +126,7 @@
         <span class="icon-wrapper icon-menu"
           ><i class="fas fa-ellipsis-h"></i
         ></span>
-        <span class="label">Menu</span>
+        <span class="label">{% trans "Menu" %}</span>
       </button>
     </li>
   </ul>

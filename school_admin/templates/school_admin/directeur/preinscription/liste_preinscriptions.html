@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,7 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
-    <style>
+    {% trans "<style>
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -353,7 +355,7 @@
                 justify-content: center;
             }
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -366,20 +368,20 @@
             <div class="page-title-section">
                 <a href="{% url 'directeur:gestion_eleves' %}" class="btn-back" style="margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--gray-600);">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
+                    <span>{% trans "Retour" %}</span>
                 </a>
                 <h1 class="page-title">
                     <i class="fas fa-clipboard-list"></i>
-                    Liste des préinscriptions
+                    {% trans "Liste des préinscriptions" %}
                 </h1>
                 <p class="page-subtitle">
-                    Préinscriptions en attente de validation - Les préinscriptions validées ne sont plus affichées ici
+                    {% trans "Préinscriptions en attente de validation - Les préinscriptions validées ne sont plus affichées ici" %}
                 </p>
             </div>
             <div class="page-actions">
                 <a href="{% url 'directeur:gerer_liens_preinscription' %}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 8px; background: var(--primary); color: white; text-decoration: none; font-weight: 600;">
                     <i class="fas fa-link"></i>
-                    <span>Gérer les liens</span>
+                    <span>{% trans "Gérer les liens" %}</span>
                 </a>
             </div>
         </div>
@@ -390,7 +392,7 @@
         <!-- Statistiques -->
         <div class="stats-container">
             <div class="stat-card warning">
-                <div class="stat-label">Préinscriptions en attente</div>
+                <div class="stat-label">{% trans "Préinscriptions en attente" %}</div>
                 <div class="stat-number">{{ total_en_attente }}</div>
             </div>
         </div>
@@ -402,14 +404,14 @@
                     type="text" 
                     id="searchInput" 
                     class="search-input" 
-                    placeholder="Rechercher par nom d'élève (ex: Jean Dupont)..."
+                    placeholder="{% trans "Rechercher par nom d" %}'élève (ex: Jean Dupont)..."
                     autocomplete="off"
                 >
                 <i class="fas fa-search search-icon"></i>
             </div>
             <div class="search-results-count" id="searchResultsCount" style="display: none;">
                 <i class="fas fa-info-circle"></i>
-                <span id="resultsText">0 résultat(s) trouvé(s)</span>
+                <span id="resultsText">{% trans "0 résultat(s) trouvé(s)" %}</span>
             </div>
         </div>
 
@@ -451,18 +453,18 @@
                         </div>
                         <div>
                             <span class="status-badge en_attente">
-                                <i class="fas fa-clock"></i> En attente de validation
+                                <i class="fas fa-clock"></i> {% trans "En attente de validation" %}
                             </span>
                         </div>
                     </div>
                     <div class="preinscription-actions">
                         <a href="{% url 'directeur:detail_preinscription' preinscription.id %}" class="btn-action-small btn-view">
                             <i class="fas fa-eye"></i>
-                            Voir les détails
+                            {% trans "Voir les détails" %}
                         </a>
                         <button type="button" class="btn-action-small btn-reject" onclick="rejeterPreinscription({{ preinscription.id }})">
                             <i class="fas fa-times"></i>
-                            Rejeter
+                            {% trans "Rejeter" %}
                         </button>
                     </div>
                 </div>
@@ -491,21 +493,21 @@
         {% else %}
             <div class="empty-state" id="emptyStateInitial">
                 <i class="fas fa-inbox"></i>
-                <h3>Aucune préinscription en attente</h3>
-                <p>Il n'y a actuellement aucune préinscription en attente de validation.</p>
+                <h3>{% trans "Aucune préinscription en attente" %}</h3>
+                <p>{% trans "Il n'y a actuellement aucune préinscription en attente de validation." %}</p>
             </div>
         {% endif %}
         
         <!-- Message "Aucun résultat" pour la recherche -->
         <div class="empty-state" id="emptyStateSearch" style="display: none;">
             <i class="fas fa-search"></i>
-            <h3>Aucun résultat trouvé</h3>
-            <p>Aucune préinscription ne correspond à votre recherche.</p>
+            <h3>{% trans "Aucun résultat trouvé" %}</h3>
+            <p>{% trans "Aucune préinscription ne correspond à votre recherche." %}</p>
         </div>
         </div>
     </div>
 
-    <script>
+    {% trans "<script>
         // Fonction de recherche en temps réel
         const searchInput = document.getElementById('searchInput');
         const searchResultsCount = document.getElementById('searchResultsCount');
@@ -619,7 +621,7 @@
                 alert('Une erreur est survenue.');
             });
         }
-    </script>
+    </script>" %}
 </body>
 </html>
 

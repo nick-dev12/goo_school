@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -39,14 +41,14 @@
                         <div class="title-text">
                             <h1 class="page-title">Modifier {{ professeur.nom_complet }}</h1>
                             <p class="page-subtitle">
-                                Modifiez les informations du professeur
+                                {% trans "Modifiez les informations du professeur" %}
                             </p>
                         </div>
                     </div>
                     <div class="page-actions">
                         <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="btn-back btn-gradient">
                             <i class="fas fa-arrow-left"></i>
-                            <span>Retour aux détails</span>
+                            <span>{% trans "Retour aux détails" %}</span>
                         </a>
                     </div>
                 </div>
@@ -61,7 +63,7 @@
                          <div class="form-icon">
                              <i class="fas fa-edit"></i>
                          </div>
-                         <h2>Modifier les informations</h2>
+                         <h2>{% trans "Modifier les informations" %}</h2>
                      </div>
                  </div>
                  
@@ -72,7 +74,7 @@
                     {% if field_errors %}
                         <div class="alert alert-error">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+                            <strong>{% trans "Erreurs détectées :" %}</strong> {% trans "Veuillez corriger les champs marqués en rouge." %}
                         </div>
                     {% endif %}
 
@@ -82,14 +84,14 @@
                             <div class="section-icon">
                                 <i class="fas fa-user"></i>
                             </div>
-                            <h3 class="section-title">Informations personnelles</h3>
+                            <h3 class="section-title">{% trans "Informations personnelles" %}</h3>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label" for="nom">
                                     <i class="fas fa-id-card"></i>
-                                    Nom de famille *
+                                    {% trans "Nom de famille *" %}
                                 </label>
                                 <input type="text" 
                                        class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
@@ -105,7 +107,7 @@
                             <div class="form-group">
                                 <label class="form-label" for="prenom">
                                     <i class="fas fa-user-tag"></i>
-                                    Prénom *
+                                    {% trans "Prénom *" %}
                                 </label>
                                 <input type="text" 
                                        class="form-control {% if field_errors.prenom %}is-invalid{% endif %}" 
@@ -123,8 +125,8 @@
                             <div class="form-group">
                                 <label class="form-label" for="email">
                                     <i class="fas fa-envelope"></i>
-                                    Adresse email
-                                    <span class="label-optional">(Facultatif)</span>
+                                    {% trans "Adresse email" %}
+                                    <span class="label-optional">{% trans "(Facultatif)" %}</span>
                                 </label>
                                 <input type="email" 
                                        class="form-control {% if field_errors.email %}is-invalid{% endif %}" 
@@ -140,7 +142,7 @@
                             <div class="form-group">
                                 <label class="form-label" for="telephone">
                                     <i class="fas fa-phone"></i>
-                                    Téléphone *
+                                    {% trans "Téléphone *" %}
                                 </label>
                                 <input type="tel" 
                                        class="form-control {% if field_errors.telephone %}is-invalid{% endif %}" 
@@ -162,7 +164,7 @@
                             <div class="section-icon">
                                 <i class="fas fa-briefcase"></i>
                             </div>
-                            <h3 class="section-title">Informations professionnelles</h3>
+                            <h3 class="section-title">{% trans "Informations professionnelles" %}</h3>
                         </div>
                         
                         {% if type_etablissement == 'primary' %}
@@ -170,8 +172,8 @@
                             <div class="form-group-full">
                                 <label class="form-label">
                                     <i class="fas fa-books"></i>
-                                    Matières enseignées *
-                                    <span class="label-hint">(Sélectionnez toutes les matières que le professeur enseignera)</span>
+                                    {% trans "Matières enseignées *" %}
+                                    <span class="label-hint">{% trans "(Sélectionnez toutes les matières que le professeur enseignera)" %}</span>
                                 </label>
                                 <div class="matieres-checkbox-grid {% if field_errors.matieres_secondaires %}is-invalid{% endif %}">
                                     {% for matiere in matieres %}
@@ -190,7 +192,7 @@
                                             </div>
                                         </label>
                                     {% empty %}
-                                        <p class="text-muted">Aucune matière disponible. Veuillez d'abord ajouter des matières.</p>
+                                        <p class="text-muted">{% trans "Aucune matière disponible. Veuillez d'abord ajouter des matières." %}</p>
                                     {% endfor %}
                                 </div>
                                 {% if field_errors.matieres_secondaires %}
@@ -202,13 +204,13 @@
                             <div class="form-group">
                                 <label class="form-label" for="matiere_principale">
                                     <i class="fas fa-book"></i>
-                                    Matière principale *
+                                    {% trans "Matière principale *" %}
                                 </label>
                                 <select class="form-control {% if field_errors.matiere_principale %}is-invalid{% endif %}" 
                                         id="matiere_principale" 
                                         name="matiere_principale"
                                         required>
-                                    <option value="">-- Sélectionnez une matière --</option>
+                                    <option value="">{% trans "-- Sélectionnez une matière --" %}</option>
                                     {% for matiere in matieres %}
                                         <option value="{{ matiere.id }}" 
                                                 {% if form_data.matiere_principale|stringformat:"s" == matiere.id|stringformat:"s" %}selected{% endif %}>
@@ -229,28 +231,28 @@
                             <div class="section-icon">
                                 <i class="fas fa-info-circle"></i>
                             </div>
-                            <h3 class="section-title">Informations système</h3>
+                            <h3 class="section-title">{% trans "Informations système" %}</h3>
                         </div>
                         
                         <div class="info-grid">
                             <div class="info-item">
                                 <span class="info-label">
                                     <i class="fas fa-id-badge"></i>
-                                    Numéro d'employé
+                                    {% trans "Numéro d'employé" %}
                                 </span>
                                 <span class="info-value">{{ professeur.numero_employe }}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">
                                     <i class="fas fa-calendar-plus"></i>
-                                    Date d'embauche
+                                    {% trans "Date d'embauche" %}
                                 </span>
                                 <span class="info-value">{{ professeur.date_embauche|date:"d/m/Y" }}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">
                                     <i class="fas fa-toggle-on"></i>
-                                    Statut
+                                    {% trans "Statut" %}
                                 </span>
                                 <span class="info-value">
                                     <span class="badge {% if professeur.actif %}badge-success{% else %}badge-danger{% endif %}">
@@ -265,11 +267,11 @@
                     <div class="form-actions">
                         <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="btn btn-secondary">
                             <i class="fas fa-times"></i>
-                            <span>Annuler</span>
+                            <span>{% trans "Annuler" %}</span>
                         </a>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i>
-                            <span>Enregistrer les modifications</span>
+                            <span>{% trans "Enregistrer les modifications" %}</span>
                         </button>
                     </div>
                  </form>

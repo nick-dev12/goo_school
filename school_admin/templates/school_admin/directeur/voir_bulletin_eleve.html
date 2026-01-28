@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,15 +21,15 @@
       <div class="bulletin-actions">
         <a href="{{ retour_url }}" class="btn-action btn-back">
           <i class="fas fa-arrow-left"></i>
-          <span>Retour aux bulletins</span>
+          <span>{% trans "Retour aux bulletins" %}</span>
         </a>
         <a href="{% url 'directeur:calculer_moyenne_eleve' classe.id eleve.id %}{% if periode %}?periode={{ periode.id }}{% endif %}" class="btn-action btn-calculate">
           <i class="fas fa-calculator"></i>
-          <span>Calculer la moyenne générale</span>
+          <span>{% trans "Calculer la moyenne générale" %}</span>
         </a>
         <a href="{{ impression_url }}" class="btn-action btn-print" target="_blank" rel="noopener">
           <i class="fas fa-print"></i>
-          <span>Imprimer le bulletin</span>
+          <span>{% trans "Imprimer le bulletin" %}</span>
         </a>
       </div>
 
@@ -53,16 +55,16 @@
             </div>
             <div class="institution-right">
               <div class="institution-meta">
-                <p><strong>Année scolaire :</strong> {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ periode.annee_scolaire|default:"Non spécifiée" }}{% endif %}</p>
-                <p><strong>Période :</strong> {{ periode.nom_periode }}</p>
-                <p><strong>Date d'édition :</strong> {{ date_generation|date:"d/m/Y" }}</p>
-                <p><strong>Effectif :</strong> {{ classe_effectif }} élève{{ classe_effectif|pluralize }}</p>
+                <p><strong>{% trans "Année scolaire :" %}</strong> {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ periode.annee_scolaire|default:"Non spécifiée" }}{% endif %}</p>
+                <p><strong>{% trans "Période :" %}</strong> {{ periode.nom_periode }}</p>
+                <p><strong>{% trans "Date d'édition :" %}</strong> {{ date_generation|date:"d/m/Y" }}</p>
+                <p><strong>{% trans "Effectif :" %}</strong> {{ classe_effectif }} élève{{ classe_effectif|pluralize }}</p>
               </div>
               <div class="bulletin-security-card">
                 {% if bulletin_qr_image_url %}
-                  <img src="{{ bulletin_qr_image_url }}" alt="QR code de vérification du bulletin" class="security-qr-image" />
+                  <img src="{{ bulletin_qr_image_url }}" alt="{% trans "QR code de vérification du bulletin" %}" class="security-qr-image" />
                 {% else %}
-                  <div class="security-qr-placeholder">QR code indisponible</div>
+                  <div class="security-qr-placeholder">{% trans "QR code indisponible" %}</div>
                 {% endif %}
                 <div class="security-meta">
                  
@@ -75,34 +77,34 @@
           </div>
 
           <div class="header_titre">
-            <h1 class="titre_bulletin">BULLETIN DE NOTES</h1>
+            <h1 class="titre_bulletin">{% trans "BULLETIN DE NOTES" %}</h1>
           </div>
         </header>
 
         <section class="student-info-section">
           <div class="student-info-grid">
             <div class="info-item">
-              <span class="label">Nom de l'élève</span>
+              <span class="label">{% trans "Nom de l'élève" %}</span>
               <span class="value">{{ eleve.nom_complet }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Matricule</span>
+              <span class="label">{% trans "Matricule" %}</span>
               <span class="value">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Classe</span>
+              <span class="label">{% trans "Classe" %}</span>
               <span class="value">{{ classe.nom }} – {{ classe.get_niveau_display }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Date de naissance</span>
+              <span class="label">{% trans "Date de naissance" %}</span>
               <span class="value">{% if eleve.date_naissance %}{{ eleve.date_naissance|date:"d/m/Y" }}{% else %}-{% endif %}</span>
             </div>
             <div class="info-item">
-              <span class="label">Lieu de naissance</span>
+              <span class="label">{% trans "Lieu de naissance" %}</span>
               <span class="value">{{ eleve.lieu_naissance|default:'-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Sexe</span>
+              <span class="label">{% trans "Sexe" %}</span>
               <span class="value">{% if eleve.sexe == 'M' %}Masculin{% elif eleve.sexe == 'F' %}Féminin{% else %}-{% endif %}</span>
             </div>
           </div>
@@ -113,16 +115,16 @@
             <table class="bulletin-main-table">
               <thead>
                 <tr>
-                  <th>Matière</th>
-                  <th>Moyenne de classe</th>
+                  <th>{% trans "Matière" %}</th>
+                  <th>{% trans "Moyenne de classe" %}</th>
                   {% if has_note_examen %}
-                  <th>Note d'examen</th>
+                  <th>{% trans "Note d'examen" %}</th>
                   {% endif %}
-                  <th>Coefficient</th>
-                  <th>Moyenne élève</th>
-                  <th>Moyenne × Coefficient</th>
-                  <th>Rang</th>
-                  <th>Appréciations</th>
+                  <th>{% trans "Coefficient" %}</th>
+                  <th>{% trans "Moyenne élève" %}</th>
+                  <th>{% trans "Moyenne × Coefficient" %}</th>
+                  <th>{% trans "Rang" %}</th>
+                  <th>{% trans "Appréciations" %}</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,7 +173,7 @@
                       {% if matiere.appreciation %}
                         <span class="appreciation-text">{{ matiere.appreciation }}</span>
                         {% if matiere.appreciation_source == 'initiale' %}
-                          <span class="appreciation-origin">Initiale</span>
+                          <span class="appreciation-origin">{% trans "Initiale" %}</span>
                         {% endif %}
                       {% else %}
                         –
@@ -187,18 +189,18 @@
         <div class="bulletin-summary-container">
           <!-- PROFIL DE LA CLASSE -->
           <div class="class-profile-section">
-            <h3>PROFIL DE LA CLASSE</h3>
+            <h3>{% trans "PROFIL DE LA CLASSE" %}</h3>
             <table class="complementary-table">
               <tr>
-                <th>Forte moyenne trim</th>
+                <th>{% trans "Forte moyenne trim" %}</th>
                 <td>{% if complement_info.forte_moyenne_classe %}{{ complement_info.forte_moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
               </tr>
               <tr>
-                <th>Faible moyenne trim</th>
+                <th>{% trans "Faible moyenne trim" %}</th>
                 <td>{% if complement_info.faible_moyenne_classe %}{{ complement_info.faible_moyenne_classe|floatformat:2 }}{% else %}–{% endif %}</td>
               </tr>
               <tr>
-                <th>Moyenne de la classe</th>
+                <th>{% trans "Moyenne de la classe" %}</th>
                 <td>{% if complement_info.moyenne_classe_periode_actuelle %}{{ complement_info.moyenne_classe_periode_actuelle|floatformat:2 }}{% else %}–{% endif %}</td>
               </tr>
             </table>
@@ -206,14 +208,14 @@
 
           <!-- BILAN -->
           <div class="bilan-section">
-            <h3>BILAN</h3>
+            <h3>{% trans "BILAN" %}</h3>
             <table class="complementary-table">
               <thead>
                 <tr>
-                  <th>Moyenne</th>
-                  <th>Apprenant</th>
-                  <th>Classe</th>
-                  <th>Rang</th>
+                  <th>{% trans "Moyenne" %}</th>
+                  <th>{% trans "Apprenant" %}</th>
+                  <th>{% trans "Classe" %}</th>
+                  <th>{% trans "Rang" %}</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,7 +238,7 @@
                 {% endif %}
                 {% if complement_info.moyenne_annuelle is not None %}
                 <tr>
-                  <th>Moyenne annuelle</th>
+                  <th>{% trans "Moyenne annuelle" %}</th>
                   <td>{{ complement_info.moyenne_annuelle|floatformat:2 }}</td>
                   <td>{% if complement_info.moyenne_annuelle_classe %}{{ complement_info.moyenne_annuelle_classe|floatformat:2 }}{% else %}–{% endif %}</td>
                   <td>{% if complement_info.rang_annuel %}{{ complement_info.rang_annuel }}{% else %}–{% endif %}</td>
@@ -250,13 +252,13 @@
         <section class="complementary-section">
           <table class="complementary-table">
             <tr>
-              <th>Absences justifiées</th>
+              <th>{% trans "Absences justifiées" %}</th>
               <td>{{ complement_info.absences_justifiees }}</td>
-              <th>Absences non justifiées</th>
+              <th>{% trans "Absences non justifiées" %}</th>
               <td>{{ complement_info.absences_non_justifiees }}</td>
             </tr>
             <tr>
-              <th>Appréciation générale</th>
+              <th>{% trans "Appréciation générale" %}</th>
               <td colspan="3">
                 {% if complement_info.appreciation_generale %}
                   {% if complement_info.moyenne_generale_validee %}
@@ -271,7 +273,7 @@
             </tr>
             {% if complement_info.decision_conseil %}
               <tr>
-                <th>Décision du conseil</th>
+                <th>{% trans "Décision du conseil" %}</th>
                 <td colspan="3">
                   {% if complement_info.moyenne_annuelle is not None %}
                     {% if complement_info.moyenne_annuelle >= complement_info.moyenne_passage|default:10 %}
@@ -291,17 +293,17 @@
         <section class="bulletin-security-section">
           <div class="security-row">
             <div class="security-item">
-              <span class="label">N° de série</span>
+              <span class="label">{% trans "N° de série" %}</span>
               <span class="value">{{ bulletin_numero_serie|default:"Non généré" }}</span>
             </div>
             <div class="security-item">
-              <span class="label">Signature numérique</span>
+              <span class="label">{% trans "Signature numérique" %}</span>
               <span class="value security-signature">
                 {{ bulletin_signature|default:"Non disponible" }}
               </span>
             </div>
             <div class="security-item">
-              <span class="label">QR code</span>
+              <span class="label">{% trans "QR code" %}</span>
               <span class="value">
                 {% if bulletin_qr_image_url %}
                   Scannez pour vérifier l'authenticité
@@ -312,13 +314,13 @@
             </div>
           </div>
           <p class="security-note">
-            Ce bulletin est protégé par un QR code sécurisé et une signature numérique. Conservez ces informations pour toute vérification officielle.
+            {% trans "Ce bulletin est protégé par un QR code sécurisé et une signature numérique. Conservez ces informations pour toute vérification officielle." %}
           </p>
         </section>
 
         <section class="footer-signatures">
           <div class="signature-block">
-            <span class="signature-label">Le chef d'établissement</span>
+            <span class="signature-label">{% trans "Le chef d'établissement" %}</span>
             <span class="signature-line"></span>
           </div>
         </section>

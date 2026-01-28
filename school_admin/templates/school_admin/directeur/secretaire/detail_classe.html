@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     {% load static %}
+{% load i18n %}
     
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
@@ -33,7 +36,7 @@
                 <div class="breadcrumb">
                     <a href="{% url 'secretaire:gestion_classes' %}" class="breadcrumb-link">
                         <i class="fas fa-chalkboard"></i>
-                        Classes
+                        {% trans "Classes" %}
                     </a>
                     <i class="fas fa-chevron-right"></i>
                     <span class="breadcrumb-current">{{ classe.nom }}</span>
@@ -50,11 +53,11 @@
                 <div class="page-actions">
                     <a href="{% url 'secretaire:imprimer_liste_eleves' classe.id %}" class="btn-action btn-primary" target="_blank">
                         <i class="fas fa-print"></i>
-                        Imprimer Liste
+                        {% trans "Imprimer Liste" %}
                     </a>
                     <a href="{% url 'secretaire:gestion_classes' %}" class="btn-action btn-secondary">
                         <i class="fas fa-arrow-left"></i>
-                        Retour
+                        {% trans "Retour" %}
                     </a>
                 </div>
             </div>
@@ -71,17 +74,17 @@
                             {% if stats_classe.places_disponibles == 0 %}
                                 <span class="status-badge status-full">
                                     <i class="fas fa-exclamation-circle"></i>
-                                    Classe Pleine
+                                    {% trans "Classe Pleine" %}
                                 </span>
                             {% elif stats_classe.places_disponibles == stats_classe.capacite_max %}
                                 <span class="status-badge status-empty">
                                     <i class="fas fa-check-circle"></i>
-                                    Classe Vide
+                                    {% trans "Classe Vide" %}
                                 </span>
                             {% else %}
                                 <span class="status-badge status-partial">
                                     <i class="fas fa-info-circle"></i>
-                                    Classe Partielle
+                                    {% trans "Classe Partielle" %}
                                 </span>
                             {% endif %}
                         </div>
@@ -94,7 +97,7 @@
                             </div>
                             <div class="stat-content">
                                 <h3 class="stat-number">{{ stats_classe.total_eleves }}</h3>
-                                <p class="stat-label">Élèves Inscrits</p>
+                                <p class="stat-label">{% trans "Élèves Inscrits" %}</p>
                             </div>
                         </div>
                         
@@ -104,7 +107,7 @@
                             </div>
                             <div class="stat-content">
                                 <h3 class="stat-number">{{ stats_classe.places_disponibles }}</h3>
-                                <p class="stat-label">Places Disponibles</p>
+                                <p class="stat-label">{% trans "Places Disponibles" %}</p>
                             </div>
                         </div>
                         
@@ -114,7 +117,7 @@
                             </div>
                             <div class="stat-content">
                                 <h3 class="stat-number">{{ stats_classe.taux_occupation }}%</h3>
-                                <p class="stat-label">Taux d'Occupation</p>
+                                <p class="stat-label">{% trans "Taux d'Occupation" %}</p>
                             </div>
                         </div>
                         
@@ -124,14 +127,14 @@
                             </div>
                             <div class="stat-content">
                                 <h3 class="stat-number">{{ stats_classe.capacite_max }}</h3>
-                                <p class="stat-label">Capacité Maximale</p>
+                                <p class="stat-label">{% trans "Capacité Maximale" %}</p>
                             </div>
                         </div>
                     </div>
                     
                     <div class="class-progress">
                         <div class="progress-header">
-                            <span class="progress-label">Occupation de la classe</span>
+                            <span class="progress-label">{% trans "Occupation de la classe" %}</span>
                             <span class="progress-text">{{ stats_classe.total_eleves }}/{{ stats_classe.capacite_max }}</span>
                         </div>
                         <div class="progress-bar">
@@ -150,7 +153,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classe.nouveaux_eleves }}</h3>
-                            <p class="stat-label">Nouveaux Élèves</p>
+                            <p class="stat-label">{% trans "Nouveaux Élèves" %}</p>
                         </div>
                     </div>
                     
@@ -160,7 +163,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classe.transferts }}</h3>
-                            <p class="stat-label">Transferts</p>
+                            <p class="stat-label">{% trans "Transferts" %}</p>
                         </div>
                     </div>
                     
@@ -170,7 +173,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classe.reinscriptions }}</h3>
-                            <p class="stat-label">Réinscriptions</p>
+                            <p class="stat-label">{% trans "Réinscriptions" %}</p>
                         </div>
                     </div>
                     
@@ -180,7 +183,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_sexe.masculin }}/{{ stats_sexe.feminin }}</h3>
-                            <p class="stat-label">Garçons/Filles</p>
+                            <p class="stat-label">{% trans "Garçons/Filles" %}</p>
                         </div>
                     </div>
                 </div>
@@ -196,7 +199,7 @@
                     <div class="section-actions">
                         <a href="{% url 'secretaire:imprimer_liste_eleves' classe.id %}" class="btn-action btn-primary" target="_blank">
                             <i class="fas fa-print"></i>
-                            Imprimer
+                            {% trans "Imprimer" %}
                         </a>
                     </div>
                 </div>
@@ -204,12 +207,12 @@
                 {% if eleves %}
                     <div class="students-list">
                         <div class="list-header">
-                            <div class="list-cell">Nom Complet</div>
-                            <div class="list-cell">Matricule</div>
-                            <div class="list-cell">Sexe</div>
-                            <div class="list-cell">Statut</div>
-                            <div class="list-cell">Date Inscription</div>
-                            <div class="list-cell">Actions</div>
+                            <div class="list-cell">{% trans "Nom Complet" %}</div>
+                            <div class="list-cell">{% trans "Matricule" %}</div>
+                            <div class="list-cell">{% trans "Sexe" %}</div>
+                            <div class="list-cell">{% trans "Statut" %}</div>
+                            <div class="list-cell">{% trans "Date Inscription" %}</div>
+                            <div class="list-cell">{% trans "Actions" %}</div>
                         </div>
                         
                         {% for eleve in eleves %}
@@ -250,7 +253,7 @@
                                 </div>
                                 <div class="list-cell">
                                     <div class="action-buttons">
-                                        <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-small btn-view" title="Voir détails">
+                                        <a href="{% url 'secretaire:detail_eleve' eleve.id %}" class="btn-action-small btn-view" title="{% trans "Voir détails" %}">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </div>
@@ -263,8 +266,8 @@
                         <div class="empty-icon">
                             <i class="fas fa-users"></i>
                         </div>
-                        <h3 class="empty-title">Aucun élève dans cette classe</h3>
-                        <p class="empty-message">Il n'y a actuellement aucun élève inscrit dans cette classe.</p>
+                        <h3 class="empty-title">{% trans "Aucun élève dans cette classe" %}</h3>
+                        <p class="empty-message">{% trans "Il n'y a actuellement aucun élève inscrit dans cette classe." %}</p>
                     </div>
                 {% endif %}
             </div>

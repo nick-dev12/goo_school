@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load pagination_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,16 +27,16 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-calendar-check"></i>
-                    Suivi de Présence
+                    {% trans "Suivi de Présence" %}
                 </h1>
                 <p class="page-subtitle">
-                    Consultation de l'assiduité par classe et par mois
+                    {% trans "Consultation de l'assiduité par classe et par mois" %}
                 </p>
             </div>
             <div class="page-actions">
                 <a href="{% url 'directeur:gestion_eleves' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour
+                    {% trans "Retour" %}
                 </a>
             </div>
         </div>
@@ -50,7 +52,7 @@
                     Année scolaire active : {{ annee_scolaire_active.libelle }}
                 </p>
                 <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-                    Seuls les élèves et les présences de cette session sont affichés.
+                    {% trans "Seuls les élèves et les présences de cette session sont affichés." %}
                 </p>
             </div>
         </div>
@@ -58,7 +60,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
             <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
             <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-                Aucune année scolaire active. Toutes les données sont affichées.
+                {% trans "Aucune année scolaire active. Toutes les données sont affichées." %}
             </span>
         </div>
         {% endif %}
@@ -141,7 +143,7 @@
                             {% else %}
                                 <div class="empty-state">
                                     <i class="fas fa-calendar-times"></i>
-                                    <p>Aucune donnée de présence disponible pour cette classe</p>
+                                    <p>{% trans "Aucune donnée de présence disponible pour cette classe" %}</p>
                                 </div>
                             {% endif %}
 
@@ -164,36 +166,36 @@
                                                 <a href="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id mois_presences.mois.numero mois_presences.mois.annee %}{% if periode_selectionnee %}?periode={{ periode_selectionnee.id }}{% endif %}" 
                                                    class="btn-print-presence" 
                                                    target="_blank"
-                                                   title="Imprimer la liste de présence">
+                                                   title="{% trans "Imprimer la liste de présence" %}">
                                                     <i class="fas fa-print"></i>
-                                                    Imprimer liste de présence
+                                                    {% trans "Imprimer liste de présence" %}
                                                 </a>
                                             </div>
                                         </div>
 
                                         <!-- Légende des couleurs -->
                                         <div class="legende-couleurs">
-                                            <h5><i class="fas fa-palette"></i> Code couleur du taux de présence :</h5>
+                                            <h5><i class="fas fa-palette"></i> {% trans "Code couleur du taux de présence :" %}</h5>
                                             <div class="legende-items">
                                                 <span class="legende-item excellent">
                                                     <span class="legende-color"></span>
-                                                    <span class="legende-text">Excellent (≥ 95%)</span>
+                                                    <span class="legende-text">{% trans "Excellent (≥ 95%)" %}</span>
                                                 </span>
                                                 <span class="legende-item bon">
                                                     <span class="legende-color"></span>
-                                                    <span class="legende-text">Bon (90-94.99%)</span>
+                                                    <span class="legende-text">{% trans "Bon (90-94.99%)" %}</span>
                                                 </span>
                                                 <span class="legende-item moyen">
                                                     <span class="legende-color"></span>
-                                                    <span class="legende-text">Moyen (85-89.99%)</span>
+                                                    <span class="legende-text">{% trans "Moyen (85-89.99%)" %}</span>
                                                 </span>
                                                 <span class="legende-item faible">
                                                     <span class="legende-color"></span>
-                                                    <span class="legende-text">Faible (80-84.99%)</span>
+                                                    <span class="legende-text">{% trans "Faible (80-84.99%)" %}</span>
                                                 </span>
                                                 <span class="legende-item critique">
                                                     <span class="legende-color"></span>
-                                                    <span class="legende-text">Critique (< 80%)</span>
+                                                    <span class="legende-text">{% trans "Critique (" %}< 80%)</span>
                                                 </span>
                                             </div>
                                         </div>
@@ -205,7 +207,7 @@
                                                 <input type="text" 
                                                        class="search-input" 
                                                        id="search-input-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
-                                                       placeholder="Rechercher un élève (nom, prénom, matricule...)"
+                                                       placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
                                                        oninput="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                 <button class="clear-search" 
                                                         id="clear-search-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
@@ -219,54 +221,54 @@
                                                 <div class="filter-group">
                                                     <label class="filter-label">
                                                         <i class="fas fa-percentage"></i>
-                                                        Taux de présence
+                                                        {% trans "Taux de présence" %}
                                                     </label>
                                                     <select class="filter-select" id="filter-taux-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                        <option value="">Tous les taux</option>
-                                                        <option value="excellent">Excellent (≥ 95%)</option>
-                                                        <option value="bon">Bon (90-94%)</option>
-                                                        <option value="moyen">Moyen (85-89%)</option>
-                                                        <option value="faible">Faible (80-84%)</option>
-                                                        <option value="critique">Critique (< 80%)</option>
+                                                        <option value="">{% trans "Tous les taux" %}</option>
+                                                        <option value="excellent">{% trans "Excellent (≥ 95%)" %}</option>
+                                                        <option value="bon">{% trans "Bon (90-94%)" %}</option>
+                                                        <option value="moyen">{% trans "Moyen (85-89%)" %}</option>
+                                                        <option value="faible">{% trans "Faible (80-84%)" %}</option>
+                                                        <option value="critique">{% trans "Critique (" %}< 80%)</option>
                                                     </select>
                                                 </div>
                                                 
                                                 <div class="filter-group">
                                                     <label class="filter-label">
                                                         <i class="fas fa-exclamation-triangle"></i>
-                                                        Absences
+                                                        {% trans "Absences" %}
                                                     </label>
                                                     <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                        <option value="">Toutes</option>
-                                                        <option value="0">Aucune absence</option>
-                                                        <option value="1-3">1-3 absences</option>
-                                                        <option value="4-6">4-6 absences</option>
-                                                        <option value="7+">7+ absences</option>
+                                                        <option value="">{% trans "Toutes" %}</option>
+                                                        <option value="0">{% trans "Aucune absence" %}</option>
+                                                        <option value="1-3">{% trans "1-3 absences" %}</option>
+                                                        <option value="4-6">{% trans "4-6 absences" %}</option>
+                                                        <option value="7+">{% trans "7+ absences" %}</option>
                                                     </select>
                                                 </div>
                                                 
                                                 <div class="filter-group">
                                                     <label class="filter-label">
                                                         <i class="fas fa-clock"></i>
-                                                        Retards
+                                                        {% trans "Retards" %}
                                                     </label>
                                                     <select class="filter-select" id="filter-retards-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                        <option value="">Tous</option>
-                                                        <option value="0">Aucun retard</option>
-                                                        <option value="1-2">1-2 retards</option>
-                                                        <option value="3-5">3-5 retards</option>
-                                                        <option value="6+">6+ retards</option>
+                                                        <option value="">{% trans "Tous" %}</option>
+                                                        <option value="0">{% trans "Aucun retard" %}</option>
+                                                        <option value="1-2">{% trans "1-2 retards" %}</option>
+                                                        <option value="3-5">{% trans "3-5 retards" %}</option>
+                                                        <option value="6+">{% trans "6+ retards" %}</option>
                                                     </select>
                                                 </div>
                                                 
                                                 <button class="btn-reset-filters" onclick="resetPresenceFilters('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
                                                     <i class="fas fa-redo"></i>
-                                                    Réinitialiser
+                                                    {% trans "Réinitialiser" %}
                                                 </button>
                                             </div>
                                             
                                             <div class="filter-results" id="filter-results-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="display: none;">
-                                                <span id="results-count-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">0</span> résultat(s) trouvé(s)
+                                                <span id="results-count-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                             </div>
                                         </div>
                                         
@@ -275,17 +277,17 @@
                                             <table class="presence-results-table">
                                                 <thead>
                                                     <tr>
-                                                        <th>Rang</th>
-                                                        <th>Élève</th>
-                                                        <th>Matricule</th>
-                                                        <th>Jours</th>
-                                                        <th>Présents</th>
-                                                        <th>Absents</th>
-                                                        <th>Abs. justifiées</th>
-                                                        <th>Retards</th>
-                                                        <th>Taux de présence</th>
-                                                        <th>Statut</th>
-                                                        <th>Actions</th>
+                                                        <th>{% trans "Rang" %}</th>
+                                                        <th>{% trans "Élève" %}</th>
+                                                        <th>{% trans "Matricule" %}</th>
+                                                        <th>{% trans "Jours" %}</th>
+                                                        <th>{% trans "Présents" %}</th>
+                                                        <th>{% trans "Absents" %}</th>
+                                                        <th>{% trans "Abs. justifiées" %}</th>
+                                                        <th>{% trans "Retards" %}</th>
+                                                        <th>{% trans "Taux de présence" %}</th>
+                                                        <th>{% trans "Statut" %}</th>
+                                                        <th>{% trans "Actions" %}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -339,22 +341,22 @@
                                                                     {% else %}
                                                                         <span class="taux-non-disponible">
                                                                             <i class="fas fa-hourglass-half"></i>
-                                                                            N/A
+                                                                            {% trans "N/A" %}
                                                                         </span>
                                                                     {% endif %}
                                                                 </td>
                                                                 <td class="statut-cell">
                                                                     {% if eleve_data.taux_presence is not None %}
                                                                         {% if eleve_data.taux_presence >= 95 %}
-                                                                            <span class="statut-badge excellent">Excellent</span>
+                                                                            <span class="statut-badge excellent">{% trans "Excellent" %}</span>
                                                                         {% elif eleve_data.taux_presence >= 90 %}
-                                                                            <span class="statut-badge bon">Bon</span>
+                                                                            <span class="statut-badge bon">{% trans "Bon" %}</span>
                                                                         {% elif eleve_data.taux_presence >= 85 %}
-                                                                            <span class="statut-badge moyen">Moyen</span>
+                                                                            <span class="statut-badge moyen">{% trans "Moyen" %}</span>
                                                                         {% elif eleve_data.taux_presence >= 80 %}
-                                                                            <span class="statut-badge faible">Faible</span>
+                                                                            <span class="statut-badge faible">{% trans "Faible" %}</span>
                                                                         {% else %}
-                                                                            <span class="statut-badge critique">Critique</span>
+                                                                            <span class="statut-badge critique">{% trans "Critique" %}</span>
                                                                         {% endif %}
                                                                     {% else %}
                                                                         <span class="statut-non-disponible">-</span>
@@ -362,13 +364,13 @@
                                                                 </td>
                                                                 <td class="actions-cell">
                                                                     <div class="actions-buttons">
-                                                                        <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="Voir le profil">
+                                                                        <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="{% trans "Voir le profil" %}">
                                                                             <i class="fas fa-eye"></i>
                                                                         </a>
                                                                         {% if eleve_data.absences_details %}
                                                                         <button type="button"
                                                                                 class="btn-action-mini success"
-                                                                                title="Justifier une absence"
+                                                                                title="{% trans "Justifier une absence" %}"
                                                                                 onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }}, '{{ mois_key }}')">
                                                                             <i class="fas fa-check-circle"></i>
                                                                         </button>
@@ -381,7 +383,7 @@
                                                                         <select id="absences-options-{{ eleve_data.eleve.id }}-{{ classe_data.classe.id }}-{{ mois_key }}"
                                                                                 class="absences-options-template"
                                                                                 hidden>
-                                                                            <option value="">Sélectionnez une absence</option>
+                                                                            <option value="">{% trans "Sélectionnez une absence" %}</option>
                                                                             {% for absence in eleve_data.absences_details %}
                                                                                 <option value="{{ absence.id }}">{{ absence.label }}</option>
                                                                             {% endfor %}
@@ -394,7 +396,7 @@
                                                         <tr>
                                                             <td colspan="11" class="no-data">
                                                                 <i class="fas fa-info-circle"></i>
-                                                                Aucune donnée de présence pour ce mois
+                                                                {% trans "Aucune donnée de présence pour ce mois" %}
                                                             </td>
                                                         </tr>
                                                     {% endif %}
@@ -435,28 +437,28 @@
                                                         </div>
                                                         <div class="presence-card-stats">
                                                             <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">Jours</span>
+                                                                <span class="presence-stat-label">{% trans "Jours" %}</span>
                                                                 <span class="presence-stat-value jours-count">{{ eleve_data.total_jours }}</span>
                                                             </div>
                                                             <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">Présents</span>
+                                                                <span class="presence-stat-label">{% trans "Présents" %}</span>
                                                                 <span class="presence-stat-value presents-badge">{{ eleve_data.presents }}</span>
                                                             </div>
                                                             <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">Absents</span>
+                                                                <span class="presence-stat-label">{% trans "Absents" %}</span>
                                                                 <span class="presence-stat-value absents-badge">{{ eleve_data.absents }}</span>
                                                             </div>
                                                             <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">Justifiées</span>
+                                                                <span class="presence-stat-label">{% trans "Justifiées" %}</span>
                                                                 <span class="presence-stat-value justifies-badge">{{ eleve_data.absents_justifies }}</span>
                                                             </div>
                                                             <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">Retards</span>
+                                                                <span class="presence-stat-label">{% trans "Retards" %}</span>
                                                                 <span class="presence-stat-value retards-badge">{{ eleve_data.retards }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="presence-card-taux">
-                                                            <div class="presence-taux-label">Taux de présence</div>
+                                                            <div class="presence-taux-label">{% trans "Taux de présence" %}</div>
                                                             <div class="presence-taux-value">
                                                                 {% if eleve_data.taux_presence is not None %}
                                                                     <span class="taux-badge {% if eleve_data.taux_presence >= 95 %}excellent{% elif eleve_data.taux_presence >= 90 %}bon{% elif eleve_data.taux_presence >= 85 %}moyen{% elif eleve_data.taux_presence >= 80 %}faible{% else %}critique{% endif %}">
@@ -465,25 +467,25 @@
                                                                 {% else %}
                                                                     <span class="taux-non-disponible">
                                                                         <i class="fas fa-hourglass-half"></i>
-                                                                        N/A
+                                                                        {% trans "N/A" %}
                                                                     </span>
                                                                 {% endif %}
                                                             </div>
                                                         </div>
                                                         <div class="presence-card-statut">
-                                                            <div class="presence-statut-label">Statut</div>
+                                                            <div class="presence-statut-label">{% trans "Statut" %}</div>
                                                             <div class="presence-statut-value">
                                                                 {% if eleve_data.taux_presence is not None %}
                                                                     {% if eleve_data.taux_presence >= 95 %}
-                                                                        <span class="statut-badge excellent">Excellent</span>
+                                                                        <span class="statut-badge excellent">{% trans "Excellent" %}</span>
                                                                     {% elif eleve_data.taux_presence >= 90 %}
-                                                                        <span class="statut-badge bon">Bon</span>
+                                                                        <span class="statut-badge bon">{% trans "Bon" %}</span>
                                                                     {% elif eleve_data.taux_presence >= 85 %}
-                                                                        <span class="statut-badge moyen">Moyen</span>
+                                                                        <span class="statut-badge moyen">{% trans "Moyen" %}</span>
                                                                     {% elif eleve_data.taux_presence >= 80 %}
-                                                                        <span class="statut-badge faible">Faible</span>
+                                                                        <span class="statut-badge faible">{% trans "Faible" %}</span>
                                                                     {% else %}
-                                                                        <span class="statut-badge critique">Critique</span>
+                                                                        <span class="statut-badge critique">{% trans "Critique" %}</span>
                                                                     {% endif %}
                                                                 {% else %}
                                                                     <span class="statut-non-disponible">-</span>
@@ -492,13 +494,13 @@
                                                         </div>
                                                         <div class="presence-card-actions">
                                                             <div class="actions-buttons">
-                                                                <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="Voir le profil">
+                                                                <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="{% trans "Voir le profil" %}">
                                                                     <i class="fas fa-eye"></i>
                                                                 </a>
                                                                 {% if eleve_data.absences_details %}
                                                                 <button type="button"
                                                                         class="btn-action-mini success"
-                                                                        title="Justifier une absence"
+                                                                        title="{% trans "Justifier une absence" %}"
                                                                         onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }}, '{{ mois_key }}')">
                                                                     <i class="fas fa-check-circle"></i>
                                                                 </button>
@@ -511,7 +513,7 @@
                                                                 <select id="absences-options-{{ eleve_data.eleve.id }}-{{ classe_data.classe.id }}-{{ mois_key }}"
                                                                         class="absences-options-template"
                                                                         hidden>
-                                                                    <option value="">Sélectionnez une absence</option>
+                                                                    <option value="">{% trans "Sélectionnez une absence" %}</option>
                                                                     {% for absence in eleve_data.absences_details %}
                                                                         <option value="{{ absence.id }}">{{ absence.label }}</option>
                                                                     {% endfor %}
@@ -523,7 +525,7 @@
                                             {% else %}
                                                 <div class="no-data-card">
                                                     <i class="fas fa-info-circle"></i>
-                                                    <p>Aucune donnée de présence pour ce mois</p>
+                                                    <p>{% trans "Aucune donnée de présence pour ce mois" %}</p>
                                                 </div>
                                             {% endif %}
                                         </div>
@@ -542,7 +544,7 @@
             <div class="modal-justification-header">
                 <h3>
                     <i class="fas fa-check-circle"></i>
-                    Justifier une absence
+                    {% trans "Justifier une absence" %}
                 </h3>
                 <button type="button" class="modal-justification-close" onclick="fermerModalJustification()">&times;</button>
             </div>
@@ -550,24 +552,24 @@
                 {% csrf_token %}
                 <div class="modal-justification-body">
                     <div class="modal-justification-info">
-                        <strong id="justificationEleveNom">Nom de l'élève</strong>
-                        <span>Sélectionnez l'absence concernée pour la classer comme présence.</span>
+                        <strong id="justificationEleveNom">{% trans "Nom de l'élève" %}</strong>
+                        <span>{% trans "Sélectionnez l'absence concernée pour la classer comme présence." %}</span>
                     </div>
                     <div class="modal-justification-form-group">
-                        <label for="presenceSelect">Absence à justifier <span class="required">*</span></label>
+                        <label for="presenceSelect">{% trans "Absence à justifier" %} <span class="required">*</span></label>
                         <select name="presence_id" id="presenceSelect" required>
-                            <option value="">Sélectionnez une absence</option>
+                            <option value="">{% trans "Sélectionnez une absence" %}</option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-justification-footer">
                     <button type="button" class="btn-cancel" onclick="fermerModalJustification()">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-check"></i>
-                        Valider
+                        {% trans "Valider" %}
                     </button>
                 </div>
             </form>
@@ -580,7 +582,7 @@
             <div class="modal-header">
                 <h3>
                     <i class="fas fa-gavel"></i>
-                    Ajouter une sanction
+                    {% trans "Ajouter une sanction" %}
                 </h3>
                 <button class="modal-close" onclick="fermerModalSanction()">&times;</button>
             </div>
@@ -589,75 +591,75 @@
                 <div class="modal-body">
                     <div class="eleve-sanction-info">
                         <i class="fas fa-user-circle"></i>
-                        <span id="eleveNomModal">Nom de l'élève</span>
+                        <span id="eleveNomModal">{% trans "Nom de l'élève" %}</span>
                     </div>
                     
                     <input type="hidden" name="eleve_id" id="eleveIdInput">
                     <input type="hidden" name="classe_id" id="classeIdInput">
                     
                     <div class="form-group">
-                        <label for="type_sanction">Type de sanction <span class="required">*</span></label>
+                        <label for="type_sanction">{% trans "Type de sanction" %} <span class="required">*</span></label>
                         <select name="type_sanction" id="type_sanction" required>
-                            <option value="">-- Sélectionnez --</option>
-                            <option value="avertissement">Avertissement</option>
-                            <option value="blame">Blâme</option>
-                            <option value="exclusion_cours">Exclusion de cours</option>
-                            <option value="exclusion_temporaire">Exclusion temporaire</option>
-                            <option value="travaux_interet_general">Travaux d'intérêt général</option>
-                            <option value="retenue">Retenue</option>
-                            <option value="convocation_parents">Convocation des parents</option>
-                            <option value="avertissement_conduite">Avertissement de conduite</option>
+                            <option value="">{% trans "-- Sélectionnez --" %}</option>
+                            <option value="avertissement">{% trans "Avertissement" %}</option>
+                            <option value="blame">{% trans "Blâme" %}</option>
+                            <option value="exclusion_cours">{% trans "Exclusion de cours" %}</option>
+                            <option value="exclusion_temporaire">{% trans "Exclusion temporaire" %}</option>
+                            <option value="travaux_interet_general">{% trans "Travaux d'intérêt général" %}</option>
+                            <option value="retenue">{% trans "Retenue" %}</option>
+                            <option value="convocation_parents">{% trans "Convocation des parents" %}</option>
+                            <option value="avertissement_conduite">{% trans "Avertissement de conduite" %}</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="raison">Raison <span class="required">*</span></label>
+                        <label for="raison">{% trans "Raison" %} <span class="required">*</span></label>
                         <select name="raison" id="raison" required>
-                            <option value="">-- Sélectionnez --</option>
-                            <option value="indiscipline">Indiscipline</option>
-                            <option value="absence_non_justifiee">Absence non justifiée répétée</option>
-                            <option value="retards_repetes">Retards répétés</option>
-                            <option value="manque_respect">Manque de respect envers le personnel</option>
-                            <option value="violence">Violence physique ou verbale</option>
-                            <option value="triche">Tricherie lors d'une évaluation</option>
-                            <option value="desobeissance">Désobéissance</option>
-                            <option value="perturbation_cours">Perturbation du cours</option>
-                            <option value="degradation_materiel">Dégradation du matériel</option>
-                            <option value="vol">Vol</option>
-                            <option value="comportement_inapproprie">Comportement inapproprié</option>
-                            <option value="non_respect_reglement">Non-respect du règlement intérieur</option>
-                            <option value="autre">Autre raison</option>
+                            <option value="">{% trans "-- Sélectionnez --" %}</option>
+                            <option value="indiscipline">{% trans "Indiscipline" %}</option>
+                            <option value="absence_non_justifiee">{% trans "Absence non justifiée répétée" %}</option>
+                            <option value="retards_repetes">{% trans "Retards répétés" %}</option>
+                            <option value="manque_respect">{% trans "Manque de respect envers le personnel" %}</option>
+                            <option value="violence">{% trans "Violence physique ou verbale" %}</option>
+                            <option value="triche">{% trans "Tricherie lors d'une évaluation" %}</option>
+                            <option value="desobeissance">{% trans "Désobéissance" %}</option>
+                            <option value="perturbation_cours">{% trans "Perturbation du cours" %}</option>
+                            <option value="degradation_materiel">{% trans "Dégradation du matériel" %}</option>
+                            <option value="vol">{% trans "Vol" %}</option>
+                            <option value="comportement_inapproprie">{% trans "Comportement inapproprié" %}</option>
+                            <option value="non_respect_reglement">{% trans "Non-respect du règlement intérieur" %}</option>
+                            <option value="autre">{% trans "Autre raison" %}</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="gravite">Gravité <span class="required">*</span></label>
+                        <label for="gravite">{% trans "Gravité" %} <span class="required">*</span></label>
                         <select name="gravite" id="gravite" required>
-                            <option value="legere">Légère</option>
-                            <option value="moyenne" selected>Moyenne</option>
-                            <option value="grave">Grave</option>
-                            <option value="tres_grave">Très grave</option>
+                            <option value="legere">{% trans "Légère" %}</option>
+                            <option value="moyenne" selected>{% trans "Moyenne" %}</option>
+                            <option value="grave">{% trans "Grave" %}</option>
+                            <option value="tres_grave">{% trans "Très grave" %}</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="date_sanction">Date de la sanction <span class="required">*</span></label>
+                        <label for="date_sanction">{% trans "Date de la sanction" %} <span class="required">*</span></label>
                         <input type="date" name="date_sanction" id="date_sanction" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="description">Description détaillée</label>
-                        <textarea name="description" id="description" rows="3" placeholder="Détails supplémentaires sur l'incident..."></textarea>
+                        <label for="description">{% trans "Description détaillée" %}</label>
+                        <textarea name="description" id="description" rows="3" placeholder="{% trans "Détails supplémentaires sur l" %}'incident..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fermerModalSanction()">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn-save">
                         <i class="fas fa-save"></i>
-                        Enregistrer
+                        {% trans "Enregistrer" %}
                     </button>
                 </div>
             </form>

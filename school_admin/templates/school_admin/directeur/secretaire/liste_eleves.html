@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load pagination_tags %}
 {% load eleve_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -42,7 +44,7 @@
         <div class="page-title-section">
           <h1 class="page-title">
             <i class="fas fa-users"></i>
-            Liste des Élèves
+            {% trans "Liste des Élèves" %}
           </h1>
           <p class="page-subtitle">
             Gestion des élèves inscrits dans {{ etablissement.nom }}
@@ -51,7 +53,7 @@
         <div class="page-actions">
           <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
             <i class="fas fa-user-plus"></i>
-            <span>Nouvel élève</span>
+            <span>{% trans "Nouvel élève" %}</span>
           </a>
         </div>
       </div>
@@ -67,7 +69,7 @@
             Année scolaire active : {{ annee_scolaire_active.libelle }}
           </p>
           <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-            Seuls les élèves inscrits pour cette session sont affichés.
+            {% trans "Seuls les élèves inscrits pour cette session sont affichés." %}
           </p>
         </div>
       </div>
@@ -75,7 +77,7 @@
       <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
         <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
         <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-          Aucune année scolaire active. Tous les élèves actifs sont affichés.
+          {% trans "Aucune année scolaire active. Tous les élèves actifs sont affichés." %}
         </span>
       </div>
       {% endif %}
@@ -101,7 +103,7 @@
                   </div>
                   <div class="tab-stats">
                     <span class="students-count">{{ data.total_eleves }}</span>
-                    <span class="students-label">élèves</span>
+                    <span class="students-label">{% trans "élèves" %}</span>
                   </div>
                 </div>
               </button>
@@ -142,19 +144,19 @@
                   
                   <div class="class-stats">
                     <div class="stat-item">
-                      <span class="stat-label">Capacité</span>
+                      <span class="stat-label">{% trans "Capacité" %}</span>
                       <span class="stat-value">{{ classe_data.classe.capacite_max }}</span>
                     </div>
                     <div class="stat-item">
-                      <span class="stat-label">Inscrits</span>
+                      <span class="stat-label">{% trans "Inscrits" %}</span>
                       <span class="stat-value">{{ classe_data.stats.total_eleves }}</span>
                     </div>
                     <div class="stat-item">
-                      <span class="stat-label">Disponibles</span>
+                      <span class="stat-label">{% trans "Disponibles" %}</span>
                       <span class="stat-value">{{ classe_data.stats.places_disponibles }}</span>
                     </div>
                     <div class="stat-item">
-                      <span class="stat-label">Occupation</span>
+                      <span class="stat-label">{% trans "Occupation" %}</span>
                       <span class="stat-value">{{ classe_data.stats.taux_occupation }}%</span>
                     </div>
                   </div>
@@ -168,7 +170,7 @@
                     </div>
                     <div class="detail-stat-content">
                       <span class="detail-stat-number">{{ classe_data.stats.nouveaux_eleves }}</span>
-                      <span class="detail-stat-label">Nouvelles inscriptions</span>
+                      <span class="detail-stat-label">{% trans "Nouvelles inscriptions" %}</span>
                     </div>
                   </div>
 
@@ -178,7 +180,7 @@
                     </div>
                     <div class="detail-stat-content">
                       <span class="detail-stat-number">{{ classe_data.stats.transferts }}</span>
-                      <span class="detail-stat-label">Transferts</span>
+                      <span class="detail-stat-label">{% trans "Transferts" %}</span>
                     </div>
                   </div>
 
@@ -188,7 +190,7 @@
                     </div>
                     <div class="detail-stat-content">
                       <span class="detail-stat-number">{{ classe_data.stats.reinscriptions }}</span>
-                      <span class="detail-stat-label">Réinscriptions</span>
+                      <span class="detail-stat-label">{% trans "Réinscriptions" %}</span>
                     </div>
                   </div>
                 </div>
@@ -202,19 +204,19 @@
                     </h3>
                     <div class="section-actions">
                       <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}" 
-                         class="btn-print-liste" 
+                         {% trans "class=\"btn-print-liste\"" %}
                          target="_blank"
-                         title="Imprimer la liste nominative">
+                         title="{% trans "Imprimer la liste nominative" %}">
                         <i class="fas fa-print"></i>
-                        Imprimer liste
+                        {% trans "Imprimer liste" %}
                       </a>
                       <button class="btn-filter" onclick="toggleFilter()">
                         <i class="fas fa-filter"></i>
-                        Filtrer
+                        {% trans "Filtrer" %}
                       </button>
                       <button class="btn-export" onclick="exportStudents()">
                         <i class="fas fa-download"></i>
-                        Exporter
+                        {% trans "Exporter" %}
                       </button>
                     </div>
                   </div>
@@ -226,7 +228,7 @@
                       <input type="text" 
                              class="search-input" 
                              id="search-input-{{ classe_data.classe.id }}" 
-                             placeholder="Rechercher un élève (nom, prénom, matricule, email...)"
+                             placeholder="{% trans "Rechercher un élève (nom, prénom, matricule, email...)" %}"
                              oninput="filterStudents('{{ classe_data.classe.id }}')">
                       <button class="clear-search" id="clear-search-{{ classe_data.classe.id }}" onclick="clearSearch('{{ classe_data.classe.id }}')" style="display: none;">
                         <i class="fas fa-times"></i>
@@ -237,50 +239,50 @@
                       <div class="filter-group">
                         <label class="filter-label">
                           <i class="fas fa-user-tag"></i>
-                          Statut
+                          {% trans "Statut" %}
                         </label>
                         <select class="filter-select" id="filter-statut-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
-                          <option value="">Tous les statuts</option>
-                          <option value="nouvelle">Nouvelle inscription</option>
-                          <option value="transfert">Transfert</option>
-                          <option value="reinscription">Réinscription</option>
+                          <option value="">{% trans "Tous les statuts" %}</option>
+                          <option value="nouvelle">{% trans "Nouvelle inscription" %}</option>
+                          <option value="transfert">{% trans "Transfert" %}</option>
+                          <option value="reinscription">{% trans "Réinscription" %}</option>
                         </select>
                       </div>
                       
                       <div class="filter-group">
                         <label class="filter-label">
                           <i class="fas fa-venus-mars"></i>
-                          Sexe
+                          {% trans "Sexe" %}
                         </label>
                         <select class="filter-select" id="filter-sexe-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
-                          <option value="">Tous</option>
-                          <option value="M">Masculin</option>
-                          <option value="F">Féminin</option>
+                          <option value="">{% trans "Tous" %}</option>
+                          <option value="M">{% trans "Masculin" %}</option>
+                          <option value="F">{% trans "Féminin" %}</option>
                         </select>
                       </div>
                       
                       <div class="filter-group">
                         <label class="filter-label">
                           <i class="fas fa-exclamation-triangle"></i>
-                          Absences
+                          {% trans "Absences" %}
                         </label>
                         <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
-                          <option value="">Toutes</option>
-                          <option value="0">Aucune absence</option>
-                          <option value="1-2">1-2 absences</option>
-                          <option value="3-4">3-4 absences</option>
-                          <option value="5+">5+ absences</option>
+                          <option value="">{% trans "Toutes" %}</option>
+                          <option value="0">{% trans "Aucune absence" %}</option>
+                          <option value="1-2">{% trans "1-2 absences" %}</option>
+                          <option value="3-4">{% trans "3-4 absences" %}</option>
+                          <option value="5+">{% trans "5+ absences" %}</option>
                         </select>
                       </div>
                       
                       <button class="btn-reset-filters" onclick="resetFilters('{{ classe_data.classe.id }}')">
                         <i class="fas fa-redo"></i>
-                        Réinitialiser
+                        {% trans "Réinitialiser" %}
                       </button>
                     </div>
                     
                     <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none;">
-                      <span id="results-count-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                      <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                     </div>
                   </div>
                   
@@ -424,13 +426,13 @@
                   {% if classe_data.eleves %}
                     <div class="students-list">
                       <div class="list-header">
-                        <div class="list-cell header-cell">Élève</div>
-                        <div class="list-cell header-cell">Numéro</div>
-                        <div class="list-cell header-cell">Âge</div>
+                        <div class="list-cell header-cell">{% trans "Élève" %}</div>
+                        <div class="list-cell header-cell">{% trans "Numéro" %}</div>
+                        <div class="list-cell header-cell">{% trans "Âge" %}</div>
                       
-                        <div class="list-cell header-cell">Absences</div>
-                        <div class="list-cell header-cell">Inscription</div>
-                        <div class="list-cell header-cell">Actions</div>
+                        <div class="list-cell header-cell">{% trans "Absences" %}</div>
+                        <div class="list-cell header-cell">{% trans "Inscription" %}</div>
+                        <div class="list-cell header-cell">{% trans "Actions" %}</div>
                       </div>
                       
                       {% for eleve_data in classe_data.eleves %}
@@ -452,8 +454,8 @@
                                 <span class="student-name-full">
                                   {{ eleve_data.eleve.nom_complet }}
                                   {% if not eleve_data.eleve.actif %}
-                                    <span class="badge-desactive" title="Compte désactivé">
-                                      <i class="fas fa-user-slash"></i> Désactivé
+                                    <span class="badge-desactive" title="{% trans "Compte désactivé" %}">
+                                      <i class="fas fa-user-slash"></i> {% trans "Désactivé" %}
                                     </span>
                                   {% endif %}
                                 </span>
@@ -491,7 +493,7 @@
                           
                           <div class="list-cell" data-label="Actions">
                             <div class="student-actions-compact">
-                              <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-small btn-view" title="Voir détails">
+                              <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-small btn-view" title="{% trans "Voir détails" %}">
                                 <i class="fas fa-eye"></i>
                               </a>
                               <button class="btn-action-small btn-sanction" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet }}', {{ classe_data.classe.id }})">
@@ -507,11 +509,11 @@
                       <div class="empty-icon">
                         <i class="fas fa-user-slash"></i>
                       </div>
-                      <h3 class="empty-title">Aucun élève inscrit</h3>
-                      <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                      <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
+                      <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
                       <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
                         <i class="fas fa-user-plus"></i>
-                        Inscrire un élève
+                        {% trans "Inscrire un élève" %}
                       </a>
                     </div>
                   {% endif %}
@@ -528,7 +530,7 @@
     <div id="modalSanction" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3><i class="fas fa-gavel"></i> Ajouter une Sanction</h3>
+          <h3><i class="fas fa-gavel"></i> {% trans "Ajouter une Sanction" %}</h3>
           <button class="btn-close" onclick="fermerModalSanction()">
             <i class="fas fa-times"></i>
           </button>
@@ -542,67 +544,67 @@
             <div class="eleve-sanction-info" id="eleve_sanction_nom"></div>
             
             <div class="form-group">
-              <label for="type_sanction">Type de sanction <span style="color: red;">*</span></label>
+              <label for="type_sanction">{% trans "Type de sanction" %} <span style="color: red;">*</span></label>
               <select name="type_sanction" id="type_sanction" required>
-                <option value="">Sélectionner un type</option>
-                <option value="avertissement">Avertissement</option>
-                <option value="blame">Blâme</option>
-                <option value="exclusion_cours">Exclusion de cours</option>
-                <option value="exclusion_temporaire">Exclusion temporaire</option>
-                <option value="travaux_interet_general">Travaux d'intérêt général</option>
-                <option value="retenue">Retenue</option>
-                <option value="convocation_parents">Convocation des parents</option>
-                <option value="avertissement_conduite">Avertissement de conduite</option>
+                <option value="">{% trans "Sélectionner un type" %}</option>
+                <option value="avertissement">{% trans "Avertissement" %}</option>
+                <option value="blame">{% trans "Blâme" %}</option>
+                <option value="exclusion_cours">{% trans "Exclusion de cours" %}</option>
+                <option value="exclusion_temporaire">{% trans "Exclusion temporaire" %}</option>
+                <option value="travaux_interet_general">{% trans "Travaux d'intérêt général" %}</option>
+                <option value="retenue">{% trans "Retenue" %}</option>
+                <option value="convocation_parents">{% trans "Convocation des parents" %}</option>
+                <option value="avertissement_conduite">{% trans "Avertissement de conduite" %}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="raison">Raison de la sanction <span style="color: red;">*</span></label>
+              <label for="raison">{% trans "Raison de la sanction" %} <span style="color: red;">*</span></label>
               <select name="raison" id="raison" required>
-                <option value="">Sélectionner une raison</option>
-                <option value="indiscipline">Indiscipline</option>
-                <option value="absence_non_justifiee">Absence non justifiée répétée</option>
-                <option value="retards_repetes">Retards répétés</option>
-                <option value="manque_respect">Manque de respect envers le personnel</option>
-                <option value="violence">Violence physique ou verbale</option>
-                <option value="triche">Tricherie lors d'une évaluation</option>
-                <option value="desobeissance">Désobéissance</option>
-                <option value="perturbation_cours">Perturbation du cours</option>
-                <option value="degradation_materiel">Dégradation du matériel</option>
-                <option value="vol">Vol</option>
-                <option value="comportement_inapproprie">Comportement inapproprié</option>
-                <option value="non_respect_reglement">Non-respect du règlement intérieur</option>
-                <option value="autre">Autre raison</option>
+                <option value="">{% trans "Sélectionner une raison" %}</option>
+                <option value="indiscipline">{% trans "Indiscipline" %}</option>
+                <option value="absence_non_justifiee">{% trans "Absence non justifiée répétée" %}</option>
+                <option value="retards_repetes">{% trans "Retards répétés" %}</option>
+                <option value="manque_respect">{% trans "Manque de respect envers le personnel" %}</option>
+                <option value="violence">{% trans "Violence physique ou verbale" %}</option>
+                <option value="triche">{% trans "Tricherie lors d'une évaluation" %}</option>
+                <option value="desobeissance">{% trans "Désobéissance" %}</option>
+                <option value="perturbation_cours">{% trans "Perturbation du cours" %}</option>
+                <option value="degradation_materiel">{% trans "Dégradation du matériel" %}</option>
+                <option value="vol">{% trans "Vol" %}</option>
+                <option value="comportement_inapproprie">{% trans "Comportement inapproprié" %}</option>
+                <option value="non_respect_reglement">{% trans "Non-respect du règlement intérieur" %}</option>
+                <option value="autre">{% trans "Autre raison" %}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="gravite">Gravité <span style="color: red;">*</span></label>
+              <label for="gravite">{% trans "Gravité" %} <span style="color: red;">*</span></label>
               <select name="gravite" id="gravite" required>
-                <option value="">Sélectionner la gravité</option>
-                <option value="legere">Légère</option>
-                <option value="moyenne" selected>Moyenne</option>
-                <option value="grave">Grave</option>
-                <option value="tres_grave">Très grave</option>
+                <option value="">{% trans "Sélectionner la gravité" %}</option>
+                <option value="legere">{% trans "Légère" %}</option>
+                <option value="moyenne" selected>{% trans "Moyenne" %}</option>
+                <option value="grave">{% trans "Grave" %}</option>
+                <option value="tres_grave">{% trans "Très grave" %}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="description">Description (optionnel)</label>
-              <textarea name="description" id="description" rows="4" placeholder="Détails supplémentaires..."></textarea>
+              <label for="description">{% trans "Description (optionnel)" %}</label>
+              <textarea name="description" id="description" rows="4" placeholder="{% trans "Détails supplémentaires..." %}"></textarea>
             </div>
 
             <div class="form-group">
-              <label for="date_sanction">Date de la sanction <span style="color: red;">*</span></label>
+              <label for="date_sanction">{% trans "Date de la sanction" %} <span style="color: red;">*</span></label>
               <input type="date" name="date_sanction" id="date_sanction" required>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn-cancel" onclick="fermerModalSanction()">
-              <i class="fas fa-times"></i> Annuler
+              <i class="fas fa-times"></i> {% trans "Annuler" %}
             </button>
             <button type="submit" class="btn-save">
-              <i class="fas fa-save"></i> Enregistrer
+              <i class="fas fa-save"></i> {% trans "Enregistrer" %}
             </button>
           </div>
         </form>

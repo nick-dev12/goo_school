@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,7 +14,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/gestion_examens.css' %}?v=1.1.0"
     />
-    <title>Gestion des Examens - Directeur</title>
+    <title>{% trans "Gestion des Examens - Directeur" %}</title>
   </head>
   <body>
 

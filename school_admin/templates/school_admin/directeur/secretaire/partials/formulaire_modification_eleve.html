@@ -8,7 +8,7 @@
         <div class="alert-error-modern">
             <i class="fas fa-exclamation-triangle"></i>
             <div>
-                <strong>Erreur de modification :</strong>
+                <strong>{% trans "Erreur de modification :" %}</strong>
                 <p>{{ error }}</p>
             </div>
         </div>
@@ -22,8 +22,8 @@
                 <i class="fas fa-user"></i>
             </div>
             <div class="section-title-wrapper">
-                <h2 class="section-title-modern">Informations Personnelles</h2>
-                <p class="section-subtitle-modern">Identité et coordonnées de l'élève</p>
+                <h2 class="section-title-modern">{% trans "Informations Personnelles" %}</h2>
+                <p class="section-subtitle-modern">{% trans "Identité et coordonnées de l'élève" %}</p>
             </div>
             <div class="section-number">01</div>
         </div>
@@ -32,7 +32,7 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="nom">
                     <i class="fas fa-id-card"></i>
-                    Nom de famille <span class="required-star">*</span>
+                    {% trans "Nom de famille <span class=\"required-star\">*</span>" %}
                 </label>
                 <input type="text" 
                        class="input-modern {% if field_errors.nom %}input-error{% endif %}" 
@@ -49,7 +49,7 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="prenom">
                     <i class="fas fa-user"></i>
-                    Prénom <span class="required-star">*</span>
+                    {% trans "Prénom <span class=\"required-star\">*</span>" %}
                 </label>
                 <input type="text" 
                        class="input-modern {% if field_errors.prenom %}input-error{% endif %}" 
@@ -68,7 +68,7 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="date_naissance">
                     <i class="fas fa-calendar-alt"></i>
-                    Date de naissance <span class="required-star">*</span>
+                    {% trans "Date de naissance <span class=\"required-star\">*</span>" %}
                 </label>
                 <input type="date" 
                        class="input-modern {% if field_errors.date_naissance %}input-error{% endif %}" 
@@ -84,14 +84,14 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="lieu_naissance">
                     <i class="fas fa-map-marker-alt"></i>
-                    Lieu de naissance <span class="required-star">*</span>
+                    {% trans "Lieu de naissance <span class=\"required-star\">*</span>" %}
                 </label>
                 <input type="text" 
                        class="input-modern {% if field_errors.lieu_naissance %}input-error{% endif %}" 
                        id="lieu_naissance" 
                        name="lieu_naissance" 
                        value="{{ form_data.lieu_naissance }}"
-                       placeholder="Ex: Dakar, Sénégal"
+                       placeholder="{% trans "Ex: Dakar, Sénégal" %}"
                        required>
                 {% if field_errors.lieu_naissance %}
                     <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.lieu_naissance }}</span>
@@ -103,12 +103,12 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="sexe">
                     <i class="fas fa-venus-mars"></i>
-                    Sexe <span class="required-star">*</span>
+                    {% trans "Sexe" %} <span class="required-star">*</span>
                 </label>
                 <select class="input-modern {% if field_errors.sexe %}input-error{% endif %}" id="sexe" name="sexe" required>
-                    <option value="">Sélectionnez le sexe</option>
-                    <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>Masculin</option>
-                    <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>Féminin</option>
+                    <option value="">{% trans "Sélectionnez le sexe" %}</option>
+                    <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>{% trans "Masculin" %}</option>
+                    <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>{% trans "Féminin" %}</option>
                 </select>
                 {% if field_errors.sexe %}
                     <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.sexe }}</span>
@@ -118,13 +118,13 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="nationalite">
                     <i class="fas fa-flag"></i>
-                    Nationalité <span class="required-star">*</span>
+                    {% trans "Nationalité <span class=\"required-star\">*</span>" %}
                 </label>
                 <div class="country-search-wrapper">
                     <input type="text" 
                            class="input-modern {% if field_errors.nationalite %}input-error{% endif %}" 
                            id="nationalite_search" 
-                           placeholder="Rechercher un pays..."
+                           placeholder="{% trans "Rechercher un pays..." %}"
                            autocomplete="off"
                            value="{% if form_data.nationalite %}{{ form_data.nationalite }}{% endif %}">
                     <i class="fas fa-search country-search-icon"></i>
@@ -134,7 +134,7 @@
                             name="nationalite" 
                             required
                             style="display: none;">
-                        <option value="">Sélectionnez un pays</option>
+                        <option value="">{% trans "Sélectionnez un pays" %}</option>
                         {% if pays_list %}
                             {% for code, nom in pays_list %}
                                 <option value="{{ nom }}" {% if form_data.nationalite == nom %}selected{% endif %} data-search="{{ nom|lower }}">
@@ -142,7 +142,7 @@
                                 </option>
                             {% endfor %}
                         {% else %}
-                            <option value="" disabled>Aucun pays disponible - Veuillez redémarrer le serveur</option>
+                            <option value="" disabled>{% trans "Aucun pays disponible - Veuillez redémarrer le serveur" %}</option>
                         {% endif %}
                     </select>
                 </div>
@@ -155,13 +155,13 @@
         <div class="form-group-modern full-width">
             <label class="label-modern" for="adresse">
                 <i class="fas fa-home"></i>
-                Adresse de résidence <span class="optional-badge">Optionnel</span>
+                {% trans "Adresse de résidence <span class=\"optional-badge\">{% trans "Optionnel" %}</span>" %}
             </label>
             <textarea class="input-modern textarea-modern {% if field_errors.adresse %}input-error{% endif %}" 
                       id="adresse" 
                       name="adresse" 
                       rows="3"
-                      placeholder="Adresse complète de résidence (optionnel)">{{ form_data.adresse }}</textarea>
+                      placeholder="{% trans "Adresse complète de résidence (optionnel)" %}">{{ form_data.adresse }}</textarea>
             {% if field_errors.adresse %}
                 <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.adresse }}</span>
             {% endif %}
@@ -176,8 +176,8 @@
                 <i class="fas fa-graduation-cap"></i>
             </div>
             <div class="section-title-wrapper">
-                <h2 class="section-title-modern">Informations Scolaires</h2>
-                <p class="section-subtitle-modern">Classe et statut d'inscription</p>
+                <h2 class="section-title-modern">{% trans "Informations Scolaires" %}</h2>
+                <p class="section-subtitle-modern">{% trans "Classe et statut d'inscription" %}</p>
             </div>
             <div class="section-number">02</div>
         </div>
@@ -186,10 +186,10 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="classe">
                     <i class="fas fa-chalkboard"></i>
-                    Classe d'affectation <span class="required-star">*</span>
+                    {% trans "Classe d'affectation <span class=\"required-star\">*</span>" %}
                 </label>
                 <select class="input-modern {% if field_errors.classe %}input-error{% endif %}" id="classe" name="classe" required>
-                    <option value="">Sélectionnez une classe</option>
+                    <option value="">{% trans "Sélectionnez une classe" %}</option>
                     {% for classe in classes %}
                         <option value="{{ classe.id }}" {% if form_data.classe == classe.id|stringformat:"s" %}selected{% endif %}>
                             {{ classe.nom }} ({{ classe.get_niveau_display }})
@@ -204,7 +204,7 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="date_inscription">
                     <i class="fas fa-calendar-check"></i>
-                    Date d'inscription <span class="required-star">*</span>
+                    {% trans "Date d'inscription" %} <span class="required-star">*</span>
                 </label>
                 <input type="date" 
                        class="input-modern {% if field_errors.date_inscription %}input-error{% endif %}" 
@@ -221,12 +221,12 @@
         <div class="form-group-modern">
             <label class="label-modern" for="statut">
                 <i class="fas fa-user-check"></i>
-                Type d'inscription <span class="required-star">*</span>
+                {% trans "Type d'inscription" %} <span class="required-star">*</span>
             </label>
             <select class="input-modern {% if field_errors.statut %}input-error{% endif %}" id="statut" name="statut" required>
-                <option value="">Sélectionnez un type</option>
-                <option value="nouvelle" {% if form_data.statut == 'nouvelle' %}selected{% endif %}>Nouvelle inscription</option>
-                <option value="reinscription" {% if form_data.statut == 'reinscription' %}selected{% endif %}>Réinscription</option>
+                <option value="">{% trans "Sélectionnez un type" %}</option>
+                <option value="nouvelle" {% if form_data.statut == 'nouvelle' %}selected{% endif %}>{% trans "Nouvelle inscription" %}</option>
+                <option value="reinscription" {% if form_data.statut == 'reinscription' %}selected{% endif %}>{% trans "Réinscription" %}</option>
             </select>
             {% if field_errors.statut %}
                 <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.statut }}</span>
@@ -241,29 +241,29 @@
                 <i class="fas fa-user-friends"></i>
             </div>
             <div class="section-title-wrapper">
-                <h2 class="section-title-modern">Parent / Tuteur</h2>
-                <p class="section-subtitle-modern">Informations de la personne responsable</p>
+                <h2 class="section-title-modern">{% trans "Parent / Tuteur" %}</h2>
+                <p class="section-subtitle-modern">{% trans "Informations de la personne responsable" %}</p>
             </div>
             <div class="section-number">03</div>
         </div>
 
         <div class="info-box-modern">
             <i class="fas fa-info-circle"></i>
-            <p>Remplissez les informations de la personne responsable de l'élève (parent, tuteur légal, etc.)</p>
+            <p>{% trans "Remplissez les informations de la personne responsable de l'élève (parent, tuteur légal, etc.)" %}</p>
         </div>
 
         <div class="form-grid-modern">
             <div class="form-group-modern">
                 <label class="label-modern" for="parent_nom">
                     <i class="fas fa-id-card"></i>
-                    Nom du parent/tuteur <span class="required-star">*</span>
+                    {% trans "Nom du parent/tuteur <span class=\"required-star\">*</span>" %}
                 </label>
                 <input type="text" 
                        class="input-modern {% if field_errors.parent_nom %}input-error{% endif %}" 
                        id="parent_nom" 
                        name="parent_nom" 
                        value="{{ form_data.parent_nom }}"
-                       placeholder="Nom de famille"
+                       placeholder="{% trans "Nom de famille" %}"
                        required>
                 {% if field_errors.parent_nom %}
                     <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_nom }}</span>
@@ -273,14 +273,14 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="parent_prenom">
                     <i class="fas fa-user"></i>
-                    Prénom du parent/tuteur <span class="required-star">*</span>
+                    {% trans "Prénom du parent/tuteur <span class=\"required-star\">*</span>" %}
                 </label>
                 <input type="text" 
                        class="input-modern {% if field_errors.parent_prenom %}input-error{% endif %}" 
                        id="parent_prenom" 
                        name="parent_prenom" 
                        value="{{ form_data.parent_prenom }}"
-                       placeholder="Prénom"
+                       placeholder="{% trans "Prénom" %}"
                        required>
                 {% if field_errors.parent_prenom %}
                     <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_prenom }}</span>
@@ -291,7 +291,7 @@
         <div class="form-group-modern">
             <label class="label-modern" for="parent_telephone">
                 <i class="fas fa-phone"></i>
-                Téléphone du parent/tuteur <span class="required-star">*</span>
+                {% trans "Téléphone du parent/tuteur <span class=\"required-star\">*</span>" %}
             </label>
             <input type="tel" 
                    class="input-modern {% if field_errors.parent_telephone %}input-error{% endif %}" 
@@ -311,14 +311,14 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="parent_profession">
                     <i class="fas fa-briefcase"></i>
-                    Profession <span class="optional-badge">Optionnel</span>
+                    {% trans "Profession" %} <span class="optional-badge">{% trans "Optionnel" %}</span>
                 </label>
                 <input type="text" 
                        class="input-modern {% if field_errors.parent_profession %}input-error{% endif %}" 
                        id="parent_profession" 
                        name="parent_profession" 
                        value="{{ form_data.parent_profession }}"
-                       placeholder="Ex: Enseignant, Médecin, etc.">
+                       placeholder="{% trans "Ex: Enseignant, Médecin, etc." %}">
                 {% if field_errors.parent_profession %}
                     <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_profession }}</span>
                 {% endif %}
@@ -327,21 +327,21 @@
             <div class="form-group-modern">
                 <label class="label-modern" for="parent_lien">
                     <i class="fas fa-link"></i>
-                    Lien avec l'élève <span class="required-star">*</span>
+                    {% trans "Lien avec l'élève <span class=\"required-star\">*</span>" %}
                 </label>
                 <select class="input-modern {% if field_errors.parent_lien %}input-error{% endif %}" 
                         id="parent_lien" 
                         name="parent_lien" 
                         required>
-                    <option value="">Sélectionner le lien</option>
-                    <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>Père</option>
-                    <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>Mère</option>
-                    <option value="grand_parent" {% if form_data.parent_lien == 'grand_parent' %}selected{% endif %}>Grand-parent</option>
-                    <option value="oncle_tante" {% if form_data.parent_lien == 'oncle_tante' %}selected{% endif %}>Oncle/Tante</option>
-                    <option value="frere_soeur" {% if form_data.parent_lien == 'frere_soeur' %}selected{% endif %}>Frère/Sœur</option>
-                    <option value="autre_famille" {% if form_data.parent_lien == 'autre_famille' %}selected{% endif %}>Autre membre de la famille</option>
-                    <option value="tuteur_legal" {% if form_data.parent_lien == 'tuteur_legal' %}selected{% endif %}>Tuteur légal</option>
-                    <option value="autre" {% if form_data.parent_lien == 'autre' %}selected{% endif %}>Autre</option>
+                    <option value="">{% trans "Sélectionner le lien" %}</option>
+                    <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>{% trans "Père" %}</option>
+                    <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>{% trans "Mère" %}</option>
+                    <option value="grand_parent" {% if form_data.parent_lien == 'grand_parent' %}selected{% endif %}>{% trans "Grand-parent" %}</option>
+                    <option value="oncle_tante" {% if form_data.parent_lien == 'oncle_tante' %}selected{% endif %}>{% trans "Oncle/Tante" %}</option>
+                    <option value="frere_soeur" {% if form_data.parent_lien == 'frere_soeur' %}selected{% endif %}>{% trans "Frère/Sœur" %}</option>
+                    <option value="autre_famille" {% if form_data.parent_lien == 'autre_famille' %}selected{% endif %}>{% trans "Autre membre de la famille" %}</option>
+                    <option value="tuteur_legal" {% if form_data.parent_lien == 'tuteur_legal' %}selected{% endif %}>{% trans "Tuteur légal" %}</option>
+                    <option value="autre" {% if form_data.parent_lien == 'autre' %}selected{% endif %}>{% trans "Autre" %}</option>
                 </select>
                 {% if field_errors.parent_lien %}
                     <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_lien }}</span>
@@ -357,8 +357,8 @@
                 <i class="fas fa-file-check"></i>
             </div>
             <div class="section-title-wrapper">
-                <h2 class="section-title-modern">Documents Fournis</h2>
-                <p class="section-subtitle-modern">Cochez les documents fournis par l'élève</p>
+                <h2 class="section-title-modern">{% trans "Documents Fournis" %}</h2>
+                <p class="section-subtitle-modern">{% trans "Cochez les documents fournis par l'élève" %}</p>
             </div>
             <div class="section-number">04</div>
         </div>
@@ -367,14 +367,14 @@
             <div class="document-category-modern">
                 <h3 class="category-title-modern">
                     <i class="fas fa-id-badge"></i>
-                    Documents d'identité
+                    {% trans "Documents d'identité" %}
                 </h3>
                 <div class="checkbox-grid-modern">
                     <label class="checkbox-card-modern">
                         <input type="checkbox" name="document_acte_naissance" value="true" {% if form_data.document_acte_naissance %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-file-alt"></i>
-                            <span>Acte de naissance</span>
+                            <span>{% trans "Acte de naissance" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -384,7 +384,7 @@
                         <input type="checkbox" name="document_cni" value="true" {% if form_data.document_cni %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-id-card"></i>
-                            <span>Carte nationale d'identité</span>
+                            <span>{% trans "Carte nationale d'identité" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -394,7 +394,7 @@
                         <input type="checkbox" name="document_passeport" value="true" {% if form_data.document_passeport %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-passport"></i>
-                            <span>Passeport</span>
+                            <span>{% trans "Passeport" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -406,14 +406,14 @@
             <div class="document-category-modern">
                 <h3 class="category-title-modern">
                     <i class="fas fa-graduation-cap"></i>
-                    Documents scolaires
+                    {% trans "Documents scolaires" %}
                 </h3>
                 <div class="checkbox-grid-modern">
                     <label class="checkbox-card-modern">
                         <input type="checkbox" name="document_bulletin_precedent" value="true" {% if form_data.document_bulletin_precedent %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-file-signature"></i>
-                            <span>Bulletin de l'année précédente</span>
+                            <span>{% trans "Bulletin de l'année précédente" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -423,7 +423,7 @@
                         <input type="checkbox" name="document_certificat_scolarite" value="true" {% if form_data.document_certificat_scolarite %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-certificate"></i>
-                            <span>Certificat de scolarité</span>
+                            <span>{% trans "Certificat de scolarité" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -433,7 +433,7 @@
                         <input type="checkbox" name="document_livret_scolaire" value="true" {% if form_data.document_livret_scolaire %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-book"></i>
-                            <span>Livret scolaire</span>
+                            <span>{% trans "Livret scolaire" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -445,14 +445,14 @@
             <div class="document-category-modern">
                 <h3 class="category-title-modern">
                     <i class="fas fa-heartbeat"></i>
-                    Documents médicaux
+                    {% trans "Documents médicaux" %}
                 </h3>
                 <div class="checkbox-grid-modern">
                     <label class="checkbox-card-modern">
                         <input type="checkbox" name="document_certificat_medical" value="true" {% if form_data.document_certificat_medical %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-user-md"></i>
-                            <span>Certificat médical</span>
+                            <span>{% trans "Certificat médical" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -462,7 +462,7 @@
                         <input type="checkbox" name="document_carnet_vaccination" value="true" {% if form_data.document_carnet_vaccination %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-syringe"></i>
-                            <span>Carnet de vaccination</span>
+                            <span>{% trans "Carnet de vaccination" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -472,7 +472,7 @@
                         <input type="checkbox" name="document_assurance_maladie" value="true" {% if form_data.document_assurance_maladie %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-shield-alt"></i>
-                            <span>Attestation d'assurance maladie</span>
+                            <span>{% trans "Attestation d'assurance maladie" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -484,14 +484,14 @@
             <div class="document-category-modern">
                 <h3 class="category-title-modern">
                     <i class="fas fa-folder-open"></i>
-                    Documents administratifs
+                    {% trans "Documents administratifs" %}
                 </h3>
                 <div class="checkbox-grid-modern">
                     <label class="checkbox-card-modern">
                         <input type="checkbox" name="document_justificatif_domicile" value="true" {% if form_data.document_justificatif_domicile %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-home"></i>
-                            <span>Justificatif de domicile</span>
+                            <span>{% trans "Justificatif de domicile" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -501,7 +501,7 @@
                         <input type="checkbox" name="document_photo_identite" value="true" {% if form_data.document_photo_identite %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-image"></i>
-                            <span>Photo d'identité</span>
+                            <span>{% trans "Photo d'identité" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -511,7 +511,7 @@
                         <input type="checkbox" name="document_autorisation_parentale" value="true" {% if form_data.document_autorisation_parentale %}checked{% endif %}>
                         <div class="checkbox-content-modern">
                             <i class="fas fa-handshake"></i>
-                            <span>Autorisation parentale</span>
+                            <span>{% trans "Autorisation parentale" %}</span>
                         </div>
                         <div class="checkbox-check-modern">
                             <i class="fas fa-check"></i>
@@ -526,11 +526,11 @@
     <div class="form-actions-modern">
         <button type="button" class="btn-reset-modern" onclick="toggleEditForm()">
             <i class="fas fa-times"></i>
-            <span>Annuler</span>
+            <span>{% trans "Annuler" %}</span>
         </button>
         <button type="submit" class="btn-submit-modern">
             <i class="fas fa-save"></i>
-            <span>Enregistrer les modifications</span>
+            <span>{% trans "Enregistrer les modifications" %}</span>
             <div class="btn-loading" style="display: none;">
                 <i class="fas fa-spinner fa-spin"></i>
             </div>

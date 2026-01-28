@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load eleve_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,7 +39,7 @@
         <div class="page-title-section">
           <h1 class="page-title">
             <i class="fas fa-file-alt"></i>
-            Gestion des bulletins
+            {% trans "Gestion des bulletins" %}
           </h1>
           <p class="page-subtitle">
             Suivez la progression de génération des bulletins pour toutes les classes de {{ etablissement.nom }}
@@ -46,15 +48,15 @@
         <div class="page-actions">
           <a href="{% url 'directeur:configuration_moyennes_generales' %}" class="btn-primary">
             <i class="fas fa-sliders-h"></i>
-            <span>Configuration du calcul des moyennes générales</span>
+            <span>{% trans "Configuration du calcul des moyennes générales" %}</span>
           </a>
           <a href="{% url 'directeur:configuration_standards_reussite' %}" class="btn-outline">
             <i class="fas fa-graduation-cap"></i>
-            <span>Configuration des standards de réussite</span>
+            <span>{% trans "Configuration des standards de réussite" %}</span>
           </a>
           <a href="{% url 'directeur:gestion_pedagogique' %}" class="btn-secondary">
             <i class="fas fa-arrow-left"></i>
-            <span>Retour</span>
+            <span>{% trans "Retour" %}</span>
           </a>
         </div>
       </div>
@@ -62,25 +64,25 @@
       <div class="bulletins-overview">
         <div class="overview-card">
           <div class="overview-content">
-            <span class="overview-label">Élèves concernés</span>
+            <span class="overview-label">{% trans "Élèves concernés" %}</span>
             <span class="overview-value">{{ stats_generales.total_eleves }}</span>
           </div>
         </div>
         <div class="overview-card">
           <div class="overview-content">
-            <span class="overview-label">Bulletins publiés</span>
+            <span class="overview-label">{% trans "Bulletins publiés" %}</span>
             <span class="overview-value">{{ stats_generales.bulletins_publies }}</span>
           </div>
         </div>
         <div class="overview-card">
           <div class="overview-content">
-            <span class="overview-label">Progression globale</span>
+            <span class="overview-label">{% trans "Progression globale" %}</span>
             <span class="overview-value">{{ stats_generales.progression_globale }}%</span>
           </div>
         </div>
         <div class="overview-card">
           <div class="overview-content">
-            <span class="overview-label">Classes finalisées</span>
+            <span class="overview-label">{% trans "Classes finalisées" %}</span>
             <span class="overview-value">{{ stats_generales.classes_terminees }} / {{ stats_generales.total_classes }}</span>
           </div>
         </div>
@@ -101,7 +103,7 @@
                   </div>
                   <div class="tab-stats">
                     <span class="students-count">{{ data.total_eleves }}</span>
-                    <span class="students-label">élèves</span>
+                    <span class="students-label">{% trans "élèves" %}</span>
                   </div>
                 </div>
               </button>
@@ -129,23 +131,23 @@
                         <i class="fas fa-school"></i>
                         {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
                       </h2>
-                      <p class="class-description">Gestion des bulletins et validations pour cette classe.</p>
+                      <p class="class-description">{% trans "Gestion des bulletins et validations pour cette classe." %}</p>
                     </div>
                     <div class="class-stats">
                       <div class="stat-item">
-                        <span class="stat-label">Élèves</span>
+                        <span class="stat-label">{% trans "Élèves" %}</span>
                         <span class="stat-value">{{ classe_data.bulletins.eleves_total }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Bulletins prêts</span>
+                        <span class="stat-label">{% trans "Bulletins prêts" %}</span>
                         <span class="stat-value">{{ classe_data.bulletins.eleves_avec_bulletin }}</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Progression</span>
+                        <span class="stat-label">{% trans "Progression" %}</span>
                         <span class="stat-value">{{ classe_data.bulletins.progression }}%</span>
                       </div>
                       <div class="stat-item">
-                        <span class="stat-label">Matières</span>
+                        <span class="stat-label">{% trans "Matières" %}</span>
                         <span class="stat-value">{{ classe_data.bulletins.nb_matieres }}</span>
                       </div>
                     </div>
@@ -166,18 +168,18 @@
                   <div class="bulletin-actions">
                     <a href="{% url 'directeur:calculer_moyennes_periode' classe_data.classe.id %}{% if periode_active %}?periode={{ periode_active.id }}&classe_id={{ classe_data.classe.id }}{% else %}?classe_id={{ classe_data.classe.id }}{% endif %}" class="btn-primary">
                       <i class="fas fa-calculator"></i>
-                      Calculer les moyennes de la période
+                      {% trans "Calculer les moyennes de la période" %}
                     </a>
                     <a href="{% url 'directeur:calculer_moyenne_annuelle' classe_data.classe.id %}{% if periode_active %}?periode={{ periode_active.id }}&classe_id={{ classe_data.classe.id }}{% else %}?classe_id={{ classe_data.classe.id }}{% endif %}" class="btn-primary">
                       <i class="fas fa-chart-line"></i>
-                      Calculer la moyenne de l'année
+                      {% trans "Calculer la moyenne de l'année" %}
                     </a>
                     <button
                       type="submit"
                       class="btn-outline btn-publish"
                       form="visibility-form-{{ classe_data.classe.id }}"
                       formaction="{% url 'directeur:publier_bulletins_classe' classe_data.classe.id %}"
-                      {% if not classe_data.bulletins.moyennes_calculees %}disabled title="Calculez la moyenne générale avant de publier."{% elif not classe_data.bulletins.eleves_total %}disabled title="Aucun élève dans cette classe."{% endif %}
+                      {% if not classe_data.bulletins.moyennes_calculees %}disabled title="{% trans "Calculez la moyenne générale avant de publier." %}"{% elif not classe_data.bulletins.eleves_total %}disabled title="{% trans "Aucun élève dans cette classe." %}"{% endif %}
                     >
                         <i class="fas fa-bullhorn"></i>
                         {% if classe_data.bulletins.publication_complete %}
@@ -188,7 +190,7 @@
                       </button>
                     <a href="{% url 'directeur:imprimer_bulletins_classe' classe_data.classe.id %}" class="btn-outline" target="_blank">
                       <i class="fas fa-file-alt"></i>
-                      Imprimer tous les bulletins
+                      {% trans "Imprimer tous les bulletins" %}
                     </a>
                   </div>
 
@@ -217,11 +219,11 @@
                           <i class="fas fa-info-circle"></i>
                           <div>
                             <p class="visibility-tip">
-                              Cochez les élèves pour rendre leur bulletin visible dans les espaces élèves et parents.
+                              {% trans "Cochez les élèves pour rendre leur bulletin visible dans les espaces élèves et parents." %}
                             </p>
                             <p class="visibility-warning">
                               <i class="fas fa-exclamation-triangle"></i>
-                              <strong>Attention :</strong> si vous décochez un élève, ni lui ni ses parents ne pourront voir sa moyenne générale ni son bulletin dans leur tableau de bord.
+                              <strong>{% trans "Attention :" %}</strong> {% trans "si vous décochez un élève, ni lui ni ses parents ne pourront voir sa moyenne générale ni son bulletin dans leur tableau de bord." %}
                             </p>
                           </div>
                         </div>
@@ -230,18 +232,18 @@
                         <table class="students-table {% if classe_data.bulletins.moyennes_calculees %}with-moyennes{% endif %}">
                           <thead>
                             <tr>
-                              <th class="checkbox-header" title="Visibilité">
+                              <th class="checkbox-header" title="{% trans "Visibilité" %}">
                                 <i class="fas fa-eye"></i>
                               </th>
-                              <th>Élève</th>
+                              <th>{% trans "Élève" %}</th>
                       
                               {% if classe_data.bulletins.moyennes_calculees %}
-                                <th>Moyenne générale</th>
-                                <th>Rang</th>
+                                <th>{% trans "Moyenne générale" %}</th>
+                                <th>{% trans "Rang" %}</th>
                               {% endif %}
-                              <th>Statut bulletin</th>
-                              <th>Statut publication</th>
-                              <th class="actions-header">Actions</th>
+                              <th>{% trans "Statut bulletin" %}</th>
+                              <th>{% trans "Statut publication" %}</th>
+                              <th class="actions-header">{% trans "Actions" %}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -280,8 +282,8 @@
                                         {{ eleve.moyenne_generale|floatformat:2 }}/20
                                       </span>
                                     {% elif eleve.moyenne_generale is not None %}
-                                      <span class="moyenne-value moyenne-masquee" title="Bulletin masqué">
-                                        Masqué
+                                      <span class="moyenne-value moyenne-masquee" title="{% trans "Bulletin masqué" %}">
+                                        {% trans "Masqué" %}
                                       </span>
                                     {% else %}
                                       <span class="moyenne-value moyenne-absence">—</span>
@@ -295,7 +297,7 @@
                                         {{ eleve.rang }}{% if eleve.rang == 1 %}er{% else %}ème{% endif %}
                                       </span>
                                     {% elif eleve.rang %}
-                                      <span class="rang-value rang-masque" title="Bulletin masqué">Masqué</span>
+                                      <span class="rang-value rang-masque" title="{% trans "Bulletin masqué" %}">{% trans "Masqué" %}</span>
                                     {% else %}
                                       <span class="rang-value rang-absence">—</span>
                                     {% endif %}
@@ -306,17 +308,17 @@
                                   {% if not eleve.afficher_bulletin %}
                                     <span class="status-badge status-masque">
                                       <i class="fas fa-eye-slash"></i>
-                                      Masqué
+                                      {% trans "Masqué" %}
                                     </span>
                                   {% elif eleve.bulletin_valide %}
                                     <span class="status-badge status-validé">
                                       <i class="fas fa-check-circle"></i>
-                                      Bulletin validé
+                                      {% trans "Bulletin validé" %}
                                     </span>
                                   {% else %}
                                     <span class="status-badge status-en-attente">
                                       <i class="fas fa-hourglass-half"></i>
-                                      En attente
+                                      {% trans "En attente" %}
                                     </span>
                                   {% endif %}
                                 </td>
@@ -325,19 +327,19 @@
                                   {% if eleve.publie %}
                                     <span class="status-badge status-publie" {% if eleve.date_publication %}title="Publié le {{ eleve.date_publication|date:'d/m/Y H:i' }}"{% endif %}>
                                       <i class="fas fa-bullhorn"></i>
-                                      Publié
+                                      {% trans "Publié" %}
                                     </span>
                                   {% else %}
                                     <span class="status-badge status-non-publie">
                                       <i class="fas fa-bell-slash"></i>
-                                      Non publié
+                                      {% trans "Non publié" %}
                                     </span>
                                   {% endif %}
                                 </td>
 
                                 <td class="actions-cell">
                                   <div class="student-actions-compact">
-                                    <a href="{{ eleve.bulletin_url }}" class="btn-action-small btn-view" title="Voir le bulletin" {% if not eleve.bulletin_valide %}data-status="pending"{% endif %}>
+                                    <a href="{{ eleve.bulletin_url }}" class="btn-action-small btn-view" title="{% trans "Voir le bulletin" %}" {% if not eleve.bulletin_valide %}data-status="pending"{% endif %}>
                                       <i class="fas fa-eye"></i>
                                     </a>
                                   </div>
@@ -352,10 +354,10 @@
                           <button
                             type="submit"
                             class="btn-outline btn-visibility"
-                            {% if not classe_data.bulletins.moyennes_calculees %}disabled title="Les moyennes générales doivent être calculées avant d'ajuster la visibilité des bulletins."{% endif %}
+                            {% if not classe_data.bulletins.moyennes_calculees %}disabled title="{% trans "Les moyennes générales doivent être calculées avant d" %}'ajuster la visibilité des bulletins."{% endif %}
                           >
                             <i class="fas fa-save"></i>
-                            Mettre à jour la visibilité
+                            {% trans "Mettre à jour la visibilité" %}
                           </button>
                         </div>
                       </form>
@@ -364,8 +366,8 @@
                         <div class="empty-icon">
                           <i class="fas fa-user-slash"></i>
                         </div>
-                        <h3 class="empty-title">Aucun élève inscrit</h3>
-                        <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                        <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
+                        <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
                       </div>
                     {% endif %}
                   </div>
@@ -373,7 +375,7 @@
                   <div class="periods-section">
                     <h3 class="section-title">
                       <i class="fas fa-calendar-alt"></i>
-                      Progression par période
+                      {% trans "Progression par période" %}
                     </h3>
                     <div class="periods-grid">
                       {% if classe_data.bulletins.periodes %}
@@ -405,7 +407,7 @@
                       {% else %}
                         <p class="empty-state">
                           <i class="fas fa-info-circle"></i>
-                          Aucune donnée de moyenne n'a encore été enregistrée pour cette classe.
+                          {% trans "Aucune donnée de moyenne n'a encore été enregistrée pour cette classe." %}
                         </p>
                       {% endif %}
                     </div>

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,16 +21,16 @@
         <div class="page-title-section">
           <h1 class="page-title">
             <i class="fas fa-sliders-h"></i>
-            Configuration du calcul des moyennes générales
+            {% trans "Configuration du calcul des moyennes générales" %}
           </h1>
           <p class="page-subtitle">
-            Ajustez les paramètres utilisés pour calculer les moyennes générales des élèves (pondérations, périodes, règles de validation).
+            {% trans "Ajustez les paramètres utilisés pour calculer les moyennes générales des élèves (pondérations, périodes, règles de validation)." %}
           </p>
         </div>
         <div class="page-actions">
           <a href="{% url 'directeur:bulletins_notes' %}" class="btn-secondary">
             <i class="fas fa-arrow-left"></i>
-            <span>Retour aux bulletins</span>
+            <span>{% trans "Retour aux bulletins" %}</span>
           </a>
         </div>
       </div>
@@ -43,23 +45,23 @@
             Année scolaire active : {{ annee_scolaire_active.libelle }}
           </p>
           <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-            Toutes les pondérations enregistrées s'appliqueront uniquement à cette session.
+            {% trans "Toutes les pondérations enregistrées s'appliqueront uniquement à cette session." %}
           </p>
         </div>
       </div>
       {% endif %}
 
       <section class="config-section">
-        <h2 class="section-title"><i class="fas fa-balance-scale"></i> Pondération des composantes</h2>
+        <h2 class="section-title"><i class="fas fa-balance-scale"></i> {% trans "Pondération des composantes" %}</h2>
         <form method="post" class="config-card">
           {% csrf_token %}
           <p>
-            Configurez la pondération entre contrôle continu et examens pour l'année scolaire <strong>{{ annee_scolaire }}</strong>.
+            {% trans "Configurez la pondération entre contrôle continu et examens pour l'année scolaire" %} <strong>{{ annee_scolaire }}</strong>.
           </p>
 
           <div class="current-config">
             <div class="current-config-header">
-              <span class="current-badge">Méthode actuelle</span>
+              <span class="current-badge">{% trans "Méthode actuelle" %}</span>
               <strong>
                 {% if methode_active %}
                   {{ methode_active.label }}
@@ -70,11 +72,11 @@
             </div>
             <div class="current-config-values">
               <div>
-                <span class="config-label">Contrôle continu</span>
+                <span class="config-label">{% trans "Contrôle continu" %}</span>
                 <span class="config-value">{{ ponderation.poids_classe }}%</span>
               </div>
               <div>
-                <span class="config-label">Examens</span>
+                <span class="config-label">{% trans "Examens" %}</span>
                 <span class="config-value">{{ ponderation.poids_examen }}%</span>
               </div>
             </div>
@@ -102,10 +104,10 @@
                   </div>
                   <div class="method-details">
                     <div>
-                      <strong>Contrôle continu :</strong> {{ methode.classe }}%
+                      <strong>{% trans "Contrôle continu :" %}</strong> {{ methode.classe }}%
                     </div>
                     <div>
-                      <strong>Examens :</strong> {{ methode.examen }}%
+                      <strong>{% trans "Examens :" %}</strong> {{ methode.examen }}%
                     </div>
                     <p class="method-formula">Formule : {{ methode.formule }}</p>
                   </div>
@@ -116,13 +118,13 @@
 
           <button type="submit" class="btn-primary">
             <i class="fas fa-save"></i>
-            Enregistrer la pondération
+            {% trans "Enregistrer la pondération" %}
           </button>
         </form>
       </section>
 
       <section class="config-section">
-        <h2 class="section-title"><i class="fas fa-calendar-alt"></i> Périodes scolaires actives</h2>
+        <h2 class="section-title"><i class="fas fa-calendar-alt"></i> {% trans "Périodes scolaires actives" %}</h2>
         <div class="config-card">
           {% if periodes %}
             <div class="periods-list">
@@ -142,21 +144,21 @@
           {% else %}
             <p class="empty-state">
               <i class="fas fa-info-circle"></i>
-              Aucune période scolaire n'est encore configurée pour cet établissement.
+              {% trans "Aucune période scolaire n'est encore configurée pour cet établissement." %}
             </p>
           {% endif %}
         </div>
       </section>
 
       <section class="config-section">
-        <h2 class="section-title"><i class="fas fa-clipboard-check"></i> Règles de validation</h2>
+        <h2 class="section-title"><i class="fas fa-clipboard-check"></i> {% trans "Règles de validation" %}</h2>
         <div class="config-card">
           <ul class="rules-list">
-            <li>Un bulletin est considéré comme prêt lorsque toutes les moyennes de matière de l'élève sont soumises.</li>
-            <li>Les moyennes non soumises sont exclues du calcul de la moyenne générale.</li>
-            <li>Les absences et sanctions n'impactent pas la moyenne mais sont affichées dans le bulletin.</li>
+            <li>{% trans "Un bulletin est considéré comme prêt lorsque toutes les moyennes de matière de l'élève sont soumises." %}</li>
+            <li>{% trans "Les moyennes non soumises sont exclues du calcul de la moyenne générale." %}</li>
+            <li>{% trans "Les absences et sanctions n'impactent pas la moyenne mais sont affichées dans le bulletin." %}</li>
           </ul>
-          <p class="muted">Ces règles pourront être personnalisées dans une itération future.</p>
+          <p class="muted">{% trans "Ces règles pourront être personnalisées dans une itération future." %}</p>
         </div>
       </section>
     </div>

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -33,10 +35,10 @@
         <nav class="breadcrumb-nav">
           <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
             <i class="fas fa-calendar-week"></i>
-            Emplois du temps
+            {% trans "Emplois du temps" %}
           </a>
           <i class="fas fa-chevron-right breadcrumb-separator"></i>
-          <span class="breadcrumb-current">Créer un emploi du temps</span>
+          <span class="breadcrumb-current">{% trans "Créer un emploi du temps" %}</span>
         </nav>
 
         <!-- Page Header -->
@@ -44,7 +46,7 @@
           <div class="page-title-section">
             <h1 class="page-title">
               <i class="fas fa-plus-circle"></i>
-              Créer un Emploi du Temps
+              {% trans "Créer un Emploi du Temps" %}
             </h1>
             <p class="page-subtitle">
               Configuration de l'emploi du temps pour la classe {{ classe.nom }}
@@ -61,7 +63,7 @@
             <div class="form-card-header">
               <h2 class="form-card-title">
                 <i class="fas fa-info-circle"></i>
-                Informations de l'Emploi du Temps
+                {% trans "Informations de l'Emploi du Temps" %}
               </h2>
               <p class="form-card-subtitle">
                 Créez un nouvel emploi du temps pour la classe {{ classe.nom }}
@@ -75,23 +77,23 @@
               <div class="info-box">
                 <div class="info-box-header">
                   <i class="fas fa-chalkboard"></i>
-                  <span>Classe</span>
+                  <span>{% trans "Classe" %}</span>
                 </div>
                 <div class="info-box-body">
                   <div class="info-row">
-                    <span class="info-label">Nom :</span>
+                    <span class="info-label">{% trans "Nom :" %}</span>
                     <span class="info-value">{{ classe.nom }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="info-label">Niveau :</span>
+                    <span class="info-label">{% trans "Niveau :" %}</span>
                     <span class="info-value">{{ classe.get_niveau_display }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="info-label">Nombre d'élèves :</span>
+                    <span class="info-label">{% trans "Nombre d'élèves :" %}</span>
                     <span class="info-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="info-label">Code :</span>
+                    <span class="info-label">{% trans "Code :" %}</span>
                     <span class="info-value">{{ classe.code_classe }}</span>
                   </div>
                 </div>
@@ -103,9 +105,9 @@
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                   <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6); font-size: 1.25rem;"></i>
                   <div>
-                    <strong style="color: var(--gray-800, #1f2937);">Année scolaire active</strong>
+                    <strong style="color: var(--gray-800, #1f2937);">{% trans "Année scolaire active" %}</strong>
                     <p style="margin: 0.25rem 0 0 0; color: var(--gray-600, #4b5563); font-size: 0.875rem;">
-                      Cet emploi du temps sera associé à l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+                      {% trans "Cet emploi du temps sera associé à l'année scolaire" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
                     </p>
                   </div>
                 </div>
@@ -116,19 +118,19 @@
               <div class="form-group">
                 <label for="notes" class="form-label">
                   <i class="fas fa-sticky-note"></i>
-                  Notes et Commentaires
-                  <span class="optional">(Optionnel)</span>
+                  {% trans "Notes et Commentaires" %}
+                  <span class="optional">{% trans "(Optionnel)" %}</span>
                 </label>
                 <textarea 
                   id="notes" 
                   name="notes" 
                   class="form-control" 
                   rows="4"
-                  placeholder="Ajoutez des notes ou commentaires sur cet emploi du temps..."
+                  placeholder="{% trans "Ajoutez des notes ou commentaires sur cet emploi du temps..." %}"
                 ></textarea>
                 <small class="form-hint">
                   <i class="fas fa-info-circle"></i>
-                  Ces notes seront visibles lors de la consultation de l'emploi du temps
+                  {% trans "Ces notes seront visibles lors de la consultation de l'emploi du temps" %}
                 </small>
               </div>
 
@@ -136,11 +138,11 @@
               <div class="form-actions">
                 <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="btn btn-secondary">
                   <i class="fas fa-times"></i>
-                  <span>Annuler</span>
+                  <span>{% trans "Annuler" %}</span>
                 </a>
                 <button type="submit" class="btn btn-primary">
                   <i class="fas fa-check"></i>
-                  <span>Créer l'emploi du temps</span>
+                  <span>{% trans "Créer l'emploi du temps" %}</span>
                 </button>
               </div>
             </form>
@@ -150,36 +152,36 @@
           <div class="info-card">
             <div class="info-card-header">
               <i class="fas fa-lightbulb"></i>
-              <span>Prochaines étapes</span>
+              <span>{% trans "Prochaines étapes" %}</span>
             </div>
             <div class="info-card-body">
               <div class="steps-list">
                 <div class="step-item">
                   <div class="step-number">1</div>
                   <div class="step-content">
-                    <h4>Créer l'emploi du temps</h4>
-                    <p>Créez la structure de base de l'emploi du temps</p>
+                    <h4>{% trans "Créer l'emploi du temps" %}</h4>
+                    <p>{% trans "Créez la structure de base de l'emploi du temps" %}</p>
                   </div>
                 </div>
                 <div class="step-item">
                   <div class="step-number">2</div>
                   <div class="step-content">
-                    <h4>Ajouter des créneaux</h4>
-                    <p>Définissez les créneaux horaires pour chaque jour</p>
+                    <h4>{% trans "Ajouter des créneaux" %}</h4>
+                    <p>{% trans "Définissez les créneaux horaires pour chaque jour" %}</p>
                   </div>
                 </div>
                 <div class="step-item">
                   <div class="step-number">3</div>
                   <div class="step-content">
-                    <h4>Affecter matières et professeurs</h4>
-                    <p>Associez les matières et les professeurs à chaque créneau</p>
+                    <h4>{% trans "Affecter matières et professeurs" %}</h4>
+                    <p>{% trans "Associez les matières et les professeurs à chaque créneau" %}</p>
                   </div>
                 </div>
                 <div class="step-item">
                   <div class="step-number">4</div>
                   <div class="step-content">
-                    <h4>Publier</h4>
-                    <p>Activez l'emploi du temps pour qu'il soit visible</p>
+                    <h4>{% trans "Publier" %}</h4>
+                    <p>{% trans "Activez l'emploi du temps pour qu'il soit visible" %}</p>
                   </div>
                 </div>
               </div>

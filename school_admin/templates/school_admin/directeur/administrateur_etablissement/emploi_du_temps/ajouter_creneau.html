@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load pagination_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,14 +40,14 @@
         <nav class="breadcrumb-nav">
           <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
             <i class="fas fa-calendar-week"></i>
-            Emplois du temps
+            {% trans "Emplois du temps" %}
           </a>
           <i class="fas fa-chevron-right breadcrumb-separator"></i>
           <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}" class="breadcrumb-link">
             {{ classe.nom }}
           </a>
           <i class="fas fa-chevron-right breadcrumb-separator"></i>
-          <span class="breadcrumb-current">Ajouter un créneau</span>
+          <span class="breadcrumb-current">{% trans "Ajouter un créneau" %}</span>
         </nav>
 
         <!-- Page Header -->
@@ -53,7 +55,7 @@
           <div class="page-title-section">
             <h1 class="page-title">
               <i class="fas fa-plus-circle"></i>
-              Ajouter un Créneau
+              {% trans "Ajouter un Créneau" %}
             </h1>
             <p class="page-subtitle">
               Emploi du temps de la classe {{ classe.nom }} - {{ emploi_du_temps.annee_scolaire }}
@@ -66,7 +68,7 @@
         <div class="alert alert-info" style="background: var(--primary-light, rgba(59, 130, 246, 0.1)); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--primary, #3b82f6); display: flex; align-items: center; gap: 0.75rem;">
             <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6);"></i>
             <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-                Ajout de créneau pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+                {% trans "Ajout de créneau pour l'année scolaire" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
             </span>
         </div>
         {% endif %}
@@ -86,10 +88,10 @@
             <div class="form-card-header-creneau">
               <h2 class="form-card-title-creneau">
                 <i class="fas fa-calendar-plus"></i>
-                Informations du Créneau
+                {% trans "Informations du Créneau" %}
               </h2>
               <p class="form-card-subtitle-creneau">
-                Remplissez tous les champs obligatoires pour créer un nouveau créneau
+                {% trans "Remplissez tous les champs obligatoires pour créer un nouveau créneau" %}
               </p>
             </div>
 
@@ -101,10 +103,10 @@
                 <div class="form-group {% if field_errors.jour %}has-error{% endif %}">
                   <label for="jour" class="form-label required">
                     <i class="fas fa-calendar-day"></i>
-                    Jour de la semaine
+                    {% trans "Jour de la semaine" %}
                   </label>
                   <select id="jour" name="jour" class="form-control" required>
-                    <option value="">Sélectionnez un jour</option>
+                    <option value="">{% trans "Sélectionnez un jour" %}</option>
                     {% for value, label in jours_choices %}
                       <option value="{{ value }}" {% if form_data.jour == value %}selected{% endif %}>
                         {{ label }}
@@ -123,7 +125,7 @@
                 <div class="form-group-full {% if field_errors.periodes_etablissement %}has-error{% endif %}" style="grid-column: 1 / -1;">
                   <label class="form-label required form-label-full">
                     <i class="fas fa-clock"></i>
-                    Horaires (sélectionnez plusieurs pour un cours de 2h ou plus)
+                    {% trans "Horaires (sélectionnez plusieurs pour un cours de 2h ou plus)" %}
                   </label>
                   {% if periodes_etablissement %}
                     <div class="periodes-selection-grid">
@@ -149,7 +151,7 @@
                   {% else %}
                     <div class="alert alert-warning" style="margin-top: 10px;">
                       <i class="fas fa-exclamation-triangle"></i>
-                      <span>Aucune période configurée. Veuillez d'abord <a href="{% url 'administrateur_etablissement:configuration_horaires' %}" style="color: #d97706; text-decoration: underline;">configurer les horaires</a> de l'établissement.</span>
+                      <span>{% trans "Aucune période configurée. Veuillez d'abord" %} <a href="{% url 'administrateur_etablissement:configuration_horaires' %}" style="color: #d97706; text-decoration: underline;">{% trans "configurer les horaires" %}</a> {% trans "de l'établissement." %}</span>
                     </div>
                   {% endif %}
                 </div>
@@ -159,11 +161,11 @@
               <div class="form-group {% if field_errors.matiere %}has-error{% endif %}">
                 <label for="matiere" class="form-label">
                   <i class="fas fa-book"></i>
-                  Matière
-                  <span class="optional">(Optionnel)</span>
+                  {% trans "Matière" %}
+                  <span class="optional">{% trans "(Optionnel)" %}</span>
                 </label>
                 <select id="matiere" name="matiere" class="form-control">
-                  <option value="">Sélectionnez une matière</option>
+                  <option value="">{% trans "Sélectionnez une matière" %}</option>
                   {% for matiere in matieres %}
                     <option value="{{ matiere.id }}" {% if form_data.matiere_id == matiere.id|stringformat:"s" %}selected{% endif %}>
                       {{ matiere.nom }}
@@ -183,11 +185,11 @@
                 <div class="form-group {% if field_errors.professeur %}has-error{% endif %}">
                   <label for="professeur" class="form-label">
                     <i class="fas fa-user-tie"></i>
-                    Professeur
-                    <span class="optional">(Optionnel)</span>
+                    {% trans "Professeur" %}
+                    <span class="optional">{% trans "(Optionnel)" %}</span>
                   </label>
                   <select id="professeur" name="professeur" class="form-control">
-                    <option value="">Sélectionnez un professeur</option>
+                    <option value="">{% trans "Sélectionnez un professeur" %}</option>
                     {% if professeurs_options %}
                       {% for prof in professeurs_options %}
                       <option value="{{ prof.id }}" {% if form_data.professeur_id == prof.id|stringformat:"s" %}selected{% endif %}>
@@ -195,7 +197,7 @@
                       </option>
                     {% endfor %}
                     {% else %}
-                      <option value="" disabled>Aucun professeur n'est affecté à cette classe.</option>
+                      <option value="" disabled>{% trans "Aucun professeur n'est affecté à cette classe." %}</option>
                     {% endif %}
                   </select>
                   {% if field_errors.professeur %}
@@ -210,11 +212,11 @@
                 <div class="form-group {% if field_errors.salle %}has-error{% endif %}">
                   <label for="salle" class="form-label">
                     <i class="fas fa-door-open"></i>
-                    Salle
-                    <span class="optional">(Optionnel)</span>
+                    {% trans "Salle" %}
+                    <span class="optional">{% trans "(Optionnel)" %}</span>
                   </label>
                   <select id="salle" name="salle" class="form-control">
-                    <option value="">Sélectionnez une salle</option>
+                    <option value="">{% trans "Sélectionnez une salle" %}</option>
                     {% for salle in salles %}
                       <option value="{{ salle.id }}" {% if form_data.salle_id == salle.id|stringformat:"s" %}selected{% endif %}>
                         Salle {{ salle.numero }} - {{ salle.nom }}
@@ -236,11 +238,11 @@
               <div class="form-actions">
                 <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}" class="btn btn-secondary">
                   <i class="fas fa-times"></i>
-                  <span>Annuler</span>
+                  <span>{% trans "Annuler" %}</span>
                 </a>
                 <button type="submit" class="btn btn-primary">
                   <i class="fas fa-check"></i>
-                  <span>Ajouter le créneau</span>
+                  <span>{% trans "Ajouter le créneau" %}</span>
                 </button>
               </div>
             </form>

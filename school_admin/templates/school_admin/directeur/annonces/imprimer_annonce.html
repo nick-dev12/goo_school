@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load l10n %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +15,7 @@
         <!-- Informations destinataire avec logo établissement -->
         <div class="recipient-header">
             <div class="recipient-info">
-                <p><strong>À l'attention de :</strong></p>
+                <p><strong>{% trans "À l'attention de :" %}</strong></p>
                 <p>{{ annonce.get_destinataires_display }}</p>
                 <p><strong>{{ etablissement.ville }}{% if etablissement.pays %}, {{ etablissement.pays }}{% endif %}</strong></p>
             </div>
@@ -41,9 +43,9 @@
         <!-- Fichier joint si présent -->
         {% if annonce.fichier_joint %}
         <div class="letter-attachment">
-            <h4><i class="fas fa-paperclip"></i> Pièce jointe</h4>
-            <p><strong>Fichier :</strong> {{ annonce.fichier_joint.name|slice:"17:" }}</p>
-            <p><strong>Taille :</strong> {{ annonce.fichier_joint.size|filesizeformat }}</p>
+            <h4><i class="fas fa-paperclip"></i> {% trans "Pièce jointe" %}</h4>
+            <p><strong>{% trans "Fichier :" %}</strong> {{ annonce.fichier_joint.name|slice:"17:" }}</p>
+            <p><strong>{% trans "Taille :" %}</strong> {{ annonce.fichier_joint.size|filesizeformat }}</p>
         </div>
         {% endif %}
 
@@ -53,7 +55,7 @@
                 <p><strong>{{ annonce.get_nom_auteur }}</strong></p>
             </div>
             <div class="letter-date-footer">
-                <strong>{{ etablissement.ville }}</strong>, le <strong>{{ date_formatee }}</strong>
+                <strong>{{ etablissement.ville }}</strong>{% trans ", le" %} <strong>{{ date_formatee }}</strong>
             </div>
         </div>
     </div>
@@ -62,11 +64,11 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer l'annonce
+            {% trans "Imprimer l'annonce" %}
         </button>
         <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="btn-back">
             <i class="fas fa-arrow-left"></i>
-            Retour à l'aperçu
+            {% trans "Retour à l'aperçu" %}
         </a>
     </div>
 

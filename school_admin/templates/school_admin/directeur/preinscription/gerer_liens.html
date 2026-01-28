@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,7 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
-    <style>
+    {% trans "<style>
         .lien-card {
             background: white;
             border-radius: 16px;
@@ -404,7 +406,7 @@
                 height: auto;
             }
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -417,14 +419,14 @@
             <div class="page-title-section">
                 <a href="{% url 'directeur:gestion_eleves' %}" class="btn-back" style="margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--gray-600);">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
+                    <span>{% trans "Retour" %}</span>
                 </a>
                 <h1 class="page-title">
                     <i class="fas fa-link"></i>
-                    Gérer les liens de préinscription
+                    {% trans "Gérer les liens de préinscription" %}
                 </h1>
                 <p class="page-subtitle">
-                    Générez et partagez le lien unique pour permettre aux parents de préinscrire leurs enfants en ligne
+                    {% trans "Générez et partagez le lien unique pour permettre aux parents de préinscrire leurs enfants en ligne" %}
                 </p>
             </div>
         </div>
@@ -437,7 +439,7 @@
             <div class="lien-header">
                 <h2>
                     <i class="fas fa-share-alt"></i>
-                    Lien de préinscription
+                    {% trans "Lien de préinscription" %}
                 </h2>
                 <div>
                     <span class="status-badge {% if lien.actif %}actif{% else %}inactif{% endif %}" id="statusBadge">
@@ -450,30 +452,30 @@
             <div class="url-container">
                 <div class="url-label">
                     <i class="fas fa-link"></i>
-                    URL du formulaire de préinscription
+                    {% trans "URL du formulaire de préinscription" %}
                 </div>
                 <div class="url-display">
                     <input type="text" id="urlInput" value="{{ url_absolue }}" readonly>
                     <button type="button" class="btn-copy" onclick="copierUrl()" id="btnCopy">
                         <i class="fas fa-copy"></i>
-                        <span>Copier</span>
+                        <span>{% trans "Copier" %}</span>
                     </button>
                 </div>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Utilisations</div>
+                    <div class="stat-label">{% trans "Utilisations" %}</div>
                     <div class="stat-number">{{ lien.nombre_utilisations }}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Date de création</div>
+                    <div class="stat-label">{% trans "Date de création" %}</div>
                     <div class="stat-number" style="font-size: 1rem; margin-top: 15px;">
                         {{ lien.date_creation|date:"d/m/Y" }}
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Dernière modification</div>
+                    <div class="stat-label">{% trans "Dernière modification" %}</div>
                     <div class="stat-number" style="font-size: 1rem; margin-top: 15px;">
                         {{ lien.date_modification|date:"d/m/Y" }}
                     </div>
@@ -485,15 +487,15 @@
                 <div class="qr-code-header">
                     <h3>
                         <i class="fas fa-qrcode"></i>
-                        QR Code de préinscription
+                        {% trans "QR Code de préinscription" %}
                     </h3>
-                    <p>Les parents peuvent scanner ce code pour accéder directement au formulaire</p>
+                    <p>{% trans "Les parents peuvent scanner ce code pour accéder directement au formulaire" %}</p>
                 </div>
                 <div id="qrcode"></div>
                 <div class="qr-actions">
                     <button type="button" class="btn-action btn-print" onclick="imprimerQRCode()">
                         <i class="fas fa-print"></i>
-                        <span>Imprimer le QR Code</span>
+                        <span>{% trans "Imprimer le QR Code" %}</span>
                     </button>
                 </div>
             </div>
@@ -503,17 +505,17 @@
                 <div class="share-header">
                     <h3>
                         <i class="fas fa-share-alt"></i>
-                        Partager le lien
+                        {% trans "Partager le lien" %}
                     </h3>
                 </div>
                 <div class="share-buttons">
                     <a href="#" class="btn-share btn-whatsapp" onclick="partagerWhatsApp(event)">
                         <i class="fab fa-whatsapp"></i>
-                        <span>Partager sur WhatsApp</span>
+                        <span>{% trans "Partager sur WhatsApp" %}</span>
                     </a>
                     <a href="#" class="btn-share btn-sms" onclick="partagerSMS(event)">
                         <i class="fas fa-sms"></i>
-                        <span>Partager par SMS</span>
+                        <span>{% trans "Partager par SMS" %}</span>
                     </a>
                 </div>
             </div>
@@ -521,13 +523,13 @@
             <div class="info-box">
                 <h3>
                     <i class="fas fa-info-circle"></i>
-                    Comment utiliser ce lien ?
+                    {% trans "Comment utiliser ce lien ?" %}
                 </h3>
-                <p><strong>1.</strong> Copiez le lien, partagez-le via WhatsApp/SMS, ou imprimez le QR Code</p>
-                <p><strong>2.</strong> Partagez-le avec les parents d'élèves (par SMS, WhatsApp, affichage, etc.)</p>
-                <p><strong>3.</strong> Les parents pourront remplir le formulaire de préinscription en ligne</p>
-                <p><strong>4.</strong> Vous recevrez les préinscriptions dans la section "Liste des préinscriptions"</p>
-                <p><strong>5.</strong> Validez ou rejetez les préinscriptions après vérification des documents</p>
+                <p><strong>1.</strong> {% trans "Copiez le lien, partagez-le via WhatsApp/SMS, ou imprimez le QR Code" %}</p>
+                <p><strong>2.</strong> {% trans "Partagez-le avec les parents d'élèves (par SMS, WhatsApp, affichage, etc.)" %}</p>
+                <p><strong>3.</strong> {% trans "Les parents pourront remplir le formulaire de préinscription en ligne" %}</p>
+                <p><strong>4.</strong> {% trans "Vous recevrez les préinscriptions dans la section \"Liste des préinscriptions\"" %}</p>
+                <p><strong>5.</strong> {% trans "Validez ou rejetez les préinscriptions après vérification des documents" %}</p>
             </div>
 
             <div class="actions-container">
@@ -537,14 +539,14 @@
                 </button>
                 <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-action btn-primary">
                     <i class="fas fa-list"></i>
-                    <span>Voir les préinscriptions</span>
+                    <span>{% trans "Voir les préinscriptions" %}</span>
                 </a>
             </div>
         </div>
     </div>
 
     <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script>
         // URL du formulaire de préinscription
@@ -762,7 +764,7 @@
                 alert('Une erreur est survenue.');
             });
         }
-    </script>
+    </script>" %}
 </body>
 </html>
 

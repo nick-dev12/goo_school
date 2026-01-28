@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/creer_annonce.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <title>Créer une Annonce - Directeur</title>
+    <title>{% trans "Créer une Annonce - Directeur" %}</title>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -15,11 +17,11 @@
         <!-- Header Section -->
         <div class="page-header">
             <div class="header-content">
-                <h1><i class="fas fa-plus-circle"></i> Créer une Annonce</h1>
-                <p>Rédigez une nouvelle annonce pour votre établissement</p>
+                <h1><i class="fas fa-plus-circle"></i> {% trans "Créer une Annonce" %}</h1>
+                <p>{% trans "Rédigez une nouvelle annonce pour votre établissement" %}</p>
             </div>
             <a href="{% url 'directeur:annonces_directeur' %}" class="btn-secondary">
-                <i class="fas fa-arrow-left"></i> Retour
+                <i class="fas fa-arrow-left"></i> {% trans "Retour" %}
             </a>
         </div>
 
@@ -34,7 +36,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              L'annonce sera automatiquement liée à cette année scolaire lors de l'enregistrement.
+              {% trans "L'annonce sera automatiquement liée à cette année scolaire lors de l'enregistrement." %}
             </p>
           </div>
         </div>
@@ -42,7 +44,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. L'annonce sera créée sans référence à une session spécifique.
+            {% trans "Aucune année scolaire active. L'annonce sera créée sans référence à une session spécifique." %}
           </span>
         </div>
         {% endif %}
@@ -53,27 +55,27 @@
                 {% csrf_token %}
 
                 <div class="form-section">
-                    <h2><i class="fas fa-info-circle"></i> Informations de base</h2>
+                    <h2><i class="fas fa-info-circle"></i> {% trans "Informations de base" %}</h2>
                     
                     <div class="form-group">
-                        <label for="titre">Titre de l'annonce <span class="required">*</span></label>
-                        <input type="text" id="titre" name="titre" class="form-control" placeholder="Ex: Réunion des parents d'élèves" required maxlength="255">
-                        <small class="form-text">Le titre doit être clair et accrocheur</small>
+                        <label for="titre">{% trans "Titre de l'annonce" %} <span class="required">*</span></label>
+                        <input type="text" id="titre" name="titre" class="form-control" placeholder="{% trans "Ex: Réunion des parents d" %}'élèves" required maxlength="255">
+                        <small class="form-text">{% trans "Le titre doit être clair et accrocheur" %}</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="contenu">Contenu de l'annonce <span class="required">*</span></label>
-                        <textarea id="contenu" name="contenu" class="form-control" rows="10" placeholder="Rédigez le contenu de votre annonce..." required></textarea>
-                        <small class="form-text">Soyez précis et fournissez toutes les informations nécessaires</small>
+                        <label for="contenu">{% trans "Contenu de l'annonce" %} <span class="required">*</span></label>
+                        <textarea id="contenu" name="contenu" class="form-control" rows="10" placeholder="{% trans "Rédigez le contenu de votre annonce..." %}" required></textarea>
+                        <small class="form-text">{% trans "Soyez précis et fournissez toutes les informations nécessaires" %}</small>
                     </div>
                 </div>
 
               <div class="form-section">
-                <h2><i class="fas fa-users"></i> Destinataires</h2>
+                <h2><i class="fas fa-users"></i> {% trans "Destinataires" %}</h2>
                 
                 <div class="form-group">
-                  <label>Qui doit recevoir cette annonce ? <span class="required">*</span></label>
-                  <small class="form-text" style="margin-bottom: 1rem; display: block;">Sélectionnez un ou plusieurs destinataires (Cochez "Tous" pour tout le monde)</small>
+                  <label>{% trans "Qui doit recevoir cette annonce ?" %} <span class="required">*</span></label>
+                  <small class="form-text" style="margin-bottom: 1rem; display: block;">{% trans "Sélectionnez un ou plusieurs destinataires (Cochez "Tous" pour tout le monde)" %}</small>
                   
                   <div class="checkbox-group">
                     {% for value, label in destinataires_choices %}
@@ -94,30 +96,30 @@
               </div>
 
                 <div class="form-section">
-                    <h2><i class="fas fa-paperclip"></i> Fichier joint (optionnel)</h2>
+                    <h2><i class="fas fa-paperclip"></i> {% trans "Fichier joint (optionnel)" %}</h2>
                     
                     <div class="form-group">
-                        <label for="fichier_joint">Joindre un fichier</label>
+                        <label for="fichier_joint">{% trans "Joindre un fichier" %}</label>
                         <div class="file-input-wrapper">
                             <input type="file" id="fichier_joint" name="fichier_joint" class="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
                             <label for="fichier_joint" class="file-label">
                                 <i class="fas fa-cloud-upload-alt"></i>
-                                <span id="file-name">Choisir un fichier (PDF, Word, Image)</span>
+                                <span id="file-name">{% trans "Choisir un fichier (PDF, Word, Image)" %}</span>
                             </label>
                         </div>
-                        <small class="form-text">Formats acceptés : PDF, Word, Images (JPG, PNG)</small>
+                        <small class="form-text">{% trans "Formats acceptés : PDF, Word, Images (JPG, PNG)" %}</small>
                     </div>
                 </div>
 
                 <div class="form-actions">
                     <button type="button" class="btn-preview" onclick="previewAnnonce()">
-                        <i class="fas fa-eye"></i> Aperçu
+                        <i class="fas fa-eye"></i> {% trans "Aperçu" %}
                     </button>
                     <button type="submit" name="action" value="brouillon" class="btn-draft">
-                        <i class="fas fa-save"></i> Enregistrer comme brouillon
+                        <i class="fas fa-save"></i> {% trans "Enregistrer comme brouillon" %}
                     </button>
                     <button type="submit" name="action" value="publier" class="btn-publish">
-                        <i class="fas fa-paper-plane"></i> Publier maintenant
+                        <i class="fas fa-paper-plane"></i> {% trans "Publier maintenant" %}
                     </button>
                 </div>
             </form>
@@ -127,14 +129,14 @@
         <div id="previewModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2><i class="fas fa-eye"></i> Aperçu de l'annonce</h2>
+                    <h2><i class="fas fa-eye"></i> {% trans "Aperçu de l'annonce" %}</h2>
                     <span class="close" onclick="closePreview()">&times;</span>
                 </div>
                 <div class="modal-body">
                     <div class="preview-annonce">
                         <div class="preview-header">
                             <h3 id="preview-titre"></h3>
-                            <span class="badge badge-preview">Aperçu</span>
+                            <span class="badge badge-preview">{% trans "Aperçu" %}</span>
                         </div>
                         <div class="preview-meta">
                             <span><i class="fas fa-users"></i> <span id="preview-destinataires"></span></span>
@@ -151,7 +153,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closePreview()">
-                        <i class="fas fa-times"></i> Fermer
+                        <i class="fas fa-times"></i> {% trans "Fermer" %}
                     </button>
                 </div>
             </div>

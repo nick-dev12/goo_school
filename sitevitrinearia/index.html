@@ -511,56 +511,129 @@
 
     <!-- Section Contact/CTA -->
     <section class="contact-section" id="contact">
+        <div class="contact-background"></div>
         <div class="container">
-            <h2 class="section-title">Contactez-Nous</h2>
-            <p class="section-subtitle">Prêt à transformer la gestion de votre établissement ?</p>
+            <div class="contact-header">
+                <h2 class="section-title">Contactez-Nous</h2>
+                <p class="section-subtitle">Prêt à transformer la gestion de votre établissement ?</p>
+            </div>
             
             <div class="contact-content">
-                <div class="contact-info glass-card" data-aos="fade-right">
-                    <h3>Informations de Contact</h3>
-                    <div class="info-item">
-                        <div class="info-icon">📧</div>
-                        <div>
-                            <h4>Email</h4>
-                            <p>contact@gestion-scolaire.com</p>
+                <div class="contact-info-wrapper">
+                    <div class="contact-info glass-card" data-aos="fade-right">
+                        <div class="contact-info-header">
+                            <div class="contact-info-icon">💬</div>
+                            <h3>Informations de Contact</h3>
                         </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">📞</div>
-                        <div>
-                            <h4>Téléphone</h4>
-                            <p>+221 XX XXX XX XX</p>
+                        <div class="info-items">
+                            <div class="info-item">
+                                <div class="info-icon-wrapper">
+                                    <div class="info-icon">📧</div>
+                                </div>
+                                <div class="info-content">
+                                    <h4>Email</h4>
+                                    <p>contact@aria-edu.com</p>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-icon-wrapper">
+                                    <div class="info-icon">📞</div>
+                                </div>
+                                <div class="info-content">
+                                    <h4>Téléphone</h4>
+                                    <p>+221 70 970 15 41</p>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-icon-wrapper">
+                                    <div class="info-icon">📍</div>
+                                </div>
+                                <div class="info-content">
+                                    <h4>Adresse</h4>
+                                    <p>Dakar, Sénégal</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">📍</div>
-                        <div>
-                            <h4>Adresse</h4>
-                            <p>Dakar, Sénégal</p>
+                        <div class="contact-social">
+                            <a href="#" class="social-link" aria-label="Facebook">📘</a>
+                            <a href="#" class="social-link" aria-label="Twitter">🐦</a>
+                            <a href="#" class="social-link" aria-label="LinkedIn">💼</a>
                         </div>
                     </div>
                 </div>
                 
-                <form class="contact-form glass-card" data-aos="fade-left" action="#" method="POST">
-                    <h3>Envoyez-nous un Message</h3>
-                    <div class="form-group">
-                        <label for="nom">Nom complet</label>
-                        <input type="text" id="nom" name="nom" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="etablissement">Établissement</label>
-                        <input type="text" id="etablissement" name="etablissement">
-                    </div>
-                    <div class="form-group">
-                        <label for="message">Message</label>
-                        <textarea id="message" name="message" rows="5" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Envoyer le message</button>
-                </form>
+                <div class="contact-form-wrapper">
+                    <form id="contactForm" class="contact-form glass-card" data-aos="fade-left">
+                        <div class="contact-form-header">
+                            <div class="contact-form-icon">✉️</div>
+                            <h3>demandez une demo </h3>
+                        </div>
+                        
+                        <!-- Message de statut -->
+                        <div id="formMessage" class="form-message" style="display: none;"></div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nom">
+                                    <span class="label-icon">👤</span>
+                                    Nom complet
+                                </label>
+                                <input type="text" id="nom" name="nom" placeholder="Votre nom complet" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">
+                                    <span class="label-icon">📧</span>
+                                    Email
+                                </label>
+                                <input type="email" id="email" name="email" placeholder="votre@email.com" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="telephone">
+                                    <span class="label-icon">📞</span>
+                                    Numéro de téléphone
+                                </label>
+                                <input type="tel" id="telephone" name="telephone" placeholder="+221 XX XXX XX XX" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="etablissement">
+                                    <span class="label-icon">🏫</span>
+                                    Établissement
+                                </label>
+                                <input type="text" id="etablissement" name="etablissement" placeholder="Nom de votre établissement">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="type_etablissement">
+                                <span class="label-icon">📚</span>
+                                Type d'établissement
+                            </label>
+                            <select id="type_etablissement" name="type_etablissement" required>
+                                <option value="">Sélectionnez un type</option>
+                                <option value="École Primaire">École Primaire</option>
+                                <option value="Collège">Collège</option>
+                                <option value="Lycée">Lycée</option>
+                                <option value="Collège et Lycée">Collège et Lycée</option>
+                                <option value="Université">Université</option>
+                                <option value="Institut">Institut</option>
+                                <option value="Centre de Formation">Centre de Formation</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">
+                                <span class="label-icon">💭</span>
+                                Message
+                            </label>
+                            <textarea id="message" name="message" rows="5" placeholder="Votre message..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+                            <span id="submitText">Envoyer le message</span>
+                            <span class="btn-icon" id="submitIcon">→</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </section>
@@ -604,6 +677,8 @@
         </div>
     </footer>
 
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="js/script.js"></script>
 </body>
 </html>

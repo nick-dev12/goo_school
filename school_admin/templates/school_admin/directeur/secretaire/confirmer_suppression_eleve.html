@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,7 +23,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/partials/messages.css' %}"
     />
-    <style>
+    {% trans "<style>
       body {
         font-family: 'Poppins', sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -226,7 +228,7 @@
         margin-bottom: 8px;
         line-height: 1.5;
       }
-    </style>
+    </style>" %}
   </head>
   <body>
     <!-- Header -->
@@ -242,9 +244,9 @@
         <div class="card-header">
           <h1>
             <i class="fas fa-exclamation-triangle"></i>
-            Confirmer la suppression
+            {% trans "Confirmer la suppression" %}
           </h1>
-          <p>Cette action est irréversible</p>
+          <p>{% trans "Cette action est irréversible" %}</p>
         </div>
         
         <div class="card-body">
@@ -253,10 +255,10 @@
             <div class="warning-icon">
               <i class="fas fa-trash-alt"></i>
             </div>
-            <h2 class="warning-title">Attention !</h2>
+            <h2 class="warning-title">{% trans "Attention !" %}</h2>
             <p class="warning-text">
-              Vous êtes sur le point de supprimer définitivement cet élève de la base de données. 
-              Cette action ne peut pas être annulée.
+              {% trans "Vous êtes sur le point de supprimer définitivement cet élève de la base de données." %}
+              {% trans "Cette action ne peut pas être annulée." %}
             </p>
           </div>
 
@@ -274,19 +276,19 @@
             
             <div class="info-grid">
               <div class="info-item">
-                <span class="info-label">Classe</span>
+                <span class="info-label">{% trans "Classe" %}</span>
                 <span class="info-value">{{ eleve.classe.nom|default:"Non assigné" }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">Âge</span>
+                <span class="info-label">{% trans "Âge" %}</span>
                 <span class="info-value">{{ eleve.age }} ans</span>
               </div>
               <div class="info-item">
-                <span class="info-label">Date d'inscription</span>
+                <span class="info-label">{% trans "Date d'inscription" %}</span>
                 <span class="info-value">{{ eleve.date_inscription|date:"d/m/Y" }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">Statut</span>
+                <span class="info-label">{% trans "Statut" %}</span>
                 <span class="info-value">{{ eleve.get_statut_display }}</span>
               </div>
             </div>
@@ -296,14 +298,14 @@
           <div class="consequences">
             <h4>
               <i class="fas fa-exclamation-circle"></i>
-              Conséquences de cette suppression :
+              {% trans "Conséquences de cette suppression :" %}
             </h4>
             <ul>
-              <li>Toutes les données de l'élève seront définitivement supprimées</li>
-              <li>L'historique scolaire sera perdu</li>
-              <li>Les notes et évaluations seront supprimées</li>
-              <li>Les informations de contact des parents/tuteurs seront perdues</li>
-              <li>Cette action ne peut pas être annulée</li>
+              <li>{% trans "Toutes les données de l'élève seront définitivement supprimées" %}</li>
+              <li>{% trans "L'historique scolaire sera perdu" %}</li>
+              <li>{% trans "Les notes et évaluations seront supprimées" %}</li>
+              <li>{% trans "Les informations de contact des parents/tuteurs seront perdues" %}</li>
+              <li>{% trans "Cette action ne peut pas être annulée" %}</li>
             </ul>
           </div>
 
@@ -311,13 +313,13 @@
           <div class="actions">
             <a href="{% url 'secretaire:liste_eleves' %}" class="btn btn-secondary">
               <i class="fas fa-arrow-left"></i>
-              Annuler
+              {% trans "Annuler" %}
             </a>
             <form method="post" style="display: inline;">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger">
                 <i class="fas fa-trash"></i>
-                Supprimer définitivement
+                {% trans "Supprimer définitivement" %}
               </button>
             </form>
           </div>

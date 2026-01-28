@@ -1,6 +1,8 @@
 {% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +23,7 @@
                 </div>
                 <a href="{% url 'salle:liste_salles' %}" class="btn-back">
                     <i class="fas fa-arrow-left"></i>
-                    Retour à la liste
+                    {% trans "Retour à la liste" %}
                 </a>
             </div>
         </div>
@@ -52,21 +54,21 @@
                     <i class="fas fa-users"></i>
                     <div class="stat-content">
                         <div class="stat-number">{{ salle.capacite_max }}</div>
-                        <div class="stat-label">Capacité</div>
+                        <div class="stat-label">{% trans "Capacité" %}</div>
                     </div>
                 </div>
                 <div class="stat-item">
                     <i class="fas fa-calendar-plus"></i>
                     <div class="stat-content">
                         <div class="stat-number">{{ salle.date_creation|date:"d/m/Y" }}</div>
-                        <div class="stat-label">Créée le</div>
+                        <div class="stat-label">{% trans "Créée le" %}</div>
                     </div>
                 </div>
                 <div class="stat-item">
                     <i class="fas fa-edit"></i>
                     <div class="stat-content">
                         <div class="stat-number">{{ salle.date_modification|date:"d/m/Y" }}</div>
-                        <div class="stat-label">Modifiée le</div>
+                        <div class="stat-label">{% trans "Modifiée le" %}</div>
                     </div>
                 </div>
             </div>
@@ -76,15 +78,15 @@
         <div class="tabs-navigation">
             <button class="tab-btn active" data-tab="overview">
                 <i class="fas fa-info-circle"></i>
-                Vue d'ensemble
+                {% trans "Vue d'ensemble" %}
             </button>
             <button class="tab-btn" data-tab="historique">
                 <i class="fas fa-history"></i>
-                Historique
+                {% trans "Historique" %}
             </button>
             <button class="tab-btn" data-tab="modifier">
                 <i class="fas fa-edit"></i>
-                Modifier
+                {% trans "Modifier" %}
             </button>
         </div>
 
@@ -95,27 +97,27 @@
                     <div class="info-card">
                         <h3 class="card-title">
                             <i class="fas fa-info-circle"></i>
-                            Informations Générales
+                            {% trans "Informations Générales" %}
                         </h3>
                         <div class="info-list">
                             <div class="info-item">
-                                <span class="info-label">Nom:</span>
+                                <span class="info-label">{% trans "Nom:" %}</span>
                                 <span class="info-value">{{ salle.nom }}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Numéro:</span>
+                                <span class="info-label">{% trans "Numéro:" %}</span>
                                 <span class="info-value">{{ salle.numero }}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Type:</span>
+                                <span class="info-label">{% trans "Type:" %}</span>
                                 <span class="info-value">{{ salle.type_display }}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">État:</span>
+                                <span class="info-label">{% trans "État:" %}</span>
                                 <span class="info-value status-{{ salle.etat }}">{{ salle.etat_display }}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Capacité:</span>
+                                <span class="info-label">{% trans "Capacité:" %}</span>
                                 <span class="info-value">{{ salle.capacite_max }} personnes</span>
                             </div>
                         </div>
@@ -124,19 +126,19 @@
                     <div class="info-card">
                         <h3 class="card-title">
                             <i class="fas fa-building"></i>
-                            Établissement
+                            {% trans "Établissement" %}
                         </h3>
                         <div class="info-list">
                             <div class="info-item">
-                                <span class="info-label">Nom:</span>
+                                <span class="info-label">{% trans "Nom:" %}</span>
                                 <span class="info-value">{{ etablissement.nom }}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Type:</span>
+                                <span class="info-label">{% trans "Type:" %}</span>
                                 <span class="info-value">{{ etablissement.get_type_etablissement_display }}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Code:</span>
+                                <span class="info-label">{% trans "Code:" %}</span>
                                 <span class="info-value">{{ etablissement.code_etablissement }}</span>
                             </div>
                         </div>
@@ -151,7 +153,7 @@
                 <div class="historique-card">
                     <h3 class="card-title">
                         <i class="fas fa-history"></i>
-                        Historique de la Salle
+                        {% trans "Historique de la Salle" %}
                     </h3>
                     <div class="timeline">
                         <div class="timeline-item">
@@ -159,7 +161,7 @@
                                 <i class="fas fa-plus"></i>
                             </div>
                             <div class="timeline-content">
-                                <h4>Création de la salle</h4>
+                                <h4>{% trans "Création de la salle" %}</h4>
                                 <p>Salle créée le {{ salle.date_creation|date:"d F Y à H:i" }}</p>
                             </div>
                         </div>
@@ -168,7 +170,7 @@
                                 <i class="fas fa-edit"></i>
                             </div>
                             <div class="timeline-content">
-                                <h4>Dernière modification</h4>
+                                <h4>{% trans "Dernière modification" %}</h4>
                                 <p>Modifiée le {{ salle.date_modification|date:"d F Y à H:i" }}</p>
                             </div>
                         </div>
@@ -182,58 +184,58 @@
                 <div class="modifier-card">
                     <h3 class="card-title">
                         <i class="fas fa-edit"></i>
-                        Modifier la Salle
+                        {% trans "Modifier la Salle" %}
                     </h3>
                     <form class="modifier-form" method="post" action="{% url 'salle:modifier_salle' salle.id %}">
                         {% csrf_token %}
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="nom" class="form-label">Nom de la salle *</label>
+                                <label for="nom" class="form-label">{% trans "Nom de la salle *" %}</label>
                                 <input type="text" id="nom" name="nom" class="form-control" value="{{ salle.nom }}" required>
                             </div>
                             <div class="form-group">
-                                <label for="numero" class="form-label">Numéro de salle *</label>
+                                <label for="numero" class="form-label">{% trans "Numéro de salle *" %}</label>
                                 <input type="text" id="numero" name="numero" class="form-control" value="{{ salle.numero }}" required>
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="type_salle" class="form-label">Type de salle *</label>
+                                <label for="type_salle" class="form-label">{% trans "Type de salle *" %}</label>
                                 <select id="type_salle" name="type_salle" class="form-control" required>
-                                    <option value="classe" {% if salle.type_salle == 'classe' %}selected{% endif %}>Salle de Classe</option>
-                                    <option value="laboratoire" {% if salle.type_salle == 'laboratoire' %}selected{% endif %}>Laboratoire</option>
-                                    <option value="bibliotheque" {% if salle.type_salle == 'bibliotheque' %}selected{% endif %}>Bibliothèque</option>
-                                    <option value="salle_informatique" {% if salle.type_salle == 'salle_informatique' %}selected{% endif %}>Salle d'Informatique</option>
-                                    <option value="salle_art" {% if salle.type_salle == 'salle_art' %}selected{% endif %}>Salle d'Arts</option>
-                                    <option value="salle_musique" {% if salle.type_salle == 'salle_musique' %}selected{% endif %}>Salle de Musique</option>
-                                    <option value="salle_sport" {% if salle.type_salle == 'salle_sport' %}selected{% endif %}>Salle de Sport</option>
-                                    <option value="amphitheatre" {% if salle.type_salle == 'amphitheatre' %}selected{% endif %}>Amphithéâtre</option>
-                                    <option value="salle_reunion" {% if salle.type_salle == 'salle_reunion' %}selected{% endif %}>Salle de Réunion</option>
-                                    <option value="bureau" {% if salle.type_salle == 'bureau' %}selected{% endif %}>Bureau</option>
-                                    <option value="autre" {% if salle.type_salle == 'autre' %}selected{% endif %}>Autre</option>
+                                    <option value="classe" {% if salle.type_salle == 'classe' %}selected{% endif %}>{% trans "Salle de Classe" %}</option>
+                                    <option value="laboratoire" {% if salle.type_salle == 'laboratoire' %}selected{% endif %}>{% trans "Laboratoire" %}</option>
+                                    <option value="bibliotheque" {% if salle.type_salle == 'bibliotheque' %}selected{% endif %}>{% trans "Bibliothèque" %}</option>
+                                    <option value="salle_informatique" {% if salle.type_salle == 'salle_informatique' %}selected{% endif %}>{% trans "Salle d'Informatique" %}</option>
+                                    <option value="salle_art" {% if salle.type_salle == 'salle_art' %}selected{% endif %}>{% trans "Salle d'Arts" %}</option>
+                                    <option value="salle_musique" {% if salle.type_salle == 'salle_musique' %}selected{% endif %}>{% trans "Salle de Musique" %}</option>
+                                    <option value="salle_sport" {% if salle.type_salle == 'salle_sport' %}selected{% endif %}>{% trans "Salle de Sport" %}</option>
+                                    <option value="amphitheatre" {% if salle.type_salle == 'amphitheatre' %}selected{% endif %}>{% trans "Amphithéâtre" %}</option>
+                                    <option value="salle_reunion" {% if salle.type_salle == 'salle_reunion' %}selected{% endif %}>{% trans "Salle de Réunion" %}</option>
+                                    <option value="bureau" {% if salle.type_salle == 'bureau' %}selected{% endif %}>{% trans "Bureau" %}</option>
+                                    <option value="autre" {% if salle.type_salle == 'autre' %}selected{% endif %}>{% trans "Autre" %}</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="etat" class="form-label">État de la salle</label>
+                                <label for="etat" class="form-label">{% trans "État de la salle" %}</label>
                                 <select id="etat" name="etat" class="form-control">
-                                    <option value="disponible" {% if salle.etat == 'disponible' %}selected{% endif %}>Disponible</option>
-                                    <option value="occupee" {% if salle.etat == 'occupee' %}selected{% endif %}>Occupée</option>
-                                    <option value="maintenance" {% if salle.etat == 'maintenance' %}selected{% endif %}>En Maintenance</option>
-                                    <option value="fermee" {% if salle.etat == 'fermee' %}selected{% endif %}>Fermée</option>
+                                    <option value="disponible" {% if salle.etat == 'disponible' %}selected{% endif %}>{% trans "Disponible" %}</option>
+                                    <option value="occupee" {% if salle.etat == 'occupee' %}selected{% endif %}>{% trans "Occupée" %}</option>
+                                    <option value="maintenance" {% if salle.etat == 'maintenance' %}selected{% endif %}>{% trans "En Maintenance" %}</option>
+                                    <option value="fermee" {% if salle.etat == 'fermee' %}selected{% endif %}>{% trans "Fermée" %}</option>
                                 </select>
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="capacite_max" class="form-label">Capacité maximale *</label>
+                            <label for="capacite_max" class="form-label">{% trans "Capacité maximale *" %}</label>
                             <input type="number" id="capacite_max" name="capacite_max" class="form-control" value="{{ salle.capacite_max }}" min="1" required>
                         </div>
                         
                         <div class="form-actions">
                             <button type="submit" class="btn-submit">
                                 <i class="fas fa-save"></i>
-                                Sauvegarder les modifications
+                                {% trans "Sauvegarder les modifications" %}
                             </button>
                         </div>
                     </form>
@@ -245,7 +247,7 @@
         <div class="actions-section">
             <a href="{% url 'salle:liste_salles' %}" class="btn-back">
                 <i class="fas fa-arrow-left"></i>
-                Retour à la liste
+                {% trans "Retour à la liste" %}
             </a>
             <a href="{% url 'salle:toggle_actif' salle.id %}" class="btn-toggle {% if salle.actif %}active{% endif %}">
                 <i class="fas fa-{% if salle.actif %}pause{% else %}play{% endif %}"></i>
@@ -254,7 +256,7 @@
         </div>
     </div>
 
-    <script>
+    {% trans "<script>
         document.addEventListener('DOMContentLoaded', function() {
             // Gestion des onglets
             const tabBtns = document.querySelectorAll('.tab-btn');
@@ -274,6 +276,6 @@
                 });
             });
         });
-    </script>
+    </script>" %}
 </body>
 </html>

@@ -1,12 +1,14 @@
 
 {% load static %}
+{% load i18n %}
 
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facturation Directeur</title>
+    <title>{% trans "Facturation Directeur" %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/facturation_directeur.css' %}">
@@ -18,10 +20,10 @@
     <!-- Actions de la page -->
     <div class="page-actions">
         <button class="btn btn-primary" onclick="window.print()">
-            <i class="fas fa-print"></i> Imprimer
+            <i class="fas fa-print"></i> {% trans "Imprimer" %}
         </button>
         <button class="btn btn-success" onclick="exporterFactures()">
-            <i class="fas fa-download"></i> Exporter
+            <i class="fas fa-download"></i> {% trans "Exporter" %}
         </button>
     </div>
 
@@ -33,8 +35,8 @@
             </div>
             <div class="stat-info">
                 <h3>{{ stats.total_factures }}</h3>
-                <p>Total Factures</p>
-                <span class="stat-change">+12% ce mois</span>
+                <p>{% trans "Total Factures" %}</p>
+                <span class="stat-change">{% trans "+12% ce mois" %}</span>
             </div>
             <div class="stat-arrow">
                 <i class="fas fa-arrow-right"></i>
@@ -47,8 +49,8 @@
             </div>
             <div class="stat-info">
                 <h3>{{ stats.montant_total|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</h3>
-                <p>Montant Total</p>
-                <span class="stat-change">+8% vs mois dernier</span>
+                <p>{% trans "Montant Total" %}</p>
+                <span class="stat-change">{% trans "+8% vs mois dernier" %}</span>
             </div>
             <div class="stat-arrow">
                 <i class="fas fa-arrow-right"></i>
@@ -61,8 +63,8 @@
             </div>
             <div class="stat-info">
                 <h3>{{ stats.en_attente }}</h3>
-                <p>En Attente</p>
-                <span class="stat-change">En cours de traitement</span>
+                <p>{% trans "En Attente" %}</p>
+                <span class="stat-change">{% trans "En cours de traitement" %}</span>
             </div>
             <div class="stat-arrow">
                 <i class="fas fa-arrow-right"></i>
@@ -75,8 +77,8 @@
             </div>
             <div class="stat-info">
                 <h3>{{ stats.payees }}</h3>
-                <p>Payées</p>
-                <span class="stat-change">+15% cette semaine</span>
+                <p>{% trans "Payées" %}</p>
+                <span class="stat-change">{% trans "+15% cette semaine" %}</span>
             </div>
             <div class="stat-arrow">
                 <i class="fas fa-arrow-right"></i>
@@ -89,8 +91,8 @@
             </div>
             <div class="stat-info">
                 <h3>{{ stats.en_retard }}</h3>
-                <p>En Retard</p>
-                <span class="stat-change urgent-text">Nécessitent votre attention</span>
+                <p>{% trans "En Retard" %}</p>
+                <span class="stat-change urgent-text">{% trans "Nécessitent votre attention" %}</span>
             </div>
             <div class="stat-arrow">
                 <i class="fas fa-arrow-right"></i>
@@ -102,8 +104,8 @@
     {% if factures_urgentes %}
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle"></i>
-        <strong>Attention !</strong> Vous avez {{ factures_urgentes|length }} facture(s) urgente(s) nécessitant votre attention.
-        <a href="#urgentes" class="alert-link">Voir les détails</a>
+        <strong>{% trans "Attention !" %}</strong> Vous avez {{ factures_urgentes|length }} facture(s) urgente(s) nécessitant votre attention.
+        <a href="#urgentes" class="alert-link">{% trans "Voir les détails" %}</a>
     </div>
     {% endif %}
 
@@ -111,9 +113,9 @@
     <div class="filters-section">
         <form method="get" class="filters-form">
             <div class="filter-group">
-                <label for="statut">Statut :</label>
+                <label for="statut">{% trans "Statut :" %}</label>
                 <select name="statut" id="statut" class="form-select">
-                    <option value="">Tous les statuts</option>
+                    <option value="">{% trans "Tous les statuts" %}</option>
                     {% for value, label in statut_choices %}
                     <option value="{{ value }}" {% if statut_filter == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
@@ -121,9 +123,9 @@
             </div>
             
             <div class="filter-group">
-                <label for="type">Type :</label>
+                <label for="type">{% trans "Type :" %}</label>
                 <select name="type" id="type" class="form-select">
-                    <option value="">Tous les types</option>
+                    <option value="">{% trans "Tous les types" %}</option>
                     {% for value, label in type_choices %}
                     <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
@@ -131,11 +133,11 @@
             </div>
             
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-filter"></i> Filtrer
+                <i class="fas fa-filter"></i> {% trans "Filtrer" %}
             </button>
             
             <a href="{% url 'directeur:facturation_directeur' %}" class="btn btn-secondary">
-                <i class="fas fa-times"></i> Effacer
+                <i class="fas fa-times"></i> {% trans "Effacer" %}
             </a>
         </form>
     </div>
@@ -143,8 +145,8 @@
     <!-- Modules activés/inactifs -->
     <div class="modules-section">
         <div class="section-header">
-            <h2><i class="fas fa-cogs"></i> Modules de Service</h2>
-            <p>Gérez les modules activés pour votre établissement</p>
+            <h2><i class="fas fa-cogs"></i> {% trans "Modules de Service" %}</h2>
+            <p>{% trans "Gérez les modules activés pour votre établissement" %}</p>
         </div>
         
         <div class="modules-container">
@@ -157,9 +159,9 @@
                         </div>
                         <div class="module-status">
                             {% if module.actif %}
-                                <span class="status-badge active">Activé</span>
+                                <span class="status-badge active">{% trans "Activé" %}</span>
                             {% else %}
-                                <span class="status-badge inactive">Inactivé</span>
+                                <span class="status-badge inactive">{% trans "Inactivé" %}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -179,34 +181,34 @@
     <div class="billing-info">
         <div class="info-card">
             <div class="card-header">
-                <h3><i class="fas fa-info-circle"></i> Informations de Facturation</h3>
+                <h3><i class="fas fa-info-circle"></i> {% trans "Informations de Facturation" %}</h3>
             </div>
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">
                         <i class="fas fa-user-graduate"></i>
-                        <span>Montant par élève</span>
+                        <span>{% trans "Montant par élève" %}</span>
                     </div>
                     <div class="info-value">{{ montant_par_eleve }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">
                         <i class="fas fa-users"></i>
-                        <span>Nombre d'élèves inscrits</span>
+                        <span>{% trans "Nombre d'élèves inscrits" %}</span>
                     </div>
                     <div class="info-value">{{ nombre_eleves_total }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">
                         <i class="fas fa-calculator"></i>
-                        <span>Montant total calculé</span>
+                        <span>{% trans "Montant total calculé" %}</span>
                     </div>
                     <div class="info-value">{{ montant_total_theorique|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">
                         <i class="fas fa-credit-card"></i>
-                        <span>Statut de paiement</span>
+                        <span>{% trans "Statut de paiement" %}</span>
                     </div>
                     <div class="info-value status-{{ etablissement.statut_paiement }}">{{ etablissement.get_statut_paiement_display }}</div>
                 </div>
@@ -216,21 +218,21 @@
 
     <!-- Liste des factures -->
     <div class="factures-section">
-        <h2><i class="fas fa-list"></i> Historique des Factures</h2>
+        <h2><i class="fas fa-list"></i> {% trans "Historique des Factures" %}</h2>
         
         {% if facturations %}
         <div class="table-responsive">
             <table class="factures-table">
                 <thead>
                     <tr>
-                        <th>N° Facture</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Montant</th>
-                        <th>Statut</th>
-                        <th>Date Création</th>
-                        <th>Échéance</th>
-                        <th>Actions</th>
+                        <th>{% trans "N° Facture" %}</th>
+                        <th>{% trans "Type" %}</th>
+                        <th>{% trans "Description" %}</th>
+                        <th>{% trans "Montant" %}</th>
+                        <th>{% trans "Statut" %}</th>
+                        <th>{% trans "Date Création" %}</th>
+                        <th>{% trans "Échéance" %}</th>
+                        <th>{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -262,7 +264,7 @@
                             {% if facture.jours_restants > 0 %}
                             <small class="text-muted">({{ facture.jours_restants }}j restants)</small>
                             {% elif facture.est_en_retard %}
-                            <small class="text-danger">(En retard)</small>
+                            <small class="text-danger">{% trans "(En retard)" %}</small>
                             {% endif %}
                         </td>
                         <td>
@@ -288,8 +290,8 @@
         {% else %}
         <div class="empty-state">
             <i class="fas fa-receipt"></i>
-            <h3>Aucune facture trouvée</h3>
-            <p>Il n'y a pas de factures correspondant à vos critères de recherche.</p>
+            <h3>{% trans "Aucune facture trouvée" %}</h3>
+            <p>{% trans "Il n'y a pas de factures correspondant à vos critères de recherche." %}</p>
         </div>
         {% endif %}
     </div>
@@ -297,31 +299,31 @@
     <!-- Factures urgentes (section spéciale) -->
     {% if factures_urgentes %}
     <div id="urgentes" class="urgentes-section">
-        <h2><i class="fas fa-exclamation-triangle"></i> Factures Urgentes</h2>
+        <h2><i class="fas fa-exclamation-triangle"></i> {% trans "Factures Urgentes" %}</h2>
         <div class="urgentes-grid">
             {% for facture in factures_urgentes %}
             <div class="urgente-card">
                 <div class="urgente-header">
                     <h4>{{ facture.numero_facture }}</h4>
-                    <span class="urgente-badge">URGENTE</span>
+                    <span class="urgente-badge">{% trans "URGENTE" %}</span>
                 </div>
                 <div class="urgente-content">
-                    <p><strong>Montant :</strong> {{ facture.montant_total|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</p>
-                    <p><strong>Échéance :</strong> {{ facture.date_echeance|date:"d/m/Y" }}</p>
-                    <p><strong>Jours restants :</strong> 
+                    <p><strong>{% trans "Montant :" %}</strong> {{ facture.montant_total|floatformat:0 }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</p>
+                    <p><strong>{% trans "Échéance :" %}</strong> {{ facture.date_echeance|date:"d/m/Y" }}</p>
+                    <p><strong>{% trans "Jours restants :" %}</strong> 
                         {% if facture.jours_restants > 0 %}
                             {{ facture.jours_restants }} jour(s)
                         {% else %}
-                            <span class="text-danger">En retard</span>
+                            <span class="text-danger">{% trans "En retard" %}</span>
                         {% endif %}
                     </p>
                 </div>
                 <div class="urgente-actions">
                     <button class="btn btn-warning btn-sm" onclick="voirFacture({{ facture.id }})">
-                        <i class="fas fa-eye"></i> Voir
+                        <i class="fas fa-eye"></i> {% trans "Voir" %}
                     </button>
                     <button class="btn btn-success btn-sm" onclick="marquerPaye({{ facture.id }})">
-                        <i class="fas fa-check"></i> Marquer payée
+                        <i class="fas fa-check"></i> {% trans "Marquer payée" %}
                     </button>
                 </div>
             </div>

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,11 +24,11 @@
             </div>
             <div class="header-right">
                 <div class="info-item">
-                    <span class="info-label">Période :</span>
+                    <span class="info-label">{% trans "Période :" %}</span>
                     <span class="info-value">{{ mois.nom }} {{ mois.annee }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Date d'impression :</span>
+                    <span class="info-label">{% trans "Date d'impression :" %}</span>
                     <span class="info-value">{{ date_generation|date:"d/m/Y" }}</span>
                 </div>
             </div>
@@ -37,7 +39,7 @@
 
         <!-- Titre du document -->
         <div class="document-title">
-            <h2>LISTE DE PRÉSENCE</h2>
+            <h2>{% trans "LISTE DE PRÉSENCE" %}</h2>
             <p class="document-subtitle">{{ classe.nom }} - {{ classe.get_niveau_display }} - {{ mois.nom }} {{ mois.annee }}</p>
             {% if annee_scolaire_active %}
             <p class="document-subtitle" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600, #4b5563);">
@@ -50,19 +52,19 @@
         <div class="classe-info-box">
             <div class="info-row">
                 <div class="info-item">
-                    <span class="info-label">Classe :</span>
+                    <span class="info-label">{% trans "Classe :" %}</span>
                     <span class="info-value">{{ classe.nom }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Niveau :</span>
+                    <span class="info-label">{% trans "Niveau :" %}</span>
                     <span class="info-value">{{ classe.get_niveau_display }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Effectif :</span>
+                    <span class="info-label">{% trans "Effectif :" %}</span>
                     <span class="info-value">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Période :</span>
+                    <span class="info-label">{% trans "Période :" %}</span>
                     <span class="info-value">{{ mois.nom }} {{ mois.annee }}</span>
                 </div>
             </div>
@@ -74,15 +76,15 @@
             <table class="presence-table">
                 <thead>
                     <tr>
-                        <th class="col-numero">Rang</th>
-                        <th class="col-nom">Nom</th>
-                        <th class="col-prenom">Prénom</th>
-                        <th class="col-jours">Jours</th>
-                        <th class="col-presents">Présents</th>
-                        <th class="col-absents">Absents</th>
-                        <th class="col-justifies">Abs. Justifiées</th>
-                        <th class="col-retards">Retards</th>
-                        <th class="col-taux">Taux</th>
+                        <th class="col-numero">{% trans "Rang" %}</th>
+                        <th class="col-nom">{% trans "Nom" %}</th>
+                        <th class="col-prenom">{% trans "Prénom" %}</th>
+                        <th class="col-jours">{% trans "Jours" %}</th>
+                        <th class="col-presents">{% trans "Présents" %}</th>
+                        <th class="col-absents">{% trans "Absents" %}</th>
+                        <th class="col-justifies">{% trans "Abs. Justifiées" %}</th>
+                        <th class="col-retards">{% trans "Retards" %}</th>
+                        <th class="col-taux">{% trans "Taux" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -106,33 +108,33 @@
         </div>
         {% else %}
         <div class="empty-message">
-            <p>Aucune donnée de présence pour cette période.</p>
+            <p>{% trans "Aucune donnée de présence pour cette période." %}</p>
         </div>
         {% endif %}
 
         <!-- Légende -->
         <div class="legende-section">
-            <h5><i class="fas fa-palette"></i> Code couleur du taux de présence :</h5>
+            <h5><i class="fas fa-palette"></i> {% trans "Code couleur du taux de présence :" %}</h5>
             <div class="legende-items">
                 <span class="legende-item excellent">
                     <span class="legende-color"></span>
-                    <span class="legende-text">Excellent (≥ 95%)</span>
+                    <span class="legende-text">{% trans "Excellent (≥ 95%)" %}</span>
                 </span>
                 <span class="legende-item bon">
                     <span class="legende-color"></span>
-                    <span class="legende-text">Bon (90-94%)</span>
+                    <span class="legende-text">{% trans "Bon (90-94%)" %}</span>
                 </span>
                 <span class="legende-item moyen">
                     <span class="legende-color"></span>
-                    <span class="legende-text">Moyen (85-89%)</span>
+                    <span class="legende-text">{% trans "Moyen (85-89%)" %}</span>
                 </span>
                 <span class="legende-item faible">
                     <span class="legende-color"></span>
-                    <span class="legende-text">Faible (80-84%)</span>
+                    <span class="legende-text">{% trans "Faible (80-84%)" %}</span>
                 </span>
                 <span class="legende-item critique">
                     <span class="legende-color"></span>
-                    <span class="legende-text">Critique (< 80%)</span>
+                    <span class="legende-text">{% trans "Critique (" %}< 80%)</span>
                 </span>
             </div>
         </div>
@@ -147,7 +149,7 @@
                 </div>
                 <div class="footer-right">
                     <div class="signature-box">
-                        <p class="signature-title">Le Directeur</p>
+                        <p class="signature-title">{% trans "Le Directeur" %}</p>
                         <div class="signature-line"></div>
                         <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
                     </div>
@@ -160,15 +162,15 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer la liste
+            {% trans "Imprimer la liste" %}
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>" %}
 </body>
 </html>
 

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Authentification d'un bulletin - Aria</title>
+    <title>{% trans "Authentification d'un bulletin - Aria" %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-u5O1F3S0uQq3FdVtOfvtTDHkJ/xZBwbNG0Ax7Anxr1j403rwhhtjfiPgkBC5T9jp+1rssZCvGSqt94FP+BMlcA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/verification_bulletin.css' %}" />
   </head>
@@ -12,16 +14,16 @@
     <main class="verification-wrapper">
       <section class="hero-card">
         <div class="hero-content">
-          <p class="hero-kicker">Portail d'authentification</p>
-          <h1>Vérifier un bulletin scolaire</h1>
+          <p class="hero-kicker">{% trans "Portail d'authentification" %}</p>
+          <h1>{% trans "Vérifier un bulletin scolaire" %}</h1>
           <p class="hero-text">
-            Saisissez le numéro de série présent sur le bulletin (ou scannez le QR code officiel) pour confirmer son authenticité.
+            {% trans "Saisissez le numéro de série présent sur le bulletin (ou scannez le QR code officiel) pour confirmer son authenticité." %}
           </p>
         </div>
         <form method="get" class="verification-form" autocomplete="off">
           <div class="form-row">
             <div class="form-group">
-              <label for="numero_serie">Numéro de série</label>
+              <label for="numero_serie">{% trans "Numéro de série" %}</label>
               <input
                 type="text"
                 id="numero_serie"
@@ -32,19 +34,19 @@
               />
             </div>
             <div class="form-group">
-              <label for="signature">Signature numérique (optionnel)</label>
+              <label for="signature">{% trans "Signature numérique (optionnel)" %}</label>
               <input
                 type="text"
                 id="signature"
                 name="signature"
                 value="{{ signature_query }}"
-                placeholder="64 caractères hexadécimaux"
+                placeholder="{% trans "64 caractères hexadécimaux" %}"
               />
             </div>
           </div>
           <button type="submit" class="btn-primary">
             <i class="fas fa-shield-alt"></i>
-            Vérifier maintenant
+            {% trans "Vérifier maintenant" %}
           </button>
         </form>
       </section>
@@ -67,21 +69,21 @@
       {% if show_bulletin_details and bulletin_data %}
         <section class="details-grid">
           <article class="detail-card">
-            <h3><i class="fas fa-user-graduate"></i> Éléments académiques</h3>
+            <h3><i class="fas fa-user-graduate"></i> {% trans "Éléments académiques" %}</h3>
             <ul>
               <li>
-                <span>Nom de l'élève</span>
+                <span>{% trans "Nom de l'élève" %}</span>
                 <strong>{{ bulletin_data.eleve_nom }}</strong>
               </li>
               <li>
-                <span>Classe</span>
+                <span>{% trans "Classe" %}</span>
                 <strong>
                   {{ bulletin_data.classe_nom|default:"-" }}
                   {% if bulletin_data.classe_niveau %} – {{ bulletin_data.classe_niveau }}{% endif %}
                 </strong>
               </li>
               <li>
-                <span>Effectif de la classe</span>
+                <span>{% trans "Effectif de la classe" %}</span>
                 <strong>
                   {% if bulletin_data.classe_effectif %}
                     {{ bulletin_data.classe_effectif }} élève{% if bulletin_data.classe_effectif|default:0 > 1 %}s{% endif %}
@@ -91,17 +93,17 @@
                 </strong>
               </li>
               <li>
-                <span>Période</span>
+                <span>{% trans "Période" %}</span>
                 <strong>{{ bulletin_data.periode_nom }} – {{ bulletin_data.annee_scolaire }}</strong>
               </li>
             </ul>
           </article>
 
           <article class="detail-card">
-            <h3><i class="fas fa-chart-line"></i> Résultats synthétiques</h3>
+            <h3><i class="fas fa-chart-line"></i> {% trans "Résultats synthétiques" %}</h3>
             <ul>
               <li>
-                <span>Moyenne générale</span>
+                <span>{% trans "Moyenne générale" %}</span>
                 <strong>
                   {% if bulletin_data.moyenne_generale %}
                     {{ bulletin_data.moyenne_generale|floatformat:2 }}/20
@@ -111,7 +113,7 @@
                 </strong>
               </li>
               <li>
-                <span>Rang</span>
+                <span>{% trans "Rang" %}</span>
                 <strong>
                   {% if bulletin_data.rang %}
                     {{ bulletin_data.rang }}
@@ -121,25 +123,25 @@
                 </strong>
               </li>
               <li>
-                <span>Appréciation générale</span>
+                <span>{% trans "Appréciation générale" %}</span>
                 <strong>{{ bulletin_data.appreciation|default:"Non renseignée" }}</strong>
               </li>
               <li>
-                <span>Décision du conseil</span>
+                <span>{% trans "Décision du conseil" %}</span>
                 <strong>{{ bulletin_data.decision|default:"Non renseignée" }}</strong>
               </li>
             </ul>
           </article>
 
           <article class="detail-card">
-            <h3><i class="fas fa-university"></i> Établissement émetteur</h3>
+            <h3><i class="fas fa-university"></i> {% trans "Établissement émetteur" %}</h3>
             <ul>
               <li>
-                <span>Établissement</span>
+                <span>{% trans "Établissement" %}</span>
                 <strong>{{ bulletin_data.etablissement_nom|default:"-" }}</strong>
               </li>
               <li>
-                <span>Coordonnées</span>
+                <span>{% trans "Coordonnées" %}</span>
                 <strong>
                   {% if bulletin_data.etablissement_adresse %}
                     {{ bulletin_data.etablissement_adresse }}
@@ -149,7 +151,7 @@
                 </strong>
               </li>
               <li>
-                <span>Contact</span>
+                <span>{% trans "Contact" %}</span>
                 <strong>
                   {% if bulletin_data.etablissement_email %}
                     {{ bulletin_data.etablissement_email }}
@@ -162,7 +164,7 @@
                 </strong>
               </li>
               <li>
-                <span>Date de signature</span>
+                <span>{% trans "Date de signature" %}</span>
                 <strong>
                   {% if bulletin_data.date_generation %}
                     {{ bulletin_data.date_generation|date:"d/m/Y à H:i" }}
@@ -175,20 +177,20 @@
           </article>
 
           <article class="detail-card security-card">
-            <h3><i class="fas fa-fingerprint"></i> Traces d'authenticité</h3>
+            <h3><i class="fas fa-fingerprint"></i> {% trans "Traces d'authenticité" %}</h3>
             <ul>
               <li>
-                <span>Numéro de série</span>
+                <span>{% trans "Numéro de série" %}</span>
                 <strong>{{ bulletin_data.numero_serie }}</strong>
               </li>
               <li>
-                <span>Signature numérique</span>
+                <span>{% trans "Signature numérique" %}</span>
                 <strong class="mono">
                   {{ bulletin_data.signature }}
                 </strong>
               </li>
               <li>
-                <span>Dernière publication</span>
+                <span>{% trans "Dernière publication" %}</span>
                 <strong>
                   {% if bulletin_data.date_publication %}
                     {{ bulletin_data.date_publication|date:"d/m/Y à H:i" }}
@@ -199,7 +201,7 @@
               </li>
             </ul>
             <p class="security-hint">
-              Ces éléments doivent figurer sur tout bulletin officiel Goo-School. Une modification invaliderait la signature.
+              {% trans "Ces éléments doivent figurer sur tout bulletin officiel Goo-School. Une modification invaliderait la signature." %}
             </p>
           </article>
         </section>

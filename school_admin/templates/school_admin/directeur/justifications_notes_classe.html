@@ -1,6 +1,8 @@
 {% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,13 +24,13 @@
                     Justifications de notes - {{ classe.nom }}
                 </h1>
                 <p class="page-subtitle">
-                    Consultez toutes les justifications de notes pour cette classe.
+                    {% trans "Consultez toutes les justifications de notes pour cette classe." %}
                 </p>
             </div>
             <div class="page-actions">
                 <a href="{% url 'directeur:justifications_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour aux justifications
+                    {% trans "Retour aux justifications" %}
                 </a>
             </div>
         </div>
@@ -54,7 +56,7 @@
         <div class="periodes-nav-container" style="margin-bottom: 12px; padding: 12px; background: var(--gray-50); border-radius: 10px;">
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <span style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">
-                    <i class="fas fa-calendar-alt"></i> Période :
+                    <i class="fas fa-calendar-alt"></i> {% trans "Période :" %}
                 </span>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     {% for periode in periodes %}
@@ -78,7 +80,7 @@
                 </div>
                 <div class="stat-content">
                     <span class="stat-value">{{ stats.en_attente }}</span>
-                    <span class="stat-label">En attente</span>
+                    <span class="stat-label">{% trans "En attente" %}</span>
                 </div>
             </div>
             <div class="stat-card success">
@@ -87,7 +89,7 @@
                 </div>
                 <div class="stat-content">
                     <span class="stat-value">{{ stats.validees }}</span>
-                    <span class="stat-label">Validées</span>
+                    <span class="stat-label">{% trans "Validées" %}</span>
                 </div>
             </div>
             <div class="stat-card danger">
@@ -96,7 +98,7 @@
                 </div>
                 <div class="stat-content">
                     <span class="stat-value">{{ stats.refusees }}</span>
-                    <span class="stat-label">Refusées</span>
+                    <span class="stat-label">{% trans "Refusées" %}</span>
                 </div>
             </div>
         </div>
@@ -105,7 +107,7 @@
         <section class="demandes-section">
             <h2 class="section-title">
                 <i class="fas fa-hourglass-half"></i>
-                Demandes en attente
+                {% trans "Demandes en attente" %}
             </h2>
             {% if demandes_grouped.en_attente %}
                 <div class="demandes-grid">
@@ -116,11 +118,11 @@
                                     <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
                                     <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
                                 </div>
-                                <span class="badge badge-warning">En attente</span>
+                                <span class="badge badge-warning">{% trans "En attente" %}</span>
                             </header>
                             <div class="demande-body">
                                 <div class="value-line">
-                                    <span>Ancienne note</span>
+                                    <span>{% trans "Ancienne note" %}</span>
                                     <strong>
                                         {{ justification.ancienne_note|default:"-" }}/
                                         {% if justification.evaluation %}
@@ -135,7 +137,7 @@
                                     </strong>
                                 </div>
                                 <div class="value-line">
-                                    <span>Nouvelle note proposée</span>
+                                    <span>{% trans "Nouvelle note proposée" %}</span>
                                     <strong>
                                         {{ justification.nouvelle_note }}/
                                         {% if justification.evaluation %}
@@ -151,26 +153,26 @@
                                 </div>
                                 {% if justification.note_examen and justification.note_examen.session_examen %}
                                 <div class="value-line">
-                                    <span>Type</span>
-                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                    <span>{% trans "Type" %}</span>
+                                    <p><strong>{% trans "Note d'examen :" %}</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
                                 </div>
                                 {% endif %}
                                 <div class="value-line">
-                                    <span>Motif</span>
+                                    <span>{% trans "Motif" %}</span>
                                     <p class="motif">{{ justification.motif }}</p>
                                 </div>
                                 {% if justification.description %}
                                     <div class="value-line">
-                                        <span>Détails</span>
+                                        <span>{% trans "Détails" %}</span>
                                         <p class="description">{{ justification.description }}</p>
                                     </div>
                                 {% endif %}
                                 <div class="value-line">
-                                    <span>Enseignant</span>
+                                    <span>{% trans "Enseignant" %}</span>
                                     <p>{{ justification.professeur.nom_complet }}</p>
                                 </div>
                                 <div class="value-line">
-                                    <span>Date</span>
+                                    <span>{% trans "Date" %}</span>
                                     <p>{{ justification.date_creation|date:"d/m/Y H:i" }}</p>
                                 </div>
                             </div>
@@ -182,17 +184,17 @@
                                         <input type="hidden" name="periode" value="{{ periode_active.id }}">
                                     {% endif %}
                                     <div class="form-commentaire">
-                                        <label for="commentaire-{{ justification.id }}">Commentaire (optionnel)</label>
-                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="Ajoutez un commentaire pour l'enseignant..."></textarea>
+                                        <label for="commentaire-{{ justification.id }}">{% trans "Commentaire (optionnel)" %}</label>
+                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="{% trans "Ajoutez un commentaire pour l" %}'enseignant..."></textarea>
                                     </div>
                                     <div class="actions-buttons">
                                         <button type="submit" name="action" value="rejeter" class="btn-outline">
                                             <i class="fas fa-times"></i>
-                                            Refuser
+                                            {% trans "Refuser" %}
                                         </button>
                                         <button type="submit" name="action" value="valider" class="btn-primary">
                                             <i class="fas fa-check"></i>
-                                            Valider
+                                            {% trans "Valider" %}
                                         </button>
                                     </div>
                                 </form>
@@ -203,7 +205,7 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-check-circle"></i>
-                    <p>Aucune demande en attente pour cette classe.</p>
+                    <p>{% trans "Aucune demande en attente pour cette classe." %}</p>
                 </div>
             {% endif %}
         </section>
@@ -212,7 +214,7 @@
         <section class="demandes-section">
             <h2 class="section-title">
                 <i class="fas fa-check-circle"></i>
-                Demandes validées
+                {% trans "Demandes validées" %}
             </h2>
             {% if demandes_grouped.validee %}
                 <div class="demandes-grid">
@@ -223,11 +225,11 @@
                                     <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
                                     <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
                                 </div>
-                                <span class="badge badge-success">Validée</span>
+                                <span class="badge badge-success">{% trans "Validée" %}</span>
                             </header>
                             <div class="demande-body">
                                 <div class="value-line">
-                                    <span>Ancienne note</span>
+                                    <span>{% trans "Ancienne note" %}</span>
                                     <strong>
                                         {{ justification.ancienne_note|default:"-" }}/
                                         {% if justification.evaluation %}
@@ -242,7 +244,7 @@
                                     </strong>
                                 </div>
                                 <div class="value-line">
-                                    <span>Nouvelle note</span>
+                                    <span>{% trans "Nouvelle note" %}</span>
                                     <strong>
                                         {{ justification.nouvelle_note }}/
                                         {% if justification.evaluation %}
@@ -258,22 +260,22 @@
                                 </div>
                                 {% if justification.note_examen and justification.note_examen.session_examen %}
                                 <div class="value-line">
-                                    <span>Type</span>
-                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                    <span>{% trans "Type" %}</span>
+                                    <p><strong>{% trans "Note d'examen :" %}</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
                                 </div>
                                 {% endif %}
                                 <div class="value-line">
-                                    <span>Motif</span>
+                                    <span>{% trans "Motif" %}</span>
                                     <p class="motif">{{ justification.motif }}</p>
                                 </div>
                                 {% if justification.commentaire_direction %}
                                     <div class="value-line">
-                                        <span>Commentaire direction</span>
+                                        <span>{% trans "Commentaire direction" %}</span>
                                         <p class="description">{{ justification.commentaire_direction }}</p>
                                     </div>
                                 {% endif %}
                                 <div class="value-line">
-                                    <span>Validée le</span>
+                                    <span>{% trans "Validée le" %}</span>
                                     <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
                                 </div>
                             </div>
@@ -283,7 +285,7 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-folder-open"></i>
-                    <p>Aucune justification validée pour cette classe.</p>
+                    <p>{% trans "Aucune justification validée pour cette classe." %}</p>
                 </div>
             {% endif %}
         </section>
@@ -292,7 +294,7 @@
         <section class="demandes-section">
             <h2 class="section-title">
                 <i class="fas fa-times-circle"></i>
-                Demandes refusées
+                {% trans "Demandes refusées" %}
             </h2>
             {% if demandes_grouped.refusee %}
                 <div class="demandes-grid">
@@ -303,11 +305,11 @@
                                     <h3>{{ justification.eleve.nom|upper }} {{ justification.eleve.prenom }}</h3>
                                     <p class="classe-name">{% if justification.matiere %}{{ justification.matiere.nom }}{% endif %}</p>
                                 </div>
-                                <span class="badge badge-danger">Refusée</span>
+                                <span class="badge badge-danger">{% trans "Refusée" %}</span>
                             </header>
                             <div class="demande-body">
                                 <div class="value-line">
-                                    <span>Ancienne note</span>
+                                    <span>{% trans "Ancienne note" %}</span>
                                     <strong>
                                         {{ justification.ancienne_note|default:"-" }}/
                                         {% if justification.evaluation %}
@@ -322,7 +324,7 @@
                                     </strong>
                                 </div>
                                 <div class="value-line">
-                                    <span>Nouvelle note proposée</span>
+                                    <span>{% trans "Nouvelle note proposée" %}</span>
                                     <strong>
                                         {{ justification.nouvelle_note }}/
                                         {% if justification.evaluation %}
@@ -338,22 +340,22 @@
                                 </div>
                                 {% if justification.note_examen and justification.note_examen.session_examen %}
                                 <div class="value-line">
-                                    <span>Type</span>
-                                    <p><strong>Note d'examen :</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
+                                    <span>{% trans "Type" %}</span>
+                                    <p><strong>{% trans "Note d'examen :" %}</strong> {{ justification.note_examen.session_examen.nom_examen }}</p>
                                 </div>
                                 {% endif %}
                                 <div class="value-line">
-                                    <span>Motif</span>
+                                    <span>{% trans "Motif" %}</span>
                                     <p class="motif">{{ justification.motif }}</p>
                                 </div>
                                 {% if justification.commentaire_direction %}
                                     <div class="value-line">
-                                        <span>Commentaire direction</span>
+                                        <span>{% trans "Commentaire direction" %}</span>
                                         <p class="description">{{ justification.commentaire_direction }}</p>
                                     </div>
                                 {% endif %}
                                 <div class="value-line">
-                                    <span>Refusée le</span>
+                                    <span>{% trans "Refusée le" %}</span>
                                     <p>{{ justification.date_validation|date:"d/m/Y H:i" }}</p>
                                 </div>
                             </div>
@@ -365,13 +367,13 @@
                                         <input type="hidden" name="periode" value="{{ periode_active.id }}">
                                     {% endif %}
                                     <div class="form-commentaire">
-                                        <label for="commentaire-{{ justification.id }}">Commentaire (optionnel)</label>
-                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="Ajoutez un commentaire pour l'enseignant..."></textarea>
+                                        <label for="commentaire-{{ justification.id }}">{% trans "Commentaire (optionnel)" %}</label>
+                                        <textarea name="commentaire" id="commentaire-{{ justification.id }}" rows="2" placeholder="{% trans "Ajoutez un commentaire pour l" %}'enseignant..."></textarea>
                                     </div>
                                     <div class="actions-buttons">
                                         <button type="submit" name="action" value="valider" class="btn-primary">
                                             <i class="fas fa-check"></i>
-                                            Réaccepter
+                                            {% trans "Réaccepter" %}
                                         </button>
                                     </div>
                                 </form>
@@ -382,7 +384,7 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-folder-open"></i>
-                    <p>Aucune justification refusée pour cette classe.</p>
+                    <p>{% trans "Aucune justification refusée pour cette classe." %}</p>
                 </div>
             {% endif %}
         </section>

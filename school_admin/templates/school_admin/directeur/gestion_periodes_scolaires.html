@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Périodes Scolaires - {{ etablissement.nom }}</title>
     {% load static %}
+{% load i18n %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header.css' %}">
@@ -16,35 +19,35 @@
     <div class="container">
         <!-- Breadcrumb -->
         <div class="breadcrumb">
-            <a href="{% url 'directeur:dashboard_directeur' %}"><i class="fas fa-home"></i> Tableau de bord</a>
+            <a href="{% url 'directeur:dashboard_directeur' %}"><i class="fas fa-home"></i> {% trans "Tableau de bord" %}</a>
             <i class="fas fa-chevron-right"></i>
-            <a href="{% url 'directeur:gestion_etablissement' %}">Gestion de l'établissement</a>
+            <a href="{% url 'directeur:gestion_etablissement' %}">{% trans "Gestion de l'établissement" %}</a>
             <i class="fas fa-chevron-right"></i>
-            <span>Périodes scolaires</span>
+            <span>{% trans "Périodes scolaires" %}</span>
         </div>
 
         <!-- Page Header -->
         <div class="page-header">
             <h1>
                 <i class="fas fa-calendar-alt"></i>
-                Gestion des Périodes Scolaires
+                {% trans "Gestion des Périodes Scolaires" %}
             </h1>
-            <p>Configuration des trimestres et semestres pour l'année scolaire</p>
+            <p>{% trans "Configuration des trimestres et semestres pour l'année scolaire" %}</p>
         </div>
 
         <!-- Actions Bar -->
         <div class="actions-bar">
             <a href="{% url 'directeur:gestion_etablissement' %}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i>
-                Retour
+                {% trans "Retour" %}
             </a>
             <button type="button" class="btn btn-primary" id="btnCreerAnneeScolaire" style="background: var(--info, #8b5cf6);">
                 <i class="fas fa-calendar-plus"></i>
-                Créer une année scolaire
+                {% trans "Créer une année scolaire" %}
             </button>
             <button type="button" class="btn btn-primary" id="btnAjouterPeriode">
                 <i class="fas fa-plus"></i>
-                Ajouter une période
+                {% trans "Ajouter une période" %}
             </button>
         </div>
 
@@ -52,7 +55,7 @@
         <div class="form-add-periode" id="formAddPeriode">
             <h3 class="form-add-periode-title">
                 <i class="fas fa-plus-circle"></i>
-                Nouvelle période scolaire
+                {% trans "Nouvelle période scolaire" %}
             </h3>
             <form method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
                 {% csrf_token %}
@@ -62,7 +65,7 @@
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6);"></i>
                         <span style="font-weight: 500; color: var(--gray-800, #1f2937);">
-                            Cette période sera associée à l'année scolaire active : <strong>{{ annee_scolaire_active.libelle }}</strong>
+                            {% trans "Cette période sera associée à l'année scolaire active :" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
                         </span>
                     </div>
                 </div>
@@ -71,41 +74,41 @@
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
                         <span style="font-weight: 500; color: var(--gray-800, #1f2937);">
-                            Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une période.
+                            {% trans "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une période." %}
                         </span>
                     </div>
                 </div>
                 {% endif %}
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Nom de la période <span>*</span></label>
+                        <label>{% trans "Nom de la période" %} <span>*</span></label>
                         <input type="text" name="nom_periode" required placeholder="Ex: 1er Trimestre">
                     </div>
                     
                     <div class="form-group">
-                        <label>Type de période <span>*</span></label>
+                        <label>{% trans "Type de période" %} <span>*</span></label>
                         <select name="type_periode" required>
-                            <option value="trimestre">Trimestre</option>
-                            <option value="semestre">Semestre</option>
-                            <option value="annee">Année complète</option>
+                            <option value="trimestre">{% trans "Trimestre" %}</option>
+                            <option value="semestre">{% trans "Semestre" %}</option>
+                            <option value="annee">{% trans "Année complète" %}</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Date de début <span>*</span></label>
+                        <label>{% trans "Date de début" %} <span>*</span></label>
                         <input type="date" name="date_debut" required>
                     </div>
 
                     <div class="form-group">
-                        <label>Date de fin <span>*</span></label>
+                        <label>{% trans "Date de fin" %} <span>*</span></label>
                         <input type="date" name="date_fin" required>
                     </div>
 
                     <div class="form-group form-group-spacer">
-                        <label class="form-label-hidden">Spacer</label>
+                        <label class="form-label-hidden">{% trans "Spacer" %}</label>
                         <div class="checkbox-group">
                             <input type="checkbox" name="est_active" id="est_active" checked>
-                            <label for="est_active" class="checkbox-label">Période active</label>
+                            <label for="est_active" class="checkbox-label">{% trans "Période active" %}</label>
                         </div>
                     </div>
                 </div>
@@ -113,11 +116,11 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="btnAnnuler">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Enregistrer la période
+                        {% trans "Enregistrer la période" %}
                     </button>
                 </div>
             </form>
@@ -128,7 +131,7 @@
         <div class="section">
             <h2 class="section-title">
                 <i class="fas fa-calendar-alt"></i>
-                Années scolaires enregistrées
+                {% trans "Années scolaires enregistrées" %}
             </h2>
             <div class="annees-scolaires-list">
                 {% for annee in annees_scolaires %}
@@ -140,17 +143,17 @@
                         </div>
                         <div class="annee-scolaire-badges">
                             {% if annee.est_active %}
-                                <span class="badge badge-active">Session Active</span>
+                                <span class="badge badge-active">{% trans "Session Active" %}</span>
                             {% endif %}
                             {% if annee.est_ouverte %}
-                                <span class="badge badge-ouverte">Session Ouverte</span>
+                                <span class="badge badge-ouverte">{% trans "Session Ouverte" %}</span>
                             {% endif %}
                             {% if annee.est_en_cours %}
-                                <span class="badge badge-en-cours">En cours</span>
+                                <span class="badge badge-en-cours">{% trans "En cours" %}</span>
                             {% elif annee.est_future %}
-                                <span class="badge badge-future">À venir</span>
+                                <span class="badge badge-future">{% trans "À venir" %}</span>
                             {% else %}
-                                <span class="badge badge-terminee">Terminée</span>
+                                <span class="badge badge-terminee">{% trans "Terminée" %}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -167,7 +170,7 @@
                     <div class="annee-scolaire-actions">
                         <a href="{% url 'directeur:detail_annee_scolaire' annee.id %}" class="btn-details">
                             <i class="fas fa-eye"></i>
-                            Voir les détails
+                            {% trans "Voir les détails" %}
                         </a>
                     </div>
                 </div>
@@ -180,7 +183,7 @@
         <div class="section">
             <h2 class="section-title">
                 <i class="fas fa-list"></i>
-                Périodes définies
+                {% trans "Périodes définies" %}
             </h2>
 
             {% if periodes_par_annee %}
@@ -238,7 +241,7 @@
                                             data-active="{{ periode.est_active|yesno:'true,false' }}"
                                             onclick="openEditPeriodeModal(this)">
                                         <i class="fas fa-pen"></i>
-                                        Modifier
+                                        {% trans "Modifier" %}
                                     </button>
                                     <button type="button"
                                             class="btn-action delete"
@@ -246,7 +249,7 @@
                                             data-nom="{{ periode.nom_periode|escape }}"
                                             onclick="openDeletePeriodeModal(this)">
                                         <i class="fas fa-trash"></i>
-                                        Supprimer
+                                        {% trans "Supprimer" %}
                                     </button>
                                 </div>
                             </div>
@@ -258,11 +261,11 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-calendar-times"></i>
-                    <h3>Aucune période définie</h3>
-                    <p>Commencez par créer les périodes scolaires de votre établissement</p>
+                    <h3>{% trans "Aucune période définie" %}</h3>
+                    <p>{% trans "Commencez par créer les périodes scolaires de votre établissement" %}</p>
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('btnAjouterPeriode').click()">
                         <i class="fas fa-plus"></i>
-                        Créer la première période
+                        {% trans "Créer la première période" %}
                     </button>
                 </div>
             {% endif %}
@@ -275,7 +278,7 @@
             <div class="modal-header">
                 <h3 id="editModalTitle">
                     <i class="fas fa-pen-to-square"></i>
-                    Modifier la période scolaire
+                    {% trans "Modifier la période scolaire" %}
                 </h3>
                 <button type="button" class="modal-close" onclick="closePeriodeModal('periodeEditModal')" aria-label="Fermer la fenêtre">
                     <i class="fas fa-times"></i>
@@ -287,33 +290,33 @@
                 <input type="hidden" name="periode_id" id="edit_periode_id">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="edit_nom_periode">Nom de la période</label>
+                        <label for="edit_nom_periode">{% trans "Nom de la période" %}</label>
                         <input type="text" id="edit_nom_periode" name="nom_periode" required>
                     </div>
                     <div class="form-group">
-                        <label for="edit_type_periode">Type de période</label>
+                        <label for="edit_type_periode">{% trans "Type de période" %}</label>
                         <select id="edit_type_periode" name="type_periode" required>
-                            <option value="trimestre">Trimestre</option>
-                            <option value="semestre">Semestre</option>
-                            <option value="annee">Année complète</option>
+                            <option value="trimestre">{% trans "Trimestre" %}</option>
+                            <option value="semestre">{% trans "Semestre" %}</option>
+                            <option value="annee">{% trans "Année complète" %}</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="edit_date_debut">Date de début</label>
+                        <label for="edit_date_debut">{% trans "Date de début" %}</label>
                         <input type="date" id="edit_date_debut" name="date_debut" required>
                     </div>
                     <div class="form-group">
-                        <label for="edit_date_fin">Date de fin</label>
+                        <label for="edit_date_fin">{% trans "Date de fin" %}</label>
                         <input type="date" id="edit_date_fin" name="date_fin" required>
                     </div>
                     <div class="form-group form-group-checkbox-row">
                         <input type="checkbox" id="edit_est_active" name="est_active">
-                        <label for="edit_est_active" class="checkbox-label">Période active</label>
+                        <label for="edit_est_active" class="checkbox-label">{% trans "Période active" %}</label>
                     </div>
                 </div>
                 <div class="modal-footer modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closePeriodeModal('periodeEditModal')">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePeriodeModal('periodeEditModal')">{% trans "Annuler" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Mettre à jour" %}</button>
                 </div>
             </form>
         </div>
@@ -325,7 +328,7 @@
             <div class="modal-header">
                 <h3 id="anneeScolaireModalTitle">
                     <i class="fas fa-calendar-plus"></i>
-                    Créer une Année Scolaire
+                    {% trans "Créer une Année Scolaire" %}
                 </h3>
                 <button type="button" class="modal-close" onclick="closeAnneeScolaireModal()" aria-label="Fermer la fenêtre">
                     <i class="fas fa-times"></i>
@@ -342,14 +345,14 @@
                         <div class="preview-item">
                             <i class="fas fa-calendar-alt"></i>
                             <div class="preview-content">
-                                <span class="preview-label">Année scolaire</span>
+                                <span class="preview-label">{% trans "Année scolaire" %}</span>
                                 <span class="preview-value" id="preview_libelle">-</span>
                             </div>
                         </div>
                         <div class="preview-item">
                             <i class="fas fa-calendar-check"></i>
                             <div class="preview-content">
-                                <span class="preview-label">Période</span>
+                                <span class="preview-label">{% trans "Période" %}</span>
                                 <span class="preview-value" id="preview_periode">-</span>
                             </div>
                         </div>
@@ -359,19 +362,19 @@
                         <div class="form-group-elegant">
                             <label for="date_debut" class="label-elegant">
                                 <i class="fas fa-calendar-day"></i>
-                                Date de début <span class="required-star">*</span>
+                                {% trans "Date de début <span class=\"required-star\">*</span>" %}
                             </label>
                             <input type="date" id="date_debut" name="date_debut" required class="input-elegant">
-                            <small class="form-hint">Date de début de l'année scolaire (généralement en septembre)</small>
+                            <small class="form-hint">{% trans "Date de début de l'année scolaire (généralement en septembre)" %}</small>
                         </div>
                         
                         <div class="form-group-elegant">
                             <label for="date_fin" class="label-elegant">
                                 <i class="fas fa-calendar-check"></i>
-                                Date de fin <span class="required-star">*</span>
+                                {% trans "Date de fin <span class=\"required-star\">*</span>" %}
                             </label>
                             <input type="date" id="date_fin" name="date_fin" required class="input-elegant">
-                            <small class="form-hint">Date de fin de l'année scolaire (généralement en juin)</small>
+                            <small class="form-hint">{% trans "Date de fin de l'année scolaire (généralement en juin)" %}</small>
                         </div>
                     </div>
                     
@@ -380,18 +383,18 @@
                             <input type="checkbox" id="est_ouverte" name="est_ouverte" class="checkbox-input">
                             <label for="est_ouverte" class="checkbox-label-elegant">
                                 <i class="fas fa-unlock"></i>
-                                <span>Ouvrir la session immédiatement</span>
-                                <small>Permet l'accès à cette année scolaire avant la date de début</small>
+                                <span>{% trans "Ouvrir la session immédiatement" %}</span>
+                                <small>{% trans "Permet l'accès à cette année scolaire avant la date de début" %}</small>
                             </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeAnneeScolaireModal()">
-                        <i class="fas fa-times"></i> Annuler
+                        <i class="fas fa-times"></i> {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Créer l'année scolaire
+                        <i class="fas fa-save"></i> {% trans "Créer l'année scolaire" %}
                     </button>
                 </div>
             </form>
@@ -404,7 +407,7 @@
             <div class="modal-header modal-header-danger">
                 <h3 id="deleteModalTitle">
                     <i class="fas fa-triangle-exclamation"></i>
-                    Supprimer la période
+                    {% trans "Supprimer la période" %}
                 </h3>
                 <button type="button" class="modal-close" onclick="closePeriodeModal('periodeDeleteModal')" aria-label="Fermer la fenêtre">
                     <i class="fas fa-times"></i>
@@ -416,20 +419,20 @@
                 <input type="hidden" name="periode_id" id="delete_periode_id">
                 <div class="modal-body">
                     <p class="modal-delete-message">
-                        Vous êtes sur le point de supprimer la période
+                        {% trans "Vous êtes sur le point de supprimer la période" %}
                         <strong id="delete_periode_name" class="modal-delete-name"></strong>.
-                        Cette action est irréversible.
+                        {% trans "Cette action est irréversible." %}
                     </p>
                     <div class="modal-delete-warning">
                         <i class="fas fa-circle-info"></i>
                         <span>
-                            Assurez-vous qu'aucun bulletin ou emploi du temps ne dépend de cette période.
+                            {% trans "Assurez-vous qu'aucun bulletin ou emploi du temps ne dépend de cette période." %}
                         </span>
                     </div>
                 </div>
                 <div class="modal-footer modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closePeriodeModal('periodeDeleteModal')">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePeriodeModal('periodeDeleteModal')">{% trans "Annuler" %}</button>
+                    <button type="submit" class="btn btn-danger">{% trans "Supprimer définitivement" %}</button>
                 </div>
             </form>
         </div>

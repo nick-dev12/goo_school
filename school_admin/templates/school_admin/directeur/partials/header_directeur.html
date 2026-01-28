@@ -1,4 +1,5 @@
 {% load static %}
+{% load i18n %}
 <link
   rel="stylesheet"
   href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.2">
@@ -32,7 +33,7 @@
 
         <button class="header-button header-button-scanner" aria-label="Scanner QR Code" id="btnQrScanner" onclick="ouvrirScannerQR()" title="Scanner un QR Code">
           <i class="fas fa-qrcode"></i>
-          <span class="scanner-text">Scanner</span>
+          <span class="scanner-text">{% trans "Scanner" %}</span>
         </button>
 
         <div class="header-profile">
@@ -40,7 +41,7 @@
             <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
             <div class="header-user-info">
               <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-              <div class="header-user-role">Directeur</div>
+              <div class="header-user-role">{% trans "Directeur" %}</div>
             </div>
           {% elif is_personnel_administratif and personnel %}
             <div class="header-avatar">{{ personnel.prenom|first|upper }}{{ personnel.nom|first|upper }}</div>
@@ -52,7 +53,7 @@
             <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
             <div class="header-user-info">
               <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-              <div class="header-user-role">Directeur</div>
+              <div class="header-user-role">{% trans "Directeur" %}</div>
             </div>
           {% endif %}
         </div>
@@ -84,9 +85,9 @@
             {% csrf_token %}
             <label for="sessionSelector" class="session-label">
               <i class="fas fa-calendar-alt"></i>
-              <span>Session :</span>
+              <span>{% trans "Session :" %}</span>
             </label>
-            <select name="session_id" id="sessionSelector" class="banner-session-select" onchange="this.form.submit()" title="Changer de session">
+            <select name="session_id" id="sessionSelector" class="banner-session-select" onchange="this.form.submit()" title="{% trans "Changer de session" %}">
               <option value="">Session active ({{ annee_scolaire_reellement_active.libelle|default:"Aucune" }})</option>
               {% for annee in toutes_annees_scolaires %}
                 <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
@@ -95,7 +96,7 @@
               {% endfor %}
             </select>
             {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
-              <span class="banner-session-indicator" title="Vous consultez une session différente de la session active">
+              <span class="banner-session-indicator" title="{% trans "Vous consultez une session différente de la session active" %}">
                 <i class="fas fa-info-circle"></i>
               </span>
             {% endif %}
@@ -106,7 +107,7 @@
         <!-- Bouton d'installation PWA -->
         <button id="pwa-install-btn" class="welcome-action pwa-install-btn" style="display: none;" aria-label="Installer l'application">
           <i class="fas fa-download"></i>
-          <span>Installer</span>
+          <span>{% trans "Installer" %}</span>
         </button>
         <a
           href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
@@ -114,16 +115,16 @@
           aria-label="Se déconnecter"
         >
           <i class="fas fa-sign-out-alt"></i>
-          <span>Déconnexion</span>
+          <span>{% trans "Déconnexion" %}</span>
         </a>
       </div>
     </section>
 
     <!-- Bouton Retour -->
     <div class="back-button-container">
-      <button id="backButton" class="back-button" aria-label="Retour à la page précédente" title="Retour à la page précédente">
+      <button id="backButton" class="back-button" aria-label="Retour à la page précédente" title="{% trans "Retour à la page précédente" %}">
         <i class="fas fa-arrow-left"></i>
-        <span>Retour</span>
+        <span>{% trans "Retour" %}</span>
       </button>
     </div>
 
@@ -140,8 +141,8 @@
       </button>
 
       <div class="nav-menu-header">
-        <h2>Menu complémentaire</h2>
-        <p>Retrouvez les accès supplémentaires non présents dans la barre principale.</p>
+        <h2>{% trans "Menu complémentaire" %}</h2>
+        <p>{% trans "Retrouvez les accès supplémentaires non présents dans la barre principale." %}</p>
       </div>
 
       <div class="nav-cards-row nav-cards-compact">
@@ -155,8 +156,8 @@
             <i class="fas fa-file-alt"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Administration</h3>
-            <p>Gestion des administrations</p>
+            <h3>{% trans "Administration" %}</h3>
+            <p>{% trans "Gestion des administrations" %}</p>
           </div>
         </a>
         {% endif %}
@@ -167,8 +168,8 @@
             <i class="fas fa-bullhorn"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Annonces</h3>
-            <p>Communiquer les actualités</p>
+            <h3>{% trans "Annonces" %}</h3>
+            <p>{% trans "Communiquer les actualités" %}</p>
           </div>
         </a>
         {% endif %}
@@ -179,8 +180,8 @@
             <i class="fas fa-clipboard-list"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Gestion des examens</h3>
-            <p>Planifier et suivre les sessions</p>
+            <h3>{% trans "Gestion des examens" %}</h3>
+            <p>{% trans "Planifier et suivre les sessions" %}</p>
           </div>
         </a>
         {% endif %}
@@ -189,8 +190,8 @@
             <i class="fas fa-user-cog"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Profil</h3>
-            <p>Paramètres et informations</p>
+            <h3>{% trans "Profil" %}</h3>
+            <p>{% trans "Paramètres et informations" %}</p>
           </div>
         </a>
         {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
@@ -200,8 +201,8 @@
             <i class="fas fa-calculator"></i>
           </div>
           <div class="nav-link-content">
-            <h3>Comptabilité</h3>
-            <p>Gestion des paiements des élèves</p>
+            <h3>{% trans "Comptabilité" %}</h3>
+            <p>{% trans "Gestion des paiements des élèves" %}</p>
           </div>
         </a>
         {% endif %}
@@ -216,7 +217,7 @@
     <div class="qr-scanner-header">
       <h3>
         <i class="fas fa-qrcode"></i>
-        Scanner un QR Code
+        {% trans "Scanner un QR Code" %}
       </h3>
       <button type="button" class="qr-scanner-close" onclick="fermerScannerQR()">
         <i class="fas fa-times"></i>
@@ -228,7 +229,7 @@
       <div class="qr-scanner-instructions">
         <p>
           <i class="fas fa-info-circle"></i>
-          Positionnez le QR Code dans le cadre ci-dessus pour le scanner
+          {% trans "Positionnez le QR Code dans le cadre ci-dessus pour le scanner" %}
         </p>
       </div>
     </div>

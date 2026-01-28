@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
-    <style>
+    {% trans "<style>
         body { font-family: 'Poppins', sans-serif; background: var(--gray-50, #f9fafb); margin: 0; padding: 0; }
         .main-content-container { max-width: 800px; margin: 0 auto; padding: 2rem; }
         .form-container { background: white; border-radius: 0.5rem; box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); padding: 2rem; }
@@ -30,7 +32,7 @@
         .preview-info { background: var(--gray-50, #f9fafb); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; }
         .preview-info p { margin: 0.5rem 0; color: var(--gray-600, #4b5563); }
         .preview-info strong { color: var(--gray-800, #1f2937); }
-    </style>
+    </style>" %}
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -48,14 +50,14 @@
                 {% csrf_token %}
                 
                 <div class="preview-info">
-                    <p><strong>Année scolaire :</strong> <span id="preview_libelle">{{ annee_scolaire.libelle }}</span></p>
-                    <p><strong>Période :</strong> <span id="preview_periode">{{ annee_scolaire.date_debut|date:"d/m/Y" }} - {{ annee_scolaire.date_fin|date:"d/m/Y" }}</span></p>
+                    <p><strong>{% trans "Année scolaire :" %}</strong> <span id="preview_libelle">{{ annee_scolaire.libelle }}</span></p>
+                    <p><strong>{% trans "Période :" %}</strong> <span id="preview_periode">{{ annee_scolaire.date_debut|date:"d/m/Y" }} - {{ annee_scolaire.date_fin|date:"d/m/Y" }}</span></p>
                 </div>
                 
                 <div class="form-group">
                     <label for="date_debut">
                         <i class="fas fa-calendar-day"></i>
-                        Date de début <span style="color: #ef4444;">*</span>
+                        {% trans "Date de début <span style=\"color: #ef4444;\">*</span>" %}
                     </label>
                     <input type="date" id="date_debut" name="date_debut" value="{{ annee_scolaire.date_debut|date:'Y-m-d' }}" required>
                 </div>
@@ -63,7 +65,7 @@
                 <div class="form-group">
                     <label for="date_fin">
                         <i class="fas fa-calendar-check"></i>
-                        Date de fin <span style="color: #ef4444;">*</span>
+                        {% trans "Date de fin <span style=\"color: #ef4444;\">*</span>" %}
                     </label>
                     <input type="date" id="date_fin" name="date_fin" value="{{ annee_scolaire.date_fin|date:'Y-m-d' }}" required>
                 </div>
@@ -72,25 +74,25 @@
                     <input type="checkbox" id="est_ouverte" name="est_ouverte" {% if annee_scolaire.est_ouverte %}checked{% endif %}>
                     <label for="est_ouverte">
                         <i class="fas fa-unlock"></i>
-                        Ouvrir la session immédiatement
+                        {% trans "Ouvrir la session immédiatement" %}
                     </label>
                 </div>
                 
                 <div class="form-actions">
                     <a href="{% url 'directeur:detail_annee_scolaire' annee_scolaire.id %}" class="btn btn-secondary">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </a>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Enregistrer les modifications
+                        {% trans "Enregistrer les modifications" %}
                     </button>
                 </div>
             </form>
         </div>
     </div>
     
-    <script>
+    {% trans "<script>
         // Mise à jour automatique de l'aperçu
         function updatePreview() {
             const dateDebut = document.getElementById('date_debut').value;
@@ -114,7 +116,7 @@
         
         document.getElementById('date_debut').addEventListener('change', updatePreview);
         document.getElementById('date_fin').addEventListener('change', updatePreview);
-    </script>
+    </script>" %}
 </body>
 </html>
 

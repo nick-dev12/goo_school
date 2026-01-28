@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -39,20 +41,20 @@
         <div class="page-title-section">
           <h1 class="page-title">
             <i class="fas fa-users"></i>
-            Gestion du Personnel
+            {% trans "Gestion du Personnel" %}
           </h1>
           <p class="page-subtitle">
-            Gérez tous les membres de votre équipe éducative
+            {% trans "Gérez tous les membres de votre équipe éducative" %}
           </p>
         </div>
         <div class="page-actions">
           <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-add btn-primary">
             <i class="fas fa-chalkboard-teacher"></i>
-            <span>Ajouter un professeur</span>
+            <span>{% trans "Ajouter un professeur" %}</span>
           </a>
           <button type="button" class="btn-add btn-secondary" onclick="toggleFormAjouter()">
             <i class="fas fa-user-tie"></i>
-            <span id="btnAjouterText">Ajouter du personnel</span>
+            <span id="btnAjouterText">{% trans "Ajouter du personnel" %}</span>
           </button>
         </div>
       </div>
@@ -63,7 +65,7 @@
           <div class="form-ajouter-header">
             <h2>
               <i class="fas fa-user-plus"></i>
-              Ajouter un Membre du Personnel
+              {% trans "Ajouter un Membre du Personnel" %}
             </h2>
             <button type="button" class="btn-close-form" onclick="toggleFormAjouter()">
               <i class="fas fa-times"></i>
@@ -85,7 +87,7 @@
               
               {% if field_errors %}
                 <div class="alert alert-danger">
-                  <strong>Erreurs détectées :</strong>
+                  <strong>{% trans "Erreurs détectées :" %}</strong>
                   <ul>
                     {% for field, errors in field_errors.items %}
                       {% for error in errors %}
@@ -100,13 +102,13 @@
               <div class="form-section">
                 <h3 class="section-title-form">
                   <i class="fas fa-user"></i>
-                  Informations Personnelles
+                  {% trans "Informations Personnelles" %}
                 </h3>
                 
                 <div class="form-grid">
                   <div class="form-group">
                     <label for="nom" class="form-label">
-                      Nom <span class="required">*</span>
+                      {% trans "Nom" %} <span class="required">*</span>
                     </label>
                     <input type="text" 
                            id="nom" 
@@ -118,7 +120,7 @@
                   
                   <div class="form-group">
                     <label for="prenom" class="form-label">
-                      Prénom <span class="required">*</span>
+                      {% trans "Prénom <span class=\"required\">*</span>" %}
                     </label>
                     <input type="text" 
                            id="prenom" 
@@ -130,8 +132,8 @@
                   
                   <div class="form-group">
                     <label for="email" class="form-label">
-                      Email
-                      <span class="label-optional" style="font-weight: normal; color: var(--gray-500); font-size: 0.75rem;">(Facultatif)</span>
+                      {% trans "Email" %}
+                      <span class="label-optional" style="font-weight: normal; color: var(--gray-500); font-size: 0.75rem;">{% trans "(Facultatif)" %}</span>
                     </label>
                     <input type="email" 
                            id="email" 
@@ -143,7 +145,7 @@
                   
                   <div class="form-group">
                     <label for="telephone" class="form-label">
-                      Téléphone <span class="required">*</span>
+                      {% trans "Téléphone <span class=\"required\">*</span>" %}
                     </label>
                     <input type="tel" 
                            id="telephone" 
@@ -161,19 +163,19 @@
               <div class="form-section">
                 <h3 class="section-title-form">
                   <i class="fas fa-briefcase"></i>
-                  Fonction
+                  {% trans "Fonction" %}
                 </h3>
                 
                 <div class="form-group">
                   <label for="fonction" class="form-label">
-                    Fonction <span class="required">*</span>
+                    {% trans "Fonction" %} <span class="required">*</span>
                   </label>
                   <select id="fonction" 
                           name="fonction" 
                           class="form-input" 
                           required
                           onchange="updatePermissionsByFunction()">
-                    <option value="">Sélectionnez une fonction</option>
+                    <option value="">{% trans "Sélectionnez une fonction" %}</option>
                     {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
                       {% for code, label in fonctions_disponibles %}
                         <option value="{{ code }}" {% if form_data.fonction == code %}selected{% endif %}>
@@ -193,7 +195,7 @@
               <div class="form-section">
                 <h3 class="section-title-form">
                   <i class="fas fa-key"></i>
-                  Autorisations
+                  {% trans "Autorisations" %}
                 </h3>
                 
                 <div class="permissions-container-form">
@@ -226,11 +228,11 @@
             <div class="form-ajouter-footer">
               <button type="button" class="btn-form btn-cancel" onclick="toggleFormAjouter()">
                 <i class="fas fa-times"></i>
-                Annuler
+                {% trans "Annuler" %}
               </button>
               <button type="submit" class="btn-form btn-submit">
                 <i class="fas fa-save"></i>
-                Ajouter le personnel
+                {% trans "Ajouter le personnel" %}
               </button>
             </div>
           </form>
@@ -242,7 +244,7 @@
         <div class="tabs-nav">
           <button class="tab-btn active" data-tab="professeurs">
             <i class="fas fa-chalkboard-teacher"></i>
-            <span>Professeurs</span>
+            <span>{% trans "Professeurs" %}</span>
             <span class="tab-count">{{ stats.total_professeurs }}</span>
           </button>
           {% for key, categorie in categories_personnel.items %}
@@ -262,8 +264,8 @@
         <!-- Onglet Professeurs -->
         <div class="tab-pane active" id="professeurs-pane">
           <div class="tab-header">
-            <h2>Professeurs</h2>
-            <p>Gérez les enseignants de votre établissement</p>
+            <h2>{% trans "Professeurs" %}</h2>
+            <p>{% trans "Gérez les enseignants de votre établissement" %}</p>
           </div>
           
           <!-- Menu déroulant pour les matières -->
@@ -271,7 +273,7 @@
             <div class="filter-wrapper">
               <label for="matiere-select" class="filter-label">
                 <i class="fas fa-filter"></i>
-                Filtrer par matière
+                {% trans "Filtrer par matière" %}
               </label>
               <select id="matiere-select" class="matiere-select">
                 <option value="all">Toutes les matières ({{ stats.total_professeurs }})</option>
@@ -313,7 +315,7 @@
                   </div>
                 </div>
                 <div class="card-actions">
-                  <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="action-btn primary" title="Voir détails">
+                  <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="action-btn primary" title="{% trans "Voir détails" %}">
                     <i class="fas fa-eye"></i>
                   </a>
                   <button class="action-btn secondary" onclick="alert('Fonctionnalité de modification à venir')" title="Modifier">
@@ -329,11 +331,11 @@
                 <div class="empty-icon">
                   <i class="fas fa-chalkboard-teacher"></i>
                 </div>
-                <h3>Aucun professeur</h3>
-                <p>Commencez par ajouter des professeurs à votre équipe</p>
+                <h3>{% trans "Aucun professeur" %}</h3>
+                <p>{% trans "Commencez par ajouter des professeurs à votre équipe" %}</p>
                 <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-add">
                   <i class="fas fa-plus"></i>
-                  <span>Ajouter le premier professeur</span>
+                  <span>{% trans "Ajouter le premier professeur" %}</span>
                 </a>
               </div>
             {% endfor %}
@@ -376,7 +378,7 @@
                     </div>
                   </div>
                   <div class="card-actions">
-                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="Voir détails">
+                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="{% trans "Voir détails" %}">
                       <i class="fas fa-eye"></i>
                     </a>
                     <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
@@ -390,10 +392,10 @@
                     <i class="fas {{ categorie.icon }}"></i>
                   </div>
                   <h3>Aucun membre dans {{ categorie.label }}</h3>
-                  <p>Commencez par ajouter du personnel</p>
+                  <p>{% trans "Commencez par ajouter du personnel" %}</p>
                   <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
                     <i class="fas fa-plus"></i>
-                    <span>Ajouter un membre</span>
+                    <span>{% trans "Ajouter un membre" %}</span>
                   </a>
                 </div>
               {% endfor %}

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}" />
-    <style>
+    {% trans "<style>
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -393,7 +395,7 @@
             background: #d97706;
             transform: translateY(-2px);
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -406,10 +408,10 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-user-friends"></i>
-                    Demandes de liaison Parent-Enfant
+                    {% trans "Demandes de liaison Parent-Enfant" %}
                 </h1>
                 <p class="page-subtitle">
-                    Gérez les demandes de liaison entre parents et élèves
+                    {% trans "Gérez les demandes de liaison entre parents et élèves" %}
                 </p>
             </div>
         </div>
@@ -425,7 +427,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seules les demandes de liaison de cette année scolaire sont affichées.
+              {% trans "Seules les demandes de liaison de cette année scolaire sont affichées." %}
             </p>
           </div>
         </div>
@@ -433,7 +435,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Toutes les demandes sont affichées.
+            {% trans "Aucune année scolaire active. Toutes les demandes sont affichées." %}
           </span>
         </div>
         {% endif %}
@@ -442,27 +444,27 @@
         <div class="stats-container">
             <div class="stat-card total">
                 <div class="stat-value">{{ stats.total }}</div>
-                <div class="stat-label">Total des demandes</div>
+                <div class="stat-label">{% trans "Total des demandes" %}</div>
             </div>
             <div class="stat-card en-attente">
                 <div class="stat-value">{{ stats.en_attente }}</div>
-                <div class="stat-label">En attente</div>
+                <div class="stat-label">{% trans "En attente" %}</div>
             </div>
             <div class="stat-card bloquee">
                 <div class="stat-value">{{ stats.bloquee }}</div>
-                <div class="stat-label">Bloquées</div>
+                <div class="stat-label">{% trans "Bloquées" %}</div>
             </div>
             <div class="stat-card reussie">
                 <div class="stat-value">{{ stats.reussie }}</div>
-                <div class="stat-label">Réussies</div>
+                <div class="stat-label">{% trans "Réussies" %}</div>
             </div>
             <div class="stat-card approuvee">
                 <div class="stat-value">{{ stats.approuvee }}</div>
-                <div class="stat-label">Approuvées</div>
+                <div class="stat-label">{% trans "Approuvées" %}</div>
             </div>
             <div class="stat-card refusee">
                 <div class="stat-value">{{ stats.refusee }}</div>
-                <div class="stat-label">Refusées</div>
+                <div class="stat-label">{% trans "Refusées" %}</div>
             </div>
         </div>
 
@@ -472,17 +474,17 @@
             <div class="tabs-header">
                 <button class="tab-btn active" onclick="switchTab('a-approuver')">
                     <i class="fas fa-clock"></i>
-                    <span>À approuver</span>
+                    <span>{% trans "À approuver" %}</span>
                     <span class="tab-badge warning">{{ stats.en_attente|add:stats.bloquee }}</span>
                 </button>
                 <button class="tab-btn" onclick="switchTab('reussies')">
                     <i class="fas fa-check-circle"></i>
-                    <span>Liaisons réussies</span>
+                    <span>{% trans "Liaisons réussies" %}</span>
                     <span class="tab-badge success">{{ stats.reussie|add:stats.approuvee }}</span>
                 </button>
                 <button class="tab-btn" onclick="switchTab('refusees')">
                     <i class="fas fa-times-circle"></i>
-                    <span>Refusées</span>
+                    <span>{% trans "Refusées" %}</span>
                     <span class="tab-badge" style="background: #fee2e2; color: #991b1b;">{{ stats.refusee }}</span>
                 </button>
             </div>
@@ -497,23 +499,23 @@
                             <input type="text" 
                                    class="search-input" 
                                    id="searchApprouver"
-                                   placeholder="Rechercher par nom parent, élève, matricule..."
+                                   placeholder="{% trans "Rechercher par nom parent, élève, matricule..." %}"
                                    onkeyup="filterTable('tab-a-approuver')">
                         </div>
                     </div>
                     <div class="filter-buttons">
                         <button class="filter-btn active" onclick="filterByStatus('tab-a-approuver', 'tous')">
-                            <i class="fas fa-list"></i> Tous
+                            <i class="fas fa-list"></i> {% trans "Tous" %}
                         </button>
                         <button class="filter-btn" onclick="filterByStatus('tab-a-approuver', 'en_attente')">
-                            <i class="fas fa-clock"></i> En attente
+                            <i class="fas fa-clock"></i> {% trans "En attente" %}
                         </button>
                         <button class="filter-btn" onclick="filterByStatus('tab-a-approuver', 'bloquee')">
-                            <i class="fas fa-ban"></i> Bloquées
+                            <i class="fas fa-ban"></i> {% trans "Bloquées" %}
                         </button>
                     </div>
                     <div class="results-count" id="count-a-approuver">
-                        <strong id="count-visible-approuver">{{ stats.en_attente|add:stats.bloquee }}</strong> demande(s) affichée(s)
+                        <strong id="count-visible-approuver">{{ stats.en_attente|add:stats.bloquee }}</strong> {% trans "demande(s) affichée(s)" %}
                     </div>
                 </div>
 
@@ -523,14 +525,14 @@
                         <table id="table-a-approuver">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Parent</th>
-                                    <th>Élève</th>
-                                    <th>Classe</th>
-                                    <th>Lien</th>
-                                    <th>Tentatives</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Parent" %}</th>
+                                    <th>{% trans "Élève" %}</th>
+                                    <th>{% trans "Classe" %}</th>
+                                    <th>{% trans "Lien" %}</th>
+                                    <th>{% trans "Tentatives" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Actions" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -581,13 +583,13 @@
                                                     <form action="{% url 'directeur:approuver_demande_liaison' demande.id %}" method="POST" style="margin: 0;">
                                                         {% csrf_token %}
                                                         <button type="submit" class="btn-approve">
-                                                            <i class="fas fa-check"></i> Approuver
+                                                            <i class="fas fa-check"></i> {% trans "Approuver" %}
                                                         </button>
                                                     </form>
                                                     <form action="{% url 'directeur:rejeter_demande_liaison' demande.id %}" method="POST" style="margin: 0;">
                                                         {% csrf_token %}
                                                         <button type="submit" class="btn-reject">
-                                                            <i class="fas fa-times"></i> Rejeter
+                                                            <i class="fas fa-times"></i> {% trans "Rejeter" %}
                                                         </button>
                                                     </form>
                                                 </div>
@@ -600,16 +602,16 @@
                     {% else %}
                         <div class="empty-state">
                             <i class="fas fa-check-circle"></i>
-                            <h3>Aucune demande à traiter</h3>
-                            <p>Toutes les demandes ont été traitées.</p>
+                            <h3>{% trans "Aucune demande à traiter" %}</h3>
+                            <p>{% trans "Toutes les demandes ont été traitées." %}</p>
                         </div>
                     {% endif %}
                     {% endwith %}
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <h3>Aucune demande de liaison</h3>
-                        <p>Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement.</p>
+                        <h3>{% trans "Aucune demande de liaison" %}</h3>
+                        <p>{% trans "Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement." %}</p>
                     </div>
                 {% endif %}
             </div>
@@ -624,23 +626,23 @@
                             <input type="text" 
                                    class="search-input" 
                                    id="searchReussies"
-                                   placeholder="Rechercher par nom parent, élève, matricule..."
+                                   placeholder="{% trans "Rechercher par nom parent, élève, matricule..." %}"
                                    onkeyup="filterTable('tab-reussies')">
                         </div>
                     </div>
                     <div class="filter-buttons">
                         <button class="filter-btn active" onclick="filterByStatus('tab-reussies', 'tous')">
-                            <i class="fas fa-list"></i> Tous
+                            <i class="fas fa-list"></i> {% trans "Tous" %}
                         </button>
                         <button class="filter-btn" onclick="filterByStatus('tab-reussies', 'reussie')">
-                            <i class="fas fa-check-circle"></i> Réussies
+                            <i class="fas fa-check-circle"></i> {% trans "Réussies" %}
                         </button>
                         <button class="filter-btn" onclick="filterByStatus('tab-reussies', 'approuvee')">
-                            <i class="fas fa-check-double"></i> Approuvées
+                            <i class="fas fa-check-double"></i> {% trans "Approuvées" %}
                         </button>
                     </div>
                     <div class="results-count" id="count-reussies">
-                        <strong id="count-visible-reussies">{{ stats.reussie|add:stats.approuvee }}</strong> demande(s) affichée(s)
+                        <strong id="count-visible-reussies">{{ stats.reussie|add:stats.approuvee }}</strong> {% trans "demande(s) affichée(s)" %}
                     </div>
                 </div>
 
@@ -649,13 +651,13 @@
                         <table id="table-reussies">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Parent</th>
-                                    <th>Élève</th>
-                                    <th>Classe</th>
-                                    <th>Lien</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Parent" %}</th>
+                                    <th>{% trans "Élève" %}</th>
+                                    <th>{% trans "Classe" %}</th>
+                                    <th>{% trans "Lien" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Actions" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -686,7 +688,7 @@
                                                 <form action="{% url 'directeur:desapprouver_demande_liaison' demande.id %}" method="POST" style="margin: 0;">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn-disapprove">
-                                                        <i class="fas fa-ban"></i> Désapprouver
+                                                        <i class="fas fa-ban"></i> {% trans "Désapprouver" %}
                                                     </button>
                                                 </form>
                                             </td>
@@ -698,15 +700,15 @@
                     {% else %}
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>
-                            <h3>Aucune liaison réussie</h3>
-                            <p>Aucune demande de liaison n'a été approuvée pour le moment.</p>
+                            <h3>{% trans "Aucune liaison réussie" %}</h3>
+                            <p>{% trans "Aucune demande de liaison n'a été approuvée pour le moment." %}</p>
                         </div>
                     {% endif %}
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <h3>Aucune demande de liaison</h3>
-                        <p>Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement.</p>
+                        <h3>{% trans "Aucune demande de liaison" %}</h3>
+                        <p>{% trans "Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement." %}</p>
                     </div>
                 {% endif %}
             </div>
@@ -721,23 +723,23 @@
                             <input type="text" 
                                    class="search-input" 
                                    id="searchRefusees"
-                                   placeholder="Rechercher par nom parent, élève, matricule..."
+                                   placeholder="{% trans "Rechercher par nom parent, élève, matricule..." %}"
                                    onkeyup="filterTable('tab-refusees')">
                         </div>
                     </div>
                     <div class="filter-buttons">
                         <button class="filter-btn active" onclick="filterByStatus('tab-refusees', 'tous')">
-                            <i class="fas fa-list"></i> Tous
+                            <i class="fas fa-list"></i> {% trans "Tous" %}
                         </button>
                         <button class="filter-btn" onclick="filterByStatus('tab-refusees', 'refusee')">
-                            <i class="fas fa-times-circle"></i> Refusées
+                            <i class="fas fa-times-circle"></i> {% trans "Refusées" %}
                         </button>
                         <button class="filter-btn" onclick="filterByStatus('tab-refusees', 'echec')">
-                            <i class="fas fa-exclamation-circle"></i> Échecs
+                            <i class="fas fa-exclamation-circle"></i> {% trans "Échecs" %}
                         </button>
                     </div>
                     <div class="results-count" id="count-refusees">
-                        <strong id="count-visible-refusees">{{ stats.refusee|add:stats.echec }}</strong> demande(s) affichée(s)
+                        <strong id="count-visible-refusees">{{ stats.refusee|add:stats.echec }}</strong> {% trans "demande(s) affichée(s)" %}
                     </div>
                 </div>
 
@@ -746,14 +748,14 @@
                         <table id="table-refusees">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Parent</th>
-                                    <th>Élève</th>
-                                    <th>Classe</th>
-                                    <th>Lien</th>
-                                    <th>Tentatives</th>
-                                    <th>Statut</th>
-                                    <th>Raison</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Parent" %}</th>
+                                    <th>{% trans "Élève" %}</th>
+                                    <th>{% trans "Classe" %}</th>
+                                    <th>{% trans "Lien" %}</th>
+                                    <th>{% trans "Tentatives" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Raison" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -807,22 +809,22 @@
                     {% else %}
                         <div class="empty-state">
                             <i class="fas fa-smile"></i>
-                            <h3>Aucune demande refusée</h3>
-                            <p>Aucune demande n'a été refusée ou n'a échoué.</p>
+                            <h3>{% trans "Aucune demande refusée" %}</h3>
+                            <p>{% trans "Aucune demande n'a été refusée ou n'a échoué." %}</p>
                         </div>
                     {% endif %}
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <h3>Aucune demande de liaison</h3>
-                        <p>Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement.</p>
+                        <h3>{% trans "Aucune demande de liaison" %}</h3>
+                        <p>{% trans "Aucune demande de liaison parent-enfant n'a été enregistrée pour cet établissement." %}</p>
                     </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- JavaScript pour les onglets, recherche et filtres -->
-        <script>
+        {% trans "<script>
             function switchTab(tabName) {
                 // Désactiver tous les onglets
                 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -961,7 +963,7 @@
                     updateCount(tabId, visibleCount);
                 }
             }
-        </script>
+        </script>" %}
     </div>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

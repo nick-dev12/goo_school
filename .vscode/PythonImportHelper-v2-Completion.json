@@ -43,6 +43,14 @@
         "documentation": {}
     },
     {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
         "label": "sys",
         "kind": 6,
         "isExtraImport": true,
@@ -10395,6 +10403,15 @@
         "documentation": {}
     },
     {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
         "label": "BeautifulSoup",
         "importPath": "bs4",
         "description": "bs4",
@@ -15232,7 +15249,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def voir_bulletin_eleve(request, classe_id, eleve_id):\n    \"\"\"Affiche le bulletin détaillé d'un élève pour la période active.\"\"\"\n    context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)\n    if redirect_response:\n        return redirect_response\n    return render(request, 'school_admin/directeur/voir_bulletin_eleve.html', context)\n@login_required\ndef imprimer_bulletin_eleve(request, classe_id, eleve_id):\n    \"\"\"Affiche la version impression du bulletin d'un élève.\"\"\"\n    context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)",
+        "peekOfCode": "def voir_bulletin_eleve(request, classe_id, eleve_id):\n    \"\"\"Affiche le bulletin détaillé d'un élève pour la période active.\"\"\"\n    context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)\n    if redirect_response:\n        return redirect_response\n    if not context:\n        messages.error(request, \"L'élève n'est pas inscrit dans cette classe pour l'année scolaire active.\")\n        return redirect('directeur:bulletins_notes')\n    return render(request, 'school_admin/directeur/voir_bulletin_eleve.html', context)\n@login_required",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -15241,7 +15258,7 @@
         "kind": 2,
         "importPath": "school_admin.personal_views.directeur_view",
         "description": "school_admin.personal_views.directeur_view",
-        "peekOfCode": "def imprimer_bulletin_eleve(request, classe_id, eleve_id):\n    \"\"\"Affiche la version impression du bulletin d'un élève.\"\"\"\n    context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)\n    if redirect_response:\n        return redirect_response\n    return render(request, 'school_admin/directeur/imprimer_bulletin_eleve.html', context)\n@login_required\ndef imprimer_bulletins_classe(request, classe_id):\n    \"\"\"Affiche tous les bulletins d'une classe pour l'impression.\"\"\"\n    if not isinstance(request.user, Etablissement):",
+        "peekOfCode": "def imprimer_bulletin_eleve(request, classe_id, eleve_id):\n    \"\"\"Affiche la version impression du bulletin d'un élève.\"\"\"\n    context, redirect_response = _build_bulletin_context(request, classe_id, eleve_id)\n    if redirect_response:\n        return redirect_response\n    if not context:\n        messages.error(request, \"L'élève n'est pas inscrit dans cette classe pour l'année scolaire active.\")\n        return redirect('directeur:bulletins_notes')\n    return render(request, 'school_admin/directeur/imprimer_bulletin_eleve.html', context)\n@login_required",
         "detail": "school_admin.personal_views.directeur_view",
         "documentation": {}
     },
@@ -18537,6 +18554,60 @@
         "description": "add_moyenne_avec_coefficient",
         "peekOfCode": "def add_column():\n    with connection.cursor() as cursor:\n        try:\n            # Vérifier si la colonne existe déjà\n            cursor.execute(\"\"\"\n                SELECT column_name \n                FROM information_schema.columns \n                WHERE table_name='school_admin_moyenneperiode' \n                AND column_name='moyenne_avec_coefficient'\n            \"\"\")",
         "detail": "add_moyenne_avec_coefficient",
+        "documentation": {}
+    },
+    {
+        "label": "translate_text",
+        "kind": 2,
+        "importPath": "auto_translate_po",
+        "description": "auto_translate_po",
+        "peekOfCode": "def translate_text(text, source_lang='fr', target_lang='en'):\n    \"\"\"Traduit un texte en utilisant Google Translate\"\"\"\n    try:\n        translator = GoogleTranslator(source=source_lang, target=target_lang)\n        translated = translator.translate(text)\n        return translated\n    except Exception as e:\n        print(f\"Erreur de traduction pour '{text[:50]}...': {e}\")\n        return text  # Retourner le texte original en cas d'erreur\ndef translate_po_file(po_path, target_lang):",
+        "detail": "auto_translate_po",
+        "documentation": {}
+    },
+    {
+        "label": "translate_po_file",
+        "kind": 2,
+        "importPath": "auto_translate_po",
+        "description": "auto_translate_po",
+        "peekOfCode": "def translate_po_file(po_path, target_lang):\n    \"\"\"Traduit un fichier .po complet\"\"\"\n    print(f\"\\nTraduction de {po_path.name} vers {target_lang}...\")\n    try:\n        # Lire le fichier .po\n        with open(po_path, 'rb') as f:\n            catalog = read_po(f)\n        total_messages = len([m for m in catalog if m.id])\n        translated_count = 0\n        skipped_count = 0",
+        "detail": "auto_translate_po",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "auto_translate_po",
+        "description": "auto_translate_po",
+        "peekOfCode": "def main():\n    print(\"Traduction automatique des fichiers .po\")\n    print(\"=\" * 60)\n    print(\"\\nCe script va traduire automatiquement tous les fichiers .po\")\n    print(\"en utilisant Google Translate (gratuit mais avec limitations).\")\n    print(\"\\nATTENTION: Cela peut prendre du temps (plusieurs minutes)\")\n    print(\"et nécessite une connexion Internet.\")\n    print(\"\\nAppuyez sur Entrée pour continuer ou Ctrl+C pour annuler...\")\n    try:\n        input()",
+        "detail": "auto_translate_po",
+        "documentation": {}
+    },
+    {
+        "label": "BASE_DIR",
+        "kind": 5,
+        "importPath": "auto_translate_po",
+        "description": "auto_translate_po",
+        "peekOfCode": "BASE_DIR = Path(__file__).parent\nLOCALE_DIR = BASE_DIR / 'locale'\n# Mapping des langues\nLANGUAGE_MAP = {\n    'en': 'en',\n    'es': 'es',\n    'ar': 'ar',\n    'fr': 'fr'\n}\ndef translate_text(text, source_lang='fr', target_lang='en'):",
+        "detail": "auto_translate_po",
+        "documentation": {}
+    },
+    {
+        "label": "LOCALE_DIR",
+        "kind": 5,
+        "importPath": "auto_translate_po",
+        "description": "auto_translate_po",
+        "peekOfCode": "LOCALE_DIR = BASE_DIR / 'locale'\n# Mapping des langues\nLANGUAGE_MAP = {\n    'en': 'en',\n    'es': 'es',\n    'ar': 'ar',\n    'fr': 'fr'\n}\ndef translate_text(text, source_lang='fr', target_lang='en'):\n    \"\"\"Traduit un texte en utilisant Google Translate\"\"\"",
+        "detail": "auto_translate_po",
+        "documentation": {}
+    },
+    {
+        "label": "LANGUAGE_MAP",
+        "kind": 5,
+        "importPath": "auto_translate_po",
+        "description": "auto_translate_po",
+        "peekOfCode": "LANGUAGE_MAP = {\n    'en': 'en',\n    'es': 'es',\n    'ar': 'ar',\n    'fr': 'fr'\n}\ndef translate_text(text, source_lang='fr', target_lang='en'):\n    \"\"\"Traduit un texte en utilisant Google Translate\"\"\"\n    try:\n        translator = GoogleTranslator(source=source_lang, target=target_lang)",
+        "detail": "auto_translate_po",
         "documentation": {}
     },
     {

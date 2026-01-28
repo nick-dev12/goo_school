@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load eleve_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,7 +40,7 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-user-shield"></i>
-                    Attestations de Conduite
+                    {% trans "Attestations de Conduite" %}
                 </h1>
                 <p class="page-subtitle">
                     Générer des certificats de bonne conduite pour les élèves de {{ etablissement.nom }}
@@ -47,7 +49,7 @@
             <div class="page-actions">
                 <a href="{% url 'directeur:gestion_administrative' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour</span>
+                    <span>{% trans "Retour" %}</span>
                 </a>
             </div>
         </div>
@@ -63,7 +65,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seuls les élèves inscrits pour cette année scolaire sont affichés.
+              {% trans "Seuls les élèves inscrits pour cette année scolaire sont affichés." %}
             </p>
           </div>
         </div>
@@ -71,7 +73,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Tous les élèves sont affichés.
+            {% trans "Aucune année scolaire active. Tous les élèves sont affichés." %}
           </span>
         </div>
         {% endif %}
@@ -94,7 +96,7 @@
                                 </div>
                                 <div class="tab-stats">
                                     <span class="students-count">{{ data.total_eleves }}</span>
-                                    <span class="students-label">élèves</span>
+                                    <span class="students-label">{% trans "élèves" %}</span>
                                 </div>
                             </div>
                         </button>
@@ -150,7 +152,7 @@
                                             <input type="text" 
                                                    class="search-input" 
                                                    id="search-input-{{ classe_data.classe.id }}" 
-                                                   placeholder="Rechercher un élève (nom, prénom, numéro...)"
+                                                   placeholder="{% trans "Rechercher un élève (nom, prénom, numéro...)" %}"
                                                    oninput="filterStudentsConduite('{{ classe_data.classe.id }}')"
                                                    style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
                                             <button class="clear-search" 
@@ -165,35 +167,35 @@
                                             <div class="filter-group" style="flex: 1; min-width: 200px;">
                                                 <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
                                                     <i class="fas fa-venus-mars"></i>
-                                                    Sexe
+                                                    {% trans "Sexe" %}
                                                 </label>
                                                 <select class="filter-select" id="filter-sexe-{{ classe_data.classe.id }}" onchange="filterStudentsConduite('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                    <option value="">Tous</option>
-                                                    <option value="M">Masculin</option>
-                                                    <option value="F">Féminin</option>
+                                                    <option value="">{% trans "Tous" %}</option>
+                                                    <option value="M">{% trans "Masculin" %}</option>
+                                                    <option value="F">{% trans "Féminin" %}</option>
                                                 </select>
                                             </div>
                                             
                                             <button class="btn-reset-filters" onclick="resetFiltersConduite('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                                 <i class="fas fa-redo"></i>
-                                                Réinitialiser
+                                                {% trans "Réinitialiser" %}
                                             </button>
                                         </div>
                                         
                                         <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> résultat(s) trouvé(s)
+                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                         </div>
                                     </div>
 
                                     {% if classe_data.eleves %}
                                         <div class="students-list">
                                             <div class="list-header">
-                                                <div class="list-cell header-cell">Élève</div>
-                                                <div class="list-cell header-cell">Numéro</div>
-                                                <div class="list-cell header-cell">Classe</div>
-                                                <div class="list-cell header-cell">Âge</div>
-                                                <div class="list-cell header-cell">Sexe</div>
-                                                <div class="list-cell header-cell">Actions</div>
+                                                <div class="list-cell header-cell">{% trans "Élève" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Numéro" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Classe" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Âge" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Sexe" %}</div>
+                                                <div class="list-cell header-cell">{% trans "Actions" %}</div>
                                             </div>
                                             
                                             {% for eleve in classe_data.eleves %}
@@ -233,7 +235,7 @@
                                                         <div class="student-actions-compact">
                                                             <a href="{% url 'directeur:generer_attestation_conduite' eleve.id %}" 
                                                                class="btn-action-small btn-conduite" 
-                                                               title="Générer attestation de conduite"
+                                                               title="{% trans "Générer attestation de conduite" %}"
                                                                target="_blank">
                                                                 <i class="fas fa-user-shield"></i>
                                                             </a>
@@ -247,8 +249,8 @@
                                             <div class="empty-icon">
                                                 <i class="fas fa-user-slash"></i>
                                             </div>
-                                            <h3 class="empty-title">Aucun élève inscrit</h3>
-                                            <p class="empty-description">Cette classe ne contient aucun élève pour le moment.</p>
+                                            <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
+                                            <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
                                         </div>
                                     {% endif %}
                                 </div>

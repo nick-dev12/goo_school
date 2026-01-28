@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load notes_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relevé de Notes - {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <title>{% trans "Grade Report" %} - {{ classe.nom }} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/imprimer_releve_notes.css' %}">
 </head>
@@ -25,7 +27,7 @@
                 </div>
                 <div class="header-info">
                     <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
-                    <p class="releve-notes-titre">RELEVÉ DE NOTES</p>
+                    <p class="releve-notes-titre">{% trans "RELEVÉ DE NOTES" %}</p>
                     {% if etablissement.adresse %}
                         <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
                     {% endif %}
@@ -47,23 +49,23 @@
             <div class="header-right">
                 <div class="document-info-header">
                     <div class="info-item-header">
-                        <span class="info-label-header">Classe :</span>
+                        <span class="info-label-header">{% trans "Classe :" %}</span>
                         <span class="info-value-header">{{ classe.nom }} - {{ classe.get_niveau_display }}</span>
                     </div>
                     <div class="info-item-header">
-                        <span class="info-label-header">Période :</span>
+                        <span class="info-label-header">{% trans "Période :" %}</span>
                         <span class="info-value-header">{{ periode.nom_periode }}</span>
                     </div>
                     <div class="info-item-header">
-                        <span class="info-label-header">Année scolaire :</span>
+                        <span class="info-label-header">{% trans "Année scolaire :" %}</span>
                         <span class="info-value-header">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ periode.annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
                     </div>
                     <div class="info-item-header">
-                        <span class="info-label-header">Nombre d'élèves :</span>
+                        <span class="info-label-header">{% trans "Nombre d'élèves :" %}</span>
                         <span class="info-value-header">{{ nombre_eleves }}</span>
                     </div>
                     <div class="info-item-header">
-                        <span class="info-label-header">Nombre de matières :</span>
+                        <span class="info-label-header">{% trans "Nombre de matières :" %}</span>
                         <span class="info-value-header">{{ nombre_matieres }}</span>
                     </div>
                 </div>
@@ -77,8 +79,8 @@
                 <table class="notes-table">
                     <thead>
                         <tr>
-                            <th class="col-rang">Rang</th>
-                            <th class="col-eleve">Nom et Prénom</th>
+                            <th class="col-rang">{% trans "Rang" %}</th>
+                            <th class="col-eleve">{% trans "Nom et Prénom" %}</th>
                             {% for matiere in matieres %}
                                 <th class="col-matiere" title="{{ matiere.nom }}">
                                     <div class="matiere-nom">{{ matiere.nom }}</div>
@@ -126,15 +128,15 @@
                 <table class="notes-table">
                     <thead>
                         <tr>
-                            <th class="col-rang">Rang</th>
-                            <th class="col-eleve">Nom et Prénom</th>
+                            <th class="col-rang">{% trans "Rang" %}</th>
+                            <th class="col-eleve">{% trans "Nom et Prénom" %}</th>
                             {% for matiere in matieres %}
                                 <th class="col-matiere" title="{{ matiere.nom }}">
                                     <div class="matiere-nom">{{ matiere.nom }}</div>
                                     <div class="matiere-coef">(Coef. {{ matiere.coefficient }})</div>
                                 </th>
                             {% endfor %}
-                            <th class="col-moyenne-generale">Moyenne Générale</th>
+                            <th class="col-moyenne-generale">{% trans "Moyenne Générale" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -189,7 +191,7 @@
                 Document officiel généré le {{ "now"|date:"d/m/Y à H:i" }} - {{ etablissement.nom }}
             </p>
             <p class="footer-signature">
-                Le Directeur
+                {% trans "Le Directeur" %}
             </p>
         </footer>
     </div>
@@ -198,15 +200,15 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer le relevé
+            {% trans "Imprimer le relevé" %}
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
         // Imprimer automatiquement si le paramètre est présent dans l'URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -217,7 +219,7 @@
                 }, 500);
             };
         }
-    </script>
+    </script>" %}
 </body>
 </html>
 

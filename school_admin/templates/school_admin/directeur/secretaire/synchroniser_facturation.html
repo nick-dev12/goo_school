@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,7 +23,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/partials/messages.css' %}"
     />
-    <style>
+    {% trans "<style>
       body {
         font-family: 'Poppins', sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -243,7 +245,7 @@
         margin-bottom: 8px;
         line-height: 1.5;
       }
-    </style>
+    </style>" %}
   </head>
   <body>
     <!-- Header -->
@@ -259,10 +261,10 @@
       <div class="page-header">
         <h1 class="page-title">
           <i class="fas fa-sync-alt"></i>
-          Synchroniser la Facturation
+          {% trans "Synchroniser la Facturation" %}
         </h1>
         <p class="page-subtitle">
-          Recalculer les données de facturation basées sur les élèves actifs
+          {% trans "Recalculer les données de facturation basées sur les élèves actifs" %}
         </p>
       </div>
 
@@ -271,7 +273,7 @@
         <div class="card-header">
           <h2>
             <i class="fas fa-calculator"></i>
-            Comparaison des Données
+            {% trans "Comparaison des Données" %}
           </h2>
         </div>
         
@@ -280,13 +282,13 @@
           <div class="info-section">
             <h4>
               <i class="fas fa-info-circle"></i>
-              À propos de la synchronisation :
+              {% trans "À propos de la synchronisation :" %}
             </h4>
             <ul>
-              <li>Recalcule le nombre d'élèves facturés basé sur les élèves actifs</li>
-              <li>Recalcule le montant total de facturation</li>
-              <li>Met à jour la date de dernière facturation</li>
-              <li>Assure la cohérence des données financières</li>
+              <li>{% trans "Recalcule le nombre d'élèves facturés basé sur les élèves actifs" %}</li>
+              <li>{% trans "Recalcule le montant total de facturation" %}</li>
+              <li>{% trans "Met à jour la date de dernière facturation" %}</li>
+              <li>{% trans "Assure la cohérence des données financières" %}</li>
             </ul>
           </div>
 
@@ -296,21 +298,21 @@
             <div class="comparison-card current">
               <h3 class="card-title">
                 <i class="fas fa-database"></i>
-                Données Actuelles
+                {% trans "Données Actuelles" %}
               </h3>
               
               <div class="stat-item">
-                <span class="stat-label">Nombre d'élèves facturés</span>
+                <span class="stat-label">{% trans "Nombre d'élèves facturés" %}</span>
                 <span class="stat-value warning">{{ nombre_actuel }}</span>
               </div>
               
               <div class="stat-item">
-                <span class="stat-label">Montant total facturation</span>
+                <span class="stat-label">{% trans "Montant total facturation" %}</span>
                 <span class="stat-value warning">{{ montant_actuel }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</span>
               </div>
               
               <div class="stat-item">
-                <span class="stat-label">Montant par élève</span>
+                <span class="stat-label">{% trans "Montant par élève" %}</span>
                 <span class="stat-value">{{ montant_par_eleve }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</span>
               </div>
             </div>
@@ -319,21 +321,21 @@
             <div class="comparison-card calculated">
               <h3 class="card-title">
                 <i class="fas fa-calculator"></i>
-                Données Calculées
+                {% trans "Données Calculées" %}
               </h3>
               
               <div class="stat-item">
-                <span class="stat-label">Élèves actifs</span>
+                <span class="stat-label">{% trans "Élèves actifs" %}</span>
                 <span class="stat-value highlight">{{ eleves_actifs }}</span>
               </div>
               
               <div class="stat-item">
-                <span class="stat-label">Montant total calculé</span>
+                <span class="stat-label">{% trans "Montant total calculé" %}</span>
                 <span class="stat-value highlight">{{ montant_total_calcule }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</span>
               </div>
               
               <div class="stat-item">
-                <span class="stat-label">Montant par élève</span>
+                <span class="stat-label">{% trans "Montant par élève" %}</span>
                 <span class="stat-value">{{ montant_par_eleve }}{% if devise_etablissement %} {{ devise_etablissement }}{% endif %}</span>
               </div>
             </div>
@@ -344,22 +346,22 @@
             <div class="difference-section">
               <h3 class="difference-title">
                 <i class="fas fa-exclamation-triangle"></i>
-                Différences Détectées
+                {% trans "Différences Détectées" %}
               </h3>
               <p class="difference-text">
-                Les données actuelles ne correspondent pas aux données calculées. 
-                Une synchronisation est recommandée pour assurer la cohérence des données financières.
+                {% trans "Les données actuelles ne correspondent pas aux données calculées." %}
+                {% trans "Une synchronisation est recommandée pour assurer la cohérence des données financières." %}
               </p>
             </div>
           {% else %}
             <div class="difference-section" style="background: #d4edda; border-color: #c3e6cb;">
               <h3 class="difference-title" style="color: #155724;">
                 <i class="fas fa-check-circle"></i>
-                Données Synchronisées
+                {% trans "Données Synchronisées" %}
               </h3>
               <p class="difference-text" style="color: #155724;">
-                Les données actuelles correspondent aux données calculées. 
-                Aucune synchronisation n'est nécessaire.
+                {% trans "Les données actuelles correspondent aux données calculées." %}
+                {% trans "Aucune synchronisation n'est nécessaire." %}
               </p>
             </div>
           {% endif %}
@@ -368,14 +370,14 @@
           <div class="actions">
             <a href="{% url 'secretaire:dashboard_secretaire' %}" class="btn btn-secondary">
               <i class="fas fa-arrow-left"></i>
-              Retour au tableau de bord
+              {% trans "Retour au tableau de bord" %}
             </a>
             {% if nombre_actuel != eleves_actifs or montant_actuel != montant_total_calcule %}
               <form method="post" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary">
                   <i class="fas fa-sync-alt"></i>
-                  Synchroniser maintenant
+                  {% trans "Synchroniser maintenant" %}
                 </button>
               </form>
             {% endif %}

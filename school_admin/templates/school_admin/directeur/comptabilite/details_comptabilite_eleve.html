@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -25,7 +27,7 @@
         rel="stylesheet"
         href="{% static 'school_admin/css/partials/messages.css' %}"
     />
-    <style>
+    {% trans "<style>
         .comptabilite-details-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -170,7 +172,7 @@
                 font-size: 0.875rem;
             }
         }
-    </style>
+    </style>" %}
 </head>
 <body>
     <!-- Header -->
@@ -192,11 +194,11 @@
             <div class="page-actions" style="display: flex; gap: 1rem;">
                 <a href="{% url 'directeur:enregistrer_paiement_directeur' eleve.id %}" class="btn btn-success">
                     <i class="fas fa-money-bill-wave"></i>
-                    Enregistrer un paiement
+                    {% trans "Enregistrer un paiement" %}
                 </a>
                 <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour à la liste
+                    {% trans "Retour à la liste" %}
                 </a>
             </div>
         </div>
@@ -214,19 +216,19 @@
             <!-- Résumé financier -->
             <div class="summary-cards">
                 <div class="summary-card">
-                    <div class="summary-card-label">Total dû</div>
+                    <div class="summary-card-label">{% trans "Total dû" %}</div>
                     <div class="summary-card-value">{{ total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                 </div>
                 <div class="summary-card success">
-                    <div class="summary-card-label">Total payé</div>
+                    <div class="summary-card-label">{% trans "Total payé" %}</div>
                     <div class="summary-card-value">{{ total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                 </div>
                 <div class="summary-card {% if reste_a_payer > 0 %}danger{% else %}success{% endif %}">
-                    <div class="summary-card-label">Reste à payer</div>
+                    <div class="summary-card-label">{% trans "Reste à payer" %}</div>
                     <div class="summary-card-value">{{ reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                 </div>
                 <div class="summary-card {% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}">
-                    <div class="summary-card-label">Statut</div>
+                    <div class="summary-card-label">{% trans "Statut" %}</div>
                     <div class="summary-card-value">
                         <span class="badge badge-{% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}">
                             {{ comptabilite.get_statut_paiement_display }}
@@ -239,20 +241,20 @@
             <div class="section-card">
                 <h2 class="section-title">
                     <i class="fas fa-user-plus"></i>
-                    Frais d'inscription / Réinscription
+                    {% trans "Frais d'inscription / Réinscription" %}
                 </h2>
                 {% if frais_inscription_avec_paiements %}
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Type</th>
-                                    <th>Montant à payer</th>
-                                    <th>Montant payé</th>
-                                    <th>Reste à payer</th>
-                                    <th>Date d'échéance</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
+                                    <th>{% trans "Type" %}</th>
+                                    <th>{% trans "Montant à payer" %}</th>
+                                    <th>{% trans "Montant payé" %}</th>
+                                    <th>{% trans "Reste à payer" %}</th>
+                                    <th>{% trans "Date d'échéance" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Actions" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -277,10 +279,10 @@
                                             {% if reste > 0 %}
                                             <button type="button" class="btn btn-success" onclick="openPaiementModal('frais', {{ frais.id }}, {{ frais_data.montant_total|floatformat:0 }}, {{ frais_data.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                                                 <i class="fas fa-money-bill-wave"></i>
-                                                Payer
+                                                {% trans "Payer" %}
                                             </button>
                                             {% else %}
-                                            <span class="badge badge-success">Payé</span>
+                                            <span class="badge badge-success">{% trans "Payé" %}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -290,7 +292,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p style="color: var(--text-secondary, #6b7280);">Aucun frais d'inscription enregistré.</p>
+                    <p style="color: var(--text-secondary, #6b7280);">{% trans "Aucun frais d'inscription enregistré." %}</p>
                 {% endif %}
             </div>
 
@@ -299,21 +301,21 @@
             <div class="section-card">
                 <h2 class="section-title">
                     <i class="fas fa-calendar-alt"></i>
-                    Mensualités
+                    {% trans "Mensualités" %}
                 </h2>
                 {% if mensualites_avec_paiements %}
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Élève</th>
-                                    <th>Mois</th>
-                                    <th>Montant à payer</th>
-                                    <th>Montant payé</th>
-                                    <th>Reste à payer</th>
-                                    <th>Date d'échéance</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
+                                    <th>{% trans "Élève" %}</th>
+                                    <th>{% trans "Mois" %}</th>
+                                    <th>{% trans "Montant à payer" %}</th>
+                                    <th>{% trans "Montant payé" %}</th>
+                                    <th>{% trans "Reste à payer" %}</th>
+                                    <th>{% trans "Date d'échéance" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Actions" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -340,9 +342,9 @@
                                             {% elif mensualite.statut == 'mp' %}
                                                 {# Pour les mois précédents, afficher impayé ou en retard selon le cas #}
                                                 {% if mensualite_data.montant_paye == 0 %}
-                                                    <span class="badge badge-danger" style="background-color: #ef4444; color: white; font-weight: 600;">Impayé</span>
+                                                    <span class="badge badge-danger" style="background-color: #ef4444; color: white; font-weight: 600;">{% trans "Impayé" %}</span>
                                                 {% else %}
-                                                    <span class="badge badge-warning" style="background-color: #fbbf24; color: #1f2937; font-weight: 600;">En retard</span>
+                                                    <span class="badge badge-warning" style="background-color: #fbbf24; color: #1f2937; font-weight: 600;">{% trans "En retard" %}</span>
                                                 {% endif %}
                                             {% else %}
                                                 <span class="badge badge-info">{{ mensualite.get_statut_display }}</span>
@@ -352,10 +354,10 @@
                                             {% if reste > 0 %}
                                             <button type="button" class="btn btn-success" onclick="openPaiementModal('mensualite', {{ mensualite.id }}, {{ mensualite_data.montant_total|floatformat:0 }}, {{ mensualite_data.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                                                 <i class="fas fa-money-bill-wave"></i>
-                                                Payer
+                                                {% trans "Payer" %}
                                             </button>
                                             {% else %}
-                                            <span class="badge badge-success">Payé</span>
+                                            <span class="badge badge-success">{% trans "Payé" %}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -365,7 +367,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p style="color: var(--text-secondary, #6b7280);">Aucune mensualité enregistrée.</p>
+                    <p style="color: var(--text-secondary, #6b7280);">{% trans "Aucune mensualité enregistrée." %}</p>
                 {% endif %}
             </div>
             {% endif %}
@@ -374,18 +376,18 @@
             <div class="section-card">
                 <h2 class="section-title">
                     <i class="fas fa-history"></i>
-                    Historique des paiements
+                    {% trans "Historique des paiements" %}
                 </h2>
                 {% if paiements %}
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Montant</th>
-                                    <th>Type</th>
-                                    <th>Méthode</th>
-                                    <th>Référence</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Montant" %}</th>
+                                    <th>{% trans "Type" %}</th>
+                                    <th>{% trans "Méthode" %}</th>
+                                    <th>{% trans "Référence" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -402,7 +404,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p style="color: var(--text-secondary, #6b7280);">Aucun paiement enregistré.</p>
+                    <p style="color: var(--text-secondary, #6b7280);">{% trans "Aucun paiement enregistré." %}</p>
                 {% endif %}
             </div>
         </div>
@@ -414,7 +416,7 @@
             <div class="modal-header">
                 <h2>
                     <i class="fas fa-money-bill-wave"></i>
-                    Enregistrer un paiement
+                    {% trans "Enregistrer un paiement" %}
                 </h2>
                 <button type="button" class="modal-close" onclick="closePaiementModal()" aria-label="Fermer">
                     <i class="fas fa-times"></i>
@@ -426,19 +428,19 @@
                     
                     <div class="form-group" style="margin-bottom: 1.5rem;">
                         <label style="font-weight: 600; color: var(--text-secondary, #6b5563); margin-bottom: 0.5rem; display: block;">
-                            Montant à payer
+                            {% trans "Montant à payer" %}
                         </label>
                         <div style="background: var(--gray-50, #f9fafb); padding: 1rem; border-radius: 8px; border: 2px solid var(--gray-200, #e5e7eb);">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="color: var(--text-secondary, #6b7280);">Montant total :</span>
+                                <span style="color: var(--text-secondary, #6b7280);">{% trans "Montant total :" %}</span>
                                 <strong id="montantTotal" style="color: var(--text-primary, #1f2937);">0 {{ devise_monnaie|default:"FCFA" }}</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="color: var(--text-secondary, #6b7280);">Déjà payé :</span>
+                                <span style="color: var(--text-secondary, #6b7280);">{% trans "Déjà payé :" %}</span>
                                 <strong id="montantPaye" style="color: var(--success, #10b981);">0 {{ devise_monnaie|default:"FCFA" }}</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 2px solid var(--gray-200, #e5e7eb);">
-                                <span style="color: var(--text-secondary, #6b7280); font-weight: 600;">Reste à payer :</span>
+                                <span style="color: var(--text-secondary, #6b7280); font-weight: 600;">{% trans "Reste à payer :" %}</span>
                                 <strong id="resteAPayer" style="color: var(--accent, #ef4444); font-size: 1.125rem;">0 {{ devise_monnaie|default:"FCFA" }}</strong>
                             </div>
                         </div>
@@ -459,7 +461,7 @@
                             style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.9375rem;"
                         />
                         <small style="display: block; margin-top: 0.25rem; color: var(--text-light, #9ca3af); font-size: 0.8125rem;">
-                            Entrez le montant que l'élève a donné. Le reste à payer sera calculé automatiquement.
+                            {% trans "Entrez le montant que l'élève a donné. Le reste à payer sera calculé automatiquement." %}
                         </small>
                     </div>
                     
@@ -467,24 +469,24 @@
                     <div class="form-group" id="resteAPayerDisplay" style="margin-bottom: 1.5rem; display: none;">
                         <label style="font-weight: 600; color: var(--text-secondary, #6b5563); margin-bottom: 0.5rem; display: block;">
                             <i class="fas fa-calculator"></i>
-                            Reste à payer après ce versement
+                            {% trans "Reste à payer après ce versement" %}
                         </label>
                         <div style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 1rem; border-radius: 8px; border: 2px solid var(--warning, #fbbf24);">
                             <strong id="resteAPayerApresVersement" style="color: var(--accent, #ef4444); font-size: 1.125rem;">0 {{ devise_monnaie|default:"FCFA" }}</strong>
                         </div>
                         <small style="display: block; margin-top: 0.25rem; color: var(--text-light, #9ca3af); font-size: 0.8125rem;">
-                            Montant restant à payer après l'enregistrement de ce paiement
+                            {% trans "Montant restant à payer après l'enregistrement de ce paiement" %}
                         </small>
                     </div>
                     
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i>
-                            Enregistrer le paiement
+                            {% trans "Enregistrer le paiement" %}
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="closePaiementModal()">
                             <i class="fas fa-times"></i>
-                            Annuler
+                            {% trans "Annuler" %}
                         </button>
                     </div>
                 </form>

@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Notifications - Directeur</title>
+    <title>{% trans "Notifications - Directeur" %}</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <style>
+    {% trans "<style>
       :root {
         --primary: #3b82f6;
         --secondary: #7c3aed;
@@ -177,20 +179,20 @@
         margin: 0;
         color: var(--gray-600);
       }
-    </style>
+    </style>" %}
   </head>
   <body>
     <div class="page-wrapper">
       <header class="page-header">
-        <h1>Notifications reçues</h1>
+        <h1>{% trans "Notifications reçues" %}</h1>
         <p>
-          Retrouvez ici les dernières notifications soumises par les enseignants.
-          Les éléments consultés sont automatiquement archivés.
+          {% trans "Retrouvez ici les dernières notifications soumises par les enseignants." %}
+          {% trans "Les éléments consultés sont automatiquement archivés." %}
         </p>
         <div class="actions">
           <a href="{% url 'directeur:dashboard_directeur' %}" class="btn btn-primary">
             <i class="fas fa-arrow-left"></i>
-            Retour au tableau de bord
+            {% trans "Retour au tableau de bord" %}
           </a>
         </div>
       </header>
@@ -209,7 +211,7 @@
                   {{ notification.date_creation|date:"d/m/Y H:i" }}
                 </span>
                 {% if not notification.lu %}
-                  <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Nouveau</span>
+                  <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">{% trans "Nouveau" %}</span>
                 {% endif %}
                 {% if notification.lu and notification.date_lecture %}
                   <span style="color: var(--gray-400);">
@@ -254,13 +256,13 @@
       {% else %}
         <div class="empty-state">
           <i class="fas fa-bell-slash"></i>
-          <h2>Aucune notification</h2>
-          <p>Vous n'avez aucune nouvelle notification pour le moment.</p>
+          <h2>{% trans "Aucune notification" %}</h2>
+          <p>{% trans "Vous n'avez aucune nouvelle notification pour le moment." %}</p>
         </div>
       {% endif %}
     </div>
 
-    <script>
+    {% trans "<script>
       // Mettre à jour le compteur de notifications dans le header après le chargement de la page
       document.addEventListener('DOMContentLoaded', function() {
         // Le nombre de notifications non lues après marquage (depuis le contexte)
@@ -302,7 +304,7 @@
           }
         }
       });
-    </script>
+    </script>" %}
   </body>
 </html>
 

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load permissions_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestion des Élèves - {{ etablissement.nom }}</title>
+    <title>{% trans "Student Management" %} - {{ etablissement.nom }}</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet"
@@ -34,17 +36,17 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-user-graduate"></i>
-                    Gestion des Élèves
+                    {% trans "Gestion des Élèves" %}
                 </h1>
                 <p class="page-subtitle">
-                    Gérez efficacement les dossiers, inscriptions et suivi des élèves
+                    {% trans "Gérez efficacement les dossiers, inscriptions et suivi des élèves" %}
                 </p>
             </div>
         </div>
 
         <!-- Navigation Links Container -->
         <div class="navigation-container">
-            <h2 class="section-title">Outils de gestion des élèves</h2>
+            <h2 class="section-title">{% trans "Outils de gestion des élèves" %}</h2>
             
             <div class="nav-cards-grid">
                 {% check_permission request.user "eleves_inscrire" as can_inscrire_eleves %}
@@ -54,8 +56,8 @@
                         <i class="fas fa-user-plus"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Inscrire un élève</h3>
-                        <p>Ajout de nouveaux élèves</p>
+                        <h3>{% trans "Inscrire un élève" %}</h3>
+                        <p>{% trans "Ajout de nouveaux élèves" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -66,8 +68,8 @@
                         <i class="fas fa-user-graduate"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Liste des élèves</h3>
-                        <p>Gestion des dossiers élèves</p>
+                        <h3>{% trans "Liste des élèves" %}</h3>
+                        <p>{% trans "Gestion des dossiers élèves" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -78,8 +80,8 @@
                         <i class="fas fa-file-alt"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Notes et resultats</h3>
-                        <p>Gestion des notes et resultats</p>
+                        <h3>{% trans "Notes et resultats" %}</h3>
+                        <p>{% trans "Gestion des notes et resultats" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -88,8 +90,8 @@
                         <i class="fas fa-compass"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Dossiers & Orientations</h3>
-                        <p>Parcours scolaires</p>
+                        <h3>{% trans "Dossiers & Orientations" %}</h3>
+                        <p>{% trans "Parcours scolaires" %}</p>
                     </div>
                 </a> {% endcomment %}
                 {% check_permission request.user "presences_liste" as can_view_presences %}
@@ -99,8 +101,8 @@
                         <i class="fas fa-calendar-check"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Suivi de présence</h3>
-                        <p>Assiduité et absences</p>
+                        <h3>{% trans "Suivi de présence" %}</h3>
+                        <p>{% trans "Assiduité et absences" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -111,8 +113,8 @@
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Bulletins</h3>
-                        <p>Gestion des bulletins de notes</p>
+                        <h3>{% trans "Bulletins" %}</h3>
+                        <p>{% trans "Gestion des bulletins de notes" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -123,8 +125,8 @@
                         <i class="fas fa-redo"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Réinscription</h3>
-                        <p>Réinscrire des élèves existants</p>
+                        <h3>{% trans "Réinscription" %}</h3>
+                        <p>{% trans "Réinscrire des élèves existants" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -134,8 +136,8 @@
                         <i class="fas fa-link"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Préinscriptions</h3>
-                        <p>Gérer les liens de préinscription</p>
+                        <h3>{% trans "Préinscriptions" %}</h3>
+                        <p>{% trans "Gérer les liens de préinscription" %}</p>
                     </div>
                 </a>
                 <a href="{% url 'directeur:liste_preinscriptions' %}" class="nav-link-card">
@@ -143,8 +145,8 @@
                         <i class="fas fa-clipboard-list"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>Liste des préinscriptions</h3>
-                        <p>Voir et valider les préinscriptions</p>
+                        <h3>{% trans "Liste des préinscriptions" %}</h3>
+                        <p>{% trans "Voir et valider les préinscriptions" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -154,15 +156,15 @@
 
         <!-- Dernières actions élèves -->
         {% comment %} <div class="recent-actions-section">
-            <h2 class="section-title">Dernières actions élèves</h2>
+            <h2 class="section-title">{% trans "Dernières actions élèves" %}</h2>
             <div class="actions-list">
                 <div class="action-item">
                     <div class="action-icon success">
                         <i class="fas fa-user-plus"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Nouvel élève inscrit : Jean Dupont</p>
-                        <span class="action-time">Il y a 1 heure</span>
+                        <p class="action-text">{% trans "Nouvel élève inscrit : Jean Dupont" %}</p>
+                        <span class="action-time">{% trans "Il y a 1 heure" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -170,8 +172,8 @@
                         <i class="fas fa-file-alt"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Dossier médical de Marie Martin mis à jour</p>
-                        <span class="action-time">Il y a 3 heures</span>
+                        <p class="action-text">{% trans "Dossier médical de Marie Martin mis à jour" %}</p>
+                        <span class="action-time">{% trans "Il y a 3 heures" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -179,8 +181,8 @@
                         <i class="fas fa-calendar-check"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Absence signalée : Pierre Durand</p>
-                        <span class="action-time">Hier</span>
+                        <p class="action-text">{% trans "Absence signalée : Pierre Durand" %}</p>
+                        <span class="action-time">{% trans "Hier" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -188,8 +190,8 @@
                         <i class="fas fa-compass"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Orientation 3ème : 15 élèves concernés</p>
-                        <span class="action-time">Il y a 2 jours</span>
+                        <p class="action-text">{% trans "Orientation 3ème : 15 élèves concernés" %}</p>
+                        <span class="action-time">{% trans "Il y a 2 jours" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -197,8 +199,8 @@
                         <i class="fas fa-bus"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Nouvelle ligne de transport créée</p>
-                        <span class="action-time">Il y a 3 jours</span>
+                        <p class="action-text">{% trans "Nouvelle ligne de transport créée" %}</p>
+                        <span class="action-time">{% trans "Il y a 3 jours" %}</span>
                     </div>
                 </div>
                 <div class="action-item">
@@ -206,8 +208,8 @@
                         <i class="fas fa-utensils"></i>
                     </div>
                     <div class="action-content">
-                        <p class="action-text">Menu de la semaine mis à jour</p>
-                        <span class="action-time">Il y a 4 jours</span>
+                        <p class="action-text">{% trans "Menu de la semaine mis à jour" %}</p>
+                        <span class="action-time">{% trans "Il y a 4 jours" %}</span>
                     </div>
                 </div>
             </div>

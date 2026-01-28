@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load pagination_tags %}
 {% load notes_tags %}
 {% load exam_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -40,7 +42,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0"
     />
-    <style>
+    {% trans "<style>
       /* Masquer les boutons d'action par défaut */
       .creneau-interactif .creneau-actions {
         display: none !important;
@@ -69,7 +71,7 @@
       .creneau-interactif:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
-    </style>
+    </style>" %}
   </head>
   <body>
     <!-- Header -->
@@ -82,7 +84,7 @@
         <nav class="breadcrumb-nav">
           <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
             <i class="fas fa-calendar-week"></i>
-            Emplois du temps
+            {% trans "Emplois du temps" %}
           </a>
           <i class="fas fa-chevron-right breadcrumb-separator"></i>
           <span class="breadcrumb-current">{{ classe.nom }}</span>
@@ -109,7 +111,7 @@
               </span>
               <span class="info-badge info-badge-success">
                 <i class="fas fa-check-circle"></i>
-                Actif
+                {% trans "Actif" %}
               </span>
               <span class="info-badge {% if emploi_du_temps.est_publie %}info-badge-success{% else %}info-badge-warning{% endif %}">
                 <i class="fas {% if emploi_du_temps.est_publie %}fa-bullhorn{% elif emploi_du_temps.doit_republier %}fa-sync-alt{% else %}fa-hourglass-half{% endif %}"></i>
@@ -135,11 +137,11 @@
             {% endif %}
             <a href="{% url 'administrateur_etablissement:imprimer_emploi_du_temps' classe.id %}" class="btn btn-secondary" target="_blank">
               <i class="fas fa-print"></i>
-              <span>Imprimer</span>
+              <span>{% trans "Imprimer" %}</span>
             </a>
             <button type="button" class="btn btn-primary" id="btnOuvrirModalAjouterCreneau">
               <i class="fas fa-plus"></i>
-              <span>Ajouter un créneau</span>
+              <span>{% trans "Ajouter un créneau" %}</span>
             </button>
           </div>
         </div>
@@ -197,12 +199,12 @@
                                                   </div>
                                                 {% endif %}
                                                 <div class="creneau-actions" style="margin-top: 8px; display: none; gap: 5px;">
-                                                  <a href="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}" class="btn-icon btn-icon-edit" title="Modifier" style="padding: 4px 8px; font-size: 12px;">
+                                                  <a href="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}" class="btn-icon btn-icon-edit" title="{% trans "Modifier" %}" style="padding: 4px 8px; font-size: 12px;">
                                                     <i class="fas fa-edit"></i>
                                                   </a>
                                                   <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?');">
                                                     {% csrf_token %}
-                                                    <button type="submit" class="btn-icon btn-icon-delete" title="Supprimer" style="padding: 4px 8px; font-size: 12px;">
+                                                    <button type="submit" class="btn-icon btn-icon-delete" title="{% trans "Supprimer" %}" style="padding: 4px 8px; font-size: 12px;">
                                                       <i class="fas fa-trash"></i>
                                                     </button>
                                                   </form>
@@ -230,8 +232,8 @@
             {% else %}
               <div class="empty-state">
                 <i class="fas fa-calendar-times"></i>
-                <h3>Aucun créneau programmé</h3>
-                <p>Utilisez le bouton "Ajouter un créneau" pour commencer à planifier l'emploi du temps.</p>
+                <h3>{% trans "Aucun créneau programmé" %}</h3>
+                <p>{% trans "Utilisez le bouton "Ajouter un créneau" pour commencer à planifier l'emploi du temps." %}</p>
               </div>
             {% endif %}
           </div>
@@ -242,36 +244,36 @@
           <div class="legend-card">
             <h3 class="legend-title">
               <i class="fas fa-info-circle"></i>
-              Légende des types de cours
+              {% trans "Légende des types de cours" %}
             </h3>
             <div class="legend-items">
               <div class="legend-item">
-                <span class="type-badge type-cours">Cours</span>
-                <span class="legend-desc">Cours magistral</span>
+                <span class="type-badge type-cours">{% trans "Cours" %}</span>
+                <span class="legend-desc">{% trans "Cours magistral" %}</span>
               </div>
               <div class="legend-item">
-                <span class="type-badge type-td">TD</span>
-                <span class="legend-desc">Travaux Dirigés</span>
+                <span class="type-badge type-td">{% trans "TD" %}</span>
+                <span class="legend-desc">{% trans "Travaux Dirigés" %}</span>
               </div>
               <div class="legend-item">
-                <span class="type-badge type-tp">TP</span>
-                <span class="legend-desc">Travaux Pratiques</span>
+                <span class="type-badge type-tp">{% trans "TP" %}</span>
+                <span class="legend-desc">{% trans "Travaux Pratiques" %}</span>
               </div>
               <div class="legend-item">
-                <span class="type-badge type-controle">Contrôle</span>
-                <span class="legend-desc">Contrôle continu</span>
+                <span class="type-badge type-controle">{% trans "Contrôle" %}</span>
+                <span class="legend-desc">{% trans "Contrôle continu" %}</span>
               </div>
               <div class="legend-item">
-                <span class="type-badge type-examen">Examen</span>
-                <span class="legend-desc">Examen</span>
+                <span class="type-badge type-examen">{% trans "Examen" %}</span>
+                <span class="legend-desc">{% trans "Examen" %}</span>
               </div>
               <div class="legend-item">
-                <span class="type-badge type-sport">Sport</span>
-                <span class="legend-desc">Éducation physique</span>
+                <span class="type-badge type-sport">{% trans "Sport" %}</span>
+                <span class="legend-desc">{% trans "Éducation physique" %}</span>
               </div>
               <div class="legend-item">
-                <span class="type-badge type-pause">Pause</span>
-                <span class="legend-desc">Pause/Récréation</span>
+                <span class="type-badge type-pause">{% trans "Pause" %}</span>
+                <span class="legend-desc">{% trans "Pause/Récréation" %}</span>
               </div>
             </div>
           </div>
@@ -360,8 +362,8 @@
             {% else %}
               <div class="empty-state-examens">
                 <i class="fas fa-calendar-times"></i>
-                <h3>Aucun examen programmé</h3>
-                <p>Cette classe n'a pas d'examens programmés pour le moment.</p>
+                <h3>{% trans "Aucun examen programmé" %}</h3>
+                <p>{% trans "Cette classe n'a pas d'examens programmés pour le moment." %}</p>
               </div>
             {% endif %}
           </div>
@@ -372,7 +374,7 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
+    {% trans "<script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
     <script>
       // Filtrer les créneaux pour obtenir un dictionnaire en JavaScript
       const creneauxParJour = {
@@ -459,7 +461,7 @@
           }
         });
       }
-    </script>
+    </script>" %}
 
     <!-- Modal pour ajouter un créneau -->
     <div id="modalAjouterCreneau" class="modal-creneau-fullscreen">
@@ -468,7 +470,7 @@
         <div class="modal-creneau-header">
           <h2 class="modal-creneau-title">
             <i class="fas fa-plus-circle"></i>
-            Ajouter un Créneau
+            {% trans "Ajouter un Créneau" %}
           </h2>
           <button type="button" class="modal-creneau-close" id="btnFermerModalAjouterCreneau">
             <i class="fas fa-times"></i>
@@ -481,7 +483,7 @@
           <div class="alert alert-info modal-alert-info">
             <i class="fas fa-info-circle"></i>
             <span>
-              Ajout de créneau pour l'année scolaire <strong>{{ annee_scolaire_active.libelle }}</strong>
+              {% trans "Ajout de créneau pour l'année scolaire" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
             </span>
           </div>
           {% endif %}
@@ -501,10 +503,10 @@
               <div class="form-group-modal" id="formGroupJour">
                 <label for="modalJour" class="form-label-modal required">
                   <i class="fas fa-calendar-day"></i>
-                  Jour de la semaine <span class="required">*</span>
+                  {% trans "Jour de la semaine <span class=\"required\">*</span>" %}
                 </label>
                 <select id="modalJour" name="jour" class="form-control-modal" required>
-                  <option value="">Sélectionnez un jour</option>
+                  <option value="">{% trans "Sélectionnez un jour" %}</option>
                   {% for value, label in jours_choices %}
                     <option value="{{ value }}" {% if creneau_form_data.jour == value %}selected{% endif %}>{{ label }}</option>
                   {% endfor %}
@@ -519,7 +521,7 @@
               <div class="form-group-modal" id="formGroupHeureDebut">
                 <label for="modalHeureDebut" class="form-label-modal required">
                   <i class="fas fa-clock"></i>
-                  Heure de début <span class="required">*</span>
+                  {% trans "Heure de début <span class=\"required\">*</span>" %}
                 </label>
                 <input type="time" id="modalHeureDebut" name="heure_debut" class="form-control-modal" value="{% if creneau_form_data.heure_debut %}{{ creneau_form_data.heure_debut }}{% endif %}" required />
                 <span class="error-message-modal" id="errorHeureDebut" {% if not creneau_field_errors.heure_debut %}style="display: none;"{% endif %}>
@@ -532,7 +534,7 @@
               <div class="form-group-modal" id="formGroupHeureFin">
                 <label for="modalHeureFin" class="form-label-modal required">
                   <i class="fas fa-clock"></i>
-                  Heure de fin <span class="required">*</span>
+                  {% trans "Heure de fin <span class=\"required\">*</span>" %}
                 </label>
                 <input type="time" id="modalHeureFin" name="heure_fin" class="form-control-modal" value="{% if creneau_form_data.heure_fin %}{{ creneau_form_data.heure_fin }}{% endif %}" required />
                 <span class="error-message-modal" id="errorHeureFin" {% if not creneau_field_errors.heure_fin %}style="display: none;"{% endif %}>
@@ -546,11 +548,11 @@
             <div class="form-group-modal" id="formGroupMatiere">
               <label for="modalMatiere" class="form-label-modal">
                 <i class="fas fa-book"></i>
-                Matière
-                <span class="optional">(Optionnel)</span>
+                {% trans "Matière" %}
+                <span class="optional">{% trans "(Optionnel)" %}</span>
               </label>
               <select id="modalMatiere" name="matiere" class="form-control-modal">
-                <option value="">Sélectionnez une matière</option>
+                <option value="">{% trans "Sélectionnez une matière" %}</option>
                 {% for matiere in matieres %}
                   <option value="{{ matiere.id }}" {% if creneau_form_data.matiere_id == matiere.id|stringformat:"s" %}selected{% endif %}>{{ matiere.nom }}</option>
                 {% endfor %}
@@ -566,17 +568,17 @@
               <div class="form-group-modal" id="formGroupProfesseur">
                 <label for="modalProfesseur" class="form-label-modal">
                   <i class="fas fa-user-tie"></i>
-                  Professeur
-                  <span class="optional">(Optionnel)</span>
+                  {% trans "Professeur" %}
+                  <span class="optional">{% trans "(Optionnel)" %}</span>
                 </label>
                 <select id="modalProfesseur" name="professeur" class="form-control-modal">
-                  <option value="">Sélectionnez un professeur</option>
+                  <option value="">{% trans "Sélectionnez un professeur" %}</option>
                   {% if professeurs_options %}
                     {% for prof in professeurs_options %}
                       <option value="{{ prof.id }}" {% if creneau_form_data.professeur_id == prof.id|stringformat:"s" %}selected{% endif %}>{{ prof.label }}</option>
                     {% endfor %}
                   {% else %}
-                    <option value="" disabled>Aucun professeur n'est affecté à cette classe.</option>
+                    <option value="" disabled>{% trans "Aucun professeur n'est affecté à cette classe." %}</option>
                   {% endif %}
                 </select>
                 <span class="error-message-modal" id="errorProfesseur" {% if not creneau_field_errors.professeur %}style="display: none;"{% endif %}>
@@ -589,11 +591,11 @@
               <div class="form-group-modal" id="formGroupSalle">
                 <label for="modalSalle" class="form-label-modal">
                   <i class="fas fa-door-open"></i>
-                  Salle
-                  <span class="optional">(Optionnel)</span>
+                  {% trans "Salle" %}
+                  <span class="optional">{% trans "(Optionnel)" %}</span>
                 </label>
                 <select id="modalSalle" name="salle" class="form-control-modal">
-                  <option value="">Sélectionnez une salle</option>
+                  <option value="">{% trans "Sélectionnez une salle" %}</option>
                   {% for salle in salles %}
                     <option value="{{ salle.id }}" {% if creneau_form_data.salle_id == salle.id|stringformat:"s" %}selected{% endif %}>Salle {{ salle.numero }} - {{ salle.nom }}</option>
                   {% endfor %}
@@ -609,11 +611,11 @@
             <div class="form-actions-modal">
               <button type="button" class="btn btn-secondary-modal" id="btnAnnulerModal">
                 <i class="fas fa-times"></i>
-                <span>Annuler</span>
+                <span>{% trans "Annuler" %}</span>
               </button>
               <button type="submit" class="btn btn-primary-modal">
                 <i class="fas fa-check"></i>
-                <span>Ajouter le créneau</span>
+                <span>{% trans "Ajouter le créneau" %}</span>
               </button>
             </div>
           </form>

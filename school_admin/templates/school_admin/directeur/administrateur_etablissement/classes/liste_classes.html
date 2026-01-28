@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -34,7 +36,7 @@
           <div class="page-title-section">
             <h1 class="page-title">
               <i class="fas fa-chalkboard"></i>
-              Gestion des Classes
+              {% trans "Gestion des Classes" %}
             </h1>
             <p class="page-subtitle">
               Gérez les classes de {{ etablissement.nom }}
@@ -43,7 +45,7 @@
           <div class="page-actions">
             <button class="btn-add-classe" id="addClasseBtn">
               <i class="fas fa-plus"></i>
-              <span>Ajouter une classe</span>
+              <span>{% trans "Ajouter une classe" %}</span>
             </button>
           </div>
         </div>
@@ -59,7 +61,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ stats.total }}</div>
-                <div class="stat-label">Total Classes</div>
+                <div class="stat-label">{% trans "Total Classes" %}</div>
               </div>
             </div>
             <div class="stat-card stat-success">
@@ -68,7 +70,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ stats.actives }}</div>
-                <div class="stat-label">Actives</div>
+                <div class="stat-label">{% trans "Actives" %}</div>
               </div>
             </div>
             <div class="stat-card stat-warning">
@@ -77,7 +79,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ stats.inactives }}</div>
-                <div class="stat-label">Inactives</div>
+                <div class="stat-label">{% trans "Inactives" %}</div>
               </div>
             </div>
             <div class="stat-card stat-info">
@@ -86,7 +88,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ stats.par_niveau|length }}</div>
-                <div class="stat-label">Niveaux</div>
+                <div class="stat-label">{% trans "Niveaux" %}</div>
               </div>
             </div>
             <div class="stat-card stat-primary">
@@ -95,7 +97,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-number">{{ stats.total_enseignants_affectes }}</div>
-                <div class="stat-label">Enseignants Affectés</div>
+                <div class="stat-label">{% trans "Enseignants Affectés" %}</div>
               </div>
             </div>
           </div>
@@ -126,15 +128,15 @@
                     <div class="category-stats">
                       <div class="stat-item">
                         <span class="stat-number">{{ data.total_eleves }}</span>
-                        <span class="stat-label">Élèves</span>
+                        <span class="stat-label">{% trans "Élèves" %}</span>
                       </div>
                       <div class="stat-item">
                         <span class="stat-number">{{ data.total_enseignants }}</span>
-                        <span class="stat-label">Enseignants</span>
+                        <span class="stat-label">{% trans "Enseignants" %}</span>
                       </div>
                       <div class="stat-item">
                         <span class="stat-number">{{ data.total_capacite }}</span>
-                        <span class="stat-label">Capacité</span>
+                        <span class="stat-label">{% trans "Capacité" %}</span>
                       </div>
                     </div>
                   </div>
@@ -168,12 +170,12 @@
                           <div class="detail-row">
                             <div class="detail-item">
                               <i class="fas fa-user-graduate"></i>
-                              <span class="detail-label">Élèves:</span>
+                              <span class="detail-label">{% trans "Élèves:" %}</span>
                               <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
                             </div>
                             <div class="detail-item">
                               <i class="fas fa-chalkboard-teacher"></i>
-                              <span class="detail-label">Enseignants:</span>
+                              <span class="detail-label">{% trans "Enseignants:" %}</span>
                               <span class="detail-value">{{ classe_data.nombre_enseignants }}</span>
                             </div>
                           </div>
@@ -182,12 +184,12 @@
                           <div class="detail-row">
                             <div class="detail-item">
                               <i class="fas fa-chart-pie"></i>
-                              <span class="detail-label">Occupation:</span>
+                              <span class="detail-label">{% trans "Occupation:" %}</span>
                               <span class="detail-value">{{ classe.taux_occupation }}%</span>
                             </div>
                             <div class="detail-item">
                               <i class="fas fa-calendar-plus"></i>
-                              <span class="detail-label">Créée:</span>
+                              <span class="detail-label">{% trans "Créée:" %}</span>
                               <span class="detail-value">{{ classe.date_creation|date:"d/m/Y" }}</span>
                             </div>
                           </div>
@@ -196,7 +198,7 @@
                           <div class="detail-row">
                             <div class="detail-item full-width">
                               <i class="fas fa-code"></i>
-                              <span class="detail-label">Code:</span>
+                              <span class="detail-label">{% trans "Code:" %}</span>
                               <span class="detail-value">{{ classe.code_classe }}</span>
                             </div>
                           </div>
@@ -205,7 +207,7 @@
                         <div class="classe-actions">
                           <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail">
                             <i class="fas fa-eye"></i>
-                            <span>Détails</span>
+                            <span>{% trans "Détails" %}</span>
                           </a>
                           <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
                             <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
@@ -224,11 +226,11 @@
               <div class="empty-icon">
                 <i class="fas fa-chalkboard"></i>
               </div>
-              <h3>Aucune classe trouvée</h3>
-              <p>Commencez par ajouter des classes à votre établissement</p>
+              <h3>{% trans "Aucune classe trouvée" %}</h3>
+              <p>{% trans "Commencez par ajouter des classes à votre établissement" %}</p>
               <button class="btn-add-classe" id="addClasseBtnEmpty">
                 <i class="fas fa-plus"></i>
-                <span>Ajouter la première classe</span>
+                <span>{% trans "Ajouter la première classe" %}</span>
               </button>
             </div>
           {% endif %}
@@ -243,7 +245,7 @@
         <div class="modal-header">
           <h2 class="modal-title">
             <i class="fas fa-plus"></i>
-            Ajouter une nouvelle classe
+            {% trans "Ajouter une nouvelle classe" %}
           </h2>
           <button class="modal-close" id="closeModal">
             <i class="fas fa-times"></i>
@@ -257,18 +259,18 @@
           {% if field_errors %}
             <div class="alert alert-error">
               <i class="fas fa-exclamation-triangle"></i>
-              <strong>Erreurs détectées :</strong> Veuillez corriger les champs marqués en rouge.
+              <strong>{% trans "Erreurs détectées :" %}</strong> {% trans "Veuillez corriger les champs marqués en rouge." %}
             </div>
           {% endif %}
           
           <div class="form-group">
-            <label class="form-label" for="nom">Nom de la classe *</label>
+            <label class="form-label" for="nom">{% trans "Nom de la classe *" %}</label>
             <input type="text" 
                    class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
                    id="nom" 
                    name="nom" 
                    value="{{ form_data.nom }}"
-                   placeholder="Ex: 6ème A, Terminale S, etc."
+                   placeholder="{% trans "Ex: 6ème A, Terminale S, etc." %}"
                    required>
             {% if field_errors.nom %}
               <div class="invalid-feedback">{{ field_errors.nom }}</div>
@@ -276,7 +278,7 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label" for="niveau">Niveau *</label>
+            <label class="form-label" for="niveau">{% trans "Niveau *" %}</label>
             <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" 
                     id="niveau" 
                     name="niveau" 
@@ -297,7 +299,7 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label" for="capacite_max">Capacité maximale *</label>
+            <label class="form-label" for="capacite_max">{% trans "Capacité maximale *" %}</label>
             <input type="number" 
                    class="form-control {% if field_errors.capacite_max %}is-invalid{% endif %}" 
                    id="capacite_max" 
@@ -313,22 +315,22 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label" for="description">Description (optionnel)</label>
+            <label class="form-label" for="description">{% trans "Description (optionnel)" %}</label>
             <textarea class="form-control" 
                       id="description" 
                       name="description" 
                       rows="3"
-                      placeholder="Description de la classe...">{{ form_data.description }}</textarea>
+                      placeholder="{% trans "Description de la classe..." %}">{{ form_data.description }}</textarea>
           </div>
           
           <div class="modal-actions">
             <button type="button" class="btn-cancel" id="cancelAdd">
               <i class="fas fa-times"></i>
-              <span>Annuler</span>
+              <span>{% trans "Annuler" %}</span>
             </button>
             <button type="submit" class="btn-submit">
               <i class="fas fa-save"></i>
-              <span>Ajouter la classe</span>
+              <span>{% trans "Ajouter la classe" %}</span>
             </button>
           </div>
         </form>

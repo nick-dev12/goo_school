@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load exam_filters %}
 {% load pagination_tags %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,7 +21,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}"
     />
-    <style>
+    {% trans "<style>
       @page {
         size: A4 landscape;
         margin: 1cm;
@@ -233,7 +235,7 @@
           font-size: 10px;
         }
       }
-    </style>
+    </style>" %}
   </head>
   <body>
     <!-- Header d'impression -->
@@ -333,7 +335,7 @@
     {% else %}
       <div style="text-align: center; padding: 40px; color: #6b7280;">
         <i class="fas fa-calendar-times" style="font-size: 48px; margin-bottom: 15px; color: #d1d5db;"></i>
-        <h3>Aucun créneau programmé</h3>
+        <h3>{% trans "Aucun créneau programmé" %}</h3>
       </div>
     {% endif %}
 

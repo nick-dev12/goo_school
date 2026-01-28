@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load exam_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,12 +19,12 @@
         <div class="page-header">
             <h1>
                 <i class="fas fa-calendar-alt"></i>
-                Emploi du Temps des Examens
+                {% trans "Emploi du Temps des Examens" %}
             </h1>
             <div class="header-actions">
                 <a href="{% url 'directeur:gestion_examens' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Retour à la gestion
+                    {% trans "Retour à la gestion" %}
                 </a>
             </div>
         </div>
@@ -38,7 +40,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seuls les créneaux d'examens de cette année scolaire sont affichés.
+              {% trans "Seuls les créneaux d'examens de cette année scolaire sont affichés." %}
             </p>
           </div>
         </div>
@@ -107,8 +109,8 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-calendar-times"></i>
-                    <h3>Aucun créneau d'examen programmé</h3>
-                    <p>Utilisez le bouton "Ajouter un créneau" pour commencer à planifier les examens.</p>
+                    <h3>{% trans "Aucun créneau d'examen programmé" %}</h3>
+                    <p>{% trans "Utilisez le bouton "Ajouter un créneau" pour commencer à planifier les examens." %}</p>
                 </div>
             {% endif %}
         </div>
@@ -118,16 +120,16 @@
     <div id="creneauModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Ajouter un créneau d'examen</h2>
+                <h2>{% trans "Ajouter un créneau d'examen" %}</h2>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <form method="post" action="{% url 'directeur:emploi_du_temps_examens' %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="session_examen_id">Session d'examen <span class="required">*</span></label>
+                        <label for="session_examen_id">{% trans "Session d'examen" %} <span class="required">*</span></label>
                         <select id="session_examen_id" name="session_examen_id" class="form-control" required onchange="updateMatieresForSession()">
-                            <option value="">Sélectionnez un examen programmé</option>
+                            <option value="">{% trans "Sélectionnez un examen programmé" %}</option>
                             {% for session in sessions_examens %}
                             <option value="{{ session.id }}"
                                     data-matieres="{% for matiere in session.matieres.all %}{{ matiere.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
@@ -136,52 +138,52 @@
                             {% endfor %}
                         </select>
                         <small style="color: var(--text-muted); font-size: 12px; margin-top: 5px; display: block;">
-                            Sélectionnez d'abord l'examen programmé pour voir les matières concernées
+                            {% trans "Sélectionnez d'abord l'examen programmé pour voir les matières concernées" %}
                         </small>
                     </div>
 
                     <div class="form-group">
-                        <label for="matiere_id">Matière <span class="required">*</span></label>
+                        <label for="matiere_id">{% trans "Matière" %} <span class="required">*</span></label>
                         <select id="matiere_id" name="matiere_id" class="form-control" required disabled>
-                            <option value="">Sélectionnez d'abord un examen</option>
+                            <option value="">{% trans "Sélectionnez d'abord un examen" %}</option>
                         </select>
                         <small style="color: var(--text-muted); font-size: 12px; margin-top: 5px; display: block;">
-                            Seules les matières de l'examen sélectionné sont affichées
+                            {% trans "Seules les matières de l'examen sélectionné sont affichées" %}
                         </small>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="date_examen">Date de l'examen <span class="required">*</span></label>
+                            <label for="date_examen">{% trans "Date de l'examen" %} <span class="required">*</span></label>
                             <input type="date" id="date_examen" name="date_examen" class="form-control" required />
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="heure_debut">Heure de début <span class="required">*</span></label>
+                            <label for="heure_debut">{% trans "Heure de début" %} <span class="required">*</span></label>
                             <input type="time" id="heure_debut" name="heure_debut" class="form-control" required />
                         </div>
                         <div class="form-group">
-                            <label for="heure_fin">Heure de fin <span class="required">*</span></label>
+                            <label for="heure_fin">{% trans "Heure de fin" %} <span class="required">*</span></label>
                             <input type="time" id="heure_fin" name="heure_fin" class="form-control" required />
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="surveillant_id">Surveillant</label>
+                            <label for="surveillant_id">{% trans "Surveillant" %}</label>
                             <select id="surveillant_id" name="surveillant_id" class="form-control">
-                                <option value="">Aucun surveillant</option>
+                                <option value="">{% trans "Aucun surveillant" %}</option>
                                 {% for prof in professeurs %}
                                 <option value="{{ prof.id }}">{{ prof.nom_complet }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="salle_id">Salle</label>
+                            <label for="salle_id">{% trans "Salle" %}</label>
                             <select id="salle_id" name="salle_id" class="form-control">
-                                <option value="">Aucune salle</option>
+                                <option value="">{% trans "Aucune salle" %}</option>
                                 {% for salle in salles %}
                                 <option value="{{ salle.id }}">{{ salle.nom }} ({{ salle.numero }})</option>
                                 {% endfor %}
@@ -190,17 +192,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="consignes_specifiques">Consignes spécifiques</label>
-                        <textarea id="consignes_specifiques" name="consignes_specifiques" class="form-control" placeholder="Instructions particulières pour ce créneau..."></textarea>
+                        <label for="consignes_specifiques">{% trans "Consignes spécifiques" %}</label>
+                        <textarea id="consignes_specifiques" name="consignes_specifiques" class="form-control" placeholder="{% trans "Instructions particulières pour ce créneau..." %}"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Enregistrer
+                        {% trans "Enregistrer" %}
                     </button>
                 </div>
             </form>

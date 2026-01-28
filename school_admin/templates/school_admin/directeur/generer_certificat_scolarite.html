@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,7 +50,7 @@
 
         <!-- Titre du document -->
         <div class="document-title">
-            <h2>CERTIFICAT DE SCOLARITÉ</h2>
+            <h2>{% trans "CERTIFICAT DE SCOLARITÉ" %}</h2>
             {% if annee_scolaire_active %}
             <p class="document-subtitle">Année scolaire {{ annee_scolaire_active.libelle }}</p>
             {% else %}
@@ -59,16 +61,16 @@
         <!-- Corps du certificat -->
         <div class="certificat-body">
             <p class="certificat-intro">
-                Le Directeur de <strong>{{ etablissement.nom }}</strong>, certifie que :
+                {% trans "Le Directeur de" %} <strong>{{ etablissement.nom }}</strong>{% trans ", certifie que :" %}
             </p>
 
             <div class="eleve-info-box">
                 <div class="info-row">
-                    <span class="info-label">Nom et Prénom(s) :</span>
+                    <span class="info-label">{% trans "Nom et Prénom(s) :" %}</span>
                     <span class="info-value">{{ eleve.nom|upper }} {{ eleve.prenom }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Date et lieu de naissance :</span>
+                    <span class="info-label">{% trans "Date et lieu de naissance :" %}</span>
                     <span class="info-value">
                         {% if eleve.date_naissance %}
                             {{ eleve.date_naissance|date:"d/m/Y" }}
@@ -81,21 +83,21 @@
                     </span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Numéro d'élève :</span>
+                    <span class="info-label">{% trans "Numéro d'élève :" %}</span>
                     <span class="info-value">{{ eleve.numero_eleve }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Classe :</span>
+                    <span class="info-label">{% trans "Classe :" %}</span>
                     <span class="info-value">{{ eleve.classe.nom }} - {{ eleve.classe.get_niveau_display }}</span>
                 </div>
             </div>
 
             <p class="certificat-text">
-                Est régulièrement inscrit(e) dans notre établissement pour l'année scolaire <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong>.
+                {% trans "Est régulièrement inscrit(e) dans notre établissement pour l'année scolaire" %} <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong>.
             </p>
 
             <p class="certificat-text">
-                Ce certificat est délivré pour servir et valoir ce que de droit.
+                {% trans "Ce certificat est délivré pour servir et valoir ce que de droit." %}
             </p>
 
             <div class="certificat-date">
@@ -106,7 +108,7 @@
         <!-- Signature -->
         <div class="signature-section">
             <div class="signature-box">
-                <p class="signature-title">Le Directeur</p>
+                <p class="signature-title">{% trans "Le Directeur" %}</p>
                 <div class="signature-line"></div>
                 <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
             </div>
@@ -124,15 +126,15 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer le certificat
+            {% trans "Imprimer le certificat" %}
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>" %}
 </body>
 </html>
 

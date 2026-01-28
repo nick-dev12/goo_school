@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,7 +39,7 @@
                             <i class="fas fa-chalkboard-teacher"></i>
                         </div>
                         <div class="title-text">
-                            <h1 class="page-title">Liste des Professeurs</h1>
+                            <h1 class="page-title">{% trans "Liste des Professeurs" %}</h1>
                             <p class="page-subtitle">
                                 Gestion des professeurs de {{ etablissement.nom }}
                             </p>
@@ -46,7 +48,7 @@
                     <div class="page-actions">
                         <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-primary btn-gradient">
                             <i class="fas fa-plus"></i>
-                            <span>Ajouter un professeur</span>
+                            <span>{% trans "Ajouter un professeur" %}</span>
                         </a>
                     </div>
                 </div>
@@ -61,7 +63,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ stats.total }}</h3>
-                    <p>Total des professeurs</p>
+                    <p>{% trans "Total des professeurs" %}</p>
                     <div class="stat-trend">
                         <i class="fas fa-arrow-up"></i>
                         <span>+15%</span>
@@ -75,7 +77,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ stats.actifs }}</h3>
-                    <p>Professeurs actifs</p>
+                    <p>{% trans "Professeurs actifs" %}</p>
                     <div class="stat-trend">
                         <i class="fas fa-arrow-up"></i>
                         <span>+8%</span>
@@ -89,7 +91,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>{{ stats.par_niveau|length }}</h3>
-                    <p>Niveaux d'enseignement</p>
+                    <p>{% trans "Niveaux d'enseignement" %}</p>
                     <div class="stat-trend">
                         <i class="fas fa-arrow-up"></i>
                         <span>+3%</span>
@@ -103,7 +105,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>95%</h3>
-                    <p>Taux de satisfaction</p>
+                    <p>{% trans "Taux de satisfaction" %}</p>
                     <div class="stat-trend">
                         <i class="fas fa-arrow-up"></i>
                         <span>+5%</span>
@@ -119,11 +121,11 @@
                     <div class="title-icon">
                         <i class="fas fa-list"></i>
                     </div>
-                    <h2>Liste des Professeurs</h2>
+                    <h2>{% trans "Liste des Professeurs" %}</h2>
                 </div>
                 <div class="search-container">
                     <div class="search-box">
-                        <input type="text" placeholder="Rechercher un professeur..." class="search-input">
+                        <input type="text" placeholder="{% trans "Rechercher un professeur..." %}" class="search-input">
                         <i class="fas fa-search search-icon"></i>
                     </div>
                 </div>
@@ -134,7 +136,7 @@
                 <div class="matiere-tabs">
                     <button class="matiere-tab-btn active" data-matiere="all">
                         <i class="fas fa-th"></i>
-                        <span>Tous</span>
+                        <span>{% trans "Tous" %}</span>
                         <span class="tab-count">{{ stats.total }}</span>
                     </button>
                     {% for item in matieres_avec_compteurs %}
@@ -162,13 +164,13 @@
                                     <p class="professeur-matiere">{{ professeur.matiere_display }}</p>
                                 </div>
                                 <div class="professeur-actions">
-                                    <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="btn-action btn-view" title="Voir les détails">
+                                    <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="btn-action btn-view" title="{% trans "Voir les détails" %}">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <button class="btn-action btn-edit" title="Modifier">
+                                    <button class="btn-action btn-edit" title="{% trans "Modifier" %}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn-action btn-delete" title="Supprimer">
+                                    <button class="btn-action btn-delete" title="{% trans "Supprimer" %}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -180,7 +182,7 @@
                                         <i class="fas fa-graduation-cap"></i>
                                     </div>
                                     <div class="detail-content">
-                                        <span class="detail-label">Niveau</span>
+                                        <span class="detail-label">{% trans "Niveau" %}</span>
                                         <span class="detail-value">{{ professeur.niveau_display }}</span>
                                     </div>
                                 </div>
@@ -189,7 +191,7 @@
                                         <i class="fas fa-envelope"></i>
                                     </div>
                                     <div class="detail-content">
-                                        <span class="detail-label">Email</span>
+                                        <span class="detail-label">{% trans "Email" %}</span>
                                         <span class="detail-value">{{ professeur.email }}</span>
                                     </div>
                                 </div>
@@ -198,7 +200,7 @@
                                         <i class="fas fa-phone"></i>
                                     </div>
                                     <div class="detail-content">
-                                        <span class="detail-label">Téléphone</span>
+                                        <span class="detail-label">{% trans "Téléphone" %}</span>
                                         <span class="detail-value">{{ professeur.telephone }}</span>
                                     </div>
                                 </div>
@@ -224,11 +226,11 @@
                     <div class="empty-icon">
                         <i class="fas fa-chalkboard-teacher"></i>
                     </div>
-                    <h3>Aucun professeur trouvé</h3>
-                    <p>Commencez par ajouter votre premier professeur pour constituer votre équipe pédagogique.</p>
+                    <h3>{% trans "Aucun professeur trouvé" %}</h3>
+                    <p>{% trans "Commencez par ajouter votre premier professeur pour constituer votre équipe pédagogique." %}</p>
                     <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-primary btn-gradient">
                         <i class="fas fa-plus"></i>
-                        <span>Ajouter un professeur</span>
+                        <span>{% trans "Ajouter un professeur" %}</span>
                     </a>
                 </div>
             {% endif %}

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% load static %}
+{% load i18n %}
 {% load exam_filters %}
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,12 +19,12 @@
         <div class="page-header">
             <h1>
                 <i class="fas fa-clipboard-list"></i>
-                Gestion des Examens
+                {% trans "Gestion des Examens" %}
             </h1>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="openModal()">
                     <i class="fas fa-plus"></i>
-                    Ajouter une session d'examen
+                    {% trans "Ajouter une session d'examen" %}
                 </button>
             </div>
         </div>
@@ -38,7 +40,7 @@
               Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seules les sessions d'examens de cette année scolaire sont affichées.
+              {% trans "Seules les sessions d'examens de cette année scolaire sont affichées." %}
             </p>
           </div>
         </div>
@@ -104,11 +106,11 @@
                                                 </div>
                                             </div>
                                             <div class="session-actions">
-                                                <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="btn btn-sm btn-primary" title="Configurer les créneaux">
-                                                    <i class="fas fa-clock"></i> Créneaux
+                                                <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="btn btn-sm btn-primary" title="{% trans "Configurer les créneaux" %}">
+                                                    <i class="fas fa-clock"></i> {% trans "Créneaux" %}
                                                 </a>
-                                                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="btn btn-sm btn-secondary" title="Voir l'emploi du temps">
-                                                    <i class="fas fa-calendar-alt"></i> Emploi du temps
+                                                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="btn btn-sm btn-secondary" title="{% trans "Voir l" %}'emploi du temps">
+                                                    <i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps" %}
                                                 </a>
                                                 <button class="btn btn-sm btn-warning" onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}')" title="Modifier">
                                                     <i class="fas fa-edit"></i>
@@ -134,21 +136,21 @@
     <div id="sessionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Ajouter une session d'examen</h2>
+                <h2>{% trans "Ajouter une session d'examen" %}</h2>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <form method="post" action="{% url 'directeur:gestion_examens' %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="nom_examen">Nom de la session d'examen <span class="required">*</span></label>
-                        <input type="text" id="nom_examen" name="nom_examen" class="form-control" required placeholder="Ex: Examen du 1er Trimestre" />
+                        <label for="nom_examen">{% trans "Nom de la session d'examen" %} <span class="required">*</span></label>
+                        <input type="text" id="nom_examen" name="nom_examen" class="form-control" required placeholder="{% trans "Ex: Examen du 1er Trimestre" %}" />
                     </div>
 
                     <div class="form-group">
-                        <label for="periode_id">Période scolaire <span class="required">*</span></label>
+                        <label for="periode_id">{% trans "Période scolaire" %} <span class="required">*</span></label>
                         <select id="periode_id" name="periode_id" class="form-control" required>
-                            <option value="">Sélectionnez une période</option>
+                            <option value="">{% trans "Sélectionnez une période" %}</option>
                             {% for periode in periodes %}
                             <option value="{{ periode.id }}">{{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})</option>
                             {% endfor %}
@@ -157,17 +159,17 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="date_debut">Date de début <span class="required">*</span></label>
+                            <label for="date_debut">{% trans "Date de début" %} <span class="required">*</span></label>
                             <input type="date" id="date_debut" name="date_debut" class="form-control" required />
                         </div>
                         <div class="form-group">
-                            <label for="date_fin">Date de fin <span class="required">*</span></label>
+                            <label for="date_fin">{% trans "Date de fin" %} <span class="required">*</span></label>
                             <input type="date" id="date_fin" name="date_fin" class="form-control" required />
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Groupes de classes concernés <span class="required">*</span></label>
+                        <label>{% trans "Groupes de classes concernés" %} <span class="required">*</span></label>
                         <div class="checkbox-group">
                             {% for niveau, groupe in groupes_classes.items %}
                             <label class="checkbox-label">
@@ -180,7 +182,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Matières de l'examen <span class="required">*</span></label>
+                        <label>{% trans "Matières de l'examen" %} <span class="required">*</span></label>
                         <div class="checkbox-group">
                             {% for matiere in matieres %}
                             <label class="checkbox-label">
@@ -193,17 +195,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" class="form-control" placeholder="Instructions ou informations supplémentaires..."></textarea>
+                        <label for="description">{% trans "Description" %}</label>
+                        <textarea id="description" name="description" class="form-control" placeholder="{% trans "Instructions ou informations supplémentaires..." %}"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Créer la session
+                        {% trans "Créer la session" %}
                     </button>
                 </div>
             </form>
@@ -214,7 +216,7 @@
     <div id="editSessionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Modifier la session d'examen</h2>
+                <h2>{% trans "Modifier la session d'examen" %}</h2>
                 <span class="close" onclick="closeEditModal()">&times;</span>
             </div>
             <form id="editSessionForm" method="post" action="">
@@ -223,14 +225,14 @@
                     <input type="hidden" id="edit_session_id" name="session_id" />
                     
                     <div class="form-group">
-                        <label for="edit_nom_examen">Nom de la session d'examen <span class="required">*</span></label>
-                        <input type="text" id="edit_nom_examen" name="nom_examen" class="form-control" required placeholder="Ex: Examen du 1er Trimestre" />
+                        <label for="edit_nom_examen">{% trans "Nom de la session d'examen" %} <span class="required">*</span></label>
+                        <input type="text" id="edit_nom_examen" name="nom_examen" class="form-control" required placeholder="{% trans "Ex: Examen du 1er Trimestre" %}" />
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_periode_id">Période scolaire <span class="required">*</span></label>
+                        <label for="edit_periode_id">{% trans "Période scolaire" %} <span class="required">*</span></label>
                         <select id="edit_periode_id" name="periode_id" class="form-control" required>
-                            <option value="">Sélectionnez une période</option>
+                            <option value="">{% trans "Sélectionnez une période" %}</option>
                             {% for periode in periodes %}
                             <option value="{{ periode.id }}">{{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})</option>
                             {% endfor %}
@@ -239,17 +241,17 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="edit_date_debut">Date de début <span class="required">*</span></label>
+                            <label for="edit_date_debut">{% trans "Date de début" %} <span class="required">*</span></label>
                             <input type="date" id="edit_date_debut" name="date_debut" class="form-control" required />
                         </div>
                         <div class="form-group">
-                            <label for="edit_date_fin">Date de fin <span class="required">*</span></label>
+                            <label for="edit_date_fin">{% trans "Date de fin" %} <span class="required">*</span></label>
                             <input type="date" id="edit_date_fin" name="date_fin" class="form-control" required />
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Groupes de classes concernés <span class="required">*</span></label>
+                        <label>{% trans "Groupes de classes concernés" %} <span class="required">*</span></label>
                         <div class="checkbox-group" id="edit_groupes_classes">
                             {% for niveau, groupe in groupes_classes.items %}
                             <div class="checkbox-item">
@@ -264,7 +266,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Matières de l'examen <span class="required">*</span></label>
+                        <label>{% trans "Matières de l'examen" %} <span class="required">*</span></label>
                         <div class="checkbox-group" id="edit_matieres">
                             {% for matiere in matieres %}
                             <div class="checkbox-item">
@@ -279,18 +281,18 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_description">Description</label>
-                        <textarea id="edit_description" name="description" class="form-control" rows="3" placeholder="Instructions ou informations supplémentaires..."></textarea>
+                        <label for="edit_description">{% trans "Description" %}</label>
+                        <textarea id="edit_description" name="description" class="form-control" rows="3" placeholder="{% trans "Instructions ou informations supplémentaires..." %}"></textarea>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
-                        Annuler
+                        {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Modifier la session
+                        {% trans "Modifier la session" %}
                     </button>
                 </div>
             </form>

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="fr">
+{% get_current_language as LANGUAGE_CODE %}
+
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     {% load static %}
+{% load i18n %}
     
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
@@ -33,9 +36,9 @@
                 <div class="page-title-section">
                     <h1 class="page-title">
                         <i class="fas fa-chalkboard"></i>
-                        Gestion des Classes
+                        {% trans "Gestion des Classes" %}
                     </h1>
-                    <p class="page-subtitle">Gérez les classes de l'établissement</p>
+                    <p class="page-subtitle">{% trans "Gérez les classes de l'établissement" %}</p>
                 </div>
             </div>
             
@@ -48,7 +51,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classes.total_classes }}</h3>
-                            <p class="stat-label">Classes Actives</p>
+                            <p class="stat-label">{% trans "Classes Actives" %}</p>
                         </div>
                     </div>
                     
@@ -58,7 +61,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classes.total_eleves }}</h3>
-                            <p class="stat-label">Élèves Inscrits</p>
+                            <p class="stat-label">{% trans "Élèves Inscrits" %}</p>
                         </div>
                     </div>
                     
@@ -68,7 +71,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classes.taux_occupation_moyen }}%</h3>
-                            <p class="stat-label">Taux d'Occupation</p>
+                            <p class="stat-label">{% trans "Taux d'Occupation" %}</p>
                         </div>
                     </div>
                     
@@ -78,7 +81,7 @@
                         </div>
                         <div class="stat-content">
                             <h3 class="stat-number">{{ stats_classes.total_capacite }}</h3>
-                            <p class="stat-label">Capacité Totale</p>
+                            <p class="stat-label">{% trans "Capacité Totale" %}</p>
                         </div>
                     </div>
                 </div>
@@ -89,7 +92,7 @@
                 <div class="section-header">
                     <h2 class="section-title">
                         <i class="fas fa-list"></i>
-                        Liste des Classes
+                        {% trans "Liste des Classes" %}
                     </h2>
                 </div>
                 
@@ -106,17 +109,17 @@
                                         {% if classe_data.statut_capacite == 'pleine' %}
                                             <span class="status-badge status-full">
                                                 <i class="fas fa-exclamation-circle"></i>
-                                                Pleine
+                                                {% trans "Pleine" %}
                                             </span>
                                         {% elif classe_data.statut_capacite == 'libre' %}
                                             <span class="status-badge status-empty">
                                                 <i class="fas fa-check-circle"></i>
-                                                Libre
+                                                {% trans "Libre" %}
                                             </span>
                                         {% else %}
                                             <span class="status-badge status-partial">
                                                 <i class="fas fa-info-circle"></i>
-                                                Partielle
+                                                {% trans "Partielle" %}
                                             </span>
                                         {% endif %}
                                     </div>
@@ -126,17 +129,17 @@
                                     <div class="stat-item">
                                         <i class="fas fa-users"></i>
                                         <span class="stat-value">{{ classe_data.eleves_count }}</span>
-                                        <span class="stat-label">Élèves</span>
+                                        <span class="stat-label">{% trans "Élèves" %}</span>
                                     </div>
                                     <div class="stat-item">
                                         <i class="fas fa-door-open"></i>
                                         <span class="stat-value">{{ classe_data.places_disponibles }}</span>
-                                        <span class="stat-label">Places libres</span>
+                                        <span class="stat-label">{% trans "Places libres" %}</span>
                                     </div>
                                     <div class="stat-item">
                                         <i class="fas fa-chart-pie"></i>
                                         <span class="stat-value">{{ classe_data.taux_occupation }}%</span>
-                                        <span class="stat-label">Occupation</span>
+                                        <span class="stat-label">{% trans "Occupation" %}</span>
                                     </div>
                                 </div>
                                 
@@ -150,11 +153,11 @@
                                 <div class="classe-actions">
                                     <a href="{% url 'secretaire:detail_classe' classe_data.classe.id %}" class="btn-action btn-primary">
                                         <i class="fas fa-eye"></i>
-                                        Voir Détails
+                                        {% trans "Voir Détails" %}
                                     </a>
                                     <a href="{% url 'secretaire:imprimer_liste_eleves' classe_data.classe.id %}" class="btn-action btn-secondary" target="_blank">
                                         <i class="fas fa-print"></i>
-                                        Imprimer
+                                        {% trans "Imprimer" %}
                                     </a>
                                 </div>
                             </div>
@@ -165,8 +168,8 @@
                         <div class="empty-icon">
                             <i class="fas fa-chalkboard"></i>
                         </div>
-                        <h3 class="empty-title">Aucune classe trouvée</h3>
-                        <p class="empty-message">Il n'y a actuellement aucune classe active dans l'établissement.</p>
+                        <h3 class="empty-title">{% trans "Aucune classe trouvée" %}</h3>
+                        <p class="empty-message">{% trans "Il n'y a actuellement aucune classe active dans l'établissement." %}</p>
                     </div>
                 {% endif %}
             </div>

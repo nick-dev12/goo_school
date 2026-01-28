@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,7 +19,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}?v=1.0.1"
     />
-    <style>
+    {% trans "<style>
       .btn-success {
         background: var(--success);
         color: white;
@@ -77,7 +79,7 @@
           padding: 0 !important;
         }
       }
-    </style>
+    </style>" %}
   </head>
   <body>
     <div class="card-page">
@@ -88,22 +90,22 @@
             class="btn-secondary"
           >
             <i class="fas fa-arrow-left"></i>
-            Retour aux classes
+            {% trans "Retour aux classes" %}
           </a>
         </div>
        
         <div class="card-actions-right">
           <button type="button" class="btn-secondary" id="btn-personnaliser" style="margin-right: 10px;">
             <i class="fas fa-edit"></i>
-            Personnaliser l'en-tête
+            {% trans "Personnaliser l'en-tête" %}
           </button>
           <button type="button" class="btn-success" id="btn-enregistrer-personnalisation" style="display: none; margin-right: 10px;">
             <i class="fas fa-save"></i>
-            Enregistrer
+            {% trans "Enregistrer" %}
           </button>
           <button type="button" class="btn-primary" id="print-class-cards">
             <i class="fas fa-print"></i>
-            Imprimer toutes les cartes
+            {% trans "Imprimer toutes les cartes" %}
           </button>
         </div>
       </header>
@@ -127,8 +129,8 @@
               </div>
               <div style="flex: 1;">
                 <p style="margin: 0; line-height: 1.4; font-size: 12px; opacity: 0.95;">
-                  <strong>Note :</strong> Veuillez personnaliser les informations de votre établissement via le bouton <strong>"Personnaliser l'en-tête"</strong> : 
-                  <strong>République du pays</strong>, <strong>Devise du pays</strong> et <strong>Devise de l'établissement</strong> (verso).
+                  <strong>{% trans "Note :" %}</strong> {% trans "Veuillez personnaliser les informations de votre établissement via le bouton" %} <strong>{% trans ""Personnaliser l'en-tête"" %}</strong> : 
+                  <strong>{% trans "République du pays" %}</strong>, <strong>{% trans "Devise du pays" %}</strong> {% trans "et" %} <strong>{% trans "Devise de l'établissement" %}</strong> {% trans "(verso)." %}
                 </p>
               </div>
             </div>
@@ -156,7 +158,7 @@
                     <div class="student-idcard-front">
                       <div class="idcard-header">
                         <div class="idcard-flag">
-                          <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo de l'établissement" />
+                          <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo de l" %}'établissement" />
                         </div>
                         <div class="idcard-header-text">
                           <p class="idcard-country editable-header" 
@@ -183,7 +185,7 @@
                           {% if etablissement.logo %}
                             <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" />
                           {% else %}
-                            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement" />
+                            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo établissement" %}" />
                           {% endif %}
                         </div>
                       </div>
@@ -192,32 +194,32 @@
                           {% if eleve.photo_profil %}
                             <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.nom_complet }}" />
                           {% else %}
-                            <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="Photo par défaut" />
+                            <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="{% trans "Photo par défaut" %}" />
                           {% endif %}
                         </div>
                         <div class="idcard-info">
                           <div class="idcard-info-row">
-                            <span class="info-label">Année scolaire :</span>
+                            <span class="info-label">{% trans "Année scolaire :" %}</span>
                             <span class="info-value">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
                           </div>
                           <div class="idcard-info-row">
-                            <span class="info-label">Nom :</span>
+                            <span class="info-label">{% trans "Nom :" %}</span>
                             <span class="info-value info-accent">{{ eleve.nom|upper }}</span>
                           </div>
                           <div class="idcard-info-row">
-                            <span class="info-label">Prénom :</span>
+                            <span class="info-label">{% trans "Prénom :" %}</span>
                             <span class="info-value info-accent">{{ eleve.prenom|upper }}</span>
                           </div>
                           <div class="idcard-info-row double">
-                            <span class="info-label">Né(e) le :</span>
+                            <span class="info-label">{% trans "Né(e) le :" %}</span>
                             <span class="info-value info-strong">{{ eleve.date_naissance|date:"d-m-Y" }}</span>
-                            <span class="info-label">À :</span>
+                            <span class="info-label">{% trans "À :" %}</span>
                             <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
                           </div>
                           <div class="idcard-info-row double">
-                            <span class="info-label">Sexe :</span>
+                            <span class="info-label">{% trans "Sexe :" %}</span>
                             <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
-                            <span class="info-label">Classe :</span>
+                            <span class="info-label">{% trans "Classe :" %}</span>
                             <span class="info-value info-uppercase info-value-wrap">{{ classe.nom }}</span>
                           </div>
                          
@@ -228,7 +230,7 @@
                           {% else %}
                             <div class="idcard-qr-placeholder">
                               <i class="fas fa-qrcode"></i>
-                              <span>QR code indisponible</span>
+                              <span>{% trans "QR code indisponible" %}</span>
                             </div>
                           {% endif %}
                         </div>
@@ -242,15 +244,15 @@
                     <div class="student-idcard-back">
                       <div class="idcard-back-header">
                         <i class="fas fa-book-reader"></i>
-                        <span>Règlement d'utilisation</span>
+                        <span>{% trans "Règlement d'utilisation" %}</span>
                       </div>
                       <div class="idcard-back-body">
                         <div class="idcard-rules-card">
                           <ol class="idcard-rules">
-                            <li>Cette carte est personnelle et non cessible.</li>
-                            <li>Elle doit être présentée à toute demande du personnel administratif.</li>
-                            <li>En cas de perte, prévenir immédiatement la direction de l'établissement.</li>
-                            <li>Toute falsification expose à des sanctions disciplinaires.</li>
+                            <li>{% trans "Cette carte est personnelle et non cessible." %}</li>
+                            <li>{% trans "Elle doit être présentée à toute demande du personnel administratif." %}</li>
+                            <li>{% trans "En cas de perte, prévenir immédiatement la direction de l'établissement." %}</li>
+                            <li>{% trans "Toute falsification expose à des sanctions disciplinaires." %}</li>
                           </ol>
                         </div>
                         <div class="idcard-back-info">
@@ -259,11 +261,11 @@
                            
                           </div>
                           <div class="signature-line">
-                            <span>Téléphone du Directeur :</span>
+                            <span>{% trans "Téléphone du Directeur :" %}</span>
                             <span class="signature-placeholder">{{ etablissement.directeur_telephone|default:"Non renseigné" }}</span>
                           </div>
                           <div class="signature-line">
-                            <span>Téléphone du Parent :</span>
+                            <span>{% trans "Téléphone du Parent :" %}</span>
                             <span class="signature-placeholder">{{ eleve.parent_telephone|default:"Non renseigné" }}</span>
                           </div>
                         </div>
@@ -273,7 +275,7 @@
                           {% if etablissement.logo %}
                             <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" />
                           {% else %}
-                            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Logo établissement" />
+                            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo établissement" %}" />
                           {% endif %}
                         </div>
                         <span class="idcard-back-motto editable-header" 
@@ -293,13 +295,13 @@
               <div class="empty-icon">
                 <i class="fas fa-user-slash"></i>
               </div>
-              <h3 class="empty-title">Aucun élève dans cette classe</h3>
+              <h3 class="empty-title">{% trans "Aucun élève dans cette classe" %}</h3>
               <p class="empty-description">
                 Aucune carte à imprimer pour le moment. Ajoutez des élèves à la classe {{ classe.nom }}.
               </p>
               <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
                 <i class="fas fa-user-plus"></i>
-                Inscrire un élève
+                {% trans "Inscrire un élève" %}
               </a>
             </div>
           {% endif %}
@@ -307,7 +309,7 @@
       </main>
     </div>
 
-    <script>
+    {% trans "<script>
       const printClassCardsBtn = document.getElementById('print-class-cards');
       if (printClassCardsBtn) {
         printClassCardsBtn.addEventListener('click', () => window.print());
@@ -443,6 +445,6 @@
           });
         });
       }
-    </script>
+    </script>" %}
   </body>
 </html>

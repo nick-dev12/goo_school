@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,7 +39,7 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-users"></i>
-                    Convocation de Classe
+                    {% trans "Convocation de Classe" %}
                 </h1>
                 <p class="page-subtitle">
                     Créer une convocation pour tous les élèves de {{ classe.nom }}
@@ -46,7 +48,7 @@
             <div class="page-actions">
                 <a href="{% url 'directeur:convocation_liste' %}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Retour à la liste</span>
+                    <span>{% trans "Retour à la liste" %}</span>
                 </a>
             </div>
         </div>
@@ -70,7 +72,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Tous les élèves de la classe seront convoqués.
+            {% trans "Aucune année scolaire active. Tous les élèves de la classe seront convoqués." %}
           </span>
         </div>
         {% endif %}
@@ -79,23 +81,23 @@
         <div class="eleve-info-card">
             <div class="eleve-info-header">
                 <i class="fas fa-chalkboard"></i>
-                <h3>Informations de la classe</h3>
+                <h3>{% trans "Informations de la classe" %}</h3>
             </div>
             <div class="eleve-info-body">
                 <div class="info-item">
-                    <span class="info-label">Classe :</span>
+                    <span class="info-label">{% trans "Classe :" %}</span>
                     <span class="info-value">{{ classe.nom }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Niveau :</span>
+                    <span class="info-label">{% trans "Niveau :" %}</span>
                     <span class="info-value">{{ classe.get_niveau_display }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Nombre d'élèves :</span>
+                    <span class="info-label">{% trans "Nombre d'élèves :" %}</span>
                     <span class="info-value">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Description :</span>
+                    <span class="info-label">{% trans "Description :" %}</span>
                     <span class="info-value">{{ classe.description|default:"Aucune description" }}</span>
                 </div>
             </div>
@@ -106,7 +108,7 @@
         <div class="form-card">
             <div class="form-header">
                 <i class="fas fa-edit"></i>
-                <h3>Informations de la convocation groupée</h3>
+                <h3>{% trans "Informations de la convocation groupée" %}</h3>
             </div>
             <form method="POST" action="{% url 'directeur:convocation_classe' classe.id %}" class="convocation-form">
                 {% csrf_token %}
@@ -115,48 +117,48 @@
                     <div class="form-group">
                         <label for="objet" class="form-label">
                             <i class="fas fa-tag"></i>
-                            Objet de la convocation *
+                            {% trans "Objet de la convocation *" %}
                         </label>
                         <input 
                             type="text" 
                             id="objet" 
                             name="objet" 
                             class="form-control"
-                            placeholder="Ex: Réunion parents-professeurs"
+                            placeholder="{% trans "Ex: Réunion parents-professeurs" %}"
                             value="{{ form_data.objet|default:'Convocation pour entretien' }}"
                             required
                         />
-                        <small class="form-hint">Titre bref de la convocation</small>
+                        <small class="form-hint">{% trans "Titre bref de la convocation" %}</small>
                     </div>
 
                     <div class="form-group">
                         <label for="motif" class="form-label">
                             <i class="fas fa-file-alt"></i>
-                            Motif de la convocation *
+                            {% trans "Motif de la convocation *" %}
                         </label>
                         <textarea 
                             id="motif" 
                             name="motif" 
                             class="form-control textarea-control"
                             rows="6"
-                            placeholder="Décrivez le motif de la convocation pour toute la classe..."
+                            placeholder="{% trans "Décrivez le motif de la convocation pour toute la classe..." %}"
                             required
                         >{{ form_data.motif|default:'' }}</textarea>
-                        <small class="form-hint">Description détaillée du motif (identique pour tous les élèves)</small>
+                        <small class="form-hint">{% trans "Description détaillée du motif (identique pour tous les élèves)" %}</small>
                     </div>
                 </div>
 
                 <div class="form-section">
                     <h4 class="section-title">
                         <i class="fas fa-calendar-alt"></i>
-                        Informations de rendez-vous
+                        {% trans "Informations de rendez-vous" %}
                     </h4>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label for="date_convocation" class="form-label">
                                 <i class="fas fa-calendar"></i>
-                                Date de la convocation *
+                                {% trans "Date de la convocation *" %}
                             </label>
                             <input 
                                 type="date" 
@@ -171,7 +173,7 @@
                         <div class="form-group">
                             <label for="heure_convocation" class="form-label">
                                 <i class="fas fa-clock"></i>
-                                Heure de la convocation *
+                                {% trans "Heure de la convocation *" %}
                             </label>
                             <input 
                                 type="time" 
@@ -187,14 +189,14 @@
                     <div class="form-group">
                         <label for="lieu" class="form-label">
                             <i class="fas fa-map-marker-alt"></i>
-                            Lieu de la convocation *
+                            {% trans "Lieu de la convocation *" %}
                         </label>
                         <input 
                             type="text" 
                             id="lieu" 
                             name="lieu" 
                             class="form-control"
-                            placeholder="Ex: Salle de réunion, Bureau du Directeur"
+                            placeholder="{% trans "Ex: Salle de réunion, Bureau du Directeur" %}"
                             value="{{ form_data.lieu|default:'Bureau du Directeur' }}"
                             required
                         />
@@ -206,11 +208,11 @@
                         <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 20px; margin-top: 2px;"></i>
                         <div>
                             <p style="margin: 0 0 8px 0; font-weight: 700; color: #92400e; font-size: 14px;">
-                                Attention
+                                {% trans "Attention" %}
                             </p>
                             <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">
-                                Cette action va créer <strong>{{ nombre_eleves }} convocation{{ nombre_eleves|pluralize }}</strong> 
-                                (une pour chaque élève de la classe). Toutes les convocations auront les mêmes informations 
+                                {% trans "Cette action va créer" %} <strong>{{ nombre_eleves }} convocation{{ nombre_eleves|pluralize }}</strong> 
+                                {% trans "(une pour chaque élève de la classe). Toutes les convocations auront les mêmes informations" %}
                                 (objet, motif, date, heure, lieu).
                             </p>
                         </div>
@@ -220,7 +222,7 @@
                 <div class="form-actions">
                     <a href="{% url 'directeur:convocation_liste' %}" class="btn-cancel">
                         <i class="fas fa-times"></i>
-                        Annuler
+                        {% trans "Annuler" %}
                     </a>
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-check"></i>

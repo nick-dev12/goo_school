@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fr">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +29,7 @@
 
         <!-- Titre du document -->
         <div class="document-title">
-            <h2>ATTESTATION DE BONNE CONDUITE</h2>
+            <h2>{% trans "ATTESTATION DE BONNE CONDUITE" %}</h2>
             {% if annee_scolaire_active %}
             <p class="document-subtitle">Année scolaire {{ annee_scolaire_active.libelle }}</p>
             {% else %}
@@ -40,57 +42,57 @@
             <!-- Informations de l'élève -->
             <div class="eleve-info-box">
                 <div class="info-row">
-                    <span class="info-label">Nom et prénom :</span>
+                    <span class="info-label">{% trans "Nom et prénom :" %}</span>
                     <span class="info-value">{{ eleve.nom|upper }} {{ eleve.prenom }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Né(e) le :</span>
+                    <span class="info-label">{% trans "Né(e) le :" %}</span>
                     <span class="info-value">{{ eleve.date_naissance|date:"d/m/Y" }} à {{ eleve.lieu_naissance }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Numéro d'élève :</span>
+                    <span class="info-label">{% trans "Numéro d'élève :" %}</span>
                     <span class="info-value">{{ eleve.numero_eleve }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Classe :</span>
+                    <span class="info-label">{% trans "Classe :" %}</span>
                     <span class="info-value">{{ eleve.classe.nom }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Année scolaire :</span>
+                    <span class="info-label">{% trans "Année scolaire :" %}</span>
                     <span class="info-value">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</span>
                 </div>
             </div>
 
             <!-- Texte de l'attestation -->
             <div class="attestation-text">
-                <p class="text-intro">Le Directeur de <strong>{{ etablissement.nom }}</strong>,</p>
+                <p class="text-intro">{% trans "Le Directeur de" %} <strong>{{ etablissement.nom }}</strong>,</p>
                 
-                <p class="text-atteste">Atteste que</p>
+                <p class="text-atteste">{% trans "Atteste que" %}</p>
                 
                 <p class="text-eleve">
-                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>, 
-                    né(e) le <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> à <strong>{{ eleve.lieu_naissance }}</strong>,
-                    élève en classe de <strong>{{ eleve.classe.nom }}</strong>,
+                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>{% trans ", 
+                    né(e) le" %} <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> {% trans "à" %} <strong>{{ eleve.lieu_naissance }}</strong>{% trans ",
+                    élève en classe de" %} <strong>{{ eleve.classe.nom }}</strong>,
                 </p>
                 
                 <p class="text-content">
-                    a fait preuve durant l'année scolaire <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong> 
-                    d'une <strong class="text-excellent">excellente conduite</strong> et d'un 
-                    <strong class="text-excellent">comportement exemplaire</strong> au sein de notre établissement.
+                    {% trans "a fait preuve durant l'année scolaire" %} <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong> 
+                    {% trans "d'une <strong class=\"text-excellent\">{% trans "excellente conduite" %}</strong> et d'un" %}
+                    <strong class="text-excellent">{% trans "comportement exemplaire" %}</strong> {% trans "au sein de notre établissement." %}
                 </p>
 
                 <p class="text-content">
-                    L'élève a démontré du respect envers ses enseignants, ses camarades et l'ensemble du personnel. 
-                    Son attitude positive et son sens des responsabilités méritent d'être soulignés.
+                    {% trans "L'élève a démontré du respect envers ses enseignants, ses camarades et l'ensemble du personnel." %}
+                    {% trans "Son attitude positive et son sens des responsabilités méritent d'être soulignés." %}
                 </p>
 
                 <p class="text-content">
-                    Nous recommandons vivement cet élève et attestons de sa bonne moralité 
-                    et de son engagement dans son parcours scolaire.
+                    {% trans "Nous recommandons vivement cet élève et attestons de sa bonne moralité" %}
+                    {% trans "et de son engagement dans son parcours scolaire." %}
                 </p>
 
                 <p class="text-mention">
-                    La présente attestation est délivrée pour servir et valoir ce que de droit.
+                    {% trans "La présente attestation est délivrée pour servir et valoir ce que de droit." %}
                 </p>
             </div>
 
@@ -102,7 +104,7 @@
         <!-- Signature -->
         <div class="signature-section">
             <div class="signature-box">
-                <p class="signature-title">Le Directeur</p>
+                <p class="signature-title">{% trans "Le Directeur" %}</p>
                 <div class="signature-line"></div>
                 <p class="signature-name">{{ etablissement.directeur_prenom|upper }} {{ etablissement.directeur_nom|upper }}</p>
             </div>
@@ -120,15 +122,15 @@
     <div class="print-actions no-print">
         <button onclick="window.print()" class="btn-print">
             <i class="fas fa-print"></i>
-            Imprimer l'attestation
+            {% trans "Imprimer l'attestation" %}
         </button>
         <button onclick="window.close()" class="btn-close">
             <i class="fas fa-times"></i>
-            Fermer
+            {% trans "Fermer" %}
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>" %}
 </body>
 </html>
 

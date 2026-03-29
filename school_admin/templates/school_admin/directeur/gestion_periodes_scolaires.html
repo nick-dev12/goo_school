@@ -1,17 +1,15 @@
 <!DOCTYPE html>
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
-
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Périodes Scolaires - {{ etablissement.nom }}</title>
-    {% load static %}
-{% load i18n %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_periodes_scolaires.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_periodes_scolaires.css' %}?v=1.3.0">
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -49,81 +47,6 @@
                 <i class="fas fa-plus"></i>
                 {% trans "Ajouter une période" %}
             </button>
-        </div>
-
-        <!-- Formulaire d'ajout de période (caché par défaut) -->
-        <div class="form-add-periode" id="formAddPeriode">
-            <h3 class="form-add-periode-title">
-                <i class="fas fa-plus-circle"></i>
-                {% trans "Nouvelle période scolaire" %}
-            </h3>
-            <form method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="ajouter">
-                {% if annee_scolaire_active %}
-                <div class="active-year-info" style="background: var(--primary-light, rgba(59, 130, 246, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--primary, #3b82f6);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-info-circle" style="color: var(--primary, #3b82f6);"></i>
-                        <span style="font-weight: 500; color: var(--gray-800, #1f2937);">
-                            {% trans "Cette période sera associée à l'année scolaire active :" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
-                        </span>
-                    </div>
-                </div>
-                {% else %}
-                <div class="active-year-info" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--warning, #fbbf24);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-                        <span style="font-weight: 500; color: var(--gray-800, #1f2937);">
-                            {% trans "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une période." %}
-                        </span>
-                    </div>
-                </div>
-                {% endif %}
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>{% trans "Nom de la période" %} <span>*</span></label>
-                        <input type="text" name="nom_periode" required placeholder="Ex: 1er Trimestre">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>{% trans "Type de période" %} <span>*</span></label>
-                        <select name="type_periode" required>
-                            <option value="trimestre">{% trans "Trimestre" %}</option>
-                            <option value="semestre">{% trans "Semestre" %}</option>
-                            <option value="annee">{% trans "Année complète" %}</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>{% trans "Date de début" %} <span>*</span></label>
-                        <input type="date" name="date_debut" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>{% trans "Date de fin" %} <span>*</span></label>
-                        <input type="date" name="date_fin" required>
-                    </div>
-
-                    <div class="form-group form-group-spacer">
-                        <label class="form-label-hidden">{% trans "Spacer" %}</label>
-                        <div class="checkbox-group">
-                            <input type="checkbox" name="est_active" id="est_active" checked>
-                            <label for="est_active" class="checkbox-label">{% trans "Période active" %}</label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="btnAnnuler">
-                        <i class="fas fa-times"></i>
-                        {% trans "Annuler" %}
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        {% trans "Enregistrer la période" %}
-                    </button>
-                </div>
-            </form>
         </div>
 
         <!-- Liste des années scolaires -->
@@ -186,7 +109,85 @@
                 {% trans "Périodes définies" %}
             </h2>
 
-            {% if periodes_par_annee %}
+            {% if est_superieur and periodes_par_annee and periodes_tabs %}
+                {% for annee, periodes_annee in periodes_par_annee.items %}
+                <p class="periodes-annee-hint"><i class="fas fa-calendar-check"></i> {% trans "Année scolaire" %} <strong>{{ annee }}</strong></p>
+                {% endfor %}
+                <div class="periodes-niveau-tabs" data-periodes-tabs>
+                    <div class="periodes-tab-buttons" role="tablist">
+                        {% for tab in periodes_tabs %}
+                        <button type="button" role="tab" class="periodes-tab-btn{% if forloop.first %} is-active{% endif %}"
+                                data-tab-target="{{ tab.code }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                            {{ tab.label }}
+                            <span class="tab-count">{{ tab.periodes|length }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% for tab in periodes_tabs %}
+                    <div class="periodes-tab-panel{% if forloop.first %} is-active{% endif %}" data-tab-panel="{{ tab.code }}" role="tabpanel" {% if not forloop.first %}hidden{% endif %}>
+                        {% if tab.periodes %}
+                        <div class="periodes-grid">
+                            {% for periode in tab.periodes %}
+                            <div class="periode-card {% if periode.est_en_cours %}active{% elif periode.est_passee %}terminee{% else %}a-venir{% endif %}">
+                                <div class="periode-header">
+                                    <div class="periode-titre">{{ periode.libelle_affichage_superieur }}</div>
+                                    <span class="periode-badge {% if periode.est_active %}actif{% else %}inactif{% endif %}">
+                                        {% if periode.est_active %}Actif{% else %}Inactif{% endif %}
+                                    </span>
+                                </div>
+                                <div class="periode-info">
+                                    <div class="periode-info-item">
+                                        <i class="fas fa-calendar-day"></i>
+                                        <span>Du {{ periode.date_debut|date:"d/m/Y" }} au {{ periode.date_fin|date:"d/m/Y" }}</span>
+                                    </div>
+                                    <div class="periode-info-item">
+                                        <i class="fas fa-clock"></i>
+                                        <span>{% trans "Durée" %} : {{ periode.duree_jours }} {% trans "jours" %}</span>
+                                    </div>
+                                </div>
+                                <div class="periode-status {% if periode.est_en_cours %}en-cours{% elif periode.est_future %}a-venir{% else %}terminee{% endif %}">
+                                    {% if periode.est_en_cours %}
+                                        <i class="fas fa-circle"></i> {% trans "En cours" %}
+                                    {% elif periode.est_future %}
+                                        <i class="fas fa-hourglass-half"></i> {% trans "À venir" %}
+                                    {% else %}
+                                        <i class="fas fa-check-circle"></i> {% trans "Terminée" %}
+                                    {% endif %}
+                                </div>
+                                <div class="periode-actions">
+                                    <button type="button"
+                                            class="btn-action edit"
+                                            data-id="{{ periode.id }}"
+                                            data-nom="{{ periode.nom_periode|escape }}"
+                                            data-type="{{ periode.type_periode }}"
+                                            data-niveau-lmd="{{ periode.niveau_lmd|default:'' }}"
+                                            data-debut="{{ periode.date_debut|date:'Y-m-d' }}"
+                                            data-fin="{{ periode.date_fin|date:'Y-m-d' }}"
+                                            data-annee="{{ periode.annee_scolaire }}"
+                                            data-active="{{ periode.est_active|yesno:'true,false' }}"
+                                            onclick="openEditPeriodeModal(this)">
+                                        <i class="fas fa-pen"></i>
+                                        {% trans "Modifier" %}
+                                    </button>
+                                    <button type="button"
+                                            class="btn-action delete"
+                                            data-id="{{ periode.id }}"
+                                            data-nom="{{ periode.nom_periode|escape }}"
+                                            onclick="openDeletePeriodeModal(this)">
+                                        <i class="fas fa-trash"></i>
+                                        {% trans "Supprimer" %}
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="periodes-tab-empty">{% trans "Aucune période pour ce niveau." %}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% elif periodes_par_annee %}
                 <div class="periodes-list">
                     {% for annee, periodes_annee in periodes_par_annee.items %}
                     <div class="annee-group">
@@ -235,6 +236,7 @@
                                             data-id="{{ periode.id }}"
                                             data-nom="{{ periode.nom_periode|escape }}"
                                             data-type="{{ periode.type_periode }}"
+                                            data-niveau-lmd=""
                                             data-debut="{{ periode.date_debut|date:'Y-m-d' }}"
                                             data-fin="{{ periode.date_fin|date:'Y-m-d' }}"
                                             data-annee="{{ periode.annee_scolaire }}"
@@ -272,41 +274,155 @@
         </div>
     </div>
 
+    <!-- Modale ajout période (plein écran) -->
+    <div class="modal-overlay modal-periode-add" id="periodeAddModal" aria-hidden="true" aria-labelledby="addPeriodeModalTitle">
+        <div class="modal-dialog periode-form-modal__dialog" role="document">
+            <form class="modal-form modal-form--periode" method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}" id="formAjoutPeriode">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="ajouter">
+                <div class="modal-header">
+                    <h3 id="addPeriodeModalTitle">
+                        <i class="fas fa-plus-circle"></i>
+                        {% trans "Nouvelle période scolaire" %}
+                    </h3>
+                    <button type="button" class="modal-close" onclick="closePeriodeModal('periodeAddModal')" aria-label="{% trans 'Fermer' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body modal-body--scroll">
+                    {% if annee_scolaire_active %}
+                    <div class="active-year-banner active-year-banner--ok">
+                        <i class="fas fa-info-circle"></i>
+                        <span>
+                            {% trans "Période rattachée à l'année scolaire active :" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
+                        </span>
+                    </div>
+                    {% else %}
+                    <div class="active-year-banner active-year-banner--warn">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>{% trans "Aucune année scolaire active. Créez et activez une année avant d'ajouter une période." %}</span>
+                    </div>
+                    {% endif %}
+                    {% if est_superieur %}
+                    <p class="lmd-hint-modal">
+                        <i class="fas fa-graduation-cap"></i>
+                        {% trans "Choisissez d'abord le niveau (Licence, Master, Doctorat), puis le semestre officiel (S1–S2 pour Licence 1, S3–S4 pour Licence 2, etc.)." %}
+                    </p>
+                    {% endif %}
+                    <div class="form-grid form-grid--modal">
+                        {% if est_superieur %}
+                        <div class="form-group">
+                            <label for="add_niveau_lmd">{% trans "Niveau d'application" %} <span>*</span></label>
+                            <select name="niveau_lmd" id="add_niveau_lmd" required>
+                                <option value="">{% trans "— Choisir un niveau —" %}</option>
+                                {% for code, label in niveaux_lmd_periode_choices %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="add_nom_periode_semestre">{% trans "Semestre (officiel)" %} <span>*</span></label>
+                            <select name="nom_periode_semestre" id="add_nom_periode_semestre" required>
+                                <option value="">{% trans "— Choisissez d'abord le niveau —" %}</option>
+                            </select>
+                        </div>
+                        {% else %}
+                        <div class="form-group">
+                            <label for="add_nom_periode_classique">{% trans "Nom de la période" %} <span>*</span></label>
+                            <input type="text" name="nom_periode" id="add_nom_periode_classique" required placeholder="{% trans 'Ex: 1er Trimestre' %}">
+                        </div>
+                        <div class="form-group">
+                            <label for="add_type_periode">{% trans "Type de période" %} <span>*</span></label>
+                            <select name="type_periode" id="add_type_periode" required>
+                                <option value="trimestre">{% trans "Trimestre" %}</option>
+                                <option value="semestre">{% trans "Semestre" %}</option>
+                                <option value="annee">{% trans "Année complète" %}</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                        <div class="form-group">
+                            <label for="add_date_debut">{% trans "Date de début" %} <span>*</span></label>
+                            <input type="date" name="date_debut" id="add_date_debut" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="add_date_fin">{% trans "Date de fin" %} <span>*</span></label>
+                            <input type="date" name="date_fin" id="add_date_fin" required>
+                        </div>
+                        <div class="form-group form-group-checkbox-row">
+                            <input type="checkbox" name="est_active" id="est_active" checked>
+                            <label for="est_active" class="checkbox-label">{% trans "Période active" %}</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closePeriodeModal('periodeAddModal')">
+                        <i class="fas fa-times"></i> {% trans "Annuler" %}
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {% trans "Enregistrer la période" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Modification -->
-    <div class="modal-overlay" id="periodeEditModal" aria-hidden="true">
-        <div class="modal-dialog" role="dialog" aria-labelledby="editModalTitle">
-            <div class="modal-header">
-                <h3 id="editModalTitle">
-                    <i class="fas fa-pen-to-square"></i>
-                    {% trans "Modifier la période scolaire" %}
-                </h3>
-                <button type="button" class="modal-close" onclick="closePeriodeModal('periodeEditModal')" aria-label="Fermer la fenêtre">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form class="modal-form" method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
+    <div class="modal-overlay modal-periode-edit" id="periodeEditModal" aria-hidden="true" aria-labelledby="editModalTitle">
+        <div class="modal-dialog periode-form-modal__dialog" role="document">
+            <form class="modal-form modal-form--periode" method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="modifier">
                 <input type="hidden" name="periode_id" id="edit_periode_id">
-                <div class="modal-body">
+                <div class="modal-header">
+                    <h3 id="editModalTitle">
+                        <i class="fas fa-pen-to-square"></i>
+                        {% trans "Modifier la période scolaire" %}
+                    </h3>
+                    <button type="button" class="modal-close" onclick="closePeriodeModal('periodeEditModal')" aria-label="{% trans 'Fermer' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body modal-body--scroll">
+                    {% if est_superieur %}
+                    <p class="lmd-hint-modal">
+                        <i class="fas fa-graduation-cap"></i>
+                        {% trans "Modifiez le niveau et/ou le semestre : la liste des semestres se met à jour selon le niveau LMD." %}
+                    </p>
                     <div class="form-group">
-                        <label for="edit_nom_periode">{% trans "Nom de la période" %}</label>
+                        <label for="edit_niveau_lmd">{% trans "Niveau d'application" %} <span>*</span></label>
+                        <select id="edit_niveau_lmd" name="niveau_lmd" required>
+                            <option value="">{% trans "— Choisir —" %}</option>
+                            {% for code, label in niveaux_lmd_periode_choices %}
+                            <option value="{{ code }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_nom_periode_semestre">{% trans "Semestre (officiel)" %} <span>*</span></label>
+                        <select id="edit_nom_periode_semestre" name="nom_periode_semestre" required>
+                            <option value="">{% trans "— Choisir —" %}</option>
+                        </select>
+                    </div>
+                    {% else %}
+                    <div class="form-group">
+                        <label for="edit_nom_periode">{% trans "Nom de la période" %} <span>*</span></label>
                         <input type="text" id="edit_nom_periode" name="nom_periode" required>
                     </div>
                     <div class="form-group">
-                        <label for="edit_type_periode">{% trans "Type de période" %}</label>
+                        <label for="edit_type_periode">{% trans "Type de période" %} <span>*</span></label>
                         <select id="edit_type_periode" name="type_periode" required>
                             <option value="trimestre">{% trans "Trimestre" %}</option>
                             <option value="semestre">{% trans "Semestre" %}</option>
                             <option value="annee">{% trans "Année complète" %}</option>
                         </select>
                     </div>
+                    {% endif %}
                     <div class="form-group">
-                        <label for="edit_date_debut">{% trans "Date de début" %}</label>
+                        <label for="edit_date_debut">{% trans "Date de début" %} <span>*</span></label>
                         <input type="date" id="edit_date_debut" name="date_debut" required>
                     </div>
                     <div class="form-group">
-                        <label for="edit_date_fin">{% trans "Date de fin" %}</label>
+                        <label for="edit_date_fin">{% trans "Date de fin" %} <span>*</span></label>
                         <input type="date" id="edit_date_fin" name="date_fin" required>
                     </div>
                     <div class="form-group form-group-checkbox-row">
@@ -914,6 +1030,47 @@
     </style>
 
     <script>
+        {% if est_superieur %}
+        var SEMESTRES_PAR_NIVEAU = {{ semestres_par_niveau_json|safe }};
+
+        function remplirSelectSemestres(selectEl, niveauCode, valeurPreferee) {
+            if (!selectEl || typeof SEMESTRES_PAR_NIVEAU === 'undefined') return;
+            selectEl.innerHTML = '';
+            var pairs = SEMESTRES_PAR_NIVEAU[niveauCode] || [];
+            var opt0 = document.createElement('option');
+            opt0.value = '';
+            opt0.textContent = pairs.length ? '— Choisir un semestre —' : '— Choisissez d\'abord le niveau —';
+            selectEl.appendChild(opt0);
+            for (var i = 0; i < pairs.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = pairs[i][0];
+                opt.textContent = pairs[i][1];
+                if (valeurPreferee && pairs[i][0] === valeurPreferee) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var addNiveau = document.getElementById('add_niveau_lmd');
+            var addSem = document.getElementById('add_nom_periode_semestre');
+            if (addNiveau && addSem) {
+                addNiveau.addEventListener('change', function() {
+                    var nk = addNiveau.value;
+                    remplirSelectSemestres(addSem, nk, null);
+                });
+            }
+            var editNl = document.getElementById('edit_niveau_lmd');
+            if (editNl) {
+                editNl.addEventListener('change', function() {
+                    var es = document.getElementById('edit_nom_periode_semestre');
+                    if (es) remplirSelectSemestres(es, editNl.value, null);
+                });
+            }
+        });
+        {% endif %}
+
         // Gestion du modal année scolaire
         const btnCreerAnneeScolaire = document.getElementById('btnCreerAnneeScolaire');
         const anneeScolaireModal = document.getElementById('anneeScolaireModal');
@@ -1015,13 +1172,6 @@
         
         window.closeAnneeScolaireModal = closeAnneeScolaireModal;
         
-        // Fermer avec Escape
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeAnneeScolaireModal();
-            }
-        });
-        
         // Fermer en cliquant sur l'overlay
         if (anneeScolaireModal) {
             anneeScolaireModal.addEventListener('click', (event) => {
@@ -1031,22 +1181,29 @@
             });
         }
         
-        // Gestion de l'affichage/masquage du formulaire
         const btnAjouterPeriode = document.getElementById('btnAjouterPeriode');
-        const btnAnnuler = document.getElementById('btnAnnuler');
-        const formAddPeriode = document.getElementById('formAddPeriode');
+        const periodeAddModal = document.getElementById('periodeAddModal');
+        const formAjoutPeriode = document.getElementById('formAjoutPeriode');
 
-        if (btnAjouterPeriode) {
-            btnAjouterPeriode.addEventListener('click', () => {
-                formAddPeriode.classList.add('show');
-                formAddPeriode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            });
+        function resetFormAjoutPeriodeApresFermeture() {
+            if (!formAjoutPeriode) return;
+            formAjoutPeriode.reset();
+            var estActiveCb = document.getElementById('est_active');
+            if (estActiveCb) estActiveCb.checked = true;
+            if (typeof remplirSelectSemestres === 'function') {
+                var addN = document.getElementById('add_niveau_lmd');
+                var addS = document.getElementById('add_nom_periode_semestre');
+                if (addN) addN.value = '';
+                if (addS) remplirSelectSemestres(addS, '', null);
+            }
         }
 
-        if (btnAnnuler) {
-            btnAnnuler.addEventListener('click', () => {
-                formAddPeriode.classList.remove('show');
-                formAddPeriode.querySelector('form').reset();
+        if (btnAjouterPeriode && periodeAddModal && formAjoutPeriode) {
+            btnAjouterPeriode.addEventListener('click', function() {
+                resetFormAjoutPeriodeApresFermeture();
+                periodeAddModal.classList.add('show');
+                periodeAddModal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('periode-modal-open');
             });
         }
 
@@ -1056,13 +1213,25 @@
         function openEditPeriodeModal(button) {
             if (!editModal) return;
             document.getElementById('edit_periode_id').value = button.dataset.id || '';
-            document.getElementById('edit_nom_periode').value = button.dataset.nom || '';
-            document.getElementById('edit_type_periode').value = button.dataset.type || 'trimestre';
+            var selSem = document.getElementById('edit_nom_periode_semestre');
+            if (selSem && typeof remplirSelectSemestres === 'function') {
+                var nl = document.getElementById('edit_niveau_lmd');
+                if (nl) {
+                    nl.value = button.dataset.niveauLmd || '';
+                    remplirSelectSemestres(selSem, nl.value, button.dataset.nom || '');
+                }
+            } else {
+                var en = document.getElementById('edit_nom_periode');
+                if (en) en.value = button.dataset.nom || '';
+                var et = document.getElementById('edit_type_periode');
+                if (et) et.value = button.dataset.type || 'trimestre';
+            }
             document.getElementById('edit_date_debut').value = button.dataset.debut || '';
             document.getElementById('edit_date_fin').value = button.dataset.fin || '';
             document.getElementById('edit_est_active').checked = button.dataset.active === 'true';
             editModal.classList.add('show');
             editModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('periode-modal-open');
         }
 
         function openDeletePeriodeModal(button) {
@@ -1071,34 +1240,70 @@
             document.getElementById('delete_periode_name').textContent = button.dataset.nom || '';
             deleteModal.classList.add('show');
             deleteModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('periode-modal-open');
         }
 
         function closePeriodeModal(modalId) {
-            const modal = document.getElementById(modalId);
+            var modal = document.getElementById(modalId);
             if (!modal) return;
             modal.classList.remove('show');
             modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('periode-modal-open');
+            if (modalId === 'periodeAddModal') {
+                resetFormAjoutPeriodeApresFermeture();
+            }
         }
 
         window.openEditPeriodeModal = openEditPeriodeModal;
         window.openDeletePeriodeModal = openDeletePeriodeModal;
         window.closePeriodeModal = closePeriodeModal;
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closePeriodeModal('periodeEditModal');
-                closePeriodeModal('periodeDeleteModal');
+        document.addEventListener('keydown', function(event) {
+            if (event.key !== 'Escape') return;
+            if (anneeScolaireModal && anneeScolaireModal.classList.contains('show')) {
+                closeAnneeScolaireModal();
+                return;
+            }
+            var ordreModales = ['periodeAddModal', 'periodeEditModal', 'periodeDeleteModal'];
+            for (var j = 0; j < ordreModales.length; j++) {
+                var m = document.getElementById(ordreModales[j]);
+                if (m && m.classList.contains('show')) {
+                    closePeriodeModal(ordreModales[j]);
+                    return;
+                }
             }
         });
 
-        [editModal, deleteModal].forEach(modal => {
+        [periodeAddModal, editModal, deleteModal].forEach(function(modal) {
             if (!modal) return;
-            modal.addEventListener('click', (event) => {
+            modal.addEventListener('click', function(event) {
                 if (event.target === modal) {
                     closePeriodeModal(modal.id);
                 }
             });
         });
+
+        (function initPeriodesTabs() {
+            var root = document.querySelector('[data-periodes-tabs]');
+            if (!root) return;
+            var buttons = root.querySelectorAll('.periodes-tab-btn');
+            var panels = root.querySelectorAll('.periodes-tab-panel');
+            buttons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var code = btn.getAttribute('data-tab-target');
+                    buttons.forEach(function(b) {
+                        b.classList.toggle('is-active', b === btn);
+                        b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+                    });
+                    panels.forEach(function(p) {
+                        var show = p.getAttribute('data-tab-panel') === code;
+                        p.classList.toggle('is-active', show);
+                        if (show) { p.removeAttribute('hidden'); }
+                        else { p.setAttribute('hidden', 'hidden'); }
+                    });
+                });
+            });
+        })();
     </script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

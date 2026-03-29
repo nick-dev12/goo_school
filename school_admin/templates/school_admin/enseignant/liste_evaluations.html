@@ -230,6 +230,8 @@
                         <span class="stat-label">Évaluation{{ stats.total_evaluations|pluralize }}</span>
                         {% if periode_active %}
                             <span class="stat-subtitle">{{ periode_active.nom_periode }}</span>
+                        {% elif est_superieur %}
+                            <span class="stat-subtitle">Filtrage par classe</span>
                         {% endif %}
                     </div>
                 </div>
@@ -245,8 +247,7 @@
                 </div>
             </div>
 
-            <!-- Onglets par période -->
-            {% if periodes_scolaires %}
+            {% if not est_superieur and periodes_scolaires %}
             <div class="periodes-tabs-container">
                 <div class="periodes-tabs-nav">
                     <a href="{% url 'enseignant:liste_evaluations' %}?periode=toutes" 
@@ -305,6 +306,20 @@
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}
                             <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}">
+                                {% if est_superieur and classe_data.periodes_nav %}
+                                <div class="periodes-tabs-container" style="margin-bottom: 1rem;">
+                                    <div class="periodes-tabs-nav" style="flex-wrap: wrap;">
+                                        {% for nav in classe_data.periodes_nav %}
+                                        <a href="{% url 'enseignant:liste_evaluations' %}?{{ nav.query }}"
+                                           class="periode-tab-btn {% if nav.active %}active{% endif %}"
+                                           title="{{ nav.periode.libelle_affichage_superieur }}">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span>{{ nav.periode.libelle_affichage_superieur }}</span>
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
                                 {% if classe_data.evaluations %}
                                     <!-- Grille des évaluations -->
                                     <div class="evaluations-grid">

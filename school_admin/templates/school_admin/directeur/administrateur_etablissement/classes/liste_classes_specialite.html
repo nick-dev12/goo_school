@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% load classe_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Classes de la spécialité" %} {{ specialite_filter.nom }} - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.1.1"
+    />
+  </head>
+  <body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="content-container">
+      <div class="container">
+        <div class="page-header">
+          <div class="page-title-section">
+            <a href="{% url 'administrateur_etablissement:liste_filieres' %}" class="back-link" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--text-secondary);text-decoration:none;font-size:0.875rem;margin-bottom:0.5rem;transition:color 0.2s;">
+              <i class="fas fa-arrow-left"></i>
+              {% trans "Retour aux spécialités" %}
+            </a>
+            <h1 class="page-title">
+              <i class="fas fa-chalkboard"></i>
+              {% trans "Classes de la spécialité" %} : {{ specialite_filter.nom }}
+            </h1>
+            <p class="page-subtitle">
+              {% trans "Gérez les classes de" %} {{ etablissement.nom }}
+            </p>
+          </div>
+          <div class="page-actions">
+            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-add-filiere btn-secondary" title="{% trans 'Voir toutes les classes' %}">
+              <i class="fas fa-list"></i>
+              <span>{% trans "Toutes les classes" %}</span>
+            </a>
+            <button class="btn-add-classe" id="addClasseBtn">
+              <i class="fas fa-plus"></i>
+              <span>{% trans "Ajouter une classe" %}</span>
+            </button>
+          </div>
+        </div>
+
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card stat-primary">
+              <div class="stat-icon"><i class="fas fa-chalkboard"></i></div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.total }}</div>
+                <div class="stat-label">{% trans "Total Classes" %}</div>
+              </div>
+            </div>
+            <div class="stat-card stat-success">
+              <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.actives }}</div>
+                <div class="stat-label">{% trans "Actives" %}</div>
+              </div>
+            </div>
+            <div class="stat-card stat-primary">
+              <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats.total_enseignants_affectes }}</div>
+                <div class="stat-label">{% trans "Enseignants Affectés" %}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="classes-section">
+          {% if classes_grouped %}
+            <div class="tabs-content">
+              {% for filiere_nom, filiere_data in classes_grouped.items %}
+                <div class="tab-panel active">
+                  {% for niveau_code, data in filiere_data.niveaux %}
+                    <div class="filiere-block">
+                      <h3 class="filiere-title"><i class="fas fa-graduation-cap"></i> {{ niveau_code|libelle_niveau_lmd_key }}</h3>
+                      <div class="category-header">
+                        <div class="category-stats">
+                          <div class="stat-item"><span class="stat-number">{{ data.total_eleves }}</span> <span class="stat-label">{% trans "Élèves" %}</span></div>
+                          <div class="stat-item"><span class="stat-number">{{ data.total_enseignants }}</span> <span class="stat-label">{% trans "Enseignants" %}</span></div>
+                          <div class="stat-item"><span class="stat-number">{{ data.total_capacite }}</span> <span class="stat-label">{% trans "Capacité" %}</span></div>
+                        </div>
+                      </div>
+                      <div class="classes-grid">
+                        {% for classe_data in data.classes %}
+                        {% with classe=classe_data.classe %}
+                        <div class="classe-card">
+                          <div class="classe-header">
+                            <div class="classe-icon"><i class="fas fa-book"></i></div>
+                            <div class="classe-info">
+                              <h3 class="classe-nom">{{ classe.nom }}</h3>
+                              <p class="classe-niveau">{{ classe.get_libelle_niveau_superieur_complet }}</p>
+                              <div class="classe-badge niveau-superieur"><span>{{ classe.get_libelle_niveau_superieur_complet }}</span></div>
+                            </div>
+                            <div class="classe-status">
+                              <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+                                <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+                                <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="classe-details">
+                            <div class="detail-row">
+                              <div class="detail-item"><i class="fas fa-user-graduate"></i> <span class="detail-label">{% trans "Élèves" %}:</span> <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span></div>
+                              <div class="detail-item"><i class="fas fa-chalkboard-teacher"></i> <span class="detail-label">{% trans "Enseignants:" %}</span> <span class="detail-value">{{ classe_data.nombre_enseignants }}</span></div>
+                            </div>
+                            <div class="detail-row">
+                              <div class="detail-item"><i class="fas fa-chart-pie"></i> <span class="detail-label">{% trans "Occupation:" %}</span> <span class="detail-value">{{ classe.taux_occupation }}%</span></div>
+                              <div class="detail-item"><i class="fas fa-code"></i> <span class="detail-label">{% trans "Code:" %}</span> <span class="detail-value">{{ classe.code_classe }}</span></div>
+                            </div>
+                          </div>
+                          <div class="classe-actions">
+                            <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail"><i class="fas fa-eye"></i> <span>{% trans "Détails" %}</span></a>
+                            <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}"><i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i> <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span></a>
+                          </div>
+                        </div>
+                        {% endwith %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-chalkboard"></i>
+              </div>
+              <h3>{% trans "Aucune classe dans cette spécialité" %}</h3>
+              <p>{% trans "Ajoutez des classes à la spécialité" %} « {{ specialite_filter.nom }} »</p>
+              <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-add-classe">
+                <i class="fas fa-plus"></i>
+                <span>{% trans "Ajouter une classe" %}</span>
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const addClasseBtn = document.getElementById('addClasseBtn');
+        if (addClasseBtn) {
+          addClasseBtn.addEventListener('click', function() {
+            window.location.href = "{% url 'administrateur_etablissement:liste_classes' %}";
+          });
+        }
+      });
+    </script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+  </body>
+</html>

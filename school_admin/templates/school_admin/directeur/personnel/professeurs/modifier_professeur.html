@@ -167,7 +167,119 @@
                             <h3 class="section-title">{% trans "Informations professionnelles" %}</h3>
                         </div>
                         
-                        {% if type_etablissement == 'primary' %}
+                        {% if est_superieur %}
+                            <div class="form-group">
+                                <label class="form-label" for="department">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {% trans "Filière *" %}
+                                </label>
+                                {% if departments %}
+                                    <select class="form-control {% if field_errors.department %}is-invalid{% endif %}"
+                                            id="department"
+                                            name="department"
+                                            required>
+                                        <option value="">{% trans "Sélectionnez une filière" %}</option>
+                                        {% for dep in departments %}
+                                            <option value="{{ dep.id }}" {% if form_data.department == dep.id|stringformat:"s" %}selected{% endif %}>{{ dep.nom }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <p class="form-hint" style="font-size: 12px; color: #666; margin-top: 6px;">
+                                        <i class="fas fa-info-circle"></i>
+                                        {% trans "Chaque professeur est rattaché à une filière." %}
+                                    </p>
+                                {% else %}
+                                    <div class="alert alert-error" style="padding: 10px; font-size: 0.9rem;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {% trans "Aucune filière configurée." %}
+                                    </div>
+                                {% endif %}
+                                {% if field_errors.department %}
+                                    <div class="invalid-feedback">{{ field_errors.department }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group" id="niveau-lmd-wrap" {% if not form_data.department %}style="display: none;"{% endif %}>
+                                <label class="form-label" for="niveau_lmd">
+                                    <i class="fas fa-layer-group"></i>
+                                    {% trans "Niveau dans la filière *" %}
+                                </label>
+                                <select class="form-control {% if field_errors.niveau_lmd %}is-invalid{% endif %}"
+                                        id="niveau_lmd"
+                                        name="niveau_lmd"
+                                        {% if not form_data.department %}disabled{% endif %}>
+                                    <option value="">{% trans "Sélectionnez un niveau (L1, L2, M1…)" %}</option>
+                                    {% for opt in niveaux_lmd_options_selection %}
+                                        <option value="{{ opt.key }}" {% if form_data.niveau_lmd == opt.key %}selected{% endif %}>{{ opt.label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <p class="form-hint" style="font-size: 12px; color: #666; margin-top: 6px;">
+                                    <i class="fas fa-info-circle"></i>
+                                    {% trans "Seules les matières du niveau choisi (classes réellement liées) sont proposées." %}
+                                </p>
+                                {% if field_errors.niveau_lmd %}
+                                    <div class="invalid-feedback d-block">{{ field_errors.niveau_lmd }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group" id="matieres-superieur-container" {% if not form_data.department or not form_data.niveau_lmd %}style="display: none;"{% endif %}>
+                                <label class="form-label" for="matiere-principale-search">
+                                    <i class="fas fa-book"></i>
+                                    {% trans "Matière enseignée *" %}
+                                </label>
+                                <p class="form-hint matiere-superieur-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    {% trans "Matière principale : filière et niveau stricts (comme à la création)." %}
+                                </p>
+                                <div class="matiere-search-wrap">
+                                    <label for="matiere-principale-search" class="sr-only">{% trans "Rechercher une matière" %}</label>
+                                    <input type="search"
+                                           class="form-control matiere-search-input"
+                                           id="matiere-principale-search"
+                                           autocomplete="off"
+                                           placeholder="{% trans 'Rechercher une matière…' %}"
+                                           {% if not form_data.department or not form_data.niveau_lmd %}disabled{% endif %}>
+                                </div>
+                                <div class="matiere-principale-selected-bar" id="matiere-principale-selected-bar" {% if not form_data.matiere_principale %}hidden{% endif %}>
+                                    <span class="matiere-principale-selected-label" id="matiere-principale-selected-label"></span>
+                                    <button type="button" class="btn-matiere-clear" id="matiere-principale-clear" aria-label="{% trans 'Changer de matière' %}">
+                                        <i class="fas fa-times"></i> {% trans "Changer" %}
+                                    </button>
+                                </div>
+                                <input type="hidden"
+                                       name="matiere_principale"
+                                       id="input_matiere_principale"
+                                       value="{{ form_data.matiere_principale }}">
+                                <p class="matiere-filter-empty-msg" id="matiere-principale-no-results" hidden role="status">
+                                    {% trans "Aucune matière ne correspond à votre recherche." %}
+                                </p>
+                                <div class="matiere-pick-list {% if field_errors.matiere_principale %}is-invalid-border{% endif %}"
+                                     id="matiere-principale-list"
+                                     role="listbox"
+                                     aria-label="{% trans 'Liste des matières' %}"
+                                     aria-live="polite"
+                                     aria-relevant="additions removals">
+                                    {% for m in matieres_superieur_flat %}
+                                    <button type="button"
+                                            class="matiere-pick-item {% if form_data.matiere_principale == m.id|stringformat:'s' and form_data.department == m.department_id|stringformat:'s' and form_data.niveau_lmd in m.niveau_lmd_keys_list %}is-selected{% endif %}"
+                                            data-matiere-id="{{ m.id }}"
+                                            data-department-id="{{ m.department_id }}"
+                                            data-niveau-lmd-keys="{{ m.niveau_lmd_keys_csv|escape }}"
+                                            data-matiere-search="{{ m.nom|escape }} {{ m.code|escape }} {{ m.module_nom|escape }}"
+                                            role="option"
+                                            aria-selected="{% if form_data.matiere_principale == m.id|stringformat:'s' and form_data.department == m.department_id|stringformat:'s' and form_data.niveau_lmd in m.niveau_lmd_keys_list %}true{% else %}false{% endif %}">
+                                        <span class="matiere-pick-main">{{ m.nom }}</span>
+                                        <span class="matiere-pick-meta">
+                                            {% if m.module_nom %}<span class="matiere-pick-module">{{ m.module_nom }}</span> · {% endif %}
+                                            <span class="matiere-pick-code">{{ m.code }}</span>
+                                        </span>
+                                    </button>
+                                    {% empty %}
+                                    <p class="text-muted matiere-pick-empty">{% trans "Aucune matière enregistrée pour une filière." %}</p>
+                                    {% endfor %}
+                                </div>
+                                {% if field_errors.matiere_principale %}
+                                    <div class="invalid-feedback d-block">{{ field_errors.matiere_principale }}</div>
+                                {% endif %}
+                            </div>
+                        {% elif type_etablissement == 'primary' %}
                             <!-- Pour le primaire : Sélection multiple de matières -->
                             <div class="form-group-full">
                                 <label class="form-label">
@@ -280,7 +392,26 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}?v=1.0.5"></script>
+    {% if est_superieur %}
+    {{ niveaux_par_department|json_script:"niveaux-lmd-par-filiere-data" }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof window.initAjouterProfesseurSuperieur === 'function') {
+                window.initAjouterProfesseurSuperieur();
+            }
+            var bar = document.getElementById('matiere-principale-selected-bar');
+            var label = document.getElementById('matiere-principale-selected-label');
+            var hidden = document.getElementById('input_matiere_principale');
+            if (bar && label && hidden && hidden.value) {
+                var sel = document.querySelector('.matiere-pick-item.is-selected .matiere-pick-main');
+                if (sel) {
+                    label.textContent = sel.textContent.trim();
+                }
+            }
+        });
+    </script>
+    {% endif %}
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

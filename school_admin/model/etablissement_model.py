@@ -14,6 +14,7 @@ class Etablissement(AbstractUser):
         ('lycée', 'Lycée'),
         ('collège_lycée', 'Collège + Lycée'),
         ('mixte', 'Établissement Mixte'),
+        ('superieur', 'Établissement Supérieur'),
     ]
     
     # Code unique de l'établissement

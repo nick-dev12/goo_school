@@ -4,7 +4,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from collections import OrderedDict
+
 from django.db import transaction
+from django.db.models import Prefetch, Count
 from django.utils import timezone
 from django.http import JsonResponse
 import logging
@@ -15,8 +18,66 @@ import json
 from ..model.classe_model import Classe
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.etablissement_model import Etablissement
+from ..model.academic_structure_model import Department
+from ..model.classe_parcours_examen_model import CatalogueExamenConcours, ClasseParcoursExamen
 
 logger = logging.getLogger(__name__)
+
+_PREFETCH_LIENS_EXAMENS = Prefetch(
+    'liens_examens_concours',
+    queryset=ClasseParcoursExamen.objects.select_related('option').order_by(
+        'option__ordre', 'option__libelle'
+    ),
+)
+
+_CATEGORIE_EXAMEN_LIBELLES = {
+    'diplome_pro': 'Diplômes professionnels',
+    'concours': 'Concours et sélections',
+    'preparation': 'Préparation et examens blancs',
+    'certification': 'Certifications',
+    'autre': 'Autres parcours',
+}
+
+
+def catalogue_examens_concours_groupes():
+    """Options actives groupées par catégorie (formulaire classe supérieur)."""
+    opts = CatalogueExamenConcours.objects.filter(actif=True).order_by('ordre', 'libelle')
+    groups = OrderedDict()
+    for o in opts:
+        key = (o.categorie or 'autre').strip() or 'autre'
+        if key not in groups:
+            groups[key] = {
+                'cle': key,
+                'label': _CATEGORIE_EXAMEN_LIBELLES.get(key, key.replace('_', ' ').title()),
+                'items': [],
+            }
+        groups[key]['items'].append(o)
+    return list(groups.values())
+
+# Niveaux pour établissements supérieurs : LMD, formations professionnelles, autres
+NIVEAUX_SUPERIEUR_CHOICES = [
+    # Système LMD (universités)
+    ('L1', 'L1 (Licence 1)'),
+    ('L2', 'L2 (Licence 2)'),
+    ('L3', 'L3 (Licence 3)'),
+    ('M1', 'M1 (Master 1)'),
+    ('M2', 'M2 (Master 2)'),
+    ('D1', 'D1 (Doctorat 1)'),
+    ('D2', 'D2 (Doctorat 2)'),
+    ('D3', 'D3 (Doctorat 3)'),
+    # Formations professionnelles et technologiques
+    ('BTS', 'BTS (Brevet de Technicien Supérieur)'),
+    ('DUT', 'DUT (Diplôme Universitaire de Technologie)'),
+    ('BUT', 'BUT (Bachelor Universitaire de Technologie)'),
+    ('BT', 'BT (Brevet de Technicien)'),
+    ('LP', 'Licence professionnelle'),
+    ('CERT', 'Certificat'),
+    ('DIPL', 'Diplôme'),
+    # Autre : niveau personnalisé (le directeur renseigne)
+    ('AUTRE', 'Autre (précisez ci-dessous)'),
+]
+# Rétrocompatibilité
+NIVEAUX_LMD_CHOICES = NIVEAUX_SUPERIEUR_CHOICES
 
 
 class ClasseController:
@@ -25,9 +86,10 @@ class ClasseController:
     """
     
     @staticmethod
-    def generate_code_classe(nom, niveau, etablissement):
+    def generate_code_classe(nom, niveau, etablissement, niveau_lmd=None):
         """
-        Génère un code de classe unique basé sur le nom, niveau et établissement
+        Génère un code de classe unique basé sur le nom, niveau et établissement.
+        Pour établissements supérieurs, niveau_lmd (L1, M1, etc.) peut être fourni.
         """
         # Préfixes selon le niveau
         prefixes = {
@@ -50,14 +112,132 @@ class ClasseController:
             niveau=niveau
         ).count() + 1
         
-        code = f"{prefix}-{code_etab}-{nom_clean}-{count:02d}"
+        # Pour le supérieur, utiliser niveau_lmd (L1, M1, etc.) dans le code si fourni
+        if niveau == 'superieur' and niveau_lmd:
+            code = f"{prefix}-{code_etab}-{niveau_lmd}-{nom_clean}-{count:02d}"
+        else:
+            code = f"{prefix}-{code_etab}-{nom_clean}-{count:02d}"
         
         # Vérifier l'unicité
         while Classe.objects.filter(code_classe=code).exists():
             count += 1
-            code = f"{prefix}-{code_etab}-{nom_clean}-{count:02d}"
+            if niveau == 'superieur' and niveau_lmd:
+                code = f"{prefix}-{code_etab}-{niveau_lmd}-{nom_clean}-{count:02d}"
+            else:
+                code = f"{prefix}-{code_etab}-{nom_clean}-{count:02d}"
         
         return code
+
+    # Ordre d’affichage des onglets « cycle » (primaire / secondaire)
+    _ORDER_NIVEAU_SCOLAIRE_TABS = ['maternelle', 'primaire', 'college', 'lycee', 'superieur']
+
+    @staticmethod
+    def build_classes_grouped_for_liste(classes_with_teachers, est_superieur):
+        """
+        Regroupe les classes pour la page liste : supérieur → par filière puis niveaux LMD ;
+        autres → par champ `niveau` (onglets Maternelle, Primaire, Collège, Lycée…).
+        """
+        if est_superieur:
+            ORDER_NIVEAUX_SUP = {
+                'L1': 1, 'L2': 2, 'L3': 3, 'BTS': 4, 'DUT': 5, 'BUT': 6, 'BT': 7, 'LP': 8,
+                'M1': 9, 'M2': 10, 'D1': 11, 'D2': 12, 'D3': 13, 'CERT': 14, 'DIPL': 15, 'AUTRE': 99
+            }
+
+            def _filiere_from_classe(classe):
+                if classe.department:
+                    return classe.department.nom
+                return "Sans spécialité"
+
+            classes_by_filiere = {}
+            for classe_data in classes_with_teachers:
+                classe = classe_data['classe']
+                filiere = _filiere_from_classe(classe)
+                niveau_lmd = classe.niveau_lmd or 'L1'
+                niveau_key = (classe.niveau_libelle or niveau_lmd) if niveau_lmd == 'AUTRE' else niveau_lmd
+                if filiere not in classes_by_filiere:
+                    classes_by_filiere[filiere] = {}
+                if niveau_key not in classes_by_filiere[filiere]:
+                    classes_by_filiere[filiere][niveau_key] = {
+                        'niveau_lmd': niveau_key,
+                        'filiere': filiere,
+                        'classes': [],
+                        'total_eleves': 0,
+                        'total_enseignants': 0,
+                        'total_capacite': 0,
+                    }
+                bucket = classes_by_filiere[filiere][niveau_key]
+                bucket['classes'].append(classe_data)
+                bucket['total_eleves'] += classe.nombre_eleves
+                bucket['total_enseignants'] += classe_data['nombre_enseignants']
+                bucket['total_capacite'] += classe.capacite_max
+
+            ORDER_NIVEAUX = [
+                'L1', 'L2', 'L3', 'BTS', 'DUT', 'BUT', 'BT', 'LP',
+                'M1', 'M2', 'D1', 'D2', 'D3', 'CERT', 'DIPL', 'AUTRE',
+            ]
+            for _, niveaux in classes_by_filiere.items():
+                for data in niveaux.values():
+                    data['classes'].sort(
+                        key=lambda x: ORDER_NIVEAUX_SUP.get(x['classe'].niveau_lmd or 'L1', 99)
+                    )
+
+            classes_grouped = {}
+            for f, niveaux in classes_by_filiere.items():
+                items = [(n, niveaux[n]) for n in ORDER_NIVEAUX if n in niveaux]
+                items += [(n, niveaux[n]) for n in niveaux if n not in ORDER_NIVEAUX]
+                total_cl = sum(len(d['classes']) for _, d in items)
+                classes_grouped[f] = {'niveaux': items, 'total': total_cl}
+            return classes_grouped
+
+        niveau_labels = dict(Classe.NIVEAU_CHOICES)
+        bucket = {}
+        for classe_data in classes_with_teachers:
+            classe = classe_data['classe']
+            nv = classe.niveau
+            if nv not in bucket:
+                bucket[nv] = {
+                    'niveau': nv,
+                    'niveau_label': niveau_labels.get(nv, nv),
+                    'classes': [],
+                    'total_eleves': 0,
+                    'total_enseignants': 0,
+                    'total_capacite': 0,
+                }
+            bucket[nv]['classes'].append(classe_data)
+            bucket[nv]['total_eleves'] += classe.nombre_eleves
+            bucket[nv]['total_enseignants'] += classe_data['nombre_enseignants']
+            bucket[nv]['total_capacite'] += classe.capacite_max
+
+        classes_grouped = {}
+        for nv in ClasseController._ORDER_NIVEAU_SCOLAIRE_TABS:
+            if nv in bucket:
+                bucket[nv]['classes'].sort(key=lambda x: x['classe'].nom)
+                classes_grouped[nv] = bucket[nv]
+        for nv, data in bucket.items():
+            if nv not in classes_grouped:
+                data['classes'].sort(key=lambda x: x['classe'].nom)
+                classes_grouped[nv] = data
+        return classes_grouped
+
+    @staticmethod
+    def sync_classe_examens_concours(classe, raw_ids):
+        """Enregistre les examens / concours associés à une classe (supérieur)."""
+        ClasseParcoursExamen.objects.filter(classe=classe).delete()
+        if not raw_ids:
+            return
+        ids = []
+        for x in raw_ids:
+            try:
+                ids.append(int(x))
+            except (TypeError, ValueError):
+                continue
+        if not ids:
+            return
+        options = list(CatalogueExamenConcours.objects.filter(id__in=ids, actif=True))
+        ClasseParcoursExamen.objects.bulk_create(
+            [ClasseParcoursExamen(classe=classe, option=o) for o in options],
+            ignore_conflicts=True,
+        )
     
     @staticmethod
     @login_required
@@ -76,10 +256,13 @@ class ClasseController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
-        # Récupérer les classes de l'établissement avec les affectations
+        # Récupérer les classes de l'établissement avec les affectations (academic_level pour libellés LMD)
         classes = Classe.objects.filter(
             etablissement=etablissement
-        ).prefetch_related('affectations__professeur').order_by('niveau', 'nom')
+        ).select_related('department', 'academic_level').prefetch_related(
+            'affectations__professeur',
+            _PREFETCH_LIENS_EXAMENS,
+        ).order_by('niveau', 'nom')
         
         # Ajouter le nombre d'enseignants affectés à chaque classe
         classes_with_teachers = []
@@ -91,39 +274,10 @@ class ClasseController:
             }
             classes_with_teachers.append(classe_data)
         
-        # Regrouper les classes par catégorie (niveau + préfixe)
-        import re
-        classes_grouped = {}
-        
-        for classe_data in classes_with_teachers:
-            classe = classe_data['classe']
-            
-            # Extraire la catégorie (ex: "6ème" de "6ème A", "6ème B", etc.)
-            nom = classe.nom
-            # Pattern pour extraire le niveau et la lettre/section
-            match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom)
-            
-            if match:
-                categorie = match.group(1)  # "6ème", "5ème", "Terminale", etc.
-                section = match.group(2)    # "A", "B", "C", "1", "2", etc.
-            else:
-                # Si pas de pattern trouvé, utiliser le nom complet comme catégorie
-                categorie = nom
-                section = ""
-            
-            if categorie not in classes_grouped:
-                classes_grouped[categorie] = {
-                    'niveau': classe.niveau,
-                    'classes': [],
-                    'total_eleves': 0,
-                    'total_enseignants': 0,
-                    'total_capacite': 0
-                }
-            
-            classes_grouped[categorie]['classes'].append(classe_data)
-            classes_grouped[categorie]['total_eleves'] += classe.nombre_eleves
-            classes_grouped[categorie]['total_enseignants'] += classe_data['nombre_enseignants']
-            classes_grouped[categorie]['total_capacite'] += classe.capacite_max
+        est_superieur = etablissement.type_etablissement == 'superieur'
+        classes_grouped = ClasseController.build_classes_grouped_for_liste(
+            classes_with_teachers, est_superieur
+        )
         
         # Statistiques
         stats = {
@@ -152,19 +306,37 @@ class ClasseController:
                     niveau_choices.append((choice_code, choice_label))
                     break
         
+        departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
+        ordre_niveaux_lmd = ['L1', 'L2', 'L3', 'BTS', 'DUT', 'BUT', 'BT', 'LP', 'M1', 'M2', 'D1', 'D2', 'D3', 'CERT', 'DIPL', 'AUTRE'] if est_superieur else []
+        nb_classes_avec_examens_concours = 0
+        if est_superieur:
+            nb_classes_avec_examens_concours = (
+                Classe.objects.filter(
+                    etablissement=etablissement,
+                    liens_examens_concours__isnull=False,
+                )
+                .distinct()
+                .count()
+            )
         context = {
             'classes': classes,
             'classes_with_teachers': classes_with_teachers,
             'classes_grouped': classes_grouped,
             'etablissement': etablissement,
+            'departments': departments,
+            'ordre_niveaux_lmd': ordre_niveaux_lmd,
             'personnel': personnel,
             'is_directeur': isinstance(request.user, Etablissement),
             'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
             'stats': stats,
             'niveau_choices': niveau_choices,
             'niveau_defaut': niveau_defaut,
-            'form_data': {},  # Données vides pour le formulaire
-            'field_errors': {},  # Pas d'erreurs par défaut
+            'est_superieur': est_superieur,
+            'niveau_lmd_choices': NIVEAUX_LMD_CHOICES if est_superieur else [],
+            'catalogue_examens_groupes': catalogue_examens_concours_groupes() if est_superieur else [],
+            'nb_classes_avec_examens_concours': nb_classes_avec_examens_concours,
+            'form_data': {'examens_concours_ids': []},
+            'field_errors': {},
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
@@ -188,6 +360,7 @@ class ClasseController:
             'collège_lycée': ['college', 'lycee'],
             'coll�ge_lyc�e': ['college', 'lycee'],  # Version avec caractères spéciaux
             'mixte': ['maternelle', 'primaire', 'college', 'lycee'],
+            'superieur': ['superieur'],
         }
         return mapping.get(type_etablissement, ['primaire'])
     
@@ -210,6 +383,7 @@ class ClasseController:
             'collège_lycée': 'college',  # Par défaut pour collège+lycée
             'coll�ge_lyc�e': 'college',  # Version avec caractères spéciaux
             'mixte': 'primaire',  # Par défaut pour mixte
+            'superieur': 'superieur',  # Par défaut pour établissement supérieur
         }
         return mapping.get(type_etablissement, 'primaire')
     
@@ -239,6 +413,10 @@ class ClasseController:
                 'capacite_max': request.POST.get('capacite_max', ''),
                 'description': request.POST.get('description', '').strip(),
                 'niveau': request.POST.get('niveau', '').strip(),
+                'niveau_lmd': request.POST.get('niveau_lmd', '').strip() or None,
+                'niveau_libelle': request.POST.get('niveau_libelle', '').strip() or None,
+                'department': request.POST.get('department', '').strip() or None,
+                'examens_concours_ids': request.POST.getlist('examens_concours_ids'),
             }
             
             # Si aucun niveau n'est fourni, utiliser le niveau par défaut
@@ -246,14 +424,24 @@ class ClasseController:
                 form_data['niveau'] = ClasseController.get_niveau_defaut_from_type_etablissement(etablissement.type_etablissement)
                 logger.info(f"Niveau automatique déterminé: '{form_data['niveau']}' pour établissement type '{etablissement.type_etablissement}'")
             
+            # Pour établissement supérieur, niveau est toujours 'superieur', niveau_lmd est requis
+            est_superieur = etablissement.type_etablissement == 'superieur'
+            if est_superieur:
+                form_data['niveau'] = 'superieur'
+                if not form_data['niveau_lmd']:
+                    form_data['niveau_lmd'] = 'L1'  # Défaut pour supérieur
+            
             # Validation
             is_valid = True
             
-            # Champs obligatoires (niveau n'est plus requis car récupéré automatiquement)
+            # Champs obligatoires
             required_fields = ['nom', 'capacite_max']
+            if est_superieur:
+                required_fields.insert(0, 'department')  # Filière obligatoire pour le supérieur
             for field in required_fields:
-                if not form_data[field]:
-                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                if not form_data.get(field):
+                    label = {'department': 'Spécialité', 'nom': 'Nom de la classe', 'capacite_max': 'Capacité maximale'}.get(field, field.replace('_', ' ').title())
+                    field_errors[field] = f"Le champ {label} est obligatoire."
                     is_valid = False
             
             # Validation de la capacité
@@ -285,13 +473,57 @@ class ClasseController:
                 logger.error(f"Niveau incompatible: '{form_data['niveau']}' pas dans {niveaux_disponibles} pour type '{etablissement.type_etablissement}'")
                 is_valid = False
             
-            # Vérification de l'unicité du nom dans l'établissement
-            if form_data['nom'] and Classe.objects.filter(
-                nom=form_data['nom'],
-                etablissement=etablissement
-            ).exists():
-                field_errors['nom'] = "Une classe avec ce nom existe déjà dans cet établissement."
-                is_valid = False
+            # Pour établissement supérieur : filière obligatoire et valide
+            if est_superieur and form_data.get('department'):
+                try:
+                    Department.objects.get(id=int(form_data['department']), etablissement=etablissement)
+                except (ValueError, Department.DoesNotExist):
+                    field_errors['department'] = "Veuillez sélectionner une spécialité valide. Créez d'abord une spécialité si nécessaire."
+                    is_valid = False
+
+            # Pour établissement supérieur, valider niveau_lmd
+            if est_superieur and form_data['niveau_lmd']:
+                valid_niveaux = [c[0] for c in NIVEAUX_LMD_CHOICES]
+                if form_data['niveau_lmd'] not in valid_niveaux:
+                    field_errors['niveau_lmd'] = f"Le niveau '{form_data['niveau_lmd']}' n'est pas valide."
+                    is_valid = False
+                if form_data['niveau_lmd'] == 'AUTRE' and not form_data.get('niveau_libelle'):
+                    field_errors['niveau_libelle'] = "Veuillez préciser le niveau ou le détail de la formation (ex: Formation Court Métrage 6 mois)."
+                    is_valid = False
+            
+            # Vérification de l'unicité
+            if form_data['nom']:
+                exists = False
+                if est_superieur and form_data.get('niveau_lmd'):
+                    if form_data['niveau_lmd'] == 'AUTRE' and form_data.get('niveau_libelle'):
+                        exists = Classe.objects.filter(
+                            nom=form_data['nom'],
+                            etablissement=etablissement,
+                            niveau='superieur',
+                            niveau_lmd='AUTRE',
+                            niveau_libelle=form_data['niveau_libelle'],
+                        ).exists()
+                        niveau_display = form_data['niveau_libelle']
+                    else:
+                        exists = Classe.objects.filter(
+                            nom=form_data['nom'],
+                            etablissement=etablissement,
+                            niveau='superieur',
+                            niveau_lmd=form_data['niveau_lmd'],
+                        ).exists()
+                        niveau_display = dict(NIVEAUX_LMD_CHOICES).get(form_data['niveau_lmd'], form_data['niveau_lmd'])
+                    if exists:
+                        field_errors['nom'] = f"Une classe « {form_data['nom']} » existe déjà au niveau {niveau_display}. Utilisez une section différente (A, B, 1, 2) ou un autre nom."
+                else:
+                    exists = Classe.objects.filter(
+                        nom=form_data['nom'],
+                        etablissement=etablissement,
+                        niveau=form_data['niveau'],
+                    ).exists()
+                    if exists:
+                        field_errors['nom'] = "Une classe avec ce nom existe déjà dans cet établissement."
+                if exists:
+                    is_valid = False
             
             # Si tout est valide, créer la classe
             if is_valid:
@@ -301,10 +533,25 @@ class ClasseController:
                         code_classe = ClasseController.generate_code_classe(
                             form_data['nom'],
                             form_data['niveau'],
-                            etablissement
+                            etablissement,
+                            niveau_lmd=form_data.get('niveau_lmd') if est_superieur else None,
                         )
                         
+                        department_obj = None
+                        if est_superieur and form_data.get('department'):
+                            try:
+                                department_obj = Department.objects.get(
+                                    id=int(form_data['department']),
+                                    etablissement=etablissement
+                                )
+                            except (ValueError, Department.DoesNotExist):
+                                pass
+
                         # Créer la classe
+                        niveau_libelle = None
+                        if est_superieur and form_data.get('niveau_lmd') == 'AUTRE':
+                            niveau_libelle = form_data.get('niveau_libelle') or None
+
                         classe = Classe(
                             nom=form_data['nom'],
                             niveau=form_data['niveau'],
@@ -312,9 +559,16 @@ class ClasseController:
                             capacite_max=int(form_data['capacite_max']),
                             description=form_data['description'] if form_data['description'] else None,
                             etablissement=etablissement,
+                            niveau_lmd=form_data.get('niveau_lmd') if est_superieur else None,
+                            niveau_libelle=niveau_libelle,
+                            department=department_obj,
                         )
                         
                         classe.save()
+                        if est_superieur:
+                            ClasseController.sync_classe_examens_concours(
+                                classe, form_data.get('examens_concours_ids') or []
+                            )
                         
                         messages.success(request, f"La classe {classe.nom_complet} a été ajoutée avec succès !")
                         return redirect('administrateur_etablissement:liste_classes')
@@ -336,6 +590,8 @@ class ClasseController:
                     niveau_choices.append((choice_code, choice_label))
                     break
         
+        est_superieur = etablissement.type_etablissement == 'superieur'
+        departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
         context = {
             'form_data': form_data,
             'field_errors': field_errors,
@@ -345,6 +601,10 @@ class ClasseController:
             'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
             'niveau_choices': niveau_choices,
             'niveau_defaut': niveau_defaut,
+            'est_superieur': est_superieur,
+            'niveau_lmd_choices': NIVEAUX_LMD_CHOICES if est_superieur else [],
+            'departments': departments,
+            'catalogue_examens_groupes': catalogue_examens_concours_groupes() if est_superieur else [],
         }
         
         # Si c'est une requête POST avec des erreurs, afficher la liste avec le modal ouvert
@@ -352,32 +612,343 @@ class ClasseController:
             # Récupérer les classes pour la liste
             classes = Classe.objects.filter(
                 etablissement=etablissement
+            ).select_related('department', 'academic_level').prefetch_related(
+                'affectations__professeur',
+                _PREFETCH_LIENS_EXAMENS,
             ).order_by('niveau', 'nom')
             
-            # Statistiques
+            classes_with_teachers = []
+            for classe in classes:
+                classe_data = {
+                    'classe': classe,
+                    'nombre_enseignants': classe.affectations.filter(actif=True).count(),
+                    'enseignants': classe.affectations.filter(actif=True).select_related('professeur')
+                }
+                classes_with_teachers.append(classe_data)
+            
+            est_superieur_ctx = etablissement.type_etablissement == 'superieur'
+            classes_grouped = ClasseController.build_classes_grouped_for_liste(
+                classes_with_teachers, est_superieur_ctx
+            )
+            
             stats = {
                 'total': classes.count(),
                 'actives': classes.filter(actif=True).count(),
                 'inactives': classes.filter(actif=False).count(),
-                'par_niveau': {}
+                'par_niveau': {},
+                'total_enseignants_affectes': sum(c['nombre_enseignants'] for c in classes_with_teachers)
             }
-            
-            # Compter par niveau
             for niveau, label in Classe.NIVEAU_CHOICES:
                 count = classes.filter(niveau=niveau).count()
                 if count > 0:
                     stats['par_niveau'][label] = count
             
+            departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur_ctx else []
+            nb_parcours = 0
+            if est_superieur_ctx:
+                nb_parcours = (
+                    Classe.objects.filter(
+                        etablissement=etablissement,
+                        liens_examens_concours__isnull=False,
+                    )
+                    .distinct()
+                    .count()
+                )
             context.update({
+                'ordre_niveaux_lmd': ['L1', 'L2', 'L3', 'BTS', 'DUT', 'BUT', 'BT', 'LP', 'M1', 'M2', 'D1', 'D2', 'D3', 'CERT', 'DIPL', 'AUTRE'] if est_superieur_ctx else [],
                 'classes': classes,
+                'classes_with_teachers': classes_with_teachers,
+                'classes_grouped': classes_grouped,
                 'stats': stats,
+                'departments': departments,
+                'nb_classes_avec_examens_concours': nb_parcours,
+                'catalogue_examens_groupes': catalogue_examens_concours_groupes() if est_superieur_ctx else [],
                 'show_modal': True,  # Flag pour ouvrir le modal
             })
             
             return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
         
-        return render(request, 'school_admin/directeur/administrateur_etablissement/classes/ajouter_classe.html', context)
-    
+        # GET : rediriger vers liste_classes (le formulaire est dans le modal)
+        return redirect('administrateur_etablissement:liste_classes')
+
+    @staticmethod
+    @login_required
+    def liste_classes_examens_concours(request):
+        """Classes supérieures ayant au moins un examen ou concours associé (BTS, BT, concours…)."""
+        if isinstance(request.user, PersonnelAdministratif):
+            personnel = request.user
+            etablissement = personnel.etablissement
+        elif isinstance(request.user, Etablissement):
+            personnel = None
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        if etablissement.type_etablissement != 'superieur':
+            messages.info(request, "Les parcours examens et concours concernent les établissements supérieurs.")
+            return redirect('administrateur_etablissement:liste_classes')
+        classes_qs = (
+            Classe.objects.filter(
+                etablissement=etablissement,
+                niveau='superieur',
+                liens_examens_concours__isnull=False,
+            )
+            .distinct()
+            .select_related('department', 'academic_level')
+            .prefetch_related(_PREFETCH_LIENS_EXAMENS, 'affectations__professeur')
+            .order_by('department__nom', 'niveau_lmd', 'nom')
+        )
+        classes_with_teachers = []
+        for classe in classes_qs:
+            classes_with_teachers.append({
+                'classe': classe,
+                'nombre_enseignants': classe.affectations.filter(actif=True).count(),
+            })
+        context = {
+            'etablissement': etablissement,
+            'personnel': personnel,
+            'is_directeur': isinstance(request.user, Etablissement),
+            'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+            'classes_with_teachers': classes_with_teachers,
+            'total': classes_qs.count(),
+        }
+        return render(
+            request,
+            'school_admin/directeur/administrateur_etablissement/classes/liste_classes_examens_concours.html',
+            context,
+        )
+
+    @staticmethod
+    @login_required
+    def liste_filieres(request):
+        """Affiche la page de gestion des filières (établissements supérieurs uniquement)."""
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        if etablissement.type_etablissement != 'superieur':
+            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            return redirect('administrateur_etablissement:liste_classes')
+        filieres = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+        filieres_avec_nb_classes = []
+        for dep in filieres:
+            nb_classes = dep.classes.count()
+            filieres_avec_nb_classes.append({'department': dep, 'nb_classes': nb_classes})
+        context = {
+            'etablissement': etablissement,
+            'filieres': filieres_avec_nb_classes,
+        }
+        return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_filieres.html', context)
+
+    @staticmethod
+    @login_required
+    def liste_classes_specialite(request, specialite_id):
+        """Affiche les classes d'une spécialité donnée."""
+        if isinstance(request.user, PersonnelAdministratif):
+            personnel = request.user
+            etablissement = personnel.etablissement
+        elif isinstance(request.user, Etablissement):
+            personnel = None
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        if etablissement.type_etablissement != 'superieur':
+            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            return redirect('administrateur_etablissement:liste_classes')
+        try:
+            department = Department.objects.get(id=specialite_id, etablissement=etablissement)
+        except Department.DoesNotExist:
+            messages.error(request, "Spécialité non trouvée.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        classes = Classe.objects.filter(
+            etablissement=etablissement,
+            department=department
+        ).select_related('department', 'academic_level').prefetch_related('affectations__professeur').order_by('niveau_lmd', 'nom')
+        classes_with_teachers = []
+        for classe in classes:
+            classe_data = {
+                'classe': classe,
+                'nombre_enseignants': classe.affectations.filter(actif=True).count(),
+                'enseignants': classe.affectations.filter(actif=True).select_related('professeur')
+            }
+            classes_with_teachers.append(classe_data)
+        ORDER_NIVEAUX_SUP = {
+            'L1': 1, 'L2': 2, 'L3': 3, 'BTS': 4, 'DUT': 5, 'BUT': 6, 'BT': 7, 'LP': 8,
+            'M1': 9, 'M2': 10, 'D1': 11, 'D2': 12, 'D3': 13, 'CERT': 14, 'DIPL': 15, 'AUTRE': 99
+        }
+        ORDER_NIVEAUX = ['L1', 'L2', 'L3', 'BTS', 'DUT', 'BUT', 'BT', 'LP', 'M1', 'M2', 'D1', 'D2', 'D3', 'CERT', 'DIPL', 'AUTRE']
+        classes_by_niveau = {}
+        for classe_data in classes_with_teachers:
+            classe = classe_data['classe']
+            niveau_lmd = classe.niveau_lmd or 'L1'
+            niveau_key = (classe.niveau_libelle or niveau_lmd) if niveau_lmd == 'AUTRE' else niveau_lmd
+            if niveau_key not in classes_by_niveau:
+                classes_by_niveau[niveau_key] = {
+                    'niveau_lmd': niveau_key,
+                    'filiere': department.nom,
+                    'classes': [],
+                    'total_eleves': 0,
+                    'total_enseignants': 0,
+                    'total_capacite': 0
+                }
+            classes_by_niveau[niveau_key]['classes'].append(classe_data)
+            classes_by_niveau[niveau_key]['total_eleves'] += classe.nombre_eleves
+            classes_by_niveau[niveau_key]['total_enseignants'] += classe_data['nombre_enseignants']
+            classes_by_niveau[niveau_key]['total_capacite'] += classe.capacite_max
+        for data in classes_by_niveau.values():
+            data['classes'].sort(key=lambda x: ORDER_NIVEAUX_SUP.get(x['classe'].niveau_lmd or 'L1', 99))
+        items = [(n, classes_by_niveau[n]) for n in ORDER_NIVEAUX if n in classes_by_niveau]
+        items += [(n, classes_by_niveau[n]) for n in classes_by_niveau if n not in ORDER_NIVEAUX]
+        classes_grouped = {department.nom: {'niveaux': items, 'total': sum(len(d['classes']) for _, d in items)}}
+        stats = {
+            'total': classes.count(),
+            'actives': classes.filter(actif=True).count(),
+            'inactives': classes.filter(actif=False).count(),
+            'par_niveau': {},
+            'total_enseignants_affectes': sum(c['nombre_enseignants'] for c in classes_with_teachers)
+        }
+        for niveau, label in Classe.NIVEAU_CHOICES:
+            count = classes.filter(niveau=niveau).count()
+            if count > 0:
+                stats['par_niveau'][label] = count
+        context = {
+            'classes': classes,
+            'classes_with_teachers': classes_with_teachers,
+            'classes_grouped': classes_grouped,
+            'etablissement': etablissement,
+            'departments': Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom'),
+            'ordre_niveaux_lmd': ORDER_NIVEAUX,
+            'personnel': personnel,
+            'is_directeur': isinstance(request.user, Etablissement),
+            'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
+            'stats': stats,
+            'niveau_choices': [],
+            'niveau_defaut': 'superieur',
+            'est_superieur': True,
+            'niveau_lmd_choices': NIVEAUX_LMD_CHOICES,
+            'form_data': {},
+            'field_errors': {},
+            'specialite_filter': department,
+            'libelle_eleves': None,
+        }
+        return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes_specialite.html', context)
+
+    @staticmethod
+    @login_required
+    def ajouter_filiere(request):
+        """Ajoute une filière (Department) pour un établissement supérieur."""
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        if etablissement.type_etablissement != 'superieur':
+            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        if request.method != 'POST':
+            return redirect('administrateur_etablissement:liste_filieres')
+        nom = (request.POST.get('nom_filiere') or '').strip()
+        domaine = (request.POST.get('domaine') or '').strip() or None
+        mention = (request.POST.get('mention') or '').strip() or None
+        if not nom:
+            messages.error(request, "Le nom de la spécialité est obligatoire.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        if Department.objects.filter(etablissement=etablissement, nom__iexact=nom).exists():
+            messages.error(request, f"Une spécialité « {nom} » existe déjà.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        try:
+            Department.objects.create(nom=nom, etablissement=etablissement, domaine=domaine, mention=mention)
+            messages.success(request, f"La spécialité « {nom} » a été créée.")
+        except Exception as e:
+            logger.error(f"Erreur création spécialité: {e}")
+            messages.error(request, "Erreur lors de la création de la spécialité.")
+        return redirect('administrateur_etablissement:liste_filieres')
+
+    @staticmethod
+    @login_required
+    def modifier_filiere(request, filiere_id):
+        """Modifie une filière existante."""
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        if etablissement.type_etablissement != 'superieur':
+            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            return redirect('administrateur_etablissement:liste_classes')
+        try:
+            department = Department.objects.get(id=filiere_id, etablissement=etablissement)
+        except Department.DoesNotExist:
+            messages.error(request, "Spécialité non trouvée.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        if request.method != 'POST':
+            return redirect('administrateur_etablissement:liste_filieres')
+        nom = (request.POST.get('nom_filiere') or '').strip()
+        domaine = (request.POST.get('domaine') or '').strip() or None
+        mention = (request.POST.get('mention') or '').strip() or None
+        if not nom:
+            messages.error(request, "Le nom de la spécialité est obligatoire.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        if Department.objects.filter(etablissement=etablissement, nom__iexact=nom).exclude(id=filiere_id).exists():
+            messages.error(request, f"Une spécialité « {nom} » existe déjà.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        try:
+            department.nom = nom
+            department.domaine = domaine
+            department.mention = mention
+            department.save()
+            messages.success(request, f"La spécialité a été modifiée en « {nom} ».")
+        except Exception as e:
+            logger.error(f"Erreur modification spécialité: {e}")
+            messages.error(request, "Erreur lors de la modification de la spécialité.")
+        return redirect('administrateur_etablissement:liste_filieres')
+
+    @staticmethod
+    @login_required
+    def supprimer_filiere(request, filiere_id):
+        """Supprime une filière (uniquement si elle n'a aucune classe)."""
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+        if etablissement.type_etablissement != 'superieur':
+            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            return redirect('administrateur_etablissement:liste_classes')
+        if request.method != 'POST':
+            return redirect('administrateur_etablissement:liste_filieres')
+        try:
+            department = Department.objects.get(id=filiere_id, etablissement=etablissement)
+        except Department.DoesNotExist:
+            messages.error(request, "Spécialité non trouvée.")
+            return redirect('administrateur_etablissement:liste_filieres')
+        nb_classes = department.classes.count()
+        if nb_classes > 0:
+            messages.error(
+                request,
+                f"Impossible de supprimer la spécialité « {department.nom} » : elle contient {nb_classes} classe(s). "
+                "Réassignez ou supprimez d'abord les classes."
+            )
+            return redirect('administrateur_etablissement:liste_filieres')
+        nom = department.nom
+        try:
+            department.delete()
+            messages.success(request, f"La spécialité « {nom} » a été supprimée.")
+        except Exception as e:
+            logger.error(f"Erreur suppression spécialité: {e}")
+            messages.error(request, "Erreur lors de la suppression de la spécialité.")
+        return redirect('administrateur_etablissement:liste_filieres')
+
     @staticmethod
     @login_required
     def detail_classe(request, classe_id):
@@ -396,9 +967,17 @@ class ClasseController:
             return redirect('school_admin:connexion_compte_user')
         
         try:
-            classe = Classe.objects.get(
-                id=classe_id,
-                etablissement=etablissement
+            classe = (
+                Classe.objects.select_related(
+                    'academic_level',
+                    'department',
+                    'etablissement',
+                )
+                .prefetch_related(_PREFETCH_LIENS_EXAMENS)
+                .get(
+                    id=classe_id,
+                    etablissement=etablissement,
+                )
             )
         except Classe.DoesNotExist:
             messages.error(request, "Classe non trouvée.")
@@ -425,12 +1004,15 @@ class ClasseController:
             'reinscriptions': eleves.filter(statut='reinscription').count(),
         }
         
-        # Récupérer les périodes scolaires
+        # Récupérer les périodes scolaires (supérieur : filtrées par niveau LMD de la classe)
         from ..model.periode_model import PeriodeScolaire
         periodes = PeriodeScolaire.objects.filter(
             etablissement=etablissement,
             est_active=True
         ).order_by('date_debut')
+        periodes = PeriodeScolaire.filter_queryset_for_classe(
+            periodes, etablissement, classe
+        )
         
         # Récupérer les matières enseignées dans cette classe
         matieres_classe = []
@@ -455,6 +1037,13 @@ class ClasseController:
                 niveau__in=['college', 'lycee', 'tous'],
                 actif=True
             ).order_by('nom'))
+        elif etablissement.type_etablissement == 'superieur':
+            from ..model.matiere_model import Matiere
+            matieres_classe = list(Matiere.objects.filter(
+                etablissement=etablissement,
+                niveau__in=['superieur', 'tous'],
+                actif=True
+            ).order_by('nom'))
         else:
             # Pour les autres établissements (ancien système)
             for affectation in affectations:
@@ -476,8 +1065,34 @@ class ClasseController:
         }
         
         releves_notes_par_periode = {}
-        
-        for periode in periodes:
+        periodes_list = list(periodes)
+        periodes_nav_detail = []
+        periode_releve = None
+
+        if etablissement.type_etablissement == 'superieur' and periodes_list:
+            periode_param = request.GET.get('periode')
+            periode_releve = periodes_list[0]
+            if periode_param:
+                periode_releve = next(
+                    (p for p in periodes_list if str(p.id) == str(periode_param)),
+                    periode_releve,
+                )
+            qbase = request.GET.copy()
+            for p in periodes_list:
+                q2 = qbase.copy()
+                q2['periode'] = str(p.id)
+                periodes_nav_detail.append({
+                    'periode': p,
+                    'query': q2.urlencode(),
+                    'active': periode_releve is not None and p.id == periode_releve.id,
+                })
+            periodes_iter = [periode_releve] if periode_releve else []
+        else:
+            periodes_iter = periodes_list
+            if periodes_list:
+                periode_releve = periodes_list[0]
+
+        for periode in periodes_iter:
             eleves_data = []
             
             for eleve in eleves:
@@ -503,6 +1118,15 @@ class ClasseController:
                             actif=True,
                             soumis=True  # Afficher seulement les moyennes soumises
                         ).first()
+                    elif etablissement.type_etablissement == 'superieur':
+                        moyenne_obj = Moyenne.objects.filter(
+                            eleve=eleve,
+                            classe=classe,
+                            matiere=matiere,
+                            periode=str(periode.id),
+                            actif=True,
+                            soumis=True,
+                        ).first()
                     else:
                         # Ancien système (fallback)
                         periode_code = periode_mapping.get(periode.nom_periode, 'trimestre1')
@@ -522,7 +1146,7 @@ class ClasseController:
                 
                 # Calculer une moyenne temporaire pour le tri (pour les établissements secondaires)
                 moyenne_tri = None
-                if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+                if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'superieur']:
                     moyennes_valides = [m['moyenne'] for m in moyennes_dict.values() if m.get('moyenne') is not None]
                     if moyennes_valides:
                         moyenne_tri = sum(moyennes_valides) / len(moyennes_valides)
@@ -535,12 +1159,19 @@ class ClasseController:
                 })
             
             # Trier les élèves par moyenne décroissante (pour les établissements secondaires)
-            if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+            if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'superieur']:
                 eleves_data.sort(key=lambda x: (x['moyenne_tri'] is None, -x['moyenne_tri'] if x['moyenne_tri'] is not None else 0))
             
             # Toujours ajouter la période
             releves_notes_par_periode[periode.id] = eleves_data
         
+        est_superieur_ctx = etablissement.type_etablissement == 'superieur'
+        examens_concours_ids_selected = []
+        if est_superieur_ctx:
+            examens_concours_ids_selected = [
+                str(l.option_id) for l in classe.liens_examens_concours.all()
+            ]
+
         context = {
             'classe': classe,
             'etablissement': etablissement,
@@ -556,6 +1187,11 @@ class ClasseController:
             'periodes': periodes,
             'matieres_classe': matieres_classe,
             'releves_notes_par_periode': releves_notes_par_periode,
+            'periodes_nav_detail': periodes_nav_detail,
+            'periode_releve': periode_releve,
+            'est_superieur': est_superieur_ctx,
+            'catalogue_examens_groupes': catalogue_examens_concours_groupes() if est_superieur_ctx else [],
+            'examens_concours_ids_selected': examens_concours_ids_selected,
         }
         
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/detail_classe.html', context)
@@ -709,13 +1345,40 @@ class ClasseController:
                 field_errors['capacite_max'] = "La capacité doit être un nombre valide."
                 is_valid = False
             
-            # Vérification de l'unicité du nom dans l'établissement (sauf pour la classe actuelle)
-            if form_data['nom'] and Classe.objects.filter(
-                nom=form_data['nom'],
-                etablissement=etablissement
-            ).exclude(id=classe_id).exists():
-                field_errors['nom'] = "Une classe avec ce nom existe déjà dans cet établissement."
-                is_valid = False
+            # Vérification de l'unicité (sauf pour la classe actuelle)
+            est_superieur_mod = etablissement.type_etablissement == 'superieur'
+            if form_data['nom']:
+                exists = False
+                if est_superieur_mod and classe.niveau_lmd:
+                    if classe.niveau_lmd == 'AUTRE' and classe.niveau_libelle:
+                        exists = Classe.objects.filter(
+                            nom=form_data['nom'],
+                            etablissement=etablissement,
+                            niveau='superieur',
+                            niveau_lmd='AUTRE',
+                            niveau_libelle=classe.niveau_libelle,
+                        ).exclude(id=classe_id).exists()
+                        niveau_display = classe.niveau_libelle
+                    else:
+                        exists = Classe.objects.filter(
+                            nom=form_data['nom'],
+                            etablissement=etablissement,
+                            niveau='superieur',
+                            niveau_lmd=classe.niveau_lmd,
+                        ).exclude(id=classe_id).exists()
+                        niveau_display = dict(NIVEAUX_LMD_CHOICES).get(classe.niveau_lmd, classe.niveau_lmd)
+                    if exists:
+                        field_errors['nom'] = f"Une classe « {form_data['nom']} » existe déjà au niveau {niveau_display}."
+                else:
+                    exists = Classe.objects.filter(
+                        nom=form_data['nom'],
+                        etablissement=etablissement,
+                        niveau=classe.niveau,
+                    ).exclude(id=classe_id).exists()
+                    if exists:
+                        field_errors['nom'] = "Une classe avec ce nom existe déjà dans cet établissement."
+                if exists:
+                    is_valid = False
             
             # Si tout est valide, modifier la classe
             if is_valid:
@@ -725,18 +1388,31 @@ class ClasseController:
                         classe.capacite_max = int(form_data['capacite_max'])
                         classe.description = form_data['description'] if form_data['description'] else None
                         classe.save()
+                        if est_superieur_mod:
+                            ClasseController.sync_classe_examens_concours(
+                                classe, request.POST.getlist('examens_concours_ids')
+                            )
                         
                         messages.success(request, f"La classe {classe.nom_complet} a été modifiée avec succès !")
-                        return redirect('administrateur_etablissement:liste_classes')
+                        return redirect(
+                            'administrateur_etablissement:detail_classe',
+                            classe_id=classe.id,
+                        )
                         
                 except Exception as e:
                     logger.error(f"Erreur lors de la modification de la classe: {str(e)}")
                     messages.error(request, "Une erreur est survenue lors de la modification de la classe.")
-                    return redirect('administrateur_etablissement:liste_classes')
+                    return redirect(
+                        'administrateur_etablissement:detail_classe',
+                        classe_id=classe_id,
+                    )
             else:
-                # Si erreurs, retourner à la liste avec les erreurs
-                messages.error(request, "Veuillez corriger les erreurs dans le formulaire.")
-                return redirect('administrateur_etablissement:liste_classes')
+                for err in field_errors.values():
+                    messages.error(request, err)
+                return redirect(
+                    'administrateur_etablissement:detail_classe',
+                    classe_id=classe_id,
+                )
         
         # Si ce n'est pas POST, rediriger
         messages.error(request, "Méthode non autorisée.")

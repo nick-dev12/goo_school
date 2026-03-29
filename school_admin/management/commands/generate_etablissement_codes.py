@@ -14,7 +14,12 @@ class Command(BaseCommand):
         prefixes = {
             'primary': 'PRI-',
             'secondary': 'COL-',
-            'highschool': 'LYC-'
+            'highschool': 'LYC-',
+            'collège': 'COL-',
+            'lycée': 'LYC-',
+            'collège_lycée': 'CL-',
+            'mixte': 'MIX-',
+            'superieur': 'SUP-',
         }
         
         prefix = prefixes.get(type_etablissement, 'ETB-')

@@ -570,38 +570,46 @@ class Eleve(AbstractUser):
     @staticmethod
     def generer_matricule_eleve(etablissement):
         """
-        Génère un matricule unique pour un élève
-        Format : [XX][6 NUMEROS_ALEATOIRES]
-        Exemple : BD345843 (première lettre des 2 premiers mots de l'établissement + 6 chiffres aléatoires)
+        Génère un matricule unique pour un élève/étudiant.
+        - Établissement supérieur : SUP + année (2 chiffres) + 4 chiffres (ex: SUP250001)
+        - Autres : initiales établissement + 6 chiffres (ex: BD345843)
         """
         import random
-        
-        # Extraire les initiales de l'établissement (première lettre des 2 premiers mots)
+        from datetime import datetime
+
+        annee = str(datetime.now().year)[-2:]
         mots = etablissement.nom.split()[:2]
-        initiales = ''.join([mot[0].upper() for mot in mots if mot])
-        
-        # Générer un numéro aléatoire de 6 chiffres (100000-999999)
-        numero_aleatoire_6 = random.randint(100000, 999999)
-        
-        # Générer le matricule : BD345843
-        matricule = f"{initiales}{numero_aleatoire_6}"
+        initiales = ''.join([mot[0].upper() for mot in mots if mot]) or 'EL'
+
+        # Établissement supérieur : format SUP + année + séquence (ex: SUP250001)
+        if getattr(etablissement, 'type_etablissement', None) == 'superieur':
+            count = Eleve.objects.filter(etablissement=etablissement).count() + 1
+            matricule = f"SUP{annee}{count:04d}"
+        else:
+            numero_aleatoire_6 = random.randint(100000, 999999)
+            matricule = f"{initiales}{numero_aleatoire_6}"
         
         # Boucle de sécurité pour éviter les doublons
         max_tentatives = 1000
         tentatives = 0
         while Eleve.objects.filter(matricule_eleve=matricule).exists() or \
               Eleve.objects.filter(username=matricule).exists():
-            # Générer un nouveau numéro aléatoire
-            numero_aleatoire_6 = random.randint(100000, 999999)
-            matricule = f"{initiales}{numero_aleatoire_6}"
+            if getattr(etablissement, 'type_etablissement', None) == 'superieur':
+                count = Eleve.objects.filter(etablissement=etablissement).count() + 1 + tentatives
+                matricule = f"SUP{annee}{count:04d}"
+            else:
+                numero_aleatoire_6 = random.randint(100000, 999999)
+                matricule = f"{initiales}{numero_aleatoire_6}"
             tentatives += 1
             if tentatives >= max_tentatives:
-                # Fallback avec timestamp si trop de tentatives
                 import time
                 timestamp = int(time.time() * 1000) % 1000000
-                matricule = f"{initiales}{timestamp:06d}"
+                if getattr(etablissement, 'type_etablissement', None) == 'superieur':
+                    matricule = f"SUP{annee}{timestamp % 10000:04d}"
+                else:
+                    matricule = f"{initiales}{timestamp:06d}"
                 break
-        
+
         return matricule
     
     @staticmethod

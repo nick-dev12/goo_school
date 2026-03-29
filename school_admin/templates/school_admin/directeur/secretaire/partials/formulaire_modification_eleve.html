@@ -1,3 +1,4 @@
+{% load i18n %}
 <!-- Formulaire de modification avec la même structure que l'inscription -->
 <form method="POST" class="inscription-form-modern" id="modificationForm" action="{% url 'secretaire:detail_eleve' eleve.id %}">
     {% csrf_token %}
@@ -155,7 +156,7 @@
         <div class="form-group-modern full-width">
             <label class="label-modern" for="adresse">
                 <i class="fas fa-home"></i>
-                {% trans "Adresse de résidence <span class=\"optional-badge\">{% trans "Optionnel" %}</span>" %}
+                {% trans "Adresse de résidence" %} <span class="optional-badge">{% trans "Optionnel" %}</span>
             </label>
             <textarea class="input-modern textarea-modern {% if field_errors.adresse %}input-error{% endif %}" 
                       id="adresse" 

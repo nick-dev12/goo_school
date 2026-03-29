@@ -2,7 +2,7 @@
 // ✅ Configuration avec vos identifiants EmailJS
 const EMAILJS_CONFIG = {
     publicKey: 'snCOiYbrXCdP_U1Tf', // Votre clé publique EmailJS
-    serviceID: 'service_zgrt1as', // Votre Service ID
+    serviceID: 'service_mvp4n16', // Votre Service ID
     templateID: 'template_l5sb6bl', // Votre Template ID
     toEmail: 'ariaedu55@gmail.com' // Email de destination
 };
@@ -40,7 +40,7 @@ function initEmailJS() {
         console.log('📝 Configuration actuelle:', EMAILJS_CONFIG);
         return false;
     }
-    
+
     // Afficher la configuration pour vérification
     console.log('📝 Configuration EmailJS:', {
         serviceID: EMAILJS_CONFIG.serviceID,
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('📊 Réponse complète:', response);
                     console.log('📧 Status:', response.status);
                     console.log('📝 Text:', response.text);
-                    
+
                     showMessage('✅ Message envoyé avec succès ! Nous vous répondrons dans les plus brefs délais. Vérifiez votre boîte de réception (et les spams) à ariaedu55@gmail.com', 'success');
                     contactForm.reset(); // Réinitialiser le formulaire
                     resetSubmitButton();

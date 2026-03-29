@@ -1,0 +1,489 @@
+/**
+ * Modale plein écran — création de module (liste des modules)
+ */
+:root {
+  --mam-primary: #3b82f6;
+  --mam-primary-dark: #1d4ed8;
+  --mam-surface: #ffffff;
+  --mam-muted: #6b7280;
+  --mam-border: #e5e7eb;
+  --mam-danger: #ef4444;
+  --mam-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.module-add-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.module-add-modal-overlay.is-open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.module-add-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.module-add-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: min(720px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--mam-surface);
+  box-shadow: var(--mam-shadow);
+}
+
+.module-add-modal-form-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@media (min-width: 769px) {
+  .module-add-modal-overlay {
+    align-items: center;
+    padding: 1.25rem;
+  }
+  .module-add-modal-panel {
+    min-height: auto;
+    max-height: min(92vh, 900px);
+    border-radius: 16px;
+    border: 1px solid var(--mam-border);
+  }
+}
+
+.module-add-modal-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+}
+
+.module-add-modal-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 4vw, 1.35rem);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.module-add-modal-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  opacity: 0.92;
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.module-add-modal-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: background 0.2s;
+}
+
+.module-add-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.module-add-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.25rem;
+  min-height: 0;
+}
+
+.module-add-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.module-add-alert {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
+.module-add-alert-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+}
+
+.module-add-alert-p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.module-add-grid-2 {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 600px) {
+  .module-add-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.module-add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.module-add-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.module-add-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--mam-border);
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.module-add-input:focus {
+  outline: none;
+  border-color: var(--mam-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.module-add-input.is-invalid {
+  border-color: var(--mam-danger);
+}
+
+.module-add-field-error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mam-danger);
+}
+
+.module-add-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mam-muted);
+}
+
+.module-add-hint-block {
+  margin-bottom: 0.75rem;
+}
+
+.module-add-section-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.module-add-niveaux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 0.85rem;
+}
+
+.module-add-niveaux-section .niveau-card {
+  padding: 0.85rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 2px solid var(--mam-border);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.module-add-niveaux-section .niveau-card:hover {
+  border-color: var(--mam-primary);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.module-add-niveaux-section .niveau-card.niveau-selected {
+  border-color: var(--mam-primary);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.module-add-niveaux-section .niveau-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.module-add-niveaux-section .niveau-badge {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.module-add-niveaux-section .niveau-count {
+  font-size: 0.78rem;
+  color: var(--mam-muted);
+}
+
+.module-add-niveaux-section .niveau-header-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.module-add-niveaux-section .niveau-action-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+}
+
+.module-add-niveaux-section .niveau-card.niveau-selected .niveau-action-hint {
+  color: #14532d;
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.module-add-niveaux-section .niveau-credits-block {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--mam-border);
+}
+
+.module-add-niveaux-section .niveau-field-stack {
+  margin-bottom: 0.65rem;
+}
+
+.module-add-niveaux-section .niveau-field-stack:last-child {
+  margin-bottom: 0;
+}
+
+.module-add-niveaux-section .credits-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+
+.module-add-placeholder {
+  padding: 1rem;
+  background: #f3f4f6;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: var(--mam-muted);
+}
+
+.module-add-placeholder p {
+  margin: 0;
+}
+
+.module-edit-niveaux-grid {
+  gap: 1rem;
+}
+
+.module-edit-niveau-card .module-edit-niveau-body {
+  margin-top: 0.7rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--mam-border);
+}
+
+.module-edit-classe-row {
+  border: 1px solid var(--mam-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.module-edit-classe-row:last-child {
+  margin-bottom: 0;
+}
+
+.module-edit-classe-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.module-edit-classe-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.module-edit-classe-fields {
+  margin-top: 0.6rem;
+  display: none;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.module-edit-field {
+  min-width: 0;
+}
+
+.module-edit-field .form-control,
+.module-edit-field select.form-control {
+  width: 100%;
+  max-width: 100%;
+}
+
+.module-edit-field .credits-sublabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 0.2rem;
+}
+
+.module-add-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--mam-border);
+  background: #fafafa;
+}
+
+.module-add-btn {
+  min-height: 44px;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.module-add-btn-ghost {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.module-add-btn-ghost:hover {
+  background: #d1d5db;
+}
+
+.module-add-btn-primary {
+  background: linear-gradient(135deg, var(--mam-primary), var(--mam-primary-dark));
+  color: #fff;
+}
+
+.module-add-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+body.module-modal-open {
+  overflow: hidden;
+}
+
+/* Carte détail module : bandeau UE */
+.mini-card-module-ue {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.95;
+  margin-bottom: 0.25rem;
+}
+
+.mini-card-module-ue .ue-num {
+  font-weight: 800;
+}
+
+.mini-card-module-ue .ue-module-nom {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.modal-classe-credits-numero {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.modal-classe-credits-numero-inner {
+  width: 100%;
+}
+
+.modal-classe-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 520px) {
+  .modal-classe-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-classe-field .credits-sublabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 0.2rem;
+}
+

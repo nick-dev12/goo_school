@@ -56,6 +56,8 @@ class MultiUserBackend(BaseBackend):
         
         # Détection des parents (format: BDP345843 - 2 lettres + P + 6 chiffres = 9 caractères)
         # Pattern: exactement 2 lettres + P + 6 chiffres
+        # Attention : certains matricules élèves (ex. SUP260002 au supérieur) ont le même gabarit ;
+        # authenticate() tente alors Parent puis Élève si le parent n'existe pas.
         if len(username_upper) == 9 and username_upper[:2].isalpha() and username_upper[2] == 'P' and username_upper[3:].isdigit() and len(username_upper[3:]) == 6:
             return 'parent'
         
@@ -101,7 +103,23 @@ class MultiUserBackend(BaseBackend):
                     return parent
             except Parent.DoesNotExist:
                 pass
-            return None  # Si le parent n'est pas trouvé, arrêter ici
+            # Même motif que les parents (2 lettres + P + 6 chiffres) pour certains matricules
+            # élèves (ex. supérieur : SUP260002 = SU + P + 260002). Si aucun parent, tenter élève.
+            try:
+                eleve = Eleve.objects.get(username__iexact=username)
+                if eleve.check_password(password) and eleve.actif:
+                    eleve._auth_user_type = 'eleve'
+                    return eleve
+            except Eleve.DoesNotExist:
+                pass
+            try:
+                eleve = Eleve.objects.get(matricule_eleve__iexact=username)
+                if eleve.check_password(password) and eleve.actif:
+                    eleve._auth_user_type = 'eleve'
+                    return eleve
+            except Eleve.DoesNotExist:
+                pass
+            return None
         
         elif detected_type == 'professeur':
             # Vérifier d'abord les professeurs, puis les élèves (même format)

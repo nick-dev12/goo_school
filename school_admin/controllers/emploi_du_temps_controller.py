@@ -62,7 +62,40 @@ class EmploiDuTempsController:
     """
     Contrôleur pour gérer les emplois du temps des classes
     """
-    
+
+    @staticmethod
+    def _matieres_pour_emploi_du_temps_classe(etablissement, classe):
+        """
+        Matières proposées pour ajouter/modifier un créneau d'emploi du temps.
+
+        - Hors supérieur : toutes les matières actives de l'établissement.
+        - Supérieur : uniquement les matières liées à la classe (M2M ``matiere.classes``
+          ou classes du module via ``module.classes``), comme pour les affectations.
+        """
+        from django.db.models import Q
+        from ..model.matiere_model import Matiere
+
+        base = Matiere.objects.filter(etablissement=etablissement, actif=True)
+        if getattr(etablissement, 'type_etablissement', None) != 'superieur':
+            return base.order_by('nom')
+
+        return (
+            base.filter(Q(classes=classe) | Q(module__classes=classe))
+            .distinct()
+            .order_by('nom')
+        )
+
+    @staticmethod
+    def _matiere_est_autorisee_emploi_superieur(etablissement, classe, matiere):
+        """Vérifie qu'une matière POST est bien dans le périmètre classe (supérieur)."""
+        if matiere is None:
+            return True
+        if getattr(etablissement, 'type_etablissement', None) != 'superieur':
+            return True
+        return EmploiDuTempsController._matieres_pour_emploi_du_temps_classe(
+            etablissement, classe
+        ).filter(pk=matiere.pk).exists()
+
     @staticmethod
     @login_required
     def liste_emplois_du_temps(request):
@@ -84,11 +117,11 @@ class EmploiDuTempsController:
         # Récupérer l'année scolaire active
         annee_scolaire_active = get_session_active(request, etablissement)
         
-        # Récupérer toutes les classes de l'établissement
+        # Récupérer toutes les classes de l'établissement (academic_level pour libellé niveau complet)
         classes = Classe.objects.filter(
             etablissement=etablissement,
             actif=True
-        ).prefetch_related('emplois_du_temps').order_by('niveau', 'nom')
+        ).select_related('academic_level', 'department').prefetch_related('emplois_du_temps').order_by('niveau', 'nom')
         
         # Ajouter les informations d'emploi du temps pour chaque classe
         classes_with_edt = []
@@ -194,8 +227,12 @@ class EmploiDuTempsController:
             messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de consulter un emploi du temps.")
             return redirect('administrateur_etablissement:liste_emplois_du_temps')
         
-        # Récupérer la classe
-        classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
+        # Récupérer la classe (relations pour libellé niveau LMD / académique)
+        classe = get_object_or_404(
+            Classe.objects.select_related('academic_level', 'department'),
+            id=classe_id,
+            etablissement=etablissement,
+        )
         
         # Récupérer l'emploi du temps actif pour l'année scolaire active uniquement
         emploi_du_temps = classe.emplois_du_temps.filter(
@@ -392,11 +429,10 @@ class EmploiDuTempsController:
                     break
         
         # Récupérer les données nécessaires pour le formulaire d'ajout de créneau
-        from ..model.matiere_model import Matiere
         from ..model.professeur_model import Professeur
         from ..model.salle_model import Salle
         
-        matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
+        matieres = EmploiDuTempsController._matieres_pour_emploi_du_temps_classe(etablissement, classe)
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
         professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(classe, annee_scolaire_active)
         
@@ -468,8 +504,12 @@ class EmploiDuTempsController:
             messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de consulter un emploi du temps.")
             return redirect('administrateur_etablissement:liste_emplois_du_temps')
         
-        # Récupérer la classe
-        classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
+        # Récupérer la classe (relations pour libellé niveau complet à l'impression)
+        classe = get_object_or_404(
+            Classe.objects.select_related('academic_level', 'department'),
+            id=classe_id,
+            etablissement=etablissement,
+        )
         
         # Récupérer l'emploi du temps actif pour l'année scolaire active uniquement
         emploi_du_temps = classe.emplois_du_temps.filter(
@@ -642,8 +682,12 @@ class EmploiDuTempsController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         
-        # Récupérer la classe
-        classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
+        # Récupérer la classe (relations pour libellé niveau complet)
+        classe = get_object_or_404(
+            Classe.objects.select_related('academic_level', 'department'),
+            id=classe_id,
+            etablissement=etablissement,
+        )
         
         # Récupérer l'année scolaire active
         annee_scolaire_active = get_session_active(request, etablissement)
@@ -731,7 +775,8 @@ class EmploiDuTempsController:
         from ..model.professeur_model import Professeur
         from ..model.salle_model import Salle
         
-        matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
+        classe_edt = emploi_du_temps.classe
+        matieres = EmploiDuTempsController._matieres_pour_emploi_du_temps_classe(etablissement, classe_edt)
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
         
         professeurs_options, afficher_matiere_prof = EmploiDuTempsController._get_professeurs_options(emploi_du_temps.classe, annee_scolaire_active)
@@ -853,6 +898,25 @@ class EmploiDuTempsController:
                     except Professeur.DoesNotExist:
                         pass
             
+            # Supérieur : la matière doit être liée à la classe (anti-falsification)
+            if is_valid and form_data.get('matiere_id'):
+                try:
+                    matiere_tmp = Matiere.objects.get(
+                        id=form_data['matiere_id'],
+                        etablissement=etablissement,
+                    )
+                    if not EmploiDuTempsController._matiere_est_autorisee_emploi_superieur(
+                        etablissement, classe_edt, matiere_tmp
+                    ):
+                        field_errors['matiere'] = (
+                            "Cette matière n'est pas associée à cette classe. "
+                            "Liez la matière à la classe (ou au module) dans la gestion pédagogique."
+                        )
+                        is_valid = False
+                except (Matiere.DoesNotExist, ValueError, TypeError):
+                    field_errors['matiere'] = "Matière invalide."
+                    is_valid = False
+            
             # Si tout est valide, créer le créneau
             if is_valid:
                 try:
@@ -943,7 +1007,17 @@ class EmploiDuTempsController:
         from ..model.professeur_model import Professeur
         from ..model.salle_model import Salle
         
-        matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
+        classe_edt = emploi_du_temps.classe
+        matieres = EmploiDuTempsController._matieres_pour_emploi_du_temps_classe(etablissement, classe_edt)
+        # Supérieur : conserver la matière actuelle du créneau si elle n'est plus dans la liste (données historiques)
+        if (
+            getattr(etablissement, 'type_etablissement', None) == 'superieur'
+            and creneau.matiere_id
+            and not matieres.filter(pk=creneau.matiere_id).exists()
+        ):
+            matieres = (
+                matieres | Matiere.objects.filter(pk=creneau.matiere_id, etablissement=etablissement)
+            ).distinct().order_by('nom')
         salles = Salle.objects.filter(etablissement=etablissement, actif=True).order_by('numero')
         
         # Récupérer l'année scolaire active
@@ -1080,6 +1154,25 @@ class EmploiDuTempsController:
                                 
                     except Professeur.DoesNotExist:
                         pass
+            
+            # Supérieur : la matière doit être liée à la classe (anti-falsification)
+            if is_valid and form_data.get('matiere_id'):
+                try:
+                    matiere_tmp = Matiere.objects.get(
+                        id=form_data['matiere_id'],
+                        etablissement=etablissement,
+                    )
+                    if not EmploiDuTempsController._matiere_est_autorisee_emploi_superieur(
+                        etablissement, classe_edt, matiere_tmp
+                    ):
+                        field_errors['matiere'] = (
+                            "Cette matière n'est pas associée à cette classe. "
+                            "Liez la matière à la classe (ou au module) dans la gestion pédagogique."
+                        )
+                        is_valid = False
+                except (Matiere.DoesNotExist, ValueError, TypeError):
+                    field_errors['matiere'] = "Matière invalide."
+                    is_valid = False
             
             # Si tout est valide, modifier le créneau
             if is_valid:

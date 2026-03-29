@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.2.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
 <body>
@@ -65,8 +65,8 @@
         </div>
         {% endif %}
 
-        {% if periodes %}
-        <div class="periodes-tabs-container">
+        {% if periodes and not est_superieur %}
+        <div class="periodes-tabs-container" aria-label="{% trans 'Période scolaire (toutes les classes)' %}">
             {% for periode in periodes %}
                 {% if periode_selectionnee and periode.id == periode_selectionnee.id %}
                     <a class="periode-tab active" href="?periode={{ periode.id }}">
@@ -110,7 +110,7 @@
                         {% for classe_data in data.classes %}
                             <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
                                     onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                                <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                                 <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                             </button>
                         {% endfor %}
@@ -119,12 +119,34 @@
                     <!-- Contenu des sous-onglets (classes) -->
                     {% for classe_data in data.classes %}
                         <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
-                            
+                            {% if est_superieur %}
+                            <div class="periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre pour cette classe' %}">
+                                {% if classe_data.periodes_nav %}
+                                    {% for item in classe_data.periodes_nav %}
+                                        <a class="periode-tab {% if item.active %}active{% endif %}"
+                                           href="{{ request.path }}?{{ item.query }}">
+                                            <span class="periode-nom">{{ item.periode.libelle_affichage_superieur }}</span>
+                                            <span class="periode-annee">{{ item.periode.annee_scolaire }}</span>
+                                        </a>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="periodes-classe-empty">
+                                        <i class="fas fa-calendar-xmark"></i>
+                                        {% trans "Aucune période ne correspond au niveau de cette classe pour l'année active." %}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
                             <!-- En-tête de la classe -->
                             <div class="class-header">
                                 <h2 class="class-title">
                                     <i class="fas fa-chalkboard"></i>
-                                    {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                    {% if est_superieur %}
+                                      {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                                    {% else %}
+                                      {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                    {% endif %}
                                 </h2>
                                 <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
                             </div>

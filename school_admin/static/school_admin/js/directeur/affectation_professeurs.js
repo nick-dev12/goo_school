@@ -11,7 +11,137 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser les interactions des cartes
     initializeProfessorCards();
+    
+    // Supérieur : filière → matières visibles, puis classes
+    initializeAffectationFiliereSuperieur();
+    // Filtrer les classes selon la matière (filière + classes cibles matière/module)
+    initializeAffectationClasseFilter();
 });
+
+/**
+ * Supérieur : choix de la filière puis filtrage des options « Matière » (comme l’ajout de professeur).
+ */
+function initializeAffectationFiliereSuperieur() {
+    document.querySelectorAll('.affectation-filiere-select').forEach(function (filSel) {
+        var pid = filSel.getAttribute('data-professeur-id');
+        var matSel = document.getElementById('matiere' + pid);
+        if (!matSel) return;
+
+        function syncFromFiliere() {
+            var depId = filSel.value;
+            matSel.querySelectorAll('option').forEach(function (opt) {
+                if (!opt.value) {
+                    opt.hidden = !!depId;
+                    opt.disabled = !!depId;
+                    return;
+                }
+                var mdep = opt.getAttribute('data-department-id') || '';
+                var show = depId && mdep === depId;
+                opt.hidden = !show;
+                opt.disabled = !show;
+                if (!show && opt.selected) {
+                    opt.selected = false;
+                }
+            });
+            if (!depId) {
+                matSel.value = '';
+                var ph = matSel.querySelector('option[value=""]');
+                if (ph) {
+                    ph.selected = true;
+                }
+            } else {
+                var curOpt = matSel.options[matSel.selectedIndex];
+                if (!curOpt || !curOpt.value || curOpt.disabled) {
+                    var firstOk = Array.prototype.find.call(matSel.options, function (o) {
+                        return o.value && !o.disabled;
+                    });
+                    if (firstOk) {
+                        firstOk.selected = true;
+                    } else {
+                        matSel.value = '';
+                    }
+                }
+            }
+            filterClassesByMatiere(matSel);
+        }
+
+        filSel.addEventListener('change', syncFromFiliere);
+    });
+}
+
+/**
+ * Filtre les classes selon la filière de la matière et les classes cibles (matière / module).
+ */
+function initializeAffectationClasseFilter() {
+    const matiereSelects = document.querySelectorAll('.affectation-matiere-select');
+    matiereSelects.forEach(function (matiereSelect) {
+        matiereSelect.addEventListener('change', function () {
+            filterClassesByMatiere(this);
+        });
+        filterClassesByMatiere(matiereSelect);
+    });
+}
+
+function filterClassesByMatiere(matiereSelect) {
+    const professeurId = matiereSelect.getAttribute('data-professeur-id');
+    const classeSelect = document.getElementById('classe' + professeurId);
+    if (!classeSelect) return;
+
+    const selectedOpt = matiereSelect.options[matiereSelect.selectedIndex];
+    const classOptions = classeSelect.querySelectorAll('option');
+
+    if (!selectedOpt || !selectedOpt.value) {
+        classOptions.forEach(function (opt) {
+            if (!opt.value) {
+                opt.style.display = '';
+                opt.disabled = false;
+                return;
+            }
+            opt.style.display = 'none';
+            opt.disabled = true;
+            opt.selected = false;
+        });
+        return;
+    }
+
+    const matiereDepId = selectedOpt.getAttribute('data-department-id') || '';
+    const matiereClasseIdsStr = selectedOpt.getAttribute('data-classe-ids') || '';
+    const matiereClasseIds = matiereClasseIdsStr
+        ? matiereClasseIdsStr.split(',').filter(function (id) {
+              return id.trim();
+          })
+        : [];
+
+    classOptions.forEach(function (opt) {
+        if (!opt.value) {
+            opt.style.display = '';
+            opt.disabled = false;
+            return;
+        }
+        const classeDepId = opt.getAttribute('data-department-id') || '';
+        const classeId = opt.getAttribute('data-classe-id') || opt.value;
+
+        let match = true;
+        if (matiereDepId && classeDepId !== matiereDepId) {
+            match = false;
+        }
+        if (matiereClasseIds.length > 0 && match) {
+            match = matiereClasseIds.indexOf(classeId) >= 0;
+        }
+
+        opt.style.display = match ? '' : 'none';
+        opt.disabled = !match;
+        if (!match) opt.selected = false;
+    });
+
+    const currentClasseOpt = classeSelect.options[classeSelect.selectedIndex];
+    if (currentClasseOpt && currentClasseOpt.disabled) {
+        const firstVisible =
+            classeSelect.querySelector('option[value=""]') ||
+            classeSelect.querySelector('option:not([disabled])');
+        if (firstVisible) classeSelect.value = firstVisible.value;
+    }
+}
 
 /**
  * Initialiser les onglets de matière
@@ -78,7 +208,19 @@ function toggleAffectations(professeurId) {
             overlay.style.display = 'block';
             panel.style.display = 'flex';
             document.body.style.overflow = 'hidden'; // Empêcher le scroll de la page
-            
+
+            // Supérieur : réinitialiser filière / matière / filtre classes
+            const fil = document.getElementById('filiere' + professeurId);
+            if (fil) {
+                fil.value = '';
+                fil.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                const mat = document.getElementById('matiere' + professeurId);
+                if (mat) {
+                    filterClassesByMatiere(mat);
+                }
+            }
+
             // Animation d'entrée
             setTimeout(() => {
                 panel.classList.add('modal-active');

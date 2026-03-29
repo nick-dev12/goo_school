@@ -1799,28 +1799,60 @@ body {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-/* Modal Matières Secondaires */
+/* Modal Matières Secondaires — scroll ergonomique, pied d’actions fixe, responsive */
 .modal-overlay-matiere {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    inset: 0;
     z-index: 10000;
+    background: rgba(15, 23, 42, 0.45);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .modal-content-matiere {
-    background: white;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: var(--white, #fff);
+    border-radius: 14px;
+    width: min(100%, 32rem);
+    max-width: 100%;
+    max-height: min(92vh, calc(100dvh - 24px));
+    margin: auto 0;
+    box-shadow: var(--shadow-lg, 0 20px 60px rgba(0, 0, 0, 0.22));
     animation: slideDown 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-form-matiere {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.modal-matiere-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 1rem 1.25rem 1rem;
+}
+
+@media (max-width: 480px) {
+    .modal-matiere-scroll {
+        padding: 0.875rem 1rem;
+    }
 }
 
 @keyframes slideDown {
@@ -1835,21 +1867,24 @@ body {
 }
 
 .modal-header-matiere {
-    padding: 20px 24px;
-    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
 }
 
 .modal-header-matiere h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: clamp(1rem, 2.8vw, 1.125rem);
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-primary, #1e293b);
+    line-height: 1.35;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.5rem;
 }
 
 .modal-header-matiere h3 i {
@@ -1859,15 +1894,16 @@ body {
 .btn-close-modal-matiere {
     background: none;
     border: none;
-    width: 32px;
-    height: 32px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #64748b;
+    color: var(--gray-500, #64748b);
+    flex-shrink: 0;
 }
 
 .btn-close-modal-matiere:hover {
@@ -1875,29 +1911,41 @@ body {
     color: #1e293b;
 }
 
-.modal-body-matiere {
-    padding: 24px;
-}
-
 .form-group-matiere {
-    margin-bottom: 20px;
+    margin-bottom: 1.125rem;
 }
 
-.form-group-matiere label {
-    display: block;
-    margin-bottom: 8px;
+.form-group-matiere:last-child {
+    margin-bottom: 0;
+}
+
+.form-group-matiere .form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
     font-weight: 600;
-    color: #1e293b;
-    font-size: 14px;
+    color: var(--text-primary, #1e293b);
+    font-size: clamp(0.8125rem, 2.2vw, 0.875rem);
+}
+
+.form-group-matiere label:not(.form-label) {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    font-size: clamp(0.8125rem, 2.2vw, 0.875rem);
 }
 
 .form-control-matiere {
     width: 100%;
-    padding: 10px 14px;
-    border: 2px solid #e2e8f0;
+    min-height: 44px;
+    padding: 0.625rem 0.875rem;
+    border: 2px solid var(--border-color, #e2e8f0);
     border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.2s ease;
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
 }
 
 .form-control-matiere:focus {
@@ -1906,26 +1954,48 @@ body {
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
-.modal-actions {
+.modal-form-matiere > .modal-actions-matiere {
+    flex-shrink: 0;
     display: flex;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 0.625rem;
     justify-content: flex-end;
-    margin-top: 24px;
+    align-items: center;
+    margin-top: 0;
+    padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    background: var(--gray-50, #f9fafb);
+}
+
+@media (max-width: 480px) {
+    .modal-form-matiere > .modal-actions-matiere {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .modal-form-matiere > .modal-actions-matiere .btn-cancel-matiere,
+    .modal-form-matiere > .modal-actions-matiere .btn-submit-matiere {
+        width: 100%;
+        justify-content: center;
+        min-height: 48px;
+    }
 }
 
 .btn-cancel-matiere {
-    padding: 10px 20px;
-    background: white;
-    border: 2px solid #e2e8f0;
+    padding: 0.625rem 1.125rem;
+    min-height: 44px;
+    background: var(--white, #fff);
+    border: 2px solid var(--border-color, #e2e8f0);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--gray-600, #64748b);
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 0.375rem;
 }
 
 .btn-cancel-matiere:hover {
@@ -1934,21 +2004,167 @@ body {
 }
 
 .btn-submit-matiere {
-    padding: 10px 20px;
-    background: linear-gradient(135deg, #10b981, #059669);
+    padding: 0.625rem 1.125rem;
+    min-height: 44px;
+    background: var(--gradient-green, linear-gradient(135deg, #10b981, #059669));
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: white;
+    color: var(--white, #fff);
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 0.375rem;
 }
 
 .btn-submit-matiere:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-submit-matiere:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.modal-matiere-search-input {
+    margin-bottom: 12px;
+}
+
+.modal-matiere-selected-hint {
+    font-size: 13px;
+    color: #059669;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.modal-matiere-selected-hint[hidden] {
+    display: none !important;
+}
+
+.modal-matiere-pick-list {
+    max-height: clamp(11rem, 38vh, 20rem);
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.modal-matiere-pick-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+    min-height: 44px;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--gray-50, #f8fafc);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: clamp(0.8125rem, 2.2vw, 0.875rem);
+    transition: all 0.2s ease;
+}
+
+.modal-matiere-pick-item:last-child {
+    margin-bottom: 0;
+}
+
+.modal-matiere-pick-item:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.modal-matiere-pick-item[hidden] {
+    display: none !important;
+}
+
+.modal-matiere-pick-item.is-selected {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.modal-matiere-pick-main {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.modal-matiere-pick-meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.modal-matiere-empty-msg {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 16px;
+    padding: 12px;
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+
+.modal-matiere-empty-msg i {
+    color: #3b82f6;
+    margin-right: 8px;
+}
+
+.btn-add-matiere-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.modal-matiere-hint {
+    font-size: clamp(0.75rem, 2vw, 0.8125rem);
+    color: var(--text-secondary, #64748b);
+    margin: 0.35rem 0 0.65rem;
+    line-height: 1.5;
+}
+
+.modal-matiere-zone-superieur {
+    margin-top: 4px;
+}
+
+/* Bloc matières supérieur (même composants que ajouter professeur) */
+.modal-matiere-scroll #matieres-superieur-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+}
+
+.modal-matiere-scroll .matiere-pick-list {
+    max-height: clamp(12rem, 42vh, 22rem);
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.modal-matiere-scroll .matiere-pick-item {
+    min-height: 44px;
+}
+
+.modal-matiere-scroll .matiere-filter-empty-msg {
+    font-size: 0.8125rem;
+    margin: 0.25rem 0;
+}
+
+.modal-matiere-scroll .matiere-principale-selected-bar {
+    margin-top: 0.25rem;
 }

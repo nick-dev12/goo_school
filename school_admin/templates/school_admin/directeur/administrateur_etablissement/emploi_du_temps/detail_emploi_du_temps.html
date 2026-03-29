@@ -42,7 +42,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0"
     />
-    {% trans "<style>
+    <style>
       /* Masquer les boutons d'action par défaut */
       .creneau-interactif .creneau-actions {
         display: none !important;
@@ -71,7 +71,7 @@
       .creneau-interactif:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
-    </style>" %}
+    </style>
   </head>
   <body>
     <!-- Header -->
@@ -98,7 +98,7 @@
               Emploi du Temps - {{ classe.nom }}
             </h1>
             <p class="page-subtitle">
-              {{ classe.get_niveau_display }} - {{ emploi_du_temps.annee_scolaire }}
+              {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %} — {{ emploi_du_temps.annee_scolaire }}
             </p>
             <div class="classe-info-badges">
               <span class="info-badge">
@@ -233,7 +233,7 @@
               <div class="empty-state">
                 <i class="fas fa-calendar-times"></i>
                 <h3>{% trans "Aucun créneau programmé" %}</h3>
-                <p>{% trans "Utilisez le bouton "Ajouter un créneau" pour commencer à planifier l'emploi du temps." %}</p>
+                <p>{% trans "Utilisez le bouton «Ajouter un créneau» pour commencer à planifier l'emploi du temps." %}</p>
               </div>
             {% endif %}
           </div>
@@ -374,7 +374,7 @@
     </div>
 
     <!-- JavaScript -->
-    {% trans "<script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
     <script>
       // Filtrer les créneaux pour obtenir un dictionnaire en JavaScript
       const creneauxParJour = {

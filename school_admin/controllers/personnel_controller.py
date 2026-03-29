@@ -174,6 +174,19 @@ class PersonnelController:
                 ('secretaire_vie_scolaire', 'Secrétaire de Vie Scolaire'),
                 ('autre', 'Autre'),
             ],
+            'superieur': [
+                ('doyen', 'Doyen'),
+                ('vice_doyen', 'Vice-Doyen'),
+                ('directeur_departement', 'Directeur de département / de filière'),
+                ('secretaire_general', 'Secrétaire général'),
+                ('secretaire_pedagogique', 'Secrétaire pédagogique'),
+                ('responsable_scolarite', 'Responsable de scolarité'),
+                ('secretaire', 'Secrétaire'),
+                ('gestionnaire', 'Gestionnaire'),
+                ('comptable', 'Comptable'),
+                ('intendant', 'Intendant'),
+                ('autre', 'Autre'),
+            ],
         }
         
         # Ajouter l'administrateur système à tous les types

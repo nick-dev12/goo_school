@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load i18n %}
+{% load classe_tags %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
@@ -17,12 +18,13 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4"
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.1.0"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.2.0"
     />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}?v=1.0.0" />
   </head>
   <body>
     <!-- Header -->
@@ -43,6 +45,17 @@
             </p>
           </div>
           <div class="page-actions">
+            {% if est_superieur %}
+            <a href="{% url 'administrateur_etablissement:liste_filieres' %}" class="btn-add-filiere btn-secondary" title="{% trans 'Gérer les spécialités' %}">
+              <i class="fas fa-sitemap"></i>
+              <span>{% trans "Spécialités" %}</span>
+            </a>
+            <a href="{% url 'administrateur_etablissement:liste_classes_examens_concours' %}" class="btn-examens-concours-quick" title="{% trans 'Classes avec BTS, BT, concours…' %}">
+              <i class="fas fa-clipboard-list"></i>
+              <span>{% trans "Examens & concours" %}</span>
+              {% if nb_classes_avec_examens_concours %}<span class="ec-count">{{ nb_classes_avec_examens_concours }}</span>{% endif %}
+            </a>
+            {% endif %}
             <button class="btn-add-classe" id="addClasseBtn">
               <i class="fas fa-plus"></i>
               <span>{% trans "Ajouter une classe" %}</span>
@@ -106,44 +119,123 @@
         <!-- Liste des classes groupées par onglets -->
         <div class="classes-section">
           {% if classes_grouped %}
-            <!-- Navigation des onglets -->
+            {% if est_superieur %}
+            <!-- LMD : Onglets Spécialité > sous-sections par Niveau (L1, L2, L3...) > Classes -->
             <div class="categories-tabs">
               <div class="tabs-nav">
-                {% for categorie, data in classes_grouped.items %}
-                  <button class="tab-btn {% if forloop.first %}active{% endif %}" data-category="{{ categorie }}">
+                {% for filiere_nom, filiere_data in classes_grouped.items %}
+                  <button class="tab-btn {% if forloop.first %}active{% endif %}" data-filiere-idx="{{ forloop.counter0 }}">
+                    <i class="fas fa-sitemap"></i>
+                    <span>{{ filiere_nom }}</span>
+                    <span class="tab-count">({{ filiere_data.total }})</span>
+                  </button>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="tabs-content">
+              {% for filiere_nom, filiere_data in classes_grouped.items %}
+                <div class="tab-panel {% if forloop.first %}active{% endif %}" id="filiere-{{ forloop.counter0 }}" data-filiere-idx="{{ forloop.counter0 }}">
+                  <div class="classes-niveau-tabs-inner">
+                    <p class="classes-niveau-tabs-hint"><i class="fas fa-layer-group"></i> {% trans "Niveau d'études" %}</p>
+                    <div class="classes-niveau-tabs-row">
+                      {% for niveau_code, data in filiere_data.niveaux %}
+                      <button type="button" class="classes-niveau-tab-btn {% if forloop.first %}active{% endif %}" data-niveau-idx="{{ forloop.counter0 }}">
+                        <span>{{ niveau_code|libelle_niveau_lmd_key }}</span>
+                        <span class="tab-count">({{ data.classes|length }})</span>
+                      </button>
+                      {% endfor %}
+                    </div>
+                    <div class="classes-niveau-panels-wrap">
+                      {% for niveau_code, data in filiere_data.niveaux %}
+                      <div class="classes-niveau-panel {% if forloop.first %}active{% endif %}" data-niveau-idx="{{ forloop.counter0 }}">
+                        <div class="category-header">
+                          <div class="category-stats">
+                            <div class="stat-item"><span class="stat-number">{{ data.total_eleves }}</span> <span class="stat-label">{% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}</span></div>
+                            <div class="stat-item"><span class="stat-number">{{ data.total_enseignants }}</span> <span class="stat-label">{% trans "Enseignants" %}</span></div>
+                            <div class="stat-item"><span class="stat-number">{{ data.total_capacite }}</span> <span class="stat-label">{% trans "Capacité" %}</span></div>
+                          </div>
+                        </div>
+                        <div class="classes-grid">
+                          {% for classe_data in data.classes %}
+                          {% with classe=classe_data.classe %}
+                          <div class="classe-card">
+                            <div class="classe-header">
+                              <div class="classe-icon"><i class="fas fa-book"></i></div>
+                              <div class="classe-info">
+                                <h3 class="classe-nom">{{ classe.nom }}</h3>
+                                <p class="classe-niveau">{{ classe.get_libelle_niveau_superieur_complet }}</p>
+                                <div class="classe-badge niveau-superieur"><span>{{ classe.get_libelle_niveau_superieur_complet }}</span></div>
+                              </div>
+                              <div class="classe-status">
+                                <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+                                  <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+                                  <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="classe-details">
+                              <div class="detail-row">
+                                <div class="detail-item"><i class="fas fa-user-graduate"></i> <span class="detail-label">{% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}:</span> <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span></div>
+                                <div class="detail-item"><i class="fas fa-chalkboard-teacher"></i> <span class="detail-label">{% trans "Enseignants:" %}</span> <span class="detail-value">{{ classe_data.nombre_enseignants }}</span></div>
+                              </div>
+                              <div class="detail-row">
+                                <div class="detail-item"><i class="fas fa-chart-pie"></i> <span class="detail-label">{% trans "Occupation:" %}</span> <span class="detail-value">{{ classe.taux_occupation }}%</span></div>
+                                <div class="detail-item"><i class="fas fa-code"></i> <span class="detail-label">{% trans "Code:" %}</span> <span class="detail-value">{{ classe.code_classe }}</span></div>
+                              </div>
+                            </div>
+                            {% if classe.liens_examens_concours.count %}
+                            <div class="classe-card-examens">
+                              <div class="classe-card-examens-label"><i class="fas fa-flag-checkered"></i> {% trans "Examens & concours" %}</div>
+                              <div class="classe-card-examens-tags">
+                                {% for lien in classe.liens_examens_concours.all %}
+                                <span class="classe-examen-tag" title="{{ lien.option.description|default:'' }}"><i class="fas fa-certificate"></i> {{ lien.option.libelle }}</span>
+                                {% endfor %}
+                              </div>
+                            </div>
+                            {% endif %}
+                            <div class="classe-actions">
+                              <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail"><i class="fas fa-eye"></i> <span>{% trans "Détails" %}</span></a>
+                              <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}"><i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i> <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span></a>
+                            </div>
+                          </div>
+                          {% endwith %}
+                          {% endfor %}
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <!-- Primaire/Secondaire : onglets par niveau (cycle) -->
+            <div class="categories-tabs">
+              <div class="tabs-nav">
+                {% for niveau_code, data in classes_grouped.items %}
+                  <button type="button" class="tab-btn {% if forloop.first %}active{% endif %}" data-niveau-scolaire="{{ niveau_code }}">
                     <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
-                    <span>{{ categorie }}</span>
+                    <span>{{ data.niveau_label }}</span>
                     <span class="tab-count">({{ data.classes|length }})</span>
                   </button>
                 {% endfor %}
               </div>
             </div>
-
-            <!-- Contenu des onglets -->
             <div class="tabs-content">
-              {% for categorie, data in classes_grouped.items %}
-                <div class="tab-panel {% if forloop.first %}active{% endif %}" id="category-{{ categorie }}">
-                  <!-- En-tête de la catégorie -->
+              {% for niveau_code, data in classes_grouped.items %}
+                <div class="tab-panel {% if forloop.first %}active{% endif %}" id="niveau-scolaire-{{ niveau_code }}">
                   <div class="category-header">
                     <div class="category-stats">
-                      <div class="stat-item">
-                        <span class="stat-number">{{ data.total_eleves }}</span>
-                        <span class="stat-label">{% trans "Élèves" %}</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stat-number">{{ data.total_enseignants }}</span>
-                        <span class="stat-label">{% trans "Enseignants" %}</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stat-number">{{ data.total_capacite }}</span>
-                        <span class="stat-label">{% trans "Capacité" %}</span>
-                      </div>
+                      <div class="stat-item"><span class="stat-number">{{ data.total_eleves }}</span> <span class="stat-label">{% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}</span></div>
+                      <div class="stat-item"><span class="stat-number">{{ data.total_enseignants }}</span> <span class="stat-label">{% trans "Enseignants" %}</span></div>
+                      <div class="stat-item"><span class="stat-number">{{ data.total_capacite }}</span> <span class="stat-label">{% trans "Capacité" %}</span></div>
                     </div>
                   </div>
-
-                  <!-- Grille des classes de cette catégorie -->
                   <div class="classes-grid">
                     {% for classe_data in data.classes %}
+
+<｜tool▁sep｜>path
+c:\Users\jomas\Desktop\goo_school\school_admin\templates\school_admin\directeur\administrateur_etablissement\classes\liste_classes.html
                       {% with classe=classe_data.classe %}
                       <div class="classe-card">
                         <div class="classe-header">
@@ -152,9 +244,9 @@
                           </div>
                           <div class="classe-info">
                             <h3 class="classe-nom">{{ classe.nom }}</h3>
-                            <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
+                            <p class="classe-niveau">{% if est_superieur %}{{ classe.get_libelle_niveau_superieur_complet }}{% else %}{{ classe.get_niveau_display }}{% endif %}</p>
                             <div class="classe-badge niveau-{{ classe.niveau }}">
-                              <span>{{ classe.get_niveau_display }}</span>
+                              <span>{% if est_superieur %}{{ classe.get_libelle_niveau_superieur_complet }}{% else %}{{ classe.get_niveau_display }}{% endif %}</span>
                             </div>
                           </div>
                           <div class="classe-status">
@@ -170,7 +262,7 @@
                           <div class="detail-row">
                             <div class="detail-item">
                               <i class="fas fa-user-graduate"></i>
-                              <span class="detail-label">{% trans "Élèves:" %}</span>
+                              <span class="detail-label">{% if libelle_eleves %}{{ libelle_eleves }}:{% else %}{% trans "Élèves:" %}{% endif %}</span>
                               <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
                             </div>
                             <div class="detail-item">
@@ -221,6 +313,7 @@
                 </div>
               {% endfor %}
             </div>
+            {% endif %}
           {% else %}
             <div class="empty-state">
               <div class="empty-icon">
@@ -240,14 +333,14 @@
 
 
     <!-- Modal d'ajout de classe -->
-    <div class="modal-overlay {% if show_modal %}active{% endif %}" id="addClasseModal">
+    <div class="modal-overlay classe-add-modal {% if show_modal %}active{% endif %}" id="addClasseModal">
       <div class="modal-container">
         <div class="modal-header">
           <h2 class="modal-title">
             <i class="fas fa-plus"></i>
             {% trans "Ajouter une nouvelle classe" %}
           </h2>
-          <button class="modal-close" id="closeModal">
+          <button type="button" class="modal-close" id="closeModal" aria-label="{% trans 'Fermer' %}">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -255,7 +348,6 @@
         <form method="post" action="{% url 'administrateur_etablissement:ajouter_classe' %}" class="modal-form" id="addClasseForm">
           {% csrf_token %}
           
-          <!-- Messages d'erreur généraux -->
           {% if field_errors %}
             <div class="alert alert-error">
               <i class="fas fa-exclamation-triangle"></i>
@@ -263,6 +355,100 @@
             </div>
           {% endif %}
           
+          {% if est_superieur %}
+          <input type="hidden" name="niveau" value="superieur">
+
+          <div class="cam-section">
+            <div class="cam-section-header">
+              <div class="cam-section-icon cam-section-icon--acad"><i class="fas fa-university"></i></div>
+              <div class="cam-section-titles">
+                <h3>{% trans "Contexte académique (LMD)" %}</h3>
+                <p>{% trans "Filière et niveau du cycle principal — ex. QHSE, Licence 2." %}</p>
+              </div>
+            </div>
+            <div class="cam-form-grid cam-form-grid--2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="department">{% trans "Filière / spécialité *" %}</label>
+                <select class="form-control {% if field_errors.department %}is-invalid{% endif %}" id="department" name="department" required>
+                  <option value="">{% trans "— Choisir —" %}</option>
+                  {% if not departments %}
+                  <option value="" disabled>{% trans "Créez d'abord une spécialité." %}</option>
+                  {% endif %}
+                  {% for dept in departments %}
+                  <option value="{{ dept.id }}" {% if form_data.department == dept.id|stringformat:"d" %}selected{% endif %}>{{ dept.nom }}</option>
+                  {% endfor %}
+                </select>
+                {% if field_errors.department %}<div class="invalid-feedback">{{ field_errors.department }}</div>{% endif %}
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="niveau_lmd">{% trans "Niveau LMD / formation *" %}</label>
+                <select class="form-control {% if field_errors.niveau_lmd %}is-invalid{% endif %}" id="niveau_lmd" name="niveau_lmd" required>
+                  {% for niveau_code, niveau_label in niveau_lmd_choices %}
+                  <option value="{{ niveau_code }}" {% if form_data.niveau_lmd == niveau_code or niveau_code == 'L1' and not form_data.niveau_lmd %}selected{% endif %}>{{ niveau_label }}</option>
+                  {% endfor %}
+                </select>
+                {% if field_errors.niveau_lmd %}<div class="invalid-feedback">{{ field_errors.niveau_lmd }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="form-group niveau-libelle-group" id="niveauLibelleGroup" style="margin-top:1rem;margin-bottom:0;{% if form_data.niveau_lmd != 'AUTRE' %}display:none{% endif %}">
+              <label class="form-label" for="niveau_libelle">{% trans "Précision si « Autre » *" %}</label>
+              <input type="text" class="form-control {% if field_errors.niveau_libelle %}is-invalid{% endif %}" id="niveau_libelle" name="niveau_libelle" value="{{ form_data.niveau_libelle }}" placeholder="{% trans 'Ex: Formation certifiante 6 mois' %}">
+              {% if field_errors.niveau_libelle %}<div class="invalid-feedback">{{ field_errors.niveau_libelle }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="cam-section">
+            <div class="cam-section-header">
+              <div class="cam-section-icon cam-section-icon--id"><i class="fas fa-signature"></i></div>
+              <div class="cam-section-titles">
+                <h3>{% trans "Nom de la classe" %}</h3>
+                <p>{% trans "Section, groupe ou intitulé affiché (ex. QHSE A)." %}</p>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="nom">{% trans "Nom *" %}</label>
+              <input type="text" class="form-control {% if field_errors.nom %}is-invalid{% endif %}" id="nom" name="nom" value="{{ form_data.nom }}" placeholder="{% trans 'Ex: QHSE A, Section B' %}" required>
+              {% if field_errors.nom %}<div class="invalid-feedback">{{ field_errors.nom }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="cam-section cam-section--parcours">
+            <div class="cam-section-header">
+              <div class="cam-section-icon cam-section-icon--parcours"><i class="fas fa-route"></i></div>
+              <div class="cam-section-titles">
+                <h3>{% trans "Examens & concours accessibles" %}</h3>
+                <p>{% trans "Sélection multiple : concours BTS, BT, DUT, certifications… en complément du parcours LMD." %}</p>
+              </div>
+            </div>
+            <div class="cam-hint-banner">
+              <i class="fas fa-info-circle"></i>
+              <span>{% trans "Exemple : une Licence 2 QHSE peut préparer concours BTS ou BT sans quitter le cadre LMD. Aucune sélection = parcours standard uniquement." %}</span>
+            </div>
+            {% for grp in catalogue_examens_groupes %}
+            <div class="cam-examen-categorie">
+              <p class="cam-examen-categorie-title">{{ grp.label }}</p>
+              <div class="cam-examen-grid">
+                {% for op in grp.items %}
+                <label class="cam-examen-card" for="ec-{{ op.id }}">
+                  <input type="checkbox" name="examens_concours_ids" value="{{ op.id }}" id="ec-{{ op.id }}"
+                    {% with sid=op.id|stringformat:"s" %}{% if sid in form_data.examens_concours_ids %}checked{% endif %}{% endwith %}>
+                  <span class="cam-examen-card-body">
+                    <span class="cam-examen-check"><i class="fas fa-check"></i></span>
+                    <span class="cam-examen-text">
+                      <strong>{{ op.libelle }}</strong>
+                      {% if op.description %}<small>{{ op.description }}</small>{% endif %}
+                    </span>
+                  </span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+            {% empty %}
+            <p class="text-muted" style="font-size:.875rem;">{% trans "Catalogue vide — contactez l'administrateur." %}</p>
+            {% endfor %}
+          </div>
+
+          {% else %}
           <div class="form-group">
             <label class="form-label" for="nom">{% trans "Nom de la classe *" %}</label>
             <input type="text" 
@@ -276,7 +462,6 @@
               <div class="invalid-feedback">{{ field_errors.nom }}</div>
             {% endif %}
           </div>
-          
           <div class="form-group">
             <label class="form-label" for="niveau">{% trans "Niveau *" %}</label>
             <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" 
@@ -297,30 +482,27 @@
               Niveaux disponibles selon le type d'établissement : {{ etablissement.get_type_etablissement_display }}
             </small>
           </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="capacite_max">{% trans "Capacité maximale *" %}</label>
-            <input type="number" 
-                   class="form-control {% if field_errors.capacite_max %}is-invalid{% endif %}" 
-                   id="capacite_max" 
-                   name="capacite_max" 
-                   value="{{ form_data.capacite_max }}"
-                   min="1" 
-                   max="100" 
-                   placeholder="30"
-                   required>
-            {% if field_errors.capacite_max %}
-              <div class="invalid-feedback">{{ field_errors.capacite_max }}</div>
-            {% endif %}
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="description">{% trans "Description (optionnel)" %}</label>
-            <textarea class="form-control" 
-                      id="description" 
-                      name="description" 
-                      rows="3"
-                      placeholder="{% trans "Description de la classe..." %}">{{ form_data.description }}</textarea>
+          {% endif %}
+
+          <div class="cam-section">
+            <div class="cam-section-header">
+              <div class="cam-section-icon cam-section-icon--org"><i class="fas fa-users-cog"></i></div>
+              <div class="cam-section-titles">
+                <h3>{% trans "Capacité et informations" %}</h3>
+                <p>{% trans "Effectif maximal et remarques internes." %}</p>
+              </div>
+            </div>
+            <div class="cam-form-grid cam-form-grid--2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="capacite_max">{% trans "Capacité max. *" %}</label>
+                <input type="number" class="form-control {% if field_errors.capacite_max %}is-invalid{% endif %}" id="capacite_max" name="capacite_max" value="{{ form_data.capacite_max }}" min="1" max="100" placeholder="30" required>
+                {% if field_errors.capacite_max %}<div class="invalid-feedback">{{ field_errors.capacite_max }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:1rem;margin-bottom:0;">
+              <label class="form-label" for="description">{% trans "Description (optionnel)" %}</label>
+              <textarea class="form-control" id="description" name="description" rows="3" placeholder="{% trans 'Notes, particularités…' %}">{{ form_data.description }}</textarea>
+            </div>
           </div>
           
           <div class="modal-actions">
@@ -397,24 +579,86 @@
           }
         });
 
-        // Gestion des onglets de catégories
-        const categoryTabs = document.querySelectorAll('.tab-btn[data-category]');
-        const categoryPanels = document.querySelectorAll('.tab-panel[id^="category-"]');
-
-        categoryTabs.forEach(tab => {
+        // Onglets par niveau scolaire (maternelle, primaire, collège, lycée…)
+        const niveauScolaireTabs = document.querySelectorAll('.tab-btn[data-niveau-scolaire]');
+        const niveauScolairePanels = document.querySelectorAll('.tab-panel[id^="niveau-scolaire-"]');
+        niveauScolaireTabs.forEach(tab => {
           tab.addEventListener('click', function() {
-            const category = this.getAttribute('data-category');
-            
-            // Retirer la classe active de tous les onglets et panneaux
-            categoryTabs.forEach(t => t.classList.remove('active'));
-            categoryPanels.forEach(p => p.classList.remove('active'));
-            
-            // Ajouter la classe active à l'onglet cliqué et au panneau correspondant
+            const code = this.getAttribute('data-niveau-scolaire');
+            niveauScolaireTabs.forEach(t => t.classList.remove('active'));
+            niveauScolairePanels.forEach(p => p.classList.remove('active'));
             this.classList.add('active');
-            const targetPanel = document.getElementById(`category-${category}`);
+            const targetPanel = document.getElementById('niveau-scolaire-' + code);
+            if (targetPanel) targetPanel.classList.add('active');
+          });
+        });
+
+        function resetNiveauLmdTabsInFiliere(filierePanel) {
+          if (!filierePanel) return;
+          const wrap = filierePanel.querySelector('.classes-niveau-tabs-inner');
+          if (!wrap) return;
+          const btns = wrap.querySelectorAll('.classes-niveau-tab-btn');
+          const panels = wrap.querySelectorAll('.classes-niveau-panel');
+          btns.forEach((b, i) => b.classList.toggle('active', i === 0));
+          panels.forEach((p, i) => p.classList.toggle('active', i === 0));
+        }
+
+        const filiereTabs = document.querySelectorAll('.tab-btn[data-filiere-idx]');
+        const filierePanels = document.querySelectorAll('.tab-panel[id^="filiere-"]');
+        const departmentSelect = document.getElementById('department');
+        const nomInput = document.getElementById('nom');
+        if (departmentSelect && nomInput) {
+          departmentSelect.addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            if (this.value) {
+              nomInput.value = selected.text;
+            } else {
+              nomInput.value = '';
+            }
+          });
+        }
+        const niveauLmdSelect = document.getElementById('niveau_lmd');
+        const niveauLibelleGroup = document.getElementById('niveauLibelleGroup');
+        const niveauLibelleInput = document.getElementById('niveau_libelle');
+        if (niveauLmdSelect && niveauLibelleGroup && niveauLibelleInput) {
+          function toggleNiveauLibelle() {
+            if (niveauLmdSelect.value === 'AUTRE') {
+              niveauLibelleGroup.style.display = 'block';
+              niveauLibelleInput.required = true;
+            } else {
+              niveauLibelleGroup.style.display = 'none';
+              niveauLibelleInput.required = false;
+              niveauLibelleInput.value = '';
+            }
+          }
+          niveauLmdSelect.addEventListener('change', toggleNiveauLibelle);
+          toggleNiveauLibelle();
+        }
+
+        filiereTabs.forEach(tab => {
+          tab.addEventListener('click', function() {
+            const idx = this.getAttribute('data-filiere-idx');
+            filiereTabs.forEach(t => t.classList.remove('active'));
+            filierePanels.forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            const targetPanel = document.getElementById('filiere-' + idx);
             if (targetPanel) {
               targetPanel.classList.add('active');
+              resetNiveauLmdTabsInFiliere(targetPanel);
             }
+          });
+        });
+
+        document.querySelectorAll('.classes-niveau-tabs-inner').forEach(function(wrap) {
+          wrap.querySelectorAll('.classes-niveau-tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              const nidx = this.getAttribute('data-niveau-idx');
+              wrap.querySelectorAll('.classes-niveau-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+              wrap.querySelectorAll('.classes-niveau-panel').forEach(function(p) {
+                p.classList.toggle('active', p.getAttribute('data-niveau-idx') === nidx);
+              });
+              this.classList.add('active');
+            });
           });
         });
       });

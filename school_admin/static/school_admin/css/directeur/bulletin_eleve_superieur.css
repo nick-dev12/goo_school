@@ -1,0 +1,1439 @@
+/**
+ * Bulletin de notes — enseignement supérieur (style type relevé LMD / UE).
+ */
+:root {
+  /* Largeur page A4 portrait (aperçu écran + base impression) */
+  --bsup-page-width: 210mm;
+  --bsup-page-height: 297mm;
+
+  /* Bandeau « Bulletin de notes » (type ESEBAT) */
+  --bsup-header: #000066;
+  --bsup-header-alt: #2c5282;
+  --bsup-ue-row: #2d4a6f;
+  --bsup-ue-summary: #d1d5db;
+  --bsup-border: #000000;
+  --bsup-accent: #ea580c;
+  --bsup-text: #000000;
+  --bsup-muted: #4b5563;
+  --primary: #3b82f6;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  /* Bordure unique pour les blocs internes du corps du bulletin (écran + impression) */
+  --bsup-section-border: 1px solid var(--bsup-border);
+  /* Cadre extérieur : discret (pas un trait noir franc) */
+  --bsup-outer-border: 1px solid rgba(15, 23, 42, 0.11);
+  /* Légère diffusion autour de la feuille — uniquement à l’écran (@media screen) */
+  --bsup-outer-shadow-screen: 0 0 1px rgba(15, 23, 42, 0.05), 0 6px 32px rgba(15, 23, 42, 0.07);
+}
+
+/* ——— Page écran : conteneur + actions (même esprit que bulletin_eleve.css) ——— */
+.bulletin-eleve-body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.bulletin-eleve-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3.75rem;
+  box-sizing: border-box;
+}
+
+.bulletin-sup-actions.bulletin-actions,
+.bulletin-sup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.bulletin-sup-actions .btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  color: #fff;
+}
+
+.bulletin-sup-actions .btn-action i {
+  font-size: 0.95rem;
+}
+
+.bulletin-sup-actions .btn-back {
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: #fff;
+}
+
+.bulletin-sup-actions .btn-back:hover {
+  background: linear-gradient(135deg, #475569, #334155);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(100, 116, 139, 0.35);
+  color: #fff;
+}
+
+.bulletin-sup-actions .btn-calculate {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+
+.bulletin-sup-actions .btn-calculate:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+  color: #fff;
+}
+
+.bulletin-sup-actions .btn-print {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+}
+
+.bulletin-sup-actions .btn-print:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+  color: #fff;
+}
+
+.print-container {
+  max-width: var(--bsup-page-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  border: var(--bsup-outer-border);
+  background: #fff;
+}
+
+@media screen {
+  .print-container {
+    box-shadow: var(--bsup-outer-shadow-screen);
+  }
+}
+
+.print-bulletin-superieur-body {
+  margin: 0;
+  background: #f8fafc;
+}
+
+/* Pages dédiées /imprimer/… et /imprimer-classe/… — barre visible uniquement à l’écran */
+.no-print.bsup-print-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
+  margin: 0 auto 1rem;
+  max-width: calc(var(--bsup-page-width) + 2rem);
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.bsup-print-toolbar .bsup-print-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: #fff;
+}
+
+.bsup-print-toolbar .bsup-print-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.bsup-print-toolbar .bsup-print-btn--back {
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: #fff;
+}
+
+.bsup-print-toolbar .bsup-print-btn--back:hover {
+  background: linear-gradient(135deg, #475569, #334155);
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+.bsup-print-toolbar .bsup-print-btn--print {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+}
+
+.bsup-print-toolbar .bsup-print-btn--print:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  transform: translateY(-1px);
+}
+
+@media screen and (max-width: 480px) {
+  .no-print.bsup-print-toolbar {
+    flex-direction: column;
+    margin-left: 0.75rem;
+    margin-right: 0.75rem;
+  }
+
+  .bsup-print-toolbar .bsup-print-btn {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+/* Page impression seule : même pied poussé en bas sur hauteur A4 */
+.print-container .bulletin-sup {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--bsup-page-height);
+  box-sizing: border-box;
+}
+
+.bulletin-sup {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  color: var(--bsup-text);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  max-width: var(--bsup-page-width);
+  width: 100%;
+  margin: 0 auto;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* Feuille centrée : proportions page A4 (210 × 297 mm), hauteur mini même si peu de contenu */
+.bulletin-sheet-superieur {
+  max-width: var(--bsup-page-width);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  background: #fff;
+  min-height: var(--bsup-page-height);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.07), 0 0 1px rgba(15, 23, 42, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  border: var(--bsup-outer-border);
+}
+
+.bulletin-sheet-superieur > .bulletin-sup {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+@media screen and (max-width: 900px) {
+  .bulletin-sheet-superieur {
+    /* Garde le ratio hauteur/largeur ~ A4 quand la largeur est celle de l’écran */
+    min-height: calc((100vw - 2.5rem) * 297 / 210);
+  }
+}
+
+.bulletin-sup a {
+  color: var(--primary);
+}
+
+/* Contenu principal ; le pied (contact + sécurité + QR) est poussé en bas de la feuille A4 */
+.bsup-doc-flow {
+  flex: 0 1 auto;
+  width: 100%;
+}
+
+/* ——— Cadre homogène : sections principales empilées (un seul trait entre blocs) ——— */
+.bulletin-sup > .bsup-doc-flow > * + * {
+  margin-top: -1px;
+}
+
+.bulletin-sup > .bsup-doc-flow > .bsup-header-grid,
+.bulletin-sup > .bsup-doc-flow > .bsup-academic-bar,
+.bulletin-sup > .bsup-doc-flow > .bsup-table-wrap,
+.bulletin-sup > .bsup-doc-flow > .bsup-annual-summary-wrap,
+.bulletin-sup > .bsup-doc-flow > .bsup-dual-recap,
+.bulletin-sup > .bsup-doc-flow > .bsup-summary-block,
+.bulletin-sup > .bsup-doc-flow > .bsup-recap-wrap {
+  border: var(--bsup-section-border);
+  box-sizing: border-box;
+}
+
+.bsup-doc-bottom {
+  flex: 0 0 auto;
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  padding: 0.55rem 0.45rem 0;
+  border: none;
+  box-sizing: border-box;
+}
+
+.bsup-doc-bottom-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bsup-doc-bottom-text .bsup-footer-contact {
+  margin: 0;
+  text-align: center;
+}
+
+.bsup-doc-bottom-qr {
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.bsup-qr-img {
+  display: block;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border: 1px solid var(--bsup-border);
+  padding: 2px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+@media screen and (max-width: 600px) {
+  .bsup-doc-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bsup-doc-bottom-qr {
+    align-self: center;
+  }
+}
+
+/* ——— En-tête type ESEBAT : logo | (2 lignes identité + bandeau bleu) / suite identité ——— */
+.bsup-header-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.92fr) minmax(300px, 1.35fr);
+  gap: 0;
+  align-items: stretch;
+  margin-bottom: 0;
+}
+
+.bsup-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-right: 1px solid var(--bsup-border);
+}
+
+.bsup-header-left-text {
+  min-width: 0;
+}
+
+.bsup-logo {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.bsup-logo-ph {
+  width: 76px;
+  height: 76px;
+  background: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bsup-muted);
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.bsup-etab-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--bsup-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+}
+
+.bsup-etab-sub {
+  margin: 0.18rem 0 0;
+  font-size: 0.72rem;
+  color: var(--bsup-accent);
+  line-height: 1.25;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.bsup-header-center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Ligne du haut : tableau 2 lignes + bandeau bleu (même hauteur que ces 2 lignes) */
+.bsup-header-top-band {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+}
+
+.bsup-identity-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--bsup-border);
+}
+
+.bsup-identity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  table-layout: fixed;
+}
+
+.bsup-identity-table th,
+.bsup-identity-table td {
+  border: 1px solid var(--bsup-border);
+  padding: 0.26rem 0.42rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.bsup-identity-table th {
+  background: var(--gray-100);
+  font-weight: 700;
+  width: 42%;
+  max-width: 160px;
+  white-space: normal;
+}
+
+/* Fusion visuelle entre le haut (2 lignes) et la suite du bloc identité */
+.bsup-identity-split-top {
+  height: 100%;
+}
+
+.bsup-identity-split-top tbody {
+  height: 100%;
+}
+
+.bsup-identity-split-top tr {
+  height: 50%;
+}
+
+.bsup-identity-split-top tr:last-child th,
+.bsup-identity-split-top tr:last-child td {
+  border-bottom: none;
+}
+
+.bsup-identity-split-bottom tr:first-child th,
+.bsup-identity-split-bottom tr:first-child td {
+  border-top: none;
+}
+
+.bsup-header-right {
+  flex: 0 0 clamp(148px, 28%, 200px);
+  align-self: stretch;
+  box-sizing: border-box;
+  background: var(--bsup-header);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.35rem 0.45rem;
+}
+
+.bsup-doc-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.bsup-doc-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* ——— Barre académique ——— */
+.bsup-academic-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.bsup-academic-cell {
+  border-right: 1px solid var(--bsup-border);
+  padding: 0.4rem 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.bsup-academic-cell:last-child {
+  border-right: none;
+}
+
+.bsup-academic-cell .lbl {
+  display: block;
+  font-weight: 700;
+  text-transform: none;
+  font-size: 0.72rem;
+  margin-bottom: 0.22rem;
+  color: var(--bsup-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bsup-academic-cell .val {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--bsup-text);
+}
+
+/* ——— Tableau principal ——— */
+.bsup-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  max-height: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Évite tout plafond de hauteur hérité d’autres feuilles (aperçu portrait) */
+.bsup-table-wrap.table-responsive {
+  max-height: none;
+  min-height: min-content;
+}
+
+.bsup-main-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+  table-layout: fixed;
+  min-width: 0;
+}
+
+/* Largeurs colonnes (10) : tient sur A4 portrait sans min-width forcé */
+.bsup-col-w-ue {
+  width: 26%;
+}
+
+.bsup-col-w-n {
+  width: 7%;
+}
+
+.bsup-col-w-cred {
+  width: 8%;
+}
+
+.bsup-col-w-moyue {
+  width: 8%;
+}
+
+.bsup-col-w-app {
+  width: 16%;
+}
+
+.bsup-main-table .bsup-col-ue-ec {
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.bsup-main-table thead th.bsup-col-ue-ec {
+  text-align: left;
+}
+
+.bsup-main-table th,
+.bsup-main-table td {
+  border: 1px solid var(--bsup-border);
+  padding: 0.22rem 0.28rem;
+  vertical-align: middle;
+}
+
+.bsup-main-table thead th {
+  background: var(--gray-200);
+  font-weight: 800;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.2;
+  padding: 0.2rem 0.18rem;
+}
+
+.bsup-main-table .num {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.bsup-main-table .txt-left {
+  text-align: left;
+}
+
+.bsup-ue-row td {
+  background: #fff;
+  color: var(--bsup-text);
+  font-weight: 800;
+  font-size: 0.74rem;
+  padding: 0.35rem 0.45rem;
+  text-align: left;
+  border-top: 3px solid var(--bsup-border);
+  word-break: break-word;
+  white-space: normal;
+}
+
+.bsup-ec-row td {
+  background: #fff;
+}
+
+.bsup-ec-row td.bsup-ec-empty {
+  background: #fff;
+}
+
+.bsup-ue-summary td {
+  background: var(--bsup-ue-summary);
+  font-weight: 700;
+}
+
+.bsup-ue-summary .bsup-ue-statut {
+  text-align: center;
+}
+
+.bsup-ue-summary .lbl {
+  text-align: right;
+  padding-right: 0.5rem;
+}
+
+/* ——— Synthèse semestre (bloc type relevé : 3 lignes) ——— */
+.bsup-summary-block {
+  box-sizing: border-box;
+}
+
+.bsup-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: var(--bsup-section-border);
+  font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #000;
+  background: #fff;
+}
+
+.bsup-summary-table col.bsup-sum-col-label {
+  width: 82%;
+}
+
+.bsup-summary-table col.bsup-sum-col-value {
+  width: 18%;
+}
+
+.bsup-summary-table td {
+  border: 1px solid #000;
+  padding: 0.5rem 0.65rem;
+  background: #fff;
+  font-weight: 700;
+  color: #000;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.bsup-summary-table tbody tr:nth-child(1) td,
+.bsup-summary-table tbody tr:nth-child(2) td {
+  min-height: 2.35rem;
+}
+
+.bsup-summary-table .bsup-sum-lbl {
+  text-align: left;
+  font-size: 10px;
+}
+
+.bsup-summary-table .bsup-sum-val {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bsup-summary-table .bsup-sum-appreciation {
+  text-align: left;
+}
+
+.bsup-summary-table .bsup-sum-appreciation-lbl,
+.bsup-summary-table .bsup-sum-appreciation-txt {
+  font-weight: 700;
+}
+
+.bsup-summary-table .bsup-sum-appreciation-txt {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* ——— Récap UE : 1 col. libellé + 10 cols. modules, répartition uniforme sur 100 % (pas de débordement) ——— */
+.bsup-recap-wrap {
+  padding: 0;
+  background: #fff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.bsup-recap-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.bsup-recap-table-maquette {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #000;
+  background: #fff;
+  border: var(--bsup-section-border);
+  box-sizing: border-box;
+}
+
+.bsup-recap-table-maquette col.bsup-recap-col-label {
+  width: 16%;
+}
+
+/* Les 10 colonnes « cadre » partagent équitablement l’espace restant (~8,4 % chacune) */
+.bsup-recap-table-maquette col.bsup-recap-col-mod {
+  width: 8.4%;
+}
+
+.bsup-recap-table-maquette th,
+.bsup-recap-table-maquette td {
+  border: 1px solid #000;
+  padding: 0.35rem 0.3rem;
+  vertical-align: middle;
+  background: #fff;
+  color: #000;
+}
+
+.bsup-recap-corner {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 800;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  padding: 0.45rem 0.35rem !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.bsup-recap-ue-head {
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.68rem;
+  padding: 0.3rem 0.12rem !important;
+  box-sizing: border-box;
+}
+
+.bsup-recap-ue-head-txt {
+  display: block;
+  font-weight: 700;
+  line-height: 1.2;
+  max-height: 2.6em;
+  overflow: hidden;
+}
+
+.bsup-recap-ue-head-fallback {
+  opacity: 0.88;
+}
+
+.bsup-recap-moyenne-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.4rem 0.12rem !important;
+  box-sizing: border-box;
+}
+
+.bsup-recap-moyenne-val {
+  font-size: clamp(0.78rem, 2.1vw, 0.95rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.bsup-recap-row-label {
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.68rem;
+  background: #fff !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  box-sizing: border-box;
+}
+
+.bsup-recap-valid-cell {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 700;
+  font-size: 0.65rem;
+  min-height: 1.85rem;
+  box-sizing: border-box;
+}
+
+.bsup-recap-valid-oui {
+  background: #000033 !important;
+  color: #fff !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  padding: 0.25rem 0.35rem 0.4rem !important;
+}
+
+.bsup-recap-valid-txt {
+  display: block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+}
+
+/* « Non validée » : texte 7 px, blanc sur bleu foncé (comme la ligne validation maquette) */
+.bsup-recap-table-maquette .bsup-recap-valid-cell.bsup-recap-valid-non {
+  background: #000033 !important;
+  color: #fff !important;
+  font-size: 7px !important;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left !important;
+  vertical-align: top !important;
+  padding: 0.25rem 0.3rem 0.35rem !important;
+}
+
+.bsup-recap-credits-cell {
+  text-align: center;
+  font-weight: 800;
+  font-size: clamp(0.68rem, 1.8vw, 0.78rem);
+  box-sizing: border-box;
+}
+
+/* ——— Pied de page : moitié gauche = légende + date, moitié droite = signature ——— */
+.bsup-footer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+}
+
+.bsup-footer-main-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ~50 % : légende uniquement dans cette colonne */
+.bsup-footer-col--legend {
+  flex: 0 1 50%;
+  max-width: 50%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ~50 % : cachet / signature */
+.bsup-footer-col--sign {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding-top: 0.15rem;
+}
+
+/* Légende : compacte, texte ~8–9 px */
+.bsup-legend-fieldset {
+  margin: 0;
+  padding: 0.28rem 0.35rem 0.32rem;
+  border: 1px solid #000;
+  border-radius: 6px;
+  background: #fff;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.bsup-legend-legend {
+  padding: 0 0.3rem;
+  margin: 0;
+  margin-left: 0.4rem;
+  font-size: 9px;
+  font-weight: 800;
+  color: #000;
+  background: #fff;
+}
+
+.bsup-legend-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  margin-top: 0.02rem;
+}
+
+.bsup-legend-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  font-size: 8px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #000;
+}
+
+.bsup-legend-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.15rem;
+  box-sizing: border-box;
+}
+
+.bsup-legend-cell--code {
+  gap: 0.2rem;
+}
+
+.bsup-legend-vrule {
+  width: 1px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 1.6em;
+  background: #000;
+}
+
+.bsup-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 1px solid #000;
+  border-radius: 1px;
+  box-sizing: border-box;
+}
+
+.bsup-legend-swatch--exam {
+  background: #fbbf24;
+}
+
+.bsup-legend-swatch--invalid {
+  background: #ef4444;
+}
+
+.bsup-legend-swatch--valid {
+  background: #000066;
+}
+
+.bsup-legend-swatch--retake {
+  background: #93c5fd;
+}
+
+/* Date sous la légende, alignée à gauche */
+.bsup-footer-col--legend .bsup-footer-date {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #000;
+  text-align: left;
+}
+
+.bsup-sign-block {
+  text-align: center;
+  width: 100%;
+  max-width: 16rem;
+  margin: 0 auto;
+}
+
+.bsup-sign-role {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.bsup-sign-underline {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bsup-sign-name {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.bsup-sign-line {
+  margin: 1.15rem auto 0;
+  max-width: 220px;
+  border-bottom: 1px solid #000;
+  min-height: 0;
+}
+
+/* Ligne coordonnées (bas de page, centrée, petit texte) */
+.bsup-footer-contact {
+  margin: 0;
+  padding: 0 0.25rem;
+  text-align: center;
+  font-size: 0.58rem;
+  line-height: 1.4;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+/* Swatches inline (ex. bloc sécurité / QR) */
+.bsup-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bsup-swatch span {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--bsup-border);
+  border-radius: 2px;
+}
+
+.swatch-exam {
+  background: #fbbf24;
+}
+
+.swatch-invalid {
+  background: #ef4444;
+}
+
+.swatch-valid {
+  background: var(--bsup-header);
+}
+
+.swatch-retake {
+  background: #93c5fd;
+}
+
+/* ——— Sécurité (pied de document, sous la ligne contact) ——— */
+.bsup-security {
+  border: var(--bsup-section-border);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.65rem;
+  background: var(--gray-100);
+  border-radius: 0;
+}
+
+.bsup-security-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.bsup-security-row .sig {
+  word-break: break-all;
+  max-width: 100%;
+}
+
+@media print {
+  .no-print,
+  .bulletin-sup-actions,
+  .bulletin-sup-actions.bulletin-actions,
+  .bulletin-eleve-body > header,
+  .bottom-nav-directeur {
+    display: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    /* Marge externe minimale demandée (~5 px) ; le contenu occupe le reste de la feuille */
+    margin: 5px;
+  }
+
+  html,
+  body {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .print-bulletin-superieur-body {
+    background: #fff !important;
+  }
+
+  /* Couleurs de fond / texte (en-têtes, UE, récap, légende) — sinon le navigateur les désactive souvent */
+  .bulletin-sup,
+  .bulletin-sup * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Gabarit « bureau » uniquement à l’impression : ignore les breakpoints écran */
+  .bsup-header-grid {
+    display: grid !important;
+    grid-template-columns: minmax(200px, 0.92fr) minmax(300px, 1.35fr) !important;
+  }
+
+  .bsup-header-left {
+    border-right: 1px solid var(--bsup-border) !important;
+    border-bottom: none !important;
+  }
+
+  .bsup-header-center {
+    border-bottom: none !important;
+  }
+
+  .bsup-header-top-band {
+    flex-direction: row !important;
+    align-items: stretch !important;
+  }
+
+  .bsup-identity-wrap {
+    border-right: 1px solid var(--bsup-border) !important;
+    border-bottom: none !important;
+  }
+
+  .bsup-header-right {
+    flex: 0 0 28% !important;
+    width: 28% !important;
+    max-width: 28% !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+  }
+
+  .bsup-academic-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .print-container .bulletin-sup,
+  .bulletin-sheet-superieur > .bulletin-sup {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: calc(297mm - 10px) !important;
+    box-sizing: border-box !important;
+  }
+
+  .bsup-doc-bottom {
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    margin-top: auto !important;
+    border: none !important;
+  }
+
+  .bsup-doc-bottom-qr {
+    align-self: flex-end !important;
+  }
+
+  .bsup-footer-main-row {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+  }
+
+  .bsup-footer-col--legend {
+    flex: 0 1 50% !important;
+    max-width: 50% !important;
+  }
+
+  .bsup-footer-col--sign {
+    flex: 1 1 50% !important;
+  }
+
+  .bsup-recap-table-dual {
+    min-width: 0 !important;
+  }
+
+  .bulletin-eleve-container {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .bulletin-sheet-superieur {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    display: block !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    border: var(--bsup-outer-border) !important;
+  }
+
+  .bulletin-sup {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    font-size: 7.5pt;
+  }
+
+  .print-container {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: var(--bsup-outer-border) !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .bsup-main-table {
+    min-width: 0;
+  }
+
+  .bsup-table-wrap {
+    overflow: visible;
+  }
+
+  .bsup-annual-summary-wrap {
+    overflow: visible !important;
+  }
+
+  .bsup-annual-bilan-table {
+    min-width: 0 !important;
+  }
+
+  .bsup-annual-bilan-table th,
+  .bsup-annual-bilan-table td {
+    border-color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Plusieurs bulletins sur /imprimer-classe/… */
+  .bsup-bulletin-page-sep {
+    page-break-after: always;
+  }
+
+  .bsup-bulletin-page-sep:last-of-type {
+    page-break-after: auto;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .bsup-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bsup-header-left {
+    border-right: none;
+    border-bottom: 1px solid var(--bsup-border);
+  }
+
+  .bsup-header-center {
+    border-bottom: 1px solid var(--bsup-border);
+  }
+
+  .bsup-header-top-band {
+    flex-direction: column;
+  }
+
+  .bsup-identity-wrap {
+    border-right: none;
+    border-bottom: 1px solid var(--bsup-border);
+  }
+
+  .bsup-header-right {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: 3.5rem;
+    align-self: stretch;
+  }
+
+  .bsup-academic-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bsup-footer-main-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bsup-footer-col--legend,
+  .bsup-footer-col--sign {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .bsup-sign-block {
+    max-width: none;
+  }
+}
+
+/* ——— Bilan année universitaire (bulletin du 2e semestre LMD) ——— */
+.bsup-annual-summary-wrap {
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  padding: 0;
+}
+
+.bsup-annual-bilan-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-primary, #1f2937);
+  background: var(--white, #fff);
+}
+
+.bsup-annual-bilan-table th,
+.bsup-annual-bilan-table td {
+  border: 1px solid #000;
+  padding: 3px 6px;
+  vertical-align: middle;
+}
+
+.bsup-ab-sem-lbl {
+  width: 100px;
+  height: 60px;
+  min-width: 4.5rem;
+  text-align: center;
+  font-weight: 600;
+  background: var(--gray-50, #f9fafb);
+}
+
+.bsup-ab-data-lbl {
+  width: 100px;
+  text-align: right;
+  padding-right: 0.35rem;
+}
+
+.bsup-ab-data-val {
+  width: 80px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.bsup-ab-data-lbl--annual,
+.bsup-ab-data-val--annual {
+  font-weight: 700;
+  background: var(--gray-50, #f9fafb);
+}
+
+.bsup-ab-decision {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.bsup-ab-decision-lbl {
+  font-weight: 700;
+}
+
+.bsup-ab-decision-sep {
+  margin: 0 0.25rem;
+  font-weight: 400;
+  color: var(--gray-600, #4b5563);
+}
+
+@media screen and (max-width: 640px) {
+  .bsup-annual-bilan-table {
+    font-size: 12px;
+    min-width: 480px;
+  }
+}
+
+.bsup-dual-recap {
+  display: block;
+  width: 100%;
+  padding: 0;
+}
+
+.bsup-recap-table-dual col.bsup-recap-col-label {
+  width: 16%;
+}
+
+.bsup-recap-table-dual col.bsup-recap-col-mod {
+  width: 6%;
+}
+
+.bsup-dual-recap-title-cell {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 0.24rem 0.2rem !important;
+  line-height: 1.2;
+}
+
+.bsup-dual-recap-title-cell--s2 {
+  border-left: 2px solid #000 !important;
+}
+
+.bsup-dual-recap-s2-first {
+  border-left: 2px solid #000 !important;
+}
+
+@media screen and (max-width: 900px) {
+  .bsup-recap-table-dual {
+    min-width: 820px;
+  }
+}

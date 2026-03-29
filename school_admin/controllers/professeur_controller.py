@@ -4,6 +4,8 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
+from django.urls import reverse
 from django.utils import timezone
 import logging
 
@@ -11,6 +13,218 @@ from ..model.professeur_model import Professeur
 from ..model.etablissement_model import Etablissement
 
 logger = logging.getLogger(__name__)
+
+# Ordre d'affichage des niveaux LMD (formulaire professeur supérieur)
+_NIVEAU_LMD_FORM_ORDER = [
+    'L1', 'L2', 'L3', 'M1', 'M2', 'D1', 'D2', 'D3',
+    'BTS', 'DUT', 'BUT', 'BT', 'LP', 'CERT', 'DIPL', 'AUTRE',
+]
+
+SANS_NIVEAU_MODULE_KEY = '__SANS_NIVEAU__'
+
+
+def _niveau_lmd_sort_tuple(key: str):
+    if key == SANS_NIVEAU_MODULE_KEY:
+        return (4000, key)
+    if key.startswith('AUTRE::'):
+        return (3000, key)
+    if key == 'AUTRE':
+        return (2999, key)
+    try:
+        return (_NIVEAU_LMD_FORM_ORDER.index(key), key)
+    except ValueError:
+        return (2000, key)
+
+
+def _niveaux_lmd_disponibles_pour_department(etablissement, department_id):
+    """
+    Niveaux LMD proposés pour une filière : niveaux des modules, des classes actives,
+    et entrée « sans niveau » si des matières ont un module sans niveau renseigné.
+    """
+    from ..model.classe_model import Classe, libelle_cle_niveau_superieur
+    from ..model.module_model import Module
+    from ..model.matiere_model import Matiere
+
+    keys_seen = {}
+
+    mod_niveaux = (
+        Module.objects.filter(
+            etablissement=etablissement,
+            department_id=department_id,
+            actif=True,
+        )
+        .exclude(niveau_lmd__isnull=True)
+        .exclude(niveau_lmd='')
+        .values_list('niveau_lmd', flat=True)
+        .distinct()
+    )
+    for nl in mod_niveaux:
+        nk = (nl or '').strip()
+        if nk == 'AUTRE':
+            continue
+        keys_seen[nk] = libelle_cle_niveau_superieur(nk)
+
+    classes_qs = Classe.objects.filter(
+        etablissement=etablissement,
+        department_id=department_id,
+        niveau='superieur',
+        actif=True,
+    )
+    for c in classes_qs:
+        nk = (c.niveau_lmd or '').strip()
+        if not nk:
+            continue
+        if nk == 'AUTRE' and (c.niveau_libelle or '').strip():
+            k = f"AUTRE::{(c.niveau_libelle or '').strip()}"
+            keys_seen[k] = (c.niveau_libelle or '').strip()
+        elif nk == 'AUTRE':
+            keys_seen['AUTRE'] = libelle_cle_niveau_superieur('AUTRE')
+        else:
+            keys_seen[nk] = libelle_cle_niveau_superieur(nk)
+
+    if Matiere.objects.filter(
+        etablissement=etablissement,
+        department_id=department_id,
+        actif=True,
+    ).filter(
+        Q(module__isnull=True)
+        | Q(module__niveau_lmd__isnull=True)
+        | Q(module__niveau_lmd='')
+    ).exists():
+        keys_seen[SANS_NIVEAU_MODULE_KEY] = 'Sans niveau LMD sur le module'
+
+    sorted_pairs = sorted(keys_seen.items(), key=lambda item: _niveau_lmd_sort_tuple(item[0]))
+    return [{'key': k, 'label': v} for k, v in sorted_pairs]
+
+
+def _niveau_lmd_key_from_classe_superieur(classe):
+    """Clé du select « Niveau » pour une classe supérieur (identique au menu déroulant)."""
+    if not classe:
+        return None
+    cn = (classe.niveau_lmd or '').strip()
+    if not cn:
+        return None
+    if cn == 'AUTRE' and (classe.niveau_libelle or '').strip():
+        return f"AUTRE::{(classe.niveau_libelle or '').strip()}"
+    if cn == 'AUTRE':
+        return 'AUTRE'
+    return cn
+
+
+def _niveau_lmd_keys_for_matiere_superieur(matiere):
+    """
+    Clés de niveau pour le formulaire professeur (strict).
+
+    Règle principale : seules les classes de la filière où la matière est **réellement**
+    rattachée (M2M ``matiere.classes``) déterminent les niveaux. Ainsi, un module commun
+    L1+L2 n'affiche une matière au niveau L2 que si elle est liée à au moins une classe L2.
+
+    Repli (aucune classe dans la filière) : niveau déclaré sur le **module** uniquement,
+    jamais la liste de toutes les classes du module (évite de propager L1 aux matières L2).
+    """
+    dept_id = matiere.department_id
+    keys = []
+    seen = set()
+
+    def add(k):
+        if not k:
+            return
+        if k not in seen:
+            seen.add(k)
+            keys.append(k)
+
+    if not dept_id:
+        add(SANS_NIVEAU_MODULE_KEY)
+        return keys
+
+    classes_dept = matiere.classes.filter(
+        department_id=dept_id, niveau='superieur', actif=True
+    )
+    for c in classes_dept:
+        k = _niveau_lmd_key_from_classe_superieur(c)
+        if k:
+            add(k)
+
+    if keys:
+        return keys
+
+    mod = matiere.module
+    if mod:
+        nk = (mod.niveau_lmd or '').strip()
+        if nk == 'AUTRE':
+            found_lib = False
+            for mc in mod.module_classes.select_related('classe').filter(
+                classe__department_id=dept_id
+            ):
+                c = mc.classe
+                lib = (c.niveau_libelle or '').strip()
+                if lib:
+                    add(f'AUTRE::{lib}')
+                    found_lib = True
+            if not found_lib:
+                add('AUTRE')
+        elif nk:
+            add(nk)
+
+    if not keys:
+        add(SANS_NIVEAU_MODULE_KEY)
+    return keys
+
+
+def _niveau_lmd_key_for_matiere_superieur(matiere):
+    """Première clé (rétrocompatibilité) ; préférer _niveau_lmd_keys_for_matiere_superieur."""
+    ks = _niveau_lmd_keys_for_matiere_superieur(matiere)
+    return ks[0] if ks else SANS_NIVEAU_MODULE_KEY
+
+
+def _matiere_conforme_department_et_niveau(matiere, department_id, niveau_key):
+    if not matiere or str(matiere.department_id) != str(department_id):
+        return False
+    nk = (niveau_key or '').strip()
+    return nk in _niveau_lmd_keys_for_matiere_superieur(matiere)
+
+
+_NIVEAU_KEYS_SEP = '\x1f'  # aligné avec data-niveau-lmd-keys (JS ajouter / détail professeur)
+
+
+def _build_matieres_superieur_flat(etablissement):
+    """
+    Liste des matières supérieur (par filière) avec clés LMD strictes, pour formulaires et modals.
+    """
+    from ..model.matiere_model import Matiere
+
+    matieres_superieur_qs = (
+        Matiere.objects.filter(
+            etablissement=etablissement,
+            department__isnull=False,
+            actif=True,
+        )
+        .select_related('department', 'module')
+        .prefetch_related('module__module_classes__classe', 'classes')
+        .order_by('department__nom', 'module__nom', 'nom')
+    )
+    out = []
+    for m in matieres_superieur_qs:
+        keys_list = _niveau_lmd_keys_for_matiere_superieur(m)
+        out.append(
+            {
+                'id': m.id,
+                'nom': m.nom,
+                'code': m.code or '',
+                'department_id': m.department_id,
+                'department_nom': m.department.nom if m.department else '',
+                'module_nom': m.module.nom if m.module else '',
+                'niveau_lmd_keys_list': keys_list,
+                'niveau_lmd_keys_csv': _NIVEAU_KEYS_SEP.join(keys_list),
+            }
+        )
+    return out
+
+
+def _redirect_detail_professeur_informations(professeur_id):
+    """Redirection fiche professeur, onglet Informations (après POST matières secondaires, etc.)."""
+    base = reverse('professeur:detail_professeur', kwargs={'professeur_id': professeur_id})
+    return redirect(f'{base}?onglet=informations')
 
 
 class ProfesseurController:
@@ -187,7 +401,12 @@ class ProfesseurController:
                 messages.error(request, "Accès non autorisé.")
                 return redirect('school_admin:connexion_compte_user')
         
-        form_data = {}
+        form_data = {
+            'department': '',
+            'niveau_lmd': '',
+            'matiere_principale': '',
+            'matieres_secondaires': [],
+        }
         field_errors = {}
         is_valid = True  # Initialiser is_valid
         
@@ -203,6 +422,7 @@ class ProfesseurController:
                     'collège_lycée': 'college',  # Par défaut pour collège+lycée
                     'coll�ge_lyc�e': 'college',  # Version avec caractères spéciaux
                     'mixte': 'primaire',  # Par défaut pour mixte
+                    'superieur': 'superieur',
                 }
                 niveau = mapping.get(type_etablissement, 'primaire')
                 logger.info(f"Niveau professeur déterminé: '{niveau}' pour établissement type '{type_etablissement}'")
@@ -219,6 +439,8 @@ class ProfesseurController:
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
                 'telephone': telephone_value,
+                'department': request.POST.get('department', ''),
+                'niveau_lmd': (request.POST.get('niveau_lmd') or '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }
@@ -230,9 +452,56 @@ class ProfesseurController:
             # Validation
             is_valid = True
             
+            # Pour le supérieur : filière + matière principale (pas de matières secondaires à l'ajout)
+            if etablissement.type_etablissement == 'superieur':
+                required_fields = [
+                    'nom', 'prenom', 'telephone', 'department', 'niveau_lmd', 'matiere_principale',
+                ]
+                for field in required_fields:
+                    if not form_data[field]:
+                        if field == 'niveau_lmd':
+                            field_errors[field] = "Le niveau (Licence, Master, doctorat, etc.) est obligatoire."
+                        else:
+                            field_errors[field] = (
+                                f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                            )
+                        is_valid = False
+                
+                matiere_principale_obj = None
+                if (
+                    form_data['matiere_principale']
+                    and form_data['department']
+                    and form_data.get('niveau_lmd')
+                ):
+                    try:
+                        from ..model.matiere_model import Matiere
+                        matiere_principale_obj = Matiere.objects.select_related(
+                            'module', 'department'
+                        ).prefetch_related(
+                            'module__module_classes__classe',
+                        ).get(
+                            id=form_data['matiere_principale'],
+                            etablissement=etablissement,
+                            department_id=form_data['department'],
+                        )
+                        if not _matiere_conforme_department_et_niveau(
+                            matiere_principale_obj,
+                            form_data['department'],
+                            form_data['niveau_lmd'],
+                        ):
+                            field_errors['matiere_principale'] = (
+                                "La matière ne correspond pas à la filière et au niveau choisis."
+                            )
+                            matiere_principale_obj = None
+                            is_valid = False
+                    except Matiere.DoesNotExist:
+                        field_errors['matiere_principale'] = (
+                            "La matière sélectionnée n'existe pas ou n'appartient pas à cette filière."
+                        )
+                        is_valid = False
             # Pour le primaire, on n'exige pas de matière principale
             # À la place, on exige au moins une matière secondaire
-            if etablissement.type_etablissement == 'primary':
+            elif etablissement.type_etablissement == 'primary':
                 # Champs obligatoires pour le primaire (sans matière principale, email facultatif)
                 required_fields = ['nom', 'prenom', 'telephone']
                 for field in required_fields:
@@ -315,13 +584,16 @@ class ProfesseurController:
                         professeur.set_password(mot_de_passe_provisoire)
                         professeur.save()
                         
-                        # Ajouter les matières secondaires
-                        if form_data['matieres_secondaires']:
-                            matieres_secondaires_objs = Matiere.objects.filter(
+                        # Matières secondaires (primaire / collège-lycée uniquement — pas pour le supérieur)
+                        if (
+                            form_data['matieres_secondaires']
+                            and etablissement.type_etablissement != 'superieur'
+                        ):
+                            matieres_secondaires_qs = Matiere.objects.filter(
                                 id__in=form_data['matieres_secondaires'],
                                 etablissement=etablissement
                             )
-                            professeur.matieres_secondaires.set(matieres_secondaires_objs)
+                            professeur.matieres_secondaires.set(matieres_secondaires_qs)
                         
                         messages.success(request, f"Le professeur {professeur.nom_complet} a été ajouté avec succès ! Mot de passe provisoire : {mot_de_passe_provisoire}")
                         return redirect('professeur:detail_professeur', professeur_id=professeur.id)
@@ -331,22 +603,48 @@ class ProfesseurController:
                     field_errors['__all__'] = "Une erreur est survenue lors de l'ajout du professeur."
                     is_valid = False
         
-        # Debug: afficher les erreurs
-        print(f"DEBUG - field_errors: {field_errors}")
-        print(f"DEBUG - is_valid: {is_valid}")
-        
         # Récupérer les matières de l'établissement
         from ..model.matiere_model import Matiere
-        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
+        from ..model.academic_structure_model import Department
+        matieres = Matiere.objects.filter(etablissement=etablissement).select_related('department', 'module').order_by('nom')
         
+        departments = []
+        matieres_superieur_flat = []
+        if etablissement.type_etablissement == 'superieur':
+            departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+            # Matières rattachées à une filière (catalogue supérieur ; filtrage par filière côté interface)
+            matieres_superieur_flat = _build_matieres_superieur_flat(etablissement)
+        
+        niveaux_lmd_options_selection = []
+        if etablissement.type_etablissement == 'superieur' and form_data.get('department'):
+            try:
+                dep_sel = int(form_data['department'])
+                niveaux_lmd_options_selection = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep_sel
+                )
+            except (TypeError, ValueError):
+                niveaux_lmd_options_selection = []
+
+        niveaux_par_department = {}
+        if etablissement.type_etablissement == 'superieur':
+            for dep in departments:
+                niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep.id
+                )
+
         context = {
             'form_data': form_data,
             'field_errors': field_errors,
             'is_valid': is_valid,
             'etablissement': etablissement,
             'matieres': matieres,
+            'departments': departments,
+            'matieres_superieur_flat': matieres_superieur_flat,
+            'niveaux_lmd_options_selection': niveaux_lmd_options_selection,
+            'niveaux_par_department': niveaux_par_department,
             'niveau_choices': Professeur.NIVEAU_CHOICES,
             'type_etablissement': etablissement.type_etablissement,
+            'est_superieur': etablissement.type_etablissement == 'superieur',
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/ajouter_professeur.html', context)
@@ -396,39 +694,100 @@ class ProfesseurController:
             action = request.POST.get('action')
             
             if action == 'ajouter_matiere_secondaire':
-                matiere_id = request.POST.get('matiere_id')
-                if matiere_id:
+                matiere_id = request.POST.get('matiere_id', '').strip()
+                department_post = request.POST.get('department', '').strip()
+                niveau_lmd_post = (request.POST.get('niveau_lmd') or '').strip()
+
+                def _finalize_add_matiere_secondaire(matiere_obj):
+                    if matiere_obj in professeur.matieres_secondaires.all():
+                        messages.warning(
+                            request,
+                            "Cette matière est déjà dans les matières secondaires.",
+                        )
+                    elif professeur.matiere_principale == matiere_obj:
+                        messages.warning(
+                            request,
+                            "Cette matière est déjà la matière principale.",
+                        )
+                    else:
+                        professeur.matieres_secondaires.add(matiere_obj)
+                        messages.success(
+                            request,
+                            f"Matière « {matiere_obj.nom} » ajoutée avec succès.",
+                        )
+
+                if not matiere_id:
+                    messages.warning(request, "Veuillez sélectionner une matière à ajouter.")
+                else:
                     try:
                         from ..model.matiere_model import Matiere
-                        matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
-                        
-                        # Vérifier que ce n'est pas déjà une matière secondaire
-                        if matiere not in professeur.matieres_secondaires.all():
-                            # Vérifier que ce n'est pas la matière principale
-                            if professeur.matiere_principale != matiere:
-                                professeur.matieres_secondaires.add(matiere)
-                                messages.success(request, f"Matière '{matiere.nom}' ajoutée avec succès.")
+                        from ..model.academic_structure_model import Department
+
+                        if etablissement.type_etablissement == 'superieur':
+                            if not department_post:
+                                messages.error(request, "Veuillez sélectionner une filière.")
+                            elif not niveau_lmd_post:
+                                messages.error(
+                                    request,
+                                    "Veuillez sélectionner le niveau (L1, L2, M1…) correspondant à la matière.",
+                                )
+                            elif not Department.objects.filter(
+                                id=department_post,
+                                etablissement=etablissement,
+                            ).exists():
+                                messages.error(request, "Filière invalide pour cet établissement.")
                             else:
-                                messages.warning(request, "Cette matière est déjà votre matière principale.")
+                                matiere = Matiere.objects.select_related(
+                                    'department', 'module'
+                                ).prefetch_related(
+                                    'module__module_classes__classe',
+                                    'classes',
+                                ).get(
+                                    id=matiere_id,
+                                    etablissement=etablissement,
+                                    department_id=department_post,
+                                    actif=True,
+                                )
+                                if not _matiere_conforme_department_et_niveau(
+                                    matiere,
+                                    department_post,
+                                    niveau_lmd_post,
+                                ):
+                                    messages.error(
+                                        request,
+                                        "Cette matière ne correspond pas à la filière et au niveau choisis.",
+                                    )
+                                else:
+                                    _finalize_add_matiere_secondaire(matiere)
                         else:
-                            messages.warning(request, "Cette matière est déjà dans vos matières secondaires.")
+                            matiere = Matiere.objects.select_related('department', 'module').get(
+                                id=matiere_id,
+                                etablissement=etablissement,
+                                actif=True,
+                            )
+                            _finalize_add_matiere_secondaire(matiere)
                     except Matiere.DoesNotExist:
-                        messages.error(request, "Matière non trouvée.")
-                
-                return redirect('professeur:detail_professeur', professeur_id=professeur.id)
-            
+                        messages.error(
+                            request,
+                            "Matière introuvable, inactive ou ne correspond pas à la filière choisie.",
+                        )
+                    except ValueError:
+                        messages.error(request, "Identifiant de matière ou de filière invalide.")
+
+                return _redirect_detail_professeur_informations(professeur.id)
+
             elif action == 'retirer_matiere_secondaire':
                 matiere_id = request.POST.get('matiere_id')
                 if matiere_id:
                     try:
                         from ..model.matiere_model import Matiere
-                        matiere = Matiere.objects.get(id=matiere_id)
+                        matiere = Matiere.objects.get(id=matiere_id, etablissement=etablissement)
                         professeur.matieres_secondaires.remove(matiere)
-                        messages.success(request, f"Matière '{matiere.nom}' retirée avec succès.")
+                        messages.success(request, f"Matière « {matiere.nom} » retirée avec succès.")
                     except Matiere.DoesNotExist:
                         messages.error(request, "Matière non trouvée.")
-                
-                return redirect('professeur:detail_professeur', professeur_id=professeur.id)
+
+                return _redirect_detail_professeur_informations(professeur.id)
         
         # Pour les enseignants primaires, récupérer les affectations et les données de notes
         affectations_primaire = []
@@ -624,16 +983,40 @@ class ProfesseurController:
                         'matieres_info': matieres_info
                     })
         
-        # Récupérer les matières disponibles (pour le modal d'ajout)
+        # Matières encore ajoutables comme secondaires (modal)
         from ..model.matiere_model import Matiere
-        matieres_disponibles = Matiere.objects.filter(
-            etablissement=etablissement
-        ).exclude(
-            id__in=professeur.matieres_secondaires.values_list('id', flat=True)
-        ).exclude(
-            id=professeur.matiere_principale.id if professeur.matiere_principale else None
-        ).order_by('nom')
-        
+        from ..model.academic_structure_model import Department
+
+        md_qs = Matiere.objects.filter(etablissement=etablissement, actif=True).select_related(
+            'department', 'module'
+        )
+        secondary_ids = list(professeur.matieres_secondaires.values_list('id', flat=True))
+        if secondary_ids:
+            md_qs = md_qs.exclude(id__in=secondary_ids)
+        if professeur.matiere_principale_id:
+            md_qs = md_qs.exclude(id=professeur.matiere_principale_id)
+
+        modal_superieur_departments = []
+        modal_superieur_matieres_flat = []
+        modal_niveaux_par_department = {}
+        matieres_disponibles = Matiere.objects.none()
+
+        if etablissement.type_etablissement == 'superieur':
+            modal_superieur_departments = list(
+                Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+            )
+            for dep in modal_superieur_departments:
+                modal_niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep.id
+                )
+            excluded_ids = set(secondary_ids)
+            if professeur.matiere_principale_id:
+                excluded_ids.add(professeur.matiere_principale_id)
+            full_flat = _build_matieres_superieur_flat(etablissement)
+            modal_superieur_matieres_flat = [row for row in full_flat if row['id'] not in excluded_ids]
+        else:
+            matieres_disponibles = md_qs.order_by('nom')
+
         context = {
             'professeur': professeur,
             'etablissement': etablissement,
@@ -642,6 +1025,9 @@ class ProfesseurController:
             'onglet_actif': onglet_actif,
             'cahier_notes_data': cahier_notes_data,
             'matieres_disponibles': matieres_disponibles,
+            'modal_superieur_departments': modal_superieur_departments,
+            'modal_superieur_matieres_flat': modal_superieur_matieres_flat,
+            'modal_niveaux_par_department': modal_niveaux_par_department,
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/detail_professeur.html', context)
@@ -732,6 +1118,7 @@ class ProfesseurController:
                 'lycee_college': 'lycee',
                 'collège_lycée': 'lycee',  # Version avec caractères spéciaux
                 'mixte': 'primaire',  # Par défaut pour mixte
+                'superieur': 'superieur',
             }
             
             niveau = mapping.get(type_etablissement_str, 'primaire')
@@ -754,6 +1141,8 @@ class ProfesseurController:
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
                 'telephone': telephone_value,
+                'department': request.POST.get('department', ''),
+                'niveau_lmd': (request.POST.get('niveau_lmd') or '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }
@@ -781,6 +1170,56 @@ class ProfesseurController:
                 
                 # Pour le primaire, la matière principale sera la première matière secondaire
                 matiere_principale_obj = None
+            elif etablissement.type_etablissement == 'superieur':
+                required_fields = [
+                    'nom', 'prenom', 'telephone', 'department', 'niveau_lmd', 'matiere_principale',
+                ]
+                for field in required_fields:
+                    if not form_data.get(field):
+                        if field == 'niveau_lmd':
+                            field_errors[field] = (
+                                "Le niveau (Licence, Master, doctorat, etc.) est obligatoire."
+                            )
+                        elif field == 'department':
+                            field_errors[field] = "La filière est obligatoire."
+                        else:
+                            field_errors[field] = (
+                                f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+                            )
+                        is_valid = False
+                matiere_principale_obj = None
+                if (
+                    form_data['matiere_principale']
+                    and form_data['department']
+                    and form_data.get('niveau_lmd')
+                ):
+                    try:
+                        from ..model.matiere_model import Matiere
+                        matiere_principale_obj = Matiere.objects.select_related(
+                            'module', 'department'
+                        ).prefetch_related(
+                            'module__module_classes__classe',
+                            'classes',
+                        ).get(
+                            id=form_data['matiere_principale'],
+                            etablissement=etablissement,
+                            department_id=form_data['department'],
+                        )
+                        if not _matiere_conforme_department_et_niveau(
+                            matiere_principale_obj,
+                            form_data['department'],
+                            form_data['niveau_lmd'],
+                        ):
+                            field_errors['matiere_principale'] = (
+                                "La matière ne correspond pas à la filière et au niveau choisis."
+                            )
+                            matiere_principale_obj = None
+                            is_valid = False
+                    except Matiere.DoesNotExist:
+                        field_errors['matiere_principale'] = (
+                            "La matière sélectionnée n'existe pas ou n'appartient pas à cette filière."
+                        )
+                        is_valid = False
             else:
                 # Champs obligatoires pour collège/lycée (email facultatif)
                 required_fields = ['nom', 'prenom', 'telephone', 'matiere_principale']
@@ -794,7 +1233,9 @@ class ProfesseurController:
                 if form_data['matiere_principale']:
                     try:
                         from ..model.matiere_model import Matiere
-                        matiere_principale_obj = Matiere.objects.get(id=form_data['matiere_principale'], etablissement=etablissement)
+                        matiere_principale_obj = Matiere.objects.get(
+                            id=form_data['matiere_principale'], etablissement=etablissement
+                        )
                     except Matiere.DoesNotExist:
                         field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
                         is_valid = False
@@ -850,7 +1291,7 @@ class ProfesseurController:
                             else:
                                 professeur.matieres_secondaires.clear()
                         else:
-                            # Pour collège/lycée, supprimer toutes les matières secondaires
+                            # Collège / lycée / supérieur : pas de matières secondaires via ce formulaire
                             professeur.matieres_secondaires.clear()
                         
                         messages.success(request, f"Les informations de {professeur.nom_complet} ont été mises à jour avec succès !")
@@ -871,8 +1312,39 @@ class ProfesseurController:
                     'prenom': professeur.prenom,
                     'email': professeur.email if professeur.email else '',
                     'telephone': professeur.telephone,
+                    'department': '',
+                    'niveau_lmd': '',
                     'matiere_principale': '',  # Pas utilisé pour le primaire
                     'matieres_secondaires': matieres_secondaires_ids,
+                }
+            elif etablissement.type_etablissement == 'superieur':
+                mp = professeur.matiere_principale
+                dept_s, niv_s, mp_id = '', '', ''
+                if mp and mp.department_id:
+                    mp_id = str(mp.id)
+                    dept_s = str(mp.department_id)
+                    keys_list = _niveau_lmd_keys_for_matiere_superieur(mp)
+                    opts = _niveaux_lmd_disponibles_pour_department(
+                        etablissement, mp.department_id
+                    )
+                    available_keys = {o['key'] for o in opts}
+                    chosen = ''
+                    for k in keys_list:
+                        if k in available_keys:
+                            chosen = k
+                            break
+                    if not chosen and keys_list:
+                        chosen = keys_list[0]
+                    niv_s = chosen
+                form_data = {
+                    'nom': professeur.nom,
+                    'prenom': professeur.prenom,
+                    'email': professeur.email if professeur.email else '',
+                    'telephone': professeur.telephone,
+                    'department': dept_s,
+                    'niveau_lmd': niv_s,
+                    'matiere_principale': mp_id,
+                    'matieres_secondaires': [],
                 }
             else:
                 # Pour collège/lycée, récupérer la matière principale
@@ -881,18 +1353,44 @@ class ProfesseurController:
                     'prenom': professeur.prenom,
                     'email': professeur.email if professeur.email else '',
                     'telephone': professeur.telephone,
+                    'department': '',
+                    'niveau_lmd': '',
                     'matiere_principale': professeur.matiere_principale.id if professeur.matiere_principale else '',
                     'matieres_secondaires': [],
                 }
         
         # Récupérer les matières de l'établissement
         from ..model.matiere_model import Matiere
+        from ..model.academic_structure_model import Department
         matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
         
         # Pour le primaire, créer une liste des IDs des matières sélectionnées pour faciliter la comparaison dans le template
         matieres_selectionnees_ids = []
         if etablissement.type_etablissement == 'primary':
             matieres_selectionnees_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
+        
+        departments = []
+        matieres_superieur_flat = []
+        niveaux_par_department = {}
+        niveaux_lmd_options_selection = []
+        est_superieur = etablissement.type_etablissement == 'superieur'
+        if est_superieur:
+            departments = list(
+                Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+            )
+            matieres_superieur_flat = _build_matieres_superieur_flat(etablissement)
+            for dep in departments:
+                niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep.id
+                )
+            if form_data.get('department'):
+                try:
+                    dep_sel = int(form_data['department'])
+                    niveaux_lmd_options_selection = _niveaux_lmd_disponibles_pour_department(
+                        etablissement, dep_sel
+                    )
+                except (TypeError, ValueError):
+                    niveaux_lmd_options_selection = []
         
         context = {
             'professeur': professeur,
@@ -903,6 +1401,11 @@ class ProfesseurController:
             'matieres': matieres,
             'type_etablissement': etablissement.type_etablissement,
             'matieres_selectionnees_ids': matieres_selectionnees_ids,  # Liste des IDs des matières déjà sélectionnées
+            'est_superieur': est_superieur,
+            'departments': departments,
+            'matieres_superieur_flat': matieres_superieur_flat,
+            'niveaux_par_department': niveaux_par_department,
+            'niveaux_lmd_options_selection': niveaux_lmd_options_selection,
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/modifier_professeur.html', context)

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+{% load static i18n notes_tags %}
+{% load classe_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Gestion des Modules" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=1.0.0" />
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="main-content-container">
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-cubes"></i>
+                    {% trans "Gestion des Modules" %}
+                </h1>
+                <p class="page-subtitle">
+                    {% trans "Organisez les modules et crédits LMD de" %} {{ etablissement.nom }}
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'matiere:liste_modules' %}?ouvrir_modal=1" class="btn-add btn-primary">
+                    <i class="fas fa-plus"></i>
+                    <span>{% trans "Ajouter un module" %}</span>
+                </a>
+                <a href="{% url 'matiere:liste_matieres' %}" class="btn-add btn-secondary">
+                    <i class="fas fa-book"></i>
+                    <span>{% trans "Matières" %}</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total }}</h3>
+                    <p>{% trans "Total" %}</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.actives }}</h3>
+                    <p>{% trans "Actifs" %}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="matieres-container">
+            <div class="matieres-header">
+                <h2>{% trans "Liste des Modules" %}</h2>
+            </div>
+
+            {% if modules_par_filiere %}
+                <p class="form-hint modules-liste-hint">
+                    <i class="fas fa-info-circle"></i>
+                    {% trans "Choisissez une filière, puis un niveau LMD pour afficher les modules concernés." %}
+                </p>
+
+                <!-- Onglets par filière -->
+                <div class="modules-tabs categories-tabs">
+                    <div class="tabs-nav">
+                        {% for item in modules_par_filiere %}
+                        <button type="button" class="tab-btn {% if forloop.first %}active{% endif %}" data-filiere-idx="{{ forloop.counter0 }}">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>{% if item.department %}{{ item.department.nom }}{% else %}{% trans "Sans filière" %}{% endif %}</span>
+                            <span class="tab-count" title="{% trans 'Modules' %}">({{ item.modules|length }})</span>
+                            {% if item.niveaux %}
+                            <span class="tab-subcount-inline" title="{% trans 'Niveaux LMD' %}">· {{ item.niveaux|length }} {% trans "niv." %}</span>
+                            {% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="tabs-content">
+                    {% for item in modules_par_filiere %}
+                    <div class="tab-panel {% if forloop.first %}active{% endif %}" id="filiere-{{ forloop.counter0 }}" data-filiere-idx="{{ forloop.counter0 }}">
+                        {% if item.niveaux %}
+                        <div class="modules-filiere-niveaux matieres-tabs-superieur">
+                            <div class="niveau-tabs-meta">
+                                <span class="niveau-tabs-hint"><i class="fas fa-layer-group"></i> {% trans "Niveau d'études" %}</span>
+                            </div>
+                            <div class="niveau-tabs-row" role="tablist">
+                                {% for niv in item.niveaux %}
+                                <button type="button" role="tab" class="niveau-tab-btn {% if forloop.first %}active{% endif %}" data-niveau-idx="{{ forloop.counter0 }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                    <span class="niveau-tab-label">{{ niv.niveau_label }}</span>
+                                    <small class="tab-count">{% blocktrans count c=niv.modules|length %}({{ c }} module){% plural %}({{ c }} modules){% endblocktrans %}</small>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <div class="niveau-tabs-content">
+                                {% for niv in item.niveaux %}
+                                <div class="niveau-panel {% if forloop.first %}active{% endif %}" data-niveau-idx="{{ forloop.counter0 }}" role="tabpanel">
+                                    {% if niv.modules %}
+                                    <div class="matieres-grid">
+                                        {% for module in niv.modules %}
+                                        <div class="matiere-card">
+                                            <div class="card-header">
+                                                <div class="matiere-info">
+                                                    <h3 class="matiere-nom">{{ module.nom }}</h3>
+                                                    <p class="matiere-type">{{ module.code }}{% if module.niveau_lmd %} • {{ module.niveau_lmd|libelle_niveau_lmd_key }}{% endif %}{% if module.classes.exists %} • {{ module.classes.count }} classe{{ module.classes.count|pluralize }}{% with niveaux=module.classes.all|classes_niveaux_lmd %}{% if niveaux %} <span class="niveaux-inline">({{ niveaux|join:", " }})</span>{% endif %}{% endwith %}{% endif %}</p>
+                                                </div>
+                                                <div class="matiere-actions">
+                                                    <a href="{% url 'matiere:detail_module' module.id %}" class="action-btn primary" title="{% trans "Voir" %}">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="display:inline;" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="action-btn danger" title="{% trans "Supprimer" %}">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            <div class="card-content">
+                                                <div class="matiere-details">
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-graduation-cap"></i>
+                                                        <span>{% if module.department %}{{ module.department.nom }}{% else %}{% trans "Toutes filières" %}{% endif %}</span>
+                                                    </div>
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-book"></i>
+                                                        <span>{{ module.matieres.count }} {% trans "matière(s)" %}</span>
+                                                    </div>
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-coins"></i>
+                                                        <span>{{ module.total_credits }} {% trans "crédits" %}</span>
+                                                    </div>
+                                                    {% if module.classes.exists %}
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-users"></i>
+                                                        <span>{{ module.classes.count }} {% trans "classe(s)" %}{% with niveaux=module.classes.all|classes_niveaux_lmd %}{% if niveaux %} <span class="niveaux-badge">({{ niveaux|join:", " }})</span>{% endif %}{% endwith %}</span>
+                                                    </div>
+                                                    {% endif %}
+                                                    <div class="detail-item">
+                                                        <span class="badge {% if module.actif %}badge-success{% else %}badge-secondary{% endif %}">
+                                                            {% if module.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <div class="empty-niveau">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>{% trans "Aucun module pour ce niveau." %}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="matieres-grid">
+                            {% for module in item.modules %}
+                                <div class="matiere-card">
+                                    <div class="card-header">
+                                        <div class="matiere-info">
+                                            <h3 class="matiere-nom">{{ module.nom }}</h3>
+                                            <p class="matiere-type">{{ module.code }}{% if module.niveau_lmd %} • {{ module.niveau_lmd|libelle_niveau_lmd_key }}{% endif %}{% if module.classes.exists %} • {{ module.classes.count }} classe{{ module.classes.count|pluralize }}{% with niveaux=module.classes.all|classes_niveaux_lmd %}{% if niveaux %} <span class="niveaux-inline">({{ niveaux|join:", " }})</span>{% endif %}{% endwith %}{% endif %}</p>
+                                        </div>
+                                        <div class="matiere-actions">
+                                            <a href="{% url 'matiere:detail_module' module.id %}" class="action-btn primary" title="{% trans "Voir" %}">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="display:inline;" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-btn danger" title="{% trans "Supprimer" %}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="card-content">
+                                        <div class="matiere-details">
+                                            <div class="detail-item">
+                                                <i class="fas fa-graduation-cap"></i>
+                                                <span>{% if module.department %}{{ module.department.nom }}{% else %}{% trans "Toutes filières" %}{% endif %}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <i class="fas fa-book"></i>
+                                                <span>{{ module.matieres.count }} {% trans "matière(s)" %}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <i class="fas fa-coins"></i>
+                                                <span>{{ module.total_credits }} {% trans "crédits" %}</span>
+                                            </div>
+                                            {% if module.classes.exists %}
+                                            <div class="detail-item">
+                                                <i class="fas fa-users"></i>
+                                                <span>{{ module.classes.count }} {% trans "classe(s)" %}{% with niveaux=module.classes.all|classes_niveaux_lmd %}{% if niveaux %} <span class="niveaux-badge">({{ niveaux|join:", " }})</span>{% endif %}{% endwith %}</span>
+                                            </div>
+                                            {% endif %}
+                                            <div class="detail-item">
+                                                <span class="badge {% if module.actif %}badge-success{% else %}badge-secondary{% endif %}">
+                                                    {% if module.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% elif modules %}
+                <div class="matieres-grid">
+                    {% for module in modules %}
+                        <div class="matiere-card">
+                            <div class="card-header">
+                                <div class="matiere-info">
+                                    <h3 class="matiere-nom">{{ module.nom }}</h3>
+                                    <p class="matiere-type">{{ module.code }}{% if module.niveau_lmd %} • {{ module.niveau_lmd|libelle_niveau_lmd_key }}{% endif %}</p>
+                                </div>
+                                <div class="matiere-actions">
+                                    <a href="{% url 'matiere:detail_module' module.id %}" class="action-btn primary" title="{% trans "Voir" %}">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="display:inline;" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn danger" title="{% trans "Supprimer" %}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <div class="matiere-details">
+                                    <div class="detail-item">
+                                        <i class="fas fa-graduation-cap"></i>
+                                        <span>{% if module.department %}{{ module.department.nom }}{% else %}{% trans "Toutes filières" %}{% endif %}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-book"></i>
+                                        <span>{{ module.matieres.count }} {% trans "matière(s)" %}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-coins"></i>
+                                        <span>{{ module.total_credits }} {% trans "crédits" %}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="badge {% if module.actif %}badge-success{% else %}badge-secondary{% endif %}">
+                                            {% if module.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-cubes empty-icon"></i>
+                    <h3>{% trans "Aucun module" %}</h3>
+                    <p>{% trans "Créez votre premier module pour organiser les matières par crédits LMD." %}</p>
+                    <a href="{% url 'matiere:liste_modules' %}?ouvrir_modal=1" class="btn-add btn-primary">
+                        <i class="fas fa-plus"></i>
+                        <span>{% trans "Ajouter un module" %}</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'school_admin/directeur/pedagogique/modules/partials/modal_ajouter_module.html' %}
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <style>
+        .badge-success { background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; }
+        .badge-secondary { background: #6b7280; color: white; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; }
+        .btn-add.btn-secondary { background: #6b7280; color: white; border-color: #6b7280; }
+        .btn-add.btn-secondary:hover { background: #4b5563; border-color: #4b5563; }
+        .niveaux-badge, .niveaux-inline {
+            font-size: 0.85em;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        /* Onglets filières */
+        .modules-tabs.categories-tabs {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .modules-tabs .tabs-nav {
+            display: flex;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            background: var(--gray-100);
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .modules-tabs .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+            border-bottom: 3px solid transparent;
+        }
+        .modules-tabs .tab-btn:hover {
+            background: var(--white);
+            color: var(--gray-800);
+        }
+        .modules-tabs .tab-btn.active {
+            color: var(--primary-color);
+            background: var(--white);
+            border-bottom-color: var(--primary-color);
+        }
+        .modules-tabs .tab-btn i { font-size: 1rem; color: inherit; }
+        .modules-tabs .tab-count {
+            background: var(--gray-200);
+            color: var(--gray-600);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.25rem;
+        }
+        .modules-tabs .tab-btn.active .tab-count {
+            background: var(--primary-color);
+            color: white;
+        }
+        .modules-tabs .tab-subcount-inline {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            margin-left: 0.15rem;
+        }
+        .modules-tabs .tab-btn.active .tab-subcount-inline {
+            color: #1d4ed8;
+        }
+        .modules-liste-hint {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .modules-filiere-niveaux.matieres-tabs-superieur {
+            padding: 0.25rem 0 0;
+            background: var(--gray-50);
+            border-radius: var(--border-radius, 12px);
+            border: 1px solid var(--gray-200);
+            padding: 1rem 1.25rem 1.25rem;
+        }
+        .modules-filiere-niveaux .niveau-tab-btn {
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            min-height: 44px;
+        }
+        .modules-filiere-niveaux .niveau-tab-label {
+            line-height: 1.25;
+        }
+        .tabs-content { min-height: 200px; }
+        .tab-panel {
+            display: none;
+            padding: 1.5rem 0;
+        }
+        .tab-panel.active { display: block; }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function activateFirstNiveauInPanel(filierePanel) {
+                if (!filierePanel) return;
+                var nivBtns = filierePanel.querySelectorAll('.niveau-tab-btn');
+                var nivPanels = filierePanel.querySelectorAll('.niveau-panel');
+                if (!nivBtns.length) return;
+                nivBtns.forEach(function(b, i) {
+                    b.classList.toggle('active', i === 0);
+                    b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+                });
+                nivPanels.forEach(function(p, i) { p.classList.toggle('active', i === 0); });
+            }
+
+            const filiereTabs = document.querySelectorAll('.modules-tabs .tab-btn[data-filiere-idx]');
+            const filierePanels = document.querySelectorAll('.tab-panel[id^="filiere-"]');
+            filiereTabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    const idx = this.getAttribute('data-filiere-idx');
+                    filiereTabs.forEach(function(t) { t.classList.remove('active'); });
+                    filierePanels.forEach(function(p) { p.classList.remove('active'); });
+                    this.classList.add('active');
+                    const targetPanel = document.getElementById('filiere-' + idx);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                        activateFirstNiveauInPanel(targetPanel);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.tab-panel[id^="filiere-"] .niveau-tab-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var filierePanel = this.closest('.tab-panel');
+                    if (!filierePanel) return;
+                    var nivIdx = this.getAttribute('data-niveau-idx');
+                    filierePanel.querySelectorAll('.niveau-tab-btn').forEach(function(b) {
+                        b.classList.remove('active');
+                        b.setAttribute('aria-selected', 'false');
+                    });
+                    this.classList.add('active');
+                    this.setAttribute('aria-selected', 'true');
+                    filierePanel.querySelectorAll('.niveau-panel').forEach(function(p) {
+                        p.classList.toggle('active', p.getAttribute('data-niveau-idx') === nivIdx);
+                    });
+                });
+            });
+
+            var activeFilierePanel = document.querySelector('.tab-panel[id^="filiere-"].active');
+            if (activeFilierePanel) {
+                activateFirstNiveauInPanel(activeFilierePanel);
+            }
+
+            var modal = document.getElementById('moduleAddModal');
+            var nomInput = document.getElementById('modal_nom_module');
+            var deptSelect = document.getElementById('modal_department_module');
+
+            function setBodyModalOpen(on) {
+                if (on) document.body.classList.add('module-modal-open');
+                else document.body.classList.remove('module-modal-open');
+            }
+
+            function openModuleModal() {
+                if (modal) {
+                    modal.classList.add('is-open');
+                    setBodyModalOpen(true);
+                }
+            }
+            function closeModuleModal() {
+                if (modal) {
+                    modal.classList.remove('is-open');
+                    setBodyModalOpen(false);
+                }
+            }
+
+            if (modal && modal.classList.contains('is-open')) {
+                setBodyModalOpen(true);
+            }
+
+            document.querySelectorAll('[data-module-modal-close]').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    closeModuleModal();
+                    if (window.history.replaceState) {
+                        var u = new URL(window.location.href);
+                        u.searchParams.delete('ouvrir_modal');
+                        u.searchParams.delete('department');
+                        u.searchParams.delete('nom');
+                        window.history.replaceState({}, '', u.pathname + (u.search ? u.search : ''));
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal && modal.classList.contains('is-open')) {
+                    closeModuleModal();
+                }
+            });
+
+            if (deptSelect) {
+                deptSelect.addEventListener('change', function() {
+                    var base = this.getAttribute('data-url-base') || '';
+                    var nom = nomInput ? encodeURIComponent(nomInput.value || '') : '';
+                    var dep = encodeURIComponent(this.value || '');
+                    window.location.href = base + '?ouvrir_modal=1&department=' + dep + '&nom=' + nom;
+                });
+            }
+
+            document.querySelectorAll('#moduleAddModal .niveau-card').forEach(function(card) {
+                var header = card.querySelector('.niveau-card-header');
+                var block = card.querySelector('.niveau-credits-block');
+                var hiddenInput = card.querySelector('.niveau-hidden-input');
+                var creditsInput = card.querySelector('.credits-niveau-input');
+                var periodeInput = card.querySelector('.periode-niveau-input');
+                var initialCredits = card.getAttribute('data-initial-credits');
+                var initialPeriode = card.getAttribute('data-initial-periode');
+
+                function toggleNiveau(show) {
+                    if (!block) return;
+                    if (show) {
+                        block.style.display = 'block';
+                        if (hiddenInput) hiddenInput.disabled = false;
+                        card.classList.add('niveau-selected');
+                    } else {
+                        block.style.display = 'none';
+                        if (hiddenInput) hiddenInput.disabled = true;
+                        if (creditsInput) {
+                            creditsInput.value = '0';
+                        }
+                        if (periodeInput) {
+                            periodeInput.value = '';
+                        }
+                        card.classList.remove('niveau-selected');
+                    }
+                }
+
+                var initialNumero = card.getAttribute('data-initial-numero');
+                if (
+                    (initialCredits !== null && String(initialCredits).trim() !== '') ||
+                    (initialPeriode !== null && String(initialPeriode).trim() !== '') ||
+                    (initialNumero !== null && String(initialNumero).trim() !== '')
+                ) {
+                    toggleNiveau(true);
+                }
+
+                if (header) {
+                    header.addEventListener('click', function() {
+                        var active = block && block.style.display !== 'none';
+                        toggleNiveau(!active);
+                        if (!active && creditsInput) creditsInput.focus();
+                    });
+                    header.addEventListener('keydown', function(ev) {
+                        if (ev.key === 'Enter' || ev.key === ' ') {
+                            ev.preventDefault();
+                            header.click();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

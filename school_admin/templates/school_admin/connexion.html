@@ -117,6 +117,25 @@
             </button>
           </div>
 
+          <div class="language-selector-section" aria-label="Sélecteur de langue">
+            <p class="language-selector-title">Choisir la langue</p>
+            <div class="language-selector-grid" role="radiogroup" aria-label="Langues disponibles">
+              <button type="button" class="language-chip is-active" data-lang="fr" role="radio" aria-checked="true">
+                <img src="https://cdn.gtranslate.net/flags/svg/fr.svg" alt="Drapeau France" class="language-flag" loading="lazy">
+                <span class="language-code">FR</span>
+              </button>
+              <button type="button" class="language-chip" data-lang="en" role="radio" aria-checked="false">
+                <img src="https://cdn.gtranslate.net/flags/svg/en.svg" alt="Drapeau Angleterre" class="language-flag" loading="lazy">
+                <span class="language-code">EN</span>
+              </button>
+              <button type="button" class="language-chip" data-lang="ar" role="radio" aria-checked="false">
+                <img src="https://cdn.gtranslate.net/flags/svg/ar.svg" alt="Drapeau Arabie" class="language-flag" loading="lazy">
+                <span class="language-code">AR</span>
+              </button>
+            </div>
+            <div class="login-gtranslate-wrapper" aria-hidden="true"></div>
+          </div>
+
           <form
             id="compte-user-login-form"
             method="post"
@@ -250,6 +269,14 @@
       </div>
     </div>
 
+    <script>
+      window.gtranslateSettings = {
+        default_language: "fr",
+        languages: ["fr", "en", "ar"],
+        wrapper_selector: ".login-gtranslate-wrapper"
+      };
+    </script>
+    <script src="https://cdn.gtranslate.net/widgets/latest/dwf.js" defer></script>
     <script src="{% static 'school_admin/js/connexion_admin.js' %}"></script>
 
     <style>
@@ -345,6 +372,81 @@
 
       .btn-qr-scanner i {
         font-size: 1.25rem;
+      }
+
+      .language-selector-section {
+        margin: -0.25rem 0 1.5rem 0;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+      }
+
+      .language-selector-title {
+        margin: 0 0 0.75rem 0;
+        font-size: 0.875rem;
+        color: #4b5563;
+        font-weight: 600;
+      }
+
+      .language-selector-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .language-chip {
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        border-radius: 0.75rem;
+        min-height: 44px;
+        padding: 0.5rem 0.625rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .language-chip:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+      }
+
+      .language-chip:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+
+      .language-chip.is-active {
+        border-color: #2563eb;
+        background: #eff6ff;
+        color: #1d4ed8;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      .language-flag {
+        width: 22px;
+        height: 16px;
+        object-fit: cover;
+        border-radius: 3px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+
+      .language-code {
+        letter-spacing: 0.04em;
+      }
+
+      .login-gtranslate-wrapper {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
 
       /* Modal Scanner QR Code */
@@ -508,6 +610,21 @@
       }
 
       @media (max-width: 768px) {
+        .language-selector-grid {
+          gap: 0.5rem;
+        }
+
+        .language-chip {
+          min-height: 42px;
+          font-size: 0.8125rem;
+          padding: 0.45rem 0.4rem;
+        }
+
+        .language-flag {
+          width: 20px;
+          height: 14px;
+        }
+
         .qr-scanner-modal-content {
           width: 95%;
           max-height: 95vh;
@@ -658,6 +775,58 @@
             fermerScannerQR();
           }
         }
+      });
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const chips = Array.from(document.querySelectorAll('.language-chip'));
+        const wrapper = document.querySelector('.login-gtranslate-wrapper');
+        const storageKey = 'aria_login_selected_lang';
+        const allowedLangs = ['fr', 'en', 'ar'];
+
+        function setActiveChip(lang) {
+          chips.forEach((chip) => {
+            const isActive = chip.dataset.lang === lang;
+            chip.classList.toggle('is-active', isActive);
+            chip.setAttribute('aria-checked', isActive ? 'true' : 'false');
+          });
+        }
+
+        function changeLanguage(lang) {
+          if (!allowedLangs.includes(lang)) return;
+
+          const link = wrapper ? wrapper.querySelector(`a[data-gt-lang="${lang}"]`) : null;
+          if (link) {
+            link.click();
+            return;
+          }
+
+          document.cookie = `googtrans=/fr/${lang};path=/`;
+          if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            document.cookie = `googtrans=/fr/${lang};domain=.${window.location.hostname};path=/`;
+          }
+          setTimeout(function() {
+            const retryLink = wrapper ? wrapper.querySelector(`a[data-gt-lang="${lang}"]`) : null;
+            if (retryLink) {
+              retryLink.click();
+            } else {
+              window.location.reload();
+            }
+          }, 250);
+        }
+
+        chips.forEach((chip) => {
+          chip.addEventListener('click', function() {
+            const lang = this.dataset.lang;
+            if (!allowedLangs.includes(lang)) return;
+            localStorage.setItem(storageKey, lang);
+            setActiveChip(lang);
+            changeLanguage(lang);
+          });
+        });
+
+        const preferredLang = localStorage.getItem(storageKey);
+        const initialLang = allowedLangs.includes(preferredLang) ? preferredLang : 'fr';
+        setActiveChip(initialLang);
       });
     </script>
   </body>

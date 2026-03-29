@@ -245,7 +245,7 @@
 
             <!-- Barre de recherche -->
             <div class="search-bar-container" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); margin-bottom: 1.5rem;">
-                <form method="get" action="{% url 'directeur:liste_reinscription' %}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                <form method="get" action="{% url 'directeur:liste_reinscription' %}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;"{% if est_superieur %} data-filiere-classe-mode="filter"{% endif %}>
                     <div class="search-input-wrapper" style="flex: 1; min-width: 250px;">
                         <i class="fas fa-user"></i>
                         <input type="text" 
@@ -255,16 +255,37 @@
                                autocomplete="off"
                                style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; transition: all 0.2s;">
                     </div>
+                    {% if est_superieur and departments_inscription %}
                     <div style="min-width: 200px;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700, #374151); font-size: 0.875rem;">
+                            <i class="fas fa-graduation-cap"></i> {% trans "Filière" %}
+                        </label>
+                        <select id="filiere_inscription_liste" class="js-inscription-filiere"
+                                style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; background: white; cursor: pointer; transition: all 0.2s;">
+                            <option value="">{% trans "Toutes les filières" %}</option>
+                            {% for dep in departments_inscription %}
+                            <option value="{{ dep.id }}">{{ dep.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div style="min-width: 220px;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700, #374151); font-size: 0.875rem;">
                             <i class="fas fa-chalkboard"></i> {% trans "Classe" %}
                         </label>
-                        <select name="classe" 
+                        <select name="classe" id="classe_filter_reinscription" class="js-inscription-classe"
                                 style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; font-size: 0.95rem; background: white; cursor: pointer; transition: all 0.2s;">
                             <option value="">{% trans "Toutes les classes" %}</option>
                             {% for classe in classes %}
-                                <option value="{{ classe.id }}" {% if classe_id == classe.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                <option value="{{ classe.id }}"
+                                        data-classe-option="1"
+                                        data-department-id="{{ classe.department_id|default:'' }}"
+                                        {% if classe_id == classe.id|stringformat:"s" %}selected{% endif %}>
+                                    {% if est_superieur %}
+                                        {{ classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}{% if classe.department %}, {{ classe.department.nom }}{% endif %}
+                                    {% else %}
+                                        {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                    {% endif %}
                                 </option>
                             {% endfor %}
                         </select>
@@ -300,7 +321,11 @@
                                 <td>{{ data.eleve.matricule_eleve|default:"-" }}</td>
                                 <td>
                                     {% if data.derniere_classe %}
-                                        {{ data.derniere_classe.nom }}
+                                        {% if est_superieur %}
+                                            {{ data.derniere_classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=data.derniere_classe only %}{% if data.derniere_classe.department %}, {{ data.derniere_classe.department.nom }}{% endif %}
+                                        {% else %}
+                                            {{ data.derniere_classe.nom }} ({{ data.derniere_classe.get_niveau_display }})
+                                        {% endif %}
                                     {% else %}
                                         <span style="color: var(--gray-400, #9ca3af);">{% trans "Non renseigné" %}</span>
                                     {% endif %}
@@ -357,6 +382,9 @@
         </div>
     </div>
 
+    {% if est_superieur %}
+    <script src="{% static 'school_admin/js/directeur/inscription_superieur_filiere_classe.js' %}?v=1.0.0"></script>
+    {% endif %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

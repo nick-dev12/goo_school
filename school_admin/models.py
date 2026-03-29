@@ -3,6 +3,7 @@ from .model.etablissement_model import Etablissement
 from .model.compte_user import CompteUser
 from .model.personnel_administratif_model import PersonnelAdministratif
 from .model.classe_model import Classe
+from .model.classe_parcours_examen_model import CatalogueExamenConcours, ClasseParcoursExamen
 from .model.eleve_model import Eleve
 from .model.parent_model import Parent
 from .model.lien_familial_model import LienFamilial
@@ -26,13 +27,15 @@ from .model.notification_parent_model import NotificationParent
 from .model.notification_directeur_model import NotificationDirecteur
 from .model.notification_enseignant_model import NotificationEnseignant
 from .model.notification_eleve_model import NotificationEleve
+from .model.academic_structure_model import AcademicCycle, Department, AcademicLevel
 
 # Exposer les modèles au niveau du module
 __all__ = [
-    'CompteUser', 'Etablissement', 'PersonnelAdministratif', 'Classe', 'Eleve', 
+    'CompteUser', 'Etablissement', 'PersonnelAdministratif', 'Classe', 'CatalogueExamenConcours', 'ClasseParcoursExamen', 'Eleve', 
     'Parent', 'LienFamilial', 'DemandeLiaisonParent',
     'Prospection', 'NoteCommercial', 'RendezVous', 'Facturation', 'Professeur', 
     'Matiere', 'NoteExamen', 'AffectationProfesseurPrimaire', 'EvaluationPrimaire', 
     'NotePrimaire', 'MoyenneMatierePrimaire', 'Ponderation', 'MoyennePeriode', 'Convocation', 'Annonce', 'FCMToken',
-    'NotificationParent', 'NotificationDirecteur', 'NotificationEnseignant', 'NotificationEleve'
+    'NotificationParent', 'NotificationDirecteur', 'NotificationEnseignant', 'NotificationEleve',
+    'AcademicCycle', 'Department', 'AcademicLevel'
 ]

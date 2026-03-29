@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-{% load static notes_tags %}
+{% load static i18n notes_tags %}
+{% load classe_tags %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -16,11 +17,11 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
+        href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.0"
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/matieres.css' %}"
+        href="{% static 'school_admin/css/directeur/matieres.css' %}?v=1.0.1"
     />
 </head>
 <body>
@@ -41,10 +42,18 @@
                 </p>
             </div>
             <div class="page-actions">
-                <button class="btn-add btn-primary" onclick="toggleAddForm()">
+                {% if est_superieur %}
+                    <a href="{% url 'matiere:liste_modules' %}" class="btn-add btn-secondary" style="background: #7c3aed; color: white; border-color: #7c3aed;">
+                        <i class="fas fa-cubes"></i>
+                        <span>{% trans "Modules" %}</span>
+                    </a>
+                {% endif %}
+                {% if not est_superieur %}
+                <button class="btn-add btn-primary" onclick="toggleAddForm()" type="button">
                     <i class="fas fa-plus"></i>
                     <span>{% trans "Ajouter une matière" %}</span>
                 </button>
+                {% endif %}
             </div>
         </div>
 
@@ -81,9 +90,10 @@
             </div>
         </div>
 
-        <!-- Add Matiere Form (Hidden by default) -->
-        <div class="add-form-container" id="addFormContainer" style="display: none;">
-            <div class="form-card">
+        <!-- Add Matiere Form - Modal plein écran -->
+        <div class="add-matiere-modal-overlay" id="addFormContainer" style="{% if not field_errors %}display: none;{% endif %}" onclick="if(event.target===this) toggleAddForm()">
+            <div class="add-matiere-modal-content">
+            <div class="form-card add-matiere-modal-card">
                 <div class="form-header">
                     <h2>{% trans "Ajouter une matière" %}</h2>
                     <button class="btn-close" onclick="toggleAddForm()">
@@ -138,7 +148,95 @@
                         {% endif %}
                     </div>
 
-                    {% if est_lycee %}
+                    {% if est_superieur %}
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-building"></i>
+                                {% trans "Filière(s) *" %}
+                            </label>
+                            {% if departments %}
+                                <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                                    <i class="fas fa-info-circle"></i>
+                                    {% trans "Sélectionnez une ou plusieurs filières. Les modules et classes seront filtrés en conséquence." %}
+                                </p>
+                                <div class="multi-select-grid departments-multi-select">
+                                    {% for dep in departments %}
+                                    <label class="checkbox-card department-checkbox" data-department-id="{{ dep.id }}">
+                                        <input type="checkbox" name="departments_ids" value="{{ dep.id }}" class="department-multi-checkbox" {% if dep.id|stringformat:"s" in form_data.departments_ids %}checked{% endif %}>
+                                        <div class="checkbox-content">
+                                            <i class="fas fa-graduation-cap"></i>
+                                            <span>{{ dep.nom }}</span>
+                                        </div>
+                                        <div class="checkbox-check"><i class="fas fa-check"></i></div>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-error" style="padding: 10px; font-size: 0.9rem;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    {% trans "Aucune filière configurée. Veuillez d'abord créer des filières dans la gestion de l'établissement." %}
+                                </div>
+                            {% endif %}
+                            {% if field_errors.departments_ids %}
+                                <div class="invalid-feedback">{{ field_errors.departments_ids }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group" id="module-superieur-container" style="display: none;">
+                            <label class="form-label">
+                                <i class="fas fa-cube"></i>
+                                {% trans "Module(s) *" %}
+                            </label>
+                            <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                                <i class="fas fa-info-circle"></i>
+                                {% trans "Sélectionnez un ou plusieurs modules parmi les filières choisies." %}
+                            </p>
+                            <div id="modules-multi-select" class="multi-select-grid">
+                                {% for dep_id, modules_list in modules_by_department.items %}
+                                    {% for mod in modules_list %}
+                                    <label class="checkbox-card module-checkbox" data-department-id="{{ dep_id }}" data-module-id="{{ mod.id }}" data-has-credits="{% if mod.credits and mod.credits > 0 %}1{% else %}0{% endif %}" data-niveau-lmd="{{ mod.niveau_lmd|default:'' }}">
+                                        <input type="checkbox" name="modules_ids" value="{{ mod.id }}" class="module-multi-checkbox" {% if mod.id|stringformat:"s" in form_data.modules_ids %}checked{% endif %}>
+                                        <div class="checkbox-content">
+                                            <i class="fas fa-cube"></i>
+                                            <span>{{ mod.nom }}{% if mod.niveau_lmd %} [{{ mod.niveau_lmd|libelle_niveau_lmd_key }}]{% endif %}{% if mod.credits and mod.credits > 0 %} ({{ mod.credits }} cr.){% endif %}</span>
+                                        </div>
+                                        <div class="checkbox-check"><i class="fas fa-check"></i></div>
+                                    </label>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                            {% if field_errors.modules_ids %}
+                                <div class="invalid-feedback">{{ field_errors.modules_ids }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group" id="credits-superieur-container" style="display: none;">
+                            <label class="form-label" for="credits">
+                                <i class="fas fa-coins"></i>
+                                {% trans "Crédits de la matière *" %}
+                            </label>
+                            <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 6px;">
+                                <i class="fas fa-info-circle"></i>
+                                {% trans "Affiché uniquement si au moins un module sélectionné n'a pas de crédits définis." %}
+                            </p>
+                            <input type="number"
+                                   class="form-control {% if field_errors.credits %}is-invalid{% endif %}"
+                                   id="credits"
+                                   name="credits"
+                                   value="{{ form_data.credits }}"
+                                   min="0"
+                                   step="0.5"
+                                   placeholder="Ex: 3">
+                            {% if field_errors.credits %}
+                                <div class="invalid-feedback">{{ field_errors.credits }}</div>
+                            {% endif %}
+                        </div>
+
+                        <p class="form-hint" style="font-size: 12px; color: #666; margin-top: 0.5rem; padding: 10px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                            <i class="fas fa-info-circle"></i>
+                            {% trans "Les classes sont automatiquement assignées selon les modules sélectionnés (définies lors de la création des modules)." %}
+                        </p>
+                    {% elif est_lycee %}
                         <!-- Pour les établissements lycée : coefficient par groupe -->
                         <!-- DEBUG: Type établissement = {{ etablissement.type_etablissement }}, est_lycee = {{ est_lycee }} -->
                         <div class="form-group">
@@ -263,12 +361,14 @@
                     </div>
                 </form>
             </div>
+            </div>
         </div>
 
         <!-- Matieres List -->
         <div class="matieres-container">
             <div class="matieres-header">
                 <h2>{% trans "Liste des Matières" %}</h2>
+                {% if not est_superieur %}
                 <div class="search-container">
                     <div class="search-box">
                         <input type="text" placeholder="Rechercher..." class="search-input">
@@ -280,9 +380,126 @@
                         <button class="filter-btn" data-filter="optionnelle">{% trans "Optionnelles" %}</button>
                     </div>
                 </div>
+                {% endif %}
             </div>
 
-            {% if matieres %}
+            {% if est_superieur and matieres_par_filiere %}
+                <!-- Vue hiérarchique : Filières (onglets principaux) -> Modules (onglets secondaires) -> Matières (cards) -->
+                <div class="matieres-tabs-superieur">
+                    <div class="main-tabs-row">
+                        {% for item in matieres_par_filiere %}
+                        <button class="main-tab-btn {% if forloop.first %}active{% endif %}" 
+                                data-dep-id="{{ item.department.id }}"
+                                type="button">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>{{ item.department.nom }}</span>
+                            <small class="tab-count">({{ item.niveaux|length }} {% trans "niveau" %}{{ item.niveaux|length|pluralize }})</small>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <div class="main-tabs-content">
+                        {% for item in matieres_par_filiere %}
+                        <div class="department-panel {% if forloop.first %}active{% endif %}" 
+                             data-dep-id="{{ item.department.id }}">
+                            {% if item.niveaux %}
+                                <div class="niveau-tabs-meta">
+                                    <span class="niveau-tabs-hint"><i class="fas fa-layer-group"></i> {% trans "Niveau d'études" %}</span>
+                                </div>
+                                <div class="niveau-tabs-row">
+                                    {% for niv in item.niveaux %}
+                                    <button class="niveau-tab-btn {% if forloop.first %}active{% endif %}"
+                                            data-niveau-idx="{{ forloop.counter0 }}"
+                                            type="button">
+                                        <span>{{ niv.niveau_label }}</span>
+                                        <small class="tab-count">({{ niv.modules|length }} {% trans "module" %}{{ niv.modules|length|pluralize }})</small>
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                                <div class="niveau-tabs-content">
+                                    {% for niv in item.niveaux %}
+                                    <div class="niveau-panel {% if forloop.first %}active{% endif %}"
+                                         data-niveau-idx="{{ forloop.counter0 }}">
+                                        {% if niv.modules %}
+                                            <div class="sub-tabs-row">
+                                                {% for mod_item in niv.modules %}
+                                                <button class="sub-tab-btn {% if forloop.first %}active{% endif %}"
+                                                        data-module-id="{% if mod_item.module %}{{ mod_item.module.id }}{% else %}sans-module{% endif %}"
+                                                        type="button">
+                                                    {% if mod_item.module %}{{ mod_item.module.nom }}{% if mod_item.module.niveau_lmd %} [{{ mod_item.module.niveau_lmd|libelle_niveau_lmd_key }}]{% endif %}{% else %}{% trans "Sans module" %}{% endif %}
+                                                    <small class="tab-count">({{ mod_item.matieres|length }})</small>
+                                                </button>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="sub-tabs-content">
+                                                {% for mod_item in niv.modules %}
+                                                <div class="module-panel {% if forloop.first %}active{% endif %}"
+                                                     data-module-id="{% if mod_item.module %}{{ mod_item.module.id }}{% else %}sans-module{% endif %}">
+                                                    {% if mod_item.matieres %}
+                                                    <div class="matieres-grid matieres-cards-grid">
+                                                        {% for m_item in mod_item.matieres %}
+                                                        <div class="matiere-card" data-matiere="{{ m_item.matiere.nom|lower }}" data-type="{{ m_item.matiere.type_matiere }}">
+                                                            <div class="card-header">
+                                                                <div class="matiere-info">
+                                                                    <h3 class="matiere-nom">{{ m_item.matiere.nom }}</h3>
+                                                                    <p class="matiere-type">{{ m_item.matiere.type_display }}{% if m_item.matiere.credits %} • {{ m_item.matiere.credits }} {% trans "crédits" %}{% endif %}</p>
+                                                                </div>
+                                                                <div class="matiere-actions">
+                                                                    <a href="{% url 'matiere:detail_matiere' m_item.matiere.id %}" class="action-btn primary" title="{% trans "Voir" %}">
+                                                                        <i class="fas fa-eye"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-content">
+                                                                <div class="matiere-details">
+                                                                    <div class="detail-item">
+                                                                        <i class="fas fa-users"></i>
+                                                                        <span>{{ m_item.matiere.classes.count }} classe{{ m_item.matiere.classes.count|pluralize }}</span>
+                                                                    </div>
+                                                                </div>
+                                                                {% if m_item.classes %}
+                                                                <div class="classes-list">
+                                                                    {% for classe in m_item.classes %}
+                                                                    <span class="class-tag" title="{{ classe.nom }}">{{ classe.nom }}{% if classe.niveau == 'superieur' %} ({{ classe.get_libelle_niveau_superieur_complet }}){% endif %}</span>
+                                                                    {% endfor %}
+                                                                </div>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="card-footer">
+                                                                <span class="status-dot active"></span>
+                                                                <span>{{ m_item.matiere.date_creation|date:"d/m/Y" }}</span>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% else %}
+                                                    <div class="empty-module">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <p>{% trans "Aucune matière dans ce module." %}</p>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="empty-niveau">
+                                                <i class="fas fa-info-circle"></i>
+                                                <p>{% trans "Aucun module pour ce niveau dans cette filière." %}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="empty-filiere">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>{% trans "Aucune donnée pour cette filière." %}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% elif matieres %}
                 <div class="matieres-grid">
                     {% for matiere_data in matieres_avec_coefficients %}
                         {% with matiere=matiere_data.matiere %}
@@ -305,7 +522,20 @@
                                         <i class="fas fa-graduation-cap"></i>
                                         <span>{{ matiere.niveau_display }}</span>
                                     </div>
-                                    {% if est_lycee and matiere_data.coefficients_par_groupe %}
+                                    {% if est_superieur %}
+                                        {% if matiere.department %}
+                                            <div class="detail-item">
+                                                <i class="fas fa-building"></i>
+                                                <span>{{ matiere.department.nom }}</span>
+                                            </div>
+                                        {% endif %}
+                                        {% if matiere.module %}
+                                            <div class="detail-item">
+                                                <i class="fas fa-coins"></i>
+                                                <span>{% trans "Crédits" %}: {{ matiere.credits|default:"0" }} • {{ matiere.module.nom }}</span>
+                                            </div>
+                                        {% endif %}
+                                    {% elif est_lycee and matiere_data.coefficients_par_groupe %}
                                         <div class="detail-item">
                                             <i class="fas fa-weight-hanging"></i>
                                             <span>{% trans "Coeff: Variable par groupe" %}</span>
@@ -383,11 +613,19 @@
                         <i class="fas fa-book-open"></i>
                     </div>
                     <h3>{% trans "Aucune matière trouvée" %}</h3>
+                    {% if est_superieur %}
+                    <p>{% trans "Créez des filières et des modules, puis ajoutez les matières depuis la fiche détail de chaque module." %}</p>
+                    <a href="{% url 'matiere:liste_modules' %}" class="btn-primary btn-gradient" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <i class="fas fa-cubes"></i>
+                        <span>{% trans "Voir les modules" %}</span>
+                    </a>
+                    {% else %}
                     <p>{% trans "Commencez par ajouter votre première matière pour organiser votre programme d'enseignement." %}</p>
-                    <button class="btn-primary btn-gradient" onclick="toggleAddForm()">
+                    <button class="btn-primary btn-gradient" type="button" onclick="toggleAddForm()">
                         <i class="fas fa-plus"></i>
                         <span>{% trans "Ajouter une matière" %}</span>
                     </button>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
@@ -396,6 +634,80 @@
     <!-- Scripts -->
     <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=4"></script>
     <script>
+        {% if est_superieur and field_errors %}
+        document.addEventListener('DOMContentLoaded', function() {
+            var el = document.getElementById('addFormContainer');
+            if (el) {
+                el.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        });
+        {% endif %}
+        {% if est_superieur and matieres_par_filiere %}
+        // Filières -> Niveaux -> Modules -> cartes matières (JS : navigation / affichage uniquement)
+        document.addEventListener('DOMContentLoaded', function() {
+            function activateFirstModuleInNiveau(niveauPanel) {
+                if (!niveauPanel) return;
+                var firstSub = niveauPanel.querySelector('.sub-tab-btn');
+                var firstMod = niveauPanel.querySelector('.module-panel');
+                niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                niveauPanel.querySelectorAll('.module-panel').forEach(function(p) { p.classList.remove('active'); });
+                if (firstSub) firstSub.classList.add('active');
+                if (firstMod) firstMod.classList.add('active');
+            }
+            function resetNiveauTabs(panel) {
+                if (!panel) return;
+                var firstNivBtn = panel.querySelector('.niveau-tab-btn');
+                var firstNivPanel = panel.querySelector('.niveau-panel');
+                panel.querySelectorAll('.niveau-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                panel.querySelectorAll('.niveau-panel').forEach(function(p) { p.classList.remove('active'); });
+                if (firstNivBtn) firstNivBtn.classList.add('active');
+                if (firstNivPanel) {
+                    firstNivPanel.classList.add('active');
+                    activateFirstModuleInNiveau(firstNivPanel);
+                }
+            }
+            var mainTabs = document.querySelectorAll('.main-tab-btn');
+            mainTabs.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var depId = btn.getAttribute('data-dep-id');
+                    mainTabs.forEach(function(b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    document.querySelectorAll('.department-panel').forEach(function(panel) {
+                        panel.classList.toggle('active', panel.getAttribute('data-dep-id') === depId);
+                    });
+                    var panel = document.querySelector('.department-panel[data-dep-id="' + depId + '"]');
+                    resetNiveauTabs(panel);
+                });
+            });
+            document.querySelectorAll('.department-panel').forEach(function(panel) {
+                panel.querySelectorAll('.niveau-tab-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var idx = btn.getAttribute('data-niveau-idx');
+                        panel.querySelectorAll('.niveau-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                        btn.classList.add('active');
+                        panel.querySelectorAll('.niveau-panel').forEach(function(p) {
+                            p.classList.toggle('active', p.getAttribute('data-niveau-idx') === idx);
+                        });
+                        var nivPanel = panel.querySelector('.niveau-panel[data-niveau-idx="' + idx + '"]');
+                        activateFirstModuleInNiveau(nivPanel);
+                    });
+                });
+                panel.querySelectorAll('.niveau-panel').forEach(function(niveauPanel) {
+                    niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            var modId = btn.getAttribute('data-module-id');
+                            niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                            btn.classList.add('active');
+                            niveauPanel.querySelectorAll('.module-panel').forEach(function(p) {
+                                p.classList.toggle('active', p.getAttribute('data-module-id') === modId);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+        {% endif %}
         // Les fonctions toggleCoefficientField et initCoefficientFields sont définies dans matieres.js
         // Initialiser au chargement de la page si le formulaire est visible
         document.addEventListener('DOMContentLoaded', function() {
@@ -406,6 +718,7 @@
             // Si le formulaire est déjà visible (erreur de validation), initialiser les champs
             const formContainer = document.getElementById('addFormContainer');
             if (formContainer && formContainer.style.display !== 'none') {
+                document.body.style.overflow = 'hidden';
                 setTimeout(function() {
                     if (typeof window.initCoefficientFields === 'function') {
                         console.log('Initialisation des champs coefficient');
@@ -430,9 +743,70 @@
                 }
             });
             {% endif %}
+            
+            {% if est_superieur %}
+            // Supérieur : multi-filières -> modules filtrés -> classes filtrées ; crédits conditionnels
+            const deptCheckboxes = document.querySelectorAll('.department-multi-checkbox');
+            const moduleCheckboxes = document.querySelectorAll('.module-checkbox');
+            const moduleContainer = document.getElementById('module-superieur-container');
+            const creditsContainer = document.getElementById('credits-superieur-container');
+            
+            function getSelectedDepartmentIds() {
+                return Array.from(document.querySelectorAll('.department-multi-checkbox:checked')).map(function(cb) { return cb.value; });
+            }
+            
+            function getSelectedModulesData() {
+                const data = [];
+                document.querySelectorAll('.module-checkbox input:checked').forEach(function(cb) {
+                    const label = cb.closest('.module-checkbox');
+                    if (label) {
+                        data.push({
+                            id: cb.value,
+                            hasCredits: label.getAttribute('data-has-credits') === '1'
+                        });
+                    }
+                });
+                return data;
+            }
+            
+            function updateVisibility() {
+                const depIds = getSelectedDepartmentIds();
+                const hasDepts = depIds.length > 0;
+                
+                moduleContainer.style.display = hasDepts ? 'block' : 'none';
+                if (creditsContainer) creditsContainer.style.display = 'none';
+                
+                moduleCheckboxes.forEach(function(label) {
+                    const depId = label.getAttribute('data-department-id');
+                    const show = depIds.indexOf(depId) >= 0;
+                    label.style.display = show ? '' : 'none';
+                    const cb = label.querySelector('input[type="checkbox"]');
+                    if (cb) {
+                        if (!show) cb.checked = false;
+                        cb.disabled = !show;
+                    }
+                });
+                
+                const modulesData = getSelectedModulesData();
+                const hasModules = modulesData.length > 0;
+                var anyModuleWithoutCredits = modulesData.some(function(m) { return !m.hasCredits; });
+                if (creditsContainer) {
+                    creditsContainer.style.display = (hasModules && anyModuleWithoutCredits) ? 'block' : 'none';
+                    var creditsInput = document.getElementById('credits');
+                    if (creditsInput) creditsInput.disabled = !anyModuleWithoutCredits;
+                }
+            }
+            
+            deptCheckboxes.forEach(function(cb) { cb.addEventListener('change', updateVisibility); });
+            moduleCheckboxes.forEach(function(label) {
+                var cb = label.querySelector('input[type="checkbox"]');
+                if (cb) cb.addEventListener('change', updateVisibility);
+            });
+            updateVisibility();
+            {% endif %}
         });
         
-        // Validation du formulaire : s'assurer que chaque groupe sélectionné a un coefficient
+        // Validation du formulaire
         document.getElementById('ajouterMatiereForm')?.addEventListener('submit', function(e) {
             {% if est_lycee %}
             const checkedGroups = document.querySelectorAll('.groupe-checkbox-input:checked');
@@ -456,6 +830,26 @@
             if (!isValid) {
                 e.preventDefault();
                 alert('Veuillez renseigner un coefficient valide pour chaque groupe sélectionné : ' + missingCoeffs.join(', '));
+                return false;
+            }
+            {% endif %}
+            {% if est_superieur %}
+            const deptChecked = document.querySelectorAll('.department-multi-checkbox:checked').length;
+            const modChecked = document.querySelectorAll('.module-multi-checkbox:checked').length;
+            if (deptChecked === 0) {
+                e.preventDefault();
+                alert('Veuillez sélectionner au moins une filière.');
+                return false;
+            }
+            if (modChecked === 0) {
+                e.preventDefault();
+                alert('Veuillez sélectionner au moins un module.');
+                return false;
+            }
+            const creditsInput = document.getElementById('credits');
+            if (creditsInput && !creditsInput.disabled && (!creditsInput.value || parseFloat(creditsInput.value) < 0)) {
+                e.preventDefault();
+                alert('Veuillez renseigner les crédits de la matière.');
                 return false;
             }
             {% endif %}

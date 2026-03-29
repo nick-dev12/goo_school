@@ -11,6 +11,7 @@ from django_countries import countries
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.etablissement_model import Etablissement
 from ..model.classe_model import Classe
+from ..model.academic_structure_model import Department
 from ..model.eleve_model import Eleve
 from ..model.inscription_eleve_model import InscriptionEleve
 from ..model.inscription_parent_model import InscriptionParent
@@ -30,7 +31,11 @@ def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
     from school_admin.model.sanction_model import Sanction
     import re
 
-    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+    classes = (
+        Classe.objects.filter(etablissement=etablissement, actif=True)
+        .select_related('department', 'academic_level')
+        .order_by('niveau', 'nom')
+    )
 
     classes_grouped = OrderedDict()
     total_eleves = 0
@@ -359,13 +364,26 @@ def inscription_eleves(request):
             return redirect('directeur:creer_annee_scolaire_obligatoire')
         return redirect('secretaire:dashboard_secretaire')
     
-    # Récupérer les classes de l'établissement
-    classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+    # Classes : supérieur = filière + classes LMD (cohérence avec l'affectation)
+    est_superieur = etablissement.type_etablissement == 'superieur'
+    if est_superieur:
+        classes = (
+            Classe.objects.filter(etablissement=etablissement, actif=True, niveau='superieur')
+            .select_related('department', 'academic_level')
+            .order_by('department__nom', 'nom')
+        )
+        departments_inscription = list(
+            Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+        )
+    else:
+        classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+        departments_inscription = []
     
     form_data = {
         'statut': 'nouvelle',  # Valeur par défaut
         'date_inscription': date.today().strftime('%Y-%m-%d'),  # Date du jour par défaut
         'nationalite': '',  # Initialiser le champ nationalité
+        'department_inscription': '',
         # Initialiser les champs parent/tuteur
         'parent_nom': '',
         'parent_prenom': '',
@@ -415,6 +433,7 @@ def inscription_eleves(request):
             'document_justificatif_domicile': request.POST.get('document_justificatif_domicile') == 'true',
             'document_photo_identite': request.POST.get('document_photo_identite') == 'true',
             'document_autorisation_parentale': request.POST.get('document_autorisation_parentale') == 'true',
+            'department_inscription': request.POST.get('department_inscription', '').strip(),
         }
         
         # Validation
@@ -478,16 +497,32 @@ def inscription_eleves(request):
         # Validation de la classe
         if form_data['classe']:
             try:
-                classe = Classe.objects.get(id=form_data['classe'], etablissement=etablissement)
+                classe = Classe.objects.select_related('department', 'academic_level').get(
+                    id=form_data['classe'], etablissement=etablissement
+                )
+                if est_superieur and classe.niveau != 'superieur':
+                    field_errors['classe'] = "La classe sélectionnée n'est pas valide pour un établissement supérieur."
+                    is_valid = False
+                elif est_superieur and departments_inscription and classe.department_id:
+                    dep_sel = form_data.get('department_inscription', '')
+                    if not dep_sel:
+                        field_errors['department_inscription'] = (
+                            "Veuillez sélectionner une filière avant la classe."
+                        )
+                        is_valid = False
+                    elif str(classe.department_id) != dep_sel:
+                        field_errors['classe'] = "La classe ne correspond pas à la filière sélectionnée."
+                        is_valid = False
                 
                 # Vérifier les places disponibles dans la classe
-                places_disponibles = classe.places_disponibles
-                if places_disponibles <= 0:
-                    field_errors['classe'] = f"La classe {classe.nom} est pleine. Aucune place disponible ({classe.capacite_max}/{classe.capacite_max} élèves)."
-                    is_valid = False
-                elif places_disponibles == 1:
-                    # Avertissement si il ne reste qu'une place
-                    messages.warning(request, f"Attention : Il ne reste qu'une place disponible dans la classe {classe.nom}.")
+                if 'classe' not in field_errors and 'department_inscription' not in field_errors:
+                    places_disponibles = classe.places_disponibles
+                    if places_disponibles <= 0:
+                        field_errors['classe'] = f"La classe {classe.nom} est pleine. Aucune place disponible ({classe.capacite_max}/{classe.capacite_max} élèves)."
+                        is_valid = False
+                    elif places_disponibles == 1:
+                        # Avertissement si il ne reste qu'une place
+                        messages.warning(request, f"Attention : Il ne reste qu'une place disponible dans la classe {classe.nom}.")
                     
             except Classe.DoesNotExist:
                 field_errors['classe'] = "La classe sélectionnée n'existe pas."
@@ -704,6 +739,8 @@ def inscription_eleves(request):
         'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
         'personnel': user if isinstance(user, PersonnelAdministratif) else None,
         'classes': classes,
+        'est_superieur': est_superieur,
+        'departments_inscription': departments_inscription,
         'form_data': form_data,
         'field_errors': field_errors,
         'pays_list': pays_list,
@@ -760,6 +797,7 @@ def liste_eleves(request):
         'classes_grouped': classes_grouped,
         'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
+        'est_superieur': etablissement.type_etablissement == 'superieur',
     }
     
     return render(request, 'school_admin/directeur/secretaire/liste_eleves.html', context)
@@ -807,6 +845,7 @@ def cartes_identite_eleves(request):
         'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'personnalisation': personnalisation,
+        'est_superieur': etablissement.type_etablissement == 'superieur',
     }
 
     return render(request, 'school_admin/directeur/secretaire/cartes_identite_eleves.html', context)

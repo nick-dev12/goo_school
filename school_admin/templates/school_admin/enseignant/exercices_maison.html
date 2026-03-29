@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.0.2">
 
 </head>
@@ -133,6 +133,7 @@
                                         </div>
                                         <div class="classe-tab-content">
                                             <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                            <span class="enseignant-classe-niveau classe-tab-niveau"><i class="fas fa-layer-group" aria-hidden="true"></i>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe_data.classe only %}</span>
                                             {% if classe_data.matieres %}
                                                 <span class="classe-tab-badge info">{{ classe_data.matieres|length }} matière{{ classe_data.matieres|length|pluralize }}</span>
                                             {% endif %}
@@ -153,6 +154,7 @@
                                                 <i class="fas fa-chalkboard"></i>
                                                 {{ classe_data.classe.nom }}
                                             </h3>
+                                            <p class="enseignant-classe-niveau classe-panel-niveau"><i class="fas fa-layer-group" aria-hidden="true"></i>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe_data.classe only %}</p>
                                             <span class="eleves-count">
                                                 {{ classe_data.exercices_count }} exercice{{ classe_data.exercices_count|pluralize }}
                                             </span>

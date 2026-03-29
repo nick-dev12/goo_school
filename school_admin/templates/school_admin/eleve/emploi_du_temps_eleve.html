@@ -71,7 +71,7 @@
                     Emploi du Temps
                 </h1>
                 <p style="font-size: 16px; color: #64748b; margin-bottom: 16px; font-weight: 500;">
-                    {{ classe.nom }} - {{ classe.get_niveau_display }} - {{ emploi_du_temps.annee_scolaire }}
+                    {{ classe.nom }} — {% if classe.niveau == 'superieur' %}{{ classe.get_libelle_niveau_superieur_complet }}{% else %}{{ classe.get_niveau_display }}{% endif %} — {{ emploi_du_temps.annee_scolaire }}
                 </p>
                 <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
                     <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #64748b; font-size: 0.875rem; font-weight: 500;">

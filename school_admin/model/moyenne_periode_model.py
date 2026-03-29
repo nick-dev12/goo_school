@@ -70,6 +70,16 @@ class MoyennePeriode(models.Model):
         blank=True,
         verbose_name="Note d'examen"
     )
+
+    note_rattrapage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
+        null=True,
+        blank=True,
+        verbose_name="Note de rattrapage",
+        help_text="Session dont le nom contient « rattrap » ; retenue si supérieure à la note d'examen pour le calcul LMD.",
+    )
     
     moyenne_matiere = models.DecimalField(
         max_digits=5,
@@ -86,6 +96,16 @@ class MoyennePeriode(models.Model):
         default=Decimal('1.00'),
         validators=[MinValueValidator(0)],
         verbose_name="Coefficient de la matière"
+    )
+
+    credits = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Crédits utilisés au calcul (supérieur)",
+        help_text="Crédits de la matière au moment du calcul (enseignement supérieur)"
     )
     
     total_matiere = models.DecimalField(

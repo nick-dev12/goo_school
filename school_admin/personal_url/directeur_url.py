@@ -55,6 +55,7 @@ urlpatterns = [
     # API pour les détails des notes
     path('api/details-notes-matiere/', api_details_notes_matiere, name='api_details_notes_matiere'),
     path('api/details-notes-matiere-secondaire/', api_details_notes_matiere_secondaire, name='api_details_notes_matiere_secondaire'),
+    path('api/debloquer-releve-matiere/', api_debloquer_releve_matiere, name='api_debloquer_releve_matiere'),
     
     # Impression du relevé de notes
     path('imprimer-releve-notes/<int:classe_id>/', imprimer_releve_notes, name='imprimer_releve_notes'),

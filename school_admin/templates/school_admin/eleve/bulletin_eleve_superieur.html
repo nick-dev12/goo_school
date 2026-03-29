@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Mon bulletin" %} — {{ eleve.nom_complet }} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/header.css' %}?v=1.0.6" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve_superieur.css' %}?v=1.5.2" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+  </head>
+  <body class="bulletin-eleve-body bulletin-eleve-portail-superieur">
+    {% include 'school_admin/eleve/partials/header.html' %}
+    {% include 'school_admin/partials/messages.html' %}
+
+    <div class="bulletin-eleve-container" style="max-width: 1200px; margin: 0 auto; padding: 1rem;">
+      <div class="bulletin-sup-actions bulletin-actions">
+        <a href="{{ retour_url }}" class="btn-action btn-back">
+          <i class="fas fa-arrow-left"></i>
+          <span>{% trans "Retour aux notes" %}</span>
+        </a>
+        <a href="{{ impression_url }}" class="btn-action btn-print" target="_blank" rel="noopener">
+          <i class="fas fa-print"></i>
+          <span>{% trans "Ouvrir pour imprimer" %}</span>
+        </a>
+      </div>
+
+      <div class="bulletin-sheet bulletin-sheet-superieur">
+        {% include 'school_admin/directeur/partials/bulletin_superieur_corps.html' %}
+      </div>
+    </div>
+  </body>
+</html>

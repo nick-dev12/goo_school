@@ -27,6 +27,7 @@ from ..utils.session_utils import get_session_active
 from ..model.inscription_eleve_model import InscriptionEleve
 from school_admin.personal_views.directeur_view import (
     _apply_standards_to_bulletin,
+    _build_bulletin_context,
     _get_standards_bundle,
 )
 try:
@@ -118,7 +119,12 @@ def get_eleve_from_request(request):
             eleve_id=eleve_id,
             actif=True,
             statut='valide'
-        ).select_related('eleve').first()
+        ).select_related(
+            'eleve',
+            'eleve__classe',
+            'eleve__classe__academic_level',
+            'eleve__classe__department',
+        ).first()
         
         if not lien:
             return None, False
@@ -161,7 +167,11 @@ def get_classe_eleve_active(eleve, annee_scolaire_active, etablissement=None):
             eleve=eleve,
             annee_scolaire=annee_scolaire_active,
             etablissement=etablissement
-        ).select_related('classe').first()
+        ).select_related(
+            'classe',
+            'classe__academic_level',
+            'classe__department',
+        ).first()
         
         if inscription and inscription.classe:
             return inscription.classe
@@ -1856,6 +1866,10 @@ def notes_evaluations_eleve(request):
         else None
     )
 
+    bulletin_url = reverse('eleve:bulletin_eleve')
+    if bulletin_record and bulletin_record.periode_id:
+        bulletin_url = f"{bulletin_url}?periode={bulletin_record.periode_id}"
+
     context = {
         'eleve': eleve,
         'est_parent': est_parent,
@@ -1868,7 +1882,7 @@ def notes_evaluations_eleve(request):
         'matieres_avec_notes': matieres_avec_notes,
         'bulletin_disponible': bulletin_disponible,
         'bulletin_periode_label': bulletin_periode_label,
-        'bulletin_url': reverse('eleve:bulletin_eleve'),
+        'bulletin_url': bulletin_url,
         'today': timezone.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
         'classe': classe_active,
@@ -1926,6 +1940,30 @@ def bulletin_eleve(request):
         messages.warning(request, "Votre bulletin n'est pas encore disponible.")
         return redirect('eleve:notes_evaluations')
 
+    if etablissement.type_etablissement == 'superieur':
+        if not moyenne_generale_record.periode_id:
+            messages.warning(request, "Votre bulletin n'est pas encore disponible.")
+            return redirect('eleve:notes_evaluations')
+        bulletin_ctx, redirect_response = _build_bulletin_context(
+            request,
+            classe_active.id,
+            eleve.id,
+            portal_eleve=eleve,
+            forced_periode_id=moyenne_generale_record.periode_id,
+        )
+        if redirect_response:
+            return redirect_response
+        if not bulletin_ctx:
+            messages.error(request, "Impossible d'afficher le bulletin.")
+            return redirect('eleve:notes_evaluations')
+        bulletin_ctx['page_title'] = 'Bulletin de notes'
+        bulletin_ctx['est_parent'] = est_parent
+        return render(
+            request,
+            'school_admin/eleve/bulletin_eleve_superieur.html',
+            bulletin_ctx,
+        )
+
     periode = moyenne_generale_record.periode
     if not periode:
         periode_query = PeriodeScolaire.objects.filter(
@@ -1958,6 +1996,7 @@ def bulletin_eleve(request):
             'moyenne_classe': float(moyenne.moyenne_classe) if moyenne.moyenne_classe is not None else None,
             'note_examen': float(moyenne.note_examen) if moyenne.note_examen is not None else None,
             'coefficient': float(moyenne.coefficient) if moyenne.coefficient is not None else 1,
+            'credits': float(moyenne.credits) if hasattr(moyenne, 'credits') and moyenne.credits is not None else None,
             'moyenne_eleve': float(moyenne.moyenne_matiere) if moyenne.moyenne_matiere is not None else None,
             'rang': moyenne.rang,
             'appreciation': moyenne.appreciation_matiere or '',
@@ -2078,6 +2117,7 @@ def bulletin_eleve(request):
         'eleve': eleve,
         'est_parent': est_parent,
         'etablissement': etablissement,
+        'est_superieur': etablissement.type_etablissement == 'superieur',
         'classe': classe_active,
         'periode': moyenne_generale_record.periode or periode,
         'est_primaire': etablissement.type_etablissement == 'primary',

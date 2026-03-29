@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+{% load static i18n notes_tags %}
+{% load classe_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Module" %} {{ module.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_matiere.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classes_clean.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=1.0.2" />
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="main-content-container">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-cube"></i>
+                    {{ module.nom }}
+                </h1>
+                <p class="page-subtitle">
+                    {{ module.code }}{% if module.niveau_lmd %} • {{ module.niveau_lmd|libelle_niveau_lmd_key }}{% endif %}{% if module.classes.exists %} • {{ module.classes.count }} classe{{ module.classes.count|pluralize }}{% endif %}
+                    {% if module.department %} • {{ module.department.nom }}{% endif %}
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'matiere:liste_modules' %}" class="btn-add btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>{% trans "Retour" %}</span>
+                </a>
+                <button type="button" class="btn-add btn-primary" id="btnModifierModule">
+                    <i class="fas fa-edit"></i>
+                    <span>{% trans "Modifier" %}</span>
+                </button>
+                <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="display:inline;" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-add btn-danger">
+                        <i class="fas fa-trash"></i>
+                        <span>{% trans "Supprimer" %}</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="content-grid modules-detail-grid">
+            <div class="form-card form-card-classes-module">
+                <div class="form-header">
+                    <h2><i class="fas fa-users"></i> {% trans "Classes du module" %}</h2>
+                    <p class="form-header-hint">{% trans "Ajoutez les matières depuis la carte de chaque classe concernée." %}</p>
+                </div>
+                <div class="card-content">
+                    {% if classes_cards %}
+                        <div class="classes-module-mini-grid">
+                            {% for item in classes_cards %}
+                            {% with classe=item.classe mc=item.mc %}
+                            <article class="classe-module-mini-card" id="classe-module-{{ classe.id }}">
+                                <div class="mini-card-top">
+                                    <div class="mini-card-title-row">
+                                        <i class="fas fa-chalkboard"></i>
+                                        <div class="mini-card-titles">
+                                            <span class="mini-card-module-ue">
+                                                {% if mc.numero_ue %}<span class="ue-num">{{ mc.numero_ue }}</span> — {% endif %}<span class="ue-module-nom">{{ module.nom }}</span>
+                                            </span>
+                                            <strong class="mini-card-classe-nom">{{ classe.nom }}</strong>
+                                            <span class="mini-card-meta">
+                                                <span class="classe-niveau-badge">{{ classe.get_libelle_niveau_superieur_complet }}</span>
+                                                {% if mc.periode %}<span class="classe-niveau-badge">{{ mc.periode.nom_periode }}</span>{% endif %}
+                                                <span class="classe-credits-badge">{{ mc.credits }} {% trans "crédits" %}</span>
+                                            </span>
+                                        </div>
+                                        <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="action-btn primary mini-card-eye" title="{% trans "Voir la classe" %}">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="mini-card-matieres">
+                                    <span class="mini-card-section-label"><i class="fas fa-book"></i> {% trans "Matières pour cette classe" %}</span>
+                                    {% if item.matieres_pour_classe %}
+                                        <ul class="mini-card-matieres-list">
+                                            {% for m in item.matieres_pour_classe %}
+                                            <li class="mini-card-matiere-item {% if not m.classes.count %}matiere-commune{% endif %}">
+                                                <span class="matiere-nom">{{ m.nom }}</span>
+                                                <span class="matiere-credits">{% trans "Coef." %} {{ m.coefficient }}{% if m.credits %} · {% trans "Cr." %} {{ m.credits }}{% endif %}</span>
+                                                {% if m.classes.count %}
+                                                <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="inline-form-retirer" onsubmit="return confirm('{% trans "Retirer cette matière pour cette classe ?" %}');">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="retirer_matiere_classe">
+                                                    <input type="hidden" name="matiere_id" value="{{ m.id }}">
+                                                    <input type="hidden" name="classe_id" value="{{ classe.id }}">
+                                                    <button type="submit" class="action-btn danger btn-tiny" title="{% trans "Retirer pour cette classe" %}">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                                {% else %}
+                                                <span class="badge-commune" title="{% trans "Retirer depuis le tableau des matières ci-dessous" %}">{% trans "Tout le module" %}</span>
+                                                {% endif %}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="mini-card-empty-matieres">{% trans "Aucune matière liée à cette classe pour l'instant." %}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="mini-card-add">
+                                    <button type="button" class="btn-open-modal-matiere" data-classe-id="{{ classe.id }}" data-classe-nom="{{ classe.nom|escape }}">
+                                        <i class="fas fa-plus-circle"></i> {% trans "Ajouter une matière" %}
+                                    </button>
+                                </div>
+                            </article>
+                            {% endwith %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="empty-state-text">{% trans "Aucune classe n'est associée à ce module." %}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-card module-detail-stat-card">
+                <div class="form-header module-detail-card-header">
+                    <h2><i class="fas fa-chart-pie" aria-hidden="true"></i> {% trans "Résumé" %}</h2>
+                    <p class="module-detail-card-sub">{% trans "Indicateurs clés du module pour cette filière." %}</p>
+                </div>
+                <div class="card-content module-detail-stat-content">
+                    <div class="module-stat-grid" role="list">
+                        <div class="module-stat-tile" role="listitem">
+                            <div class="module-stat-icon module-stat-icon--blue" aria-hidden="true"><i class="fas fa-book"></i></div>
+                            <div class="module-stat-body">
+                                <span class="module-stat-value">{{ matieres|length }}</span>
+                                <span class="module-stat-label">{% trans "Matières" %}</span>
+                            </div>
+                        </div>
+                        <div class="module-stat-tile" role="listitem">
+                            <div class="module-stat-icon module-stat-icon--violet" aria-hidden="true"><i class="fas fa-coins"></i></div>
+                            <div class="module-stat-body">
+                                <span class="module-stat-value">{{ module.total_credits }}</span>
+                                <span class="module-stat-label">{% trans "Total crédits" %}</span>
+                            </div>
+                        </div>
+                        {% if module.classes.exists %}
+                        <div class="module-stat-tile" role="listitem">
+                            <div class="module-stat-icon module-stat-icon--teal" aria-hidden="true"><i class="fas fa-users"></i></div>
+                            <div class="module-stat-body">
+                                <span class="module-stat-value">{{ module.classes.count }}</span>
+                                <span class="module-stat-label">{% trans "Classes" %}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-card module-detail-synthese-card">
+            <div class="form-header module-detail-card-header">
+                <h2><i class="fas fa-list-alt" aria-hidden="true"></i> {% trans "Synthèse des matières du module" %}</h2>
+                <p class="module-detail-card-sub">{% trans "Liste des matières, coefficients, crédits et rattachement aux classes." %}</p>
+            </div>
+            <div class="card-content module-synthese-content">
+                {% if matieres_toutes_classes %}
+                <div class="alert-matieres-communes module-synthese-alert">
+                    <strong><i class="fas fa-layer-group" aria-hidden="true"></i> {% trans "Matières pour toutes les classes du module" %} :</strong>
+                    <ul>
+                        {% for m in matieres_toutes_classes %}
+                        <li>{{ m.nom }} ({% trans "coef." %} {{ m.coefficient }})</li>
+                        {% endfor %}
+                    </ul>
+                    <p class="form-hint module-synthese-alert-hint">{% trans "Pour les retirer ou les restreindre à certaines classes, utilisez « Retirer du module » dans le tableau." %}</p>
+                </div>
+                {% endif %}
+                {% if matieres %}
+                    <div class="table-responsive module-matieres-table-wrap">
+                        <table class="table module-matieres-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="col-matiere">{% trans "Matière" %}</th>
+                                    <th scope="col" class="col-num">{% trans "Coeff." %}</th>
+                                    <th scope="col" class="col-num">{% trans "Crédits" %}</th>
+                                    <th scope="col" class="col-classes">{% trans "Classes" %}</th>
+                                    <th scope="col" class="col-actions">{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in matieres %}
+                                    <tr>
+                                        <td class="col-matiere" data-label="{% trans 'Matière' %}"><span class="module-matiere-name">{{ m.nom }}</span></td>
+                                        <td class="col-num" data-label="{% trans 'Coeff.' %}">{{ m.coefficient }}</td>
+                                        <td class="col-num" data-label="{% trans 'Crédits' %}">{{ m.credits|default:"—" }}</td>
+                                        <td class="col-classes" data-label="{% trans 'Classes' %}">
+                                            {% if m.classes.count %}
+                                                <span class="module-classes-tags">{% for c in m.classes.all %}<span class="module-classe-tag">{{ c.nom }}</span>{% endfor %}</span>
+                                            {% else %}
+                                                <span class="module-classes-all">{% trans "Toutes les classes" %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-actions" data-label="{% trans 'Actions' %}">
+                                            <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="module-matiere-retirer-form" onsubmit="return confirm('{% trans "Retirer cette matière du module ?" %}');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="retirer_matiere">
+                                                <input type="hidden" name="matiere_id" value="{{ m.id }}">
+                                                <button type="submit" class="module-btn-retirer" title="{% trans "Retirer du module" %}">
+                                                    <i class="fas fa-times" aria-hidden="true"></i><span class="sr-only">{% trans "Retirer" %}</span>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="empty-state-text module-synthese-empty">{% trans "Aucune matière dans ce module." %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal plein écran — Nouvelle matière pour une classe -->
+    <div class="modal-overlay-fullscreen" id="modalMatiereClasse">
+        <div class="modal-container-fullscreen modal-matiere-classe-box">
+            <div class="modal-header-fullscreen">
+                <h2 class="modal-title-fullscreen">
+                    <i class="fas fa-book-medical"></i>
+                    {% trans "Nouvelle matière" %}
+                </h2>
+                <button type="button" class="modal-close-fullscreen" id="closeModalMatiereClasse" aria-label="{% trans 'Fermer' %}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="modal-form-fullscreen" id="formMatiereClasse">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="creer_matiere_pour_classe">
+                <input type="hidden" name="classe_id" id="modal_matiere_classe_id" value="{{ matiere_modal.classe_id }}">
+                <p class="modal-matiere-classe-cible" id="modal_matiere_classe_label"></p>
+                {% if matiere_modal.errors %}
+                <div class="alert alert-error">
+                    {% for key, msg in matiere_modal.errors.items %}<div>{{ msg }}</div>{% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <label class="form-label" for="nom_matiere_modal">{% trans "Nom de la matière *" %}</label>
+                    <input type="text" class="form-control {% if matiere_modal.errors.nom_matiere %}is-invalid{% endif %}" id="nom_matiere_modal" name="nom_matiere" value="{{ matiere_modal.nom }}" required maxlength="100" placeholder="{% trans "Ex: Mathématiques, Français" %}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="coefficient_matiere_modal">{% trans "Coefficient *" %}</label>
+                    <input type="number" class="form-control {% if matiere_modal.errors.coefficient_matiere %}is-invalid{% endif %}" id="coefficient_matiere_modal" name="coefficient_matiere" value="{{ matiere_modal.coefficient|default:'1.0' }}" min="0" max="10" step="0.1" required>
+                    <small class="form-hint">{% trans "Entre 0 et 10 (une décimale)." %}</small>
+                </div>
+                <div class="modal-actions-fullscreen">
+                    <button type="button" class="btn-cancel" id="cancelModalMatiereClasse">{% trans "Annuler" %}</button>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-save"></i> {% trans "Enregistrer" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal plein écran - Modifier le module -->
+    <div class="modal-overlay-fullscreen" id="modalModifierModule">
+        <div class="modal-container-fullscreen" style="max-width: 700px;">
+            <div class="modal-header-fullscreen">
+                <h2 class="modal-title-fullscreen">
+                    <i class="fas fa-edit"></i>
+                    {% trans "Modifier le module" %}
+                </h2>
+                <button type="button" class="modal-close-fullscreen" id="closeModalModifier" aria-label="{% trans 'Fermer' %}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="modal-form-fullscreen">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="modifier_module">
+
+                {% if field_errors %}
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {% for err in field_errors.values %}{{ err }}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label class="form-label" for="nom_modal">{% trans "Nom *" %}</label>
+                    <input type="text" class="form-control {% if field_errors.nom %}is-invalid{% endif %}"
+                           id="nom_modal" name="nom" value="{{ form_data.nom }}" required>
+                    {% if field_errors.nom %}<div class="invalid-feedback">{{ field_errors.nom }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="department_modal">{% trans "Filière" %}</label>
+                    <select class="form-control" id="department_modal" name="department">
+                        <option value="">{% trans "Toutes filières" %}</option>
+                        {% for dep in departments %}
+                            <option value="{{ dep.id }}" {% if form_data.department == dep.id %}selected{% endif %}>{{ dep.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if groupes_classes %}
+                <section class="module-add-niveaux-section module-edit-niveaux-section" id="edit-niveaux-container">
+                    <h3 class="module-add-section-title">
+                        <i class="fas fa-layer-group"></i> {% trans "Niveaux, classes et paramètres UE" %}
+                    </h3>
+                    <p class="module-add-hint module-add-hint-block">
+                        {% trans "Activez un niveau pour gérer ses classes. N° UE, période et crédits sont facultatifs pour chaque classe." %}
+                    </p>
+                    <div class="module-add-niveaux-grid module-edit-niveaux-grid">
+                        {% for niveau, classes_list in groupes_classes.items %}
+                        <article class="niveau-card module-edit-niveau-card" data-niveau="{{ niveau }}">
+                            <header class="niveau-card-header module-edit-niveau-header" role="button" tabindex="0">
+                                <div class="niveau-header-main">
+                                    <span class="niveau-badge">{{ niveau|libelle_niveau_lmd_key }}</span>
+                                    <span class="niveau-count">({{ classes_list|length }} classe{{ classes_list|length|pluralize }})</span>
+                                </div>
+                                <span class="niveau-action-hint">{% trans "Cliquer pour afficher les classes" %}</span>
+                            </header>
+                            <div class="niveau-credits-block module-edit-niveau-body" style="display:none;">
+                                {% for classe in classes_list %}
+                                <div class="module-edit-classe-row" data-classe-id="{{ classe.id }}">
+                                    <label class="module-edit-classe-checkbox">
+                                        <input type="checkbox"
+                                               name="classes_ids"
+                                               value="{{ classe.id }}"
+                                               class="classe-module-checkbox module-edit-classe-toggle"
+                                               data-niveau="{{ niveau }}"
+                                               data-classe-id="{{ classe.id }}"
+                                               {% if classe.id|stringformat:"s" in form_data.classes_ids %}checked{% endif %}>
+                                        <span class="module-edit-classe-name">{{ classe.nom }}</span>
+                                    </label>
+                                    <div class="module-edit-classe-fields" style="display:none;">
+                                        <div class="module-edit-field">
+                                            <label class="credits-sublabel" for="numero_classe_{{ classe.id }}">{% trans "N° UE" %}</label>
+                                            <input type="text"
+                                                   name="numero_{{ classe.id }}"
+                                                   id="numero_classe_{{ classe.id }}"
+                                                   class="form-control numero-classe-input"
+                                                   maxlength="80"
+                                                   value="{{ form_data.numeros_per_classe|dict_get:classe.id }}"
+                                                   placeholder="{% trans 'Ex. UE3.1.1' %}"
+                                                   autocomplete="off">
+                                        </div>
+                                        <div class="module-edit-field">
+                                            <label class="credits-sublabel" for="periode_classe_{{ classe.id }}">{% trans "Période" %}</label>
+                                            <select
+                                                name="periode_{{ classe.id }}"
+                                                id="periode_classe_{{ classe.id }}"
+                                                class="form-control periode-classe-input">
+                                                <option value="">{% trans "Sélectionnez une période" %}</option>
+                                                {% with periodes_niveau=periodes_par_niveau_edit|dict_get:niveau %}
+                                                    {% for p in periodes_niveau %}
+                                                    <option value="{{ p.id }}" {% if form_data.periodes_per_classe|dict_get:classe.id == p.id|stringformat:"s" %}selected{% endif %}>
+                                                        {{ p.nom_periode }}
+                                                    </option>
+                                                    {% endfor %}
+                                                {% endwith %}
+                                            </select>
+                                        </div>
+                                        <div class="module-edit-field">
+                                            <label class="credits-sublabel" for="credits_classe_{{ classe.id }}">{% trans "Crédits" %}</label>
+                                            <input type="number"
+                                                   name="credits_{{ classe.id }}"
+                                                   id="credits_classe_{{ classe.id }}"
+                                                   class="form-control credits-classe-input"
+                                                   value="{{ form_data.credits_per_classe|dict_get:classe.id|credits_input_display|default:'0' }}"
+                                                   min="0"
+                                                   step="0.5"
+                                                   placeholder="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+                {% if field_errors.periodes_per_classe %}
+                    <div class="invalid-feedback" style="display:block; margin-top:0.5rem;">{{ field_errors.periodes_per_classe }}</div>
+                {% endif %}
+                <div class="modal-actions-fullscreen">
+                    <button type="button" class="btn-cancel" id="cancelModalModifier">{% trans "Annuler" %}</button>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-save"></i> {% trans "Enregistrer" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var modalModifier = document.getElementById('modalModifierModule');
+            var btnModifier = document.getElementById('btnModifierModule');
+            var closeBtn = document.getElementById('closeModalModifier');
+            var cancelBtn = document.getElementById('cancelModalModifier');
+
+            function openModal() {
+                if (modalModifier) {
+                    modalModifier.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+            function closeModal() {
+                if (modalModifier) {
+                    modalModifier.classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                }
+            }
+
+            if (btnModifier) btnModifier.addEventListener('click', openModal);
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+            if (modalModifier) {
+                modalModifier.addEventListener('click', function(e) {
+                    if (e.target === modalModifier) closeModal();
+                });
+            }
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalModifier && modalModifier.classList.contains('active')) closeModal();
+            });
+
+            {% if open_modal_modifier %}
+            openModal();
+            {% endif %}
+
+            var modalMatiere = document.getElementById('modalMatiereClasse');
+            var formMatiereClasse = document.getElementById('formMatiereClasse');
+            var inputClasseIdMatiere = document.getElementById('modal_matiere_classe_id');
+            var labelClasseMatiere = document.getElementById('modal_matiere_classe_label');
+            function openModalMatiere(classeId, classeNom) {
+                if (!modalMatiere) return;
+                if (inputClasseIdMatiere) inputClasseIdMatiere.value = classeId || '';
+                if (labelClasseMatiere) {
+                    labelClasseMatiere.textContent = classeNom
+                        ? '{% trans "Classe :" %} ' + classeNom
+                        : '';
+                }
+                modalMatiere.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeModalMatiere() {
+                if (!modalMatiere) return;
+                modalMatiere.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+            document.querySelectorAll('.btn-open-modal-matiere').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    openModalMatiere(this.getAttribute('data-classe-id'), this.getAttribute('data-classe-nom'));
+                });
+            });
+            var closeMc = document.getElementById('closeModalMatiereClasse');
+            var cancelMc = document.getElementById('cancelModalMatiereClasse');
+            if (closeMc) closeMc.addEventListener('click', closeModalMatiere);
+            if (cancelMc) cancelMc.addEventListener('click', closeModalMatiere);
+            if (modalMatiere) {
+                modalMatiere.addEventListener('click', function(e) {
+                    if (e.target === modalMatiere) closeModalMatiere();
+                });
+            }
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalMatiere && modalMatiere.classList.contains('active')) closeModalMatiere();
+            });
+            {% if matiere_modal.errors %}
+            openModalMatiere('{{ matiere_modal.classe_id }}', '{{ matiere_modal.classe_nom|default:""|escapejs }}');
+            {% endif %}
+
+            function toggleClasseFields(classeRow, isChecked) {
+                if (!classeRow) return;
+                var fields = classeRow.querySelector('.module-edit-classe-fields');
+                if (!fields) return;
+                fields.style.display = isChecked ? 'grid' : 'none';
+                var creditsInput = fields.querySelector('.credits-classe-input');
+                var periodeInput = fields.querySelector('.periode-classe-input');
+                if (periodeInput && !isChecked) {
+                    periodeInput.value = '';
+                }
+            }
+
+            function toggleNiveauCardBody(card, show) {
+                if (!card) return;
+                var body = card.querySelector('.module-edit-niveau-body');
+                if (!body) return;
+                body.style.display = show ? 'block' : 'none';
+                card.classList.toggle('niveau-selected', !!show);
+            }
+
+            document.querySelectorAll('#modalModifierModule .module-edit-niveau-card').forEach(function(card) {
+                var header = card.querySelector('.module-edit-niveau-header');
+                var body = card.querySelector('.module-edit-niveau-body');
+                var checkboxes = card.querySelectorAll('.module-edit-classe-toggle');
+                var hasChecked = Array.from(checkboxes).some(function(cb) { return cb.checked; });
+                if (hasChecked) {
+                    toggleNiveauCardBody(card, true);
+                }
+
+                checkboxes.forEach(function(cb) {
+                    var row = cb.closest('.module-edit-classe-row');
+                    toggleClasseFields(row, cb.checked);
+                    cb.addEventListener('change', function() {
+                        toggleClasseFields(row, cb.checked);
+                    });
+                });
+
+                if (header) {
+                    header.addEventListener('click', function() {
+                        var currentlyOpen = body && body.style.display !== 'none';
+                        toggleNiveauCardBody(card, !currentlyOpen);
+                    });
+                    header.addEventListener('keydown', function(ev) {
+                        if (ev.key === 'Enter' || ev.key === ' ') {
+                            ev.preventDefault();
+                            header.click();
+                        }
+                    });
+                }
+            });
+
+        });
+    </script>
+    <style>
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .module-detail-card-header h2 {
+            margin: 0;
+            font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+            font-weight: 700;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .module-detail-card-header h2 i { color: #3b82f6; }
+        .module-detail-card-sub {
+            margin: 0.4rem 0 0;
+            font-size: 0.8125rem;
+            line-height: 1.45;
+            color: #6b7280;
+        }
+
+        .module-detail-stat-card,
+        .module-detail-synthese-card {
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        .module-detail-stat-card .form-header,
+        .module-detail-synthese-card .form-header {
+            background: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem 1.15rem;
+        }
+        .module-detail-stat-content,
+        .module-synthese-content {
+            padding: 1.1rem 1.15rem 1.2rem;
+            background: #fff;
+        }
+        .module-detail-synthese-card { margin-top: 1.5rem; }
+
+        .module-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+            gap: 0.85rem;
+        }
+        .module-stat-tile {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.9rem 1rem;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .module-stat-tile:hover {
+            border-color: #bfdbfe;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+        }
+        .module-stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .module-stat-icon--blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .module-stat-icon--violet { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .module-stat-icon--teal { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+        .module-stat-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+        .module-stat-value {
+            font-size: clamp(1.35rem, 3vw, 1.6rem);
+            font-weight: 800;
+            color: #111827;
+            line-height: 1.15;
+        }
+        .module-stat-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .module-synthese-alert {
+            margin-bottom: 1rem;
+            border-radius: 12px;
+        }
+        .module-synthese-alert-hint { margin-bottom: 0; font-size: 0.78rem; }
+
+        .module-matieres-table-wrap {
+            position: relative;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .module-matieres-table-wrap::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 28px;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(to left, rgba(0,0,0,0.06), transparent);
+            opacity: 0;
+        }
+        @media (max-width: 900px) {
+            .module-matieres-table-wrap::after { opacity: 1; }
+        }
+
+        .module-matieres-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1rem;
+            line-height: 1.45;
+        }
+        .module-matieres-table thead th {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.65rem 0.85rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .module-matieres-table thead th.col-num { text-align: center; }
+        .module-matieres-table thead th.col-actions { text-align: center; width: 88px; }
+        .module-matieres-table tbody td {
+            padding: 0.7rem 0.85rem;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+        .module-matieres-table tbody tr:last-child td { border-bottom: none; }
+        .module-matieres-table tbody tr:nth-child(even) { background: #fafafa; }
+        .module-matieres-table tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
+        .module-matieres-table .col-matiere { min-width: 140px; text-align: left; }
+        .module-matiere-name { font-weight: 600; color: #1f2937; }
+        .module-matieres-table .col-num {
+            min-width: 88px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .module-matieres-table .col-classes { min-width: 120px; text-align: left; }
+        .module-classes-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        .module-classe-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.12);
+            color: #1d4ed8;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+        .module-classes-all {
+            font-size: 0.8125rem;
+            font-style: italic;
+            color: #6b7280;
+        }
+        .module-matieres-table .col-actions { text-align: center; width: 88px; }
+        .module-matiere-retirer-form { display: inline; margin: 0; }
+        .module-btn-retirer {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid #fecaca;
+            background: #fff;
+            color: #dc2626;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .module-btn-retirer:hover {
+            background: #fef2f2;
+            border-color: #f87171;
+        }
+
+        @media (max-width: 768px) {
+            .module-matieres-table { font-size: 0.8125rem; }
+            .module-matieres-table thead { display: none; }
+            .module-matieres-table tbody tr {
+                display: block;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 0.65rem 0.75rem;
+            }
+            .module-matieres-table tbody tr:nth-child(even) { background: #fff; }
+            .module-matieres-table tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.45rem 0;
+                border: none;
+                text-align: right;
+            }
+            .module-matieres-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 700;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                color: #6b7280;
+                text-align: left;
+                flex-shrink: 0;
+            }
+            .module-matieres-table .col-num { justify-content: space-between; }
+            .module-matieres-table .col-actions { justify-content: flex-end; }
+            .module-matieres-table .col-actions::before { content: none; }
+        }
+
+        .module-synthese-empty {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px dashed #d1d5db;
+        }
+
+        .modules-detail-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        .btn-add.btn-danger { background: #ef4444; color: white; border-color: #ef4444; }
+        .btn-add.btn-danger:hover { background: #dc2626; border-color: #dc2626; }
+        .empty-state-text { color: #6b7280; font-style: italic; }
+        .form-header-hint { margin: 0.35rem 0 0; font-size: 0.85rem; color: #6b7280; font-weight: 400; }
+        .classes-module-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+            gap: 1rem;
+        }
+        .classe-module-mini-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .mini-card-top { padding: 1rem; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #fff; }
+        .mini-card-title-row { display: flex; align-items: flex-start; gap: 0.75rem; }
+        .mini-card-title-row > i { margin-top: 0.2rem; opacity: 0.9; }
+        .mini-card-titles { flex: 1; min-width: 0; }
+        .mini-card-classe-nom { display: block; font-size: 1.05rem; color: #fff; }
+        .mini-card-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+        .mini-card-top .classe-niveau-badge { background: rgba(255,255,255,0.25); color: #fff; }
+        .mini-card-top .classe-credits-badge { background: rgba(255,255,255,0.35); color: #fff; }
+        .mini-card-eye { flex-shrink: 0; background: rgba(255,255,255,0.2) !important; color: #fff !important; border: none; }
+        .mini-card-matieres { padding: 0.85rem 1rem; flex: 1; border-bottom: 1px solid #e5e7eb; }
+        .mini-card-section-label { display: block; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.5rem; }
+        .mini-card-matieres-list { list-style: none; margin: 0; padding: 0; }
+        .mini-card-matiere-item {
+            display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+            padding: 0.45rem 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem;
+        }
+        .mini-card-matiere-item:last-child { border-bottom: none; }
+        .mini-card-matiere-item .matiere-nom { flex: 1; min-width: 0; font-weight: 500; }
+        .mini-card-matiere-item .matiere-credits { color: #6b7280; font-size: 0.85rem; }
+        .mini-card-matiere-item.matiere-commune { background: #f0f9ff; margin: 0 -0.5rem; padding-left: 0.5rem; padding-right: 0.5rem; border-radius: 6px; border-bottom: none; }
+        .badge-commune { font-size: 0.7rem; padding: 0.15rem 0.4rem; background: #dbeafe; color: #1d4ed8; border-radius: 4px; }
+        .btn-tiny { padding: 0.2rem 0.4rem !important; font-size: 0.75rem; }
+        .mini-card-empty-matieres { font-size: 0.85rem; color: #9ca3af; margin: 0; font-style: italic; }
+        .mini-card-add { padding: 0.75rem 1rem; background: #f9fafb; }
+        .btn-open-modal-matiere {
+            width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.6rem 1rem; border: 1px dashed #3b82f6; background: #fff; color: #2563eb;
+            border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
+        }
+        .btn-open-modal-matiere:hover { background: #eff6ff; }
+        .modal-matiere-classe-box { max-width: 480px; }
+        .modal-matiere-classe-cible { font-size: 0.95rem; color: #374151; margin: 0 0 1rem; font-weight: 500; }
+        .alert-matieres-communes { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem; }
+        .alert-matieres-communes ul { margin: 0.35rem 0 0 1.25rem; padding: 0; }
+        .classe-module-item-display {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.75rem 1rem; background: var(--gray-50); border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+        .classe-module-item-display i.fa-chalkboard { color: var(--primary-color); }
+        .classe-module-item-display span:first-of-type { flex: 1; font-weight: 500; }
+        .classe-niveau-badge {
+            font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px;
+            background: var(--gray-200); color: var(--gray-700);
+        }
+        .classe-credits-badge {
+            font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px;
+            background: var(--primary-color); color: white;
+        }
+        .credits-classe-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+        .credits-classe-label { flex: 1; font-weight: 500; }
+        /* Champs UE / période / crédits : pleine largeur (cf. modules_ajout_modal.css colonne) */
+        #modalModifierModule .module-edit-classe-fields .credits-classe-input {
+            max-width: 100%;
+        }
+    </style>
+</body>
+</html>

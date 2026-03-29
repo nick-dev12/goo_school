@@ -161,3 +161,44 @@ def session_directeur(request) -> Dict:
         'annee_scolaire_reellement_active': SimpleLazyObject(_get_session_active),
         'toutes_annees_scolaires': SimpleLazyObject(_get_toutes_sessions),
     }
+
+
+TYPES_ETABLISSEMENT_SUPERIEUR = ['superieur']
+
+
+def etablissement_type(request) -> Dict:
+    """
+    Retourne est_superieur et les libellés adaptés (élève/étudiant, directeur/doyen)
+    pour l'adaptation automatique de l'interface selon le type d'établissement.
+    """
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
+        return {
+            'est_superieur': False,
+            'libelle_eleve': 'Élève',
+            'libelle_eleves': 'Élèves',
+            'titre_direction': 'Directeur',
+        }
+
+    etablissement = None
+    if hasattr(user, 'type_etablissement'):
+        etablissement = user
+    elif hasattr(user, 'etablissement'):
+        etablissement = getattr(user, 'etablissement', None)
+
+    if not etablissement:
+        return {
+            'est_superieur': False,
+            'libelle_eleve': 'Élève',
+            'libelle_eleves': 'Élèves',
+            'titre_direction': 'Directeur',
+        }
+
+    est_superieur = getattr(etablissement, 'type_etablissement', None) in TYPES_ETABLISSEMENT_SUPERIEUR
+
+    return {
+        'est_superieur': est_superieur,
+        'libelle_eleve': 'Étudiant' if est_superieur else 'Élève',
+        'libelle_eleves': 'Étudiants' if est_superieur else 'Élèves',
+        'titre_direction': 'Doyen' if est_superieur else 'Directeur',
+    }

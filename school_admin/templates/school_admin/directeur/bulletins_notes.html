@@ -12,7 +12,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletins_notes.css' %}?v=1.2.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletins_notes.css' %}?v=1.3.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
   </head>
   <body>
@@ -21,7 +21,7 @@
     <div class="container">
       {% include 'school_admin/partials/messages.html' %}
 
-      {% if periodes_nav %}
+      {% if periodes_nav and not est_superieur %}
         <div class="period-tabs">
           {% for periode in periodes_nav %}
             <a href="{% url 'directeur:bulletins_notes' %}?periode={{ periode.id }}" class="period-tab{% if periode.est_active %} active{% endif %}">
@@ -117,7 +117,7 @@
               <div class="classes-subtabs">
                 {% for classe_data in data.classes %}
                   <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}" data-subtab="classe-{{ classe_data.classe.id }}" onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                    <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                    <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                     <span class="classe-count">{{ classe_data.bulletins.eleves_total }} élève{{ classe_data.bulletins.eleves_total|pluralize }}</span>
                   </button>
                 {% endfor %}
@@ -125,11 +125,32 @@
 
               {% for classe_data in data.classes %}
                 <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                  {% if est_superieur %}
+                  <div class="period-tabs period-tabs--classe" aria-label="{% trans 'Semestre pour cette classe' %}">
+                    {% if classe_data.periodes_nav %}
+                      {% for item in classe_data.periodes_nav %}
+                        <a href="{{ request.path }}?{{ item.query }}" class="period-tab{% if item.active %} active{% endif %}">
+                          <span class="period-name">{{ item.periode.libelle_affichage_superieur }}</span>
+                          <span class="period-meta">{{ item.periode.annee_scolaire }}</span>
+                          <span class="period-status-chip period-status-{{ item.periode.statut_periode }}">
+                            {% if item.periode.statut_periode == 'en_cours' %}En cours{% elif item.periode.statut_periode == 'a_venir' %}À venir{% else %}Terminée{% endif %}
+                          </span>
+                        </a>
+                      {% endfor %}
+                    {% else %}
+                      <p class="period-tabs-empty-msg"><i class="fas fa-calendar-xmark"></i> {% trans "Aucune période ne correspond au niveau de cette classe pour l'année active." %}</p>
+                    {% endif %}
+                  </div>
+                  {% endif %}
                   <div class="class-header">
                     <div class="class-info">
                       <h2 class="class-title">
                         <i class="fas fa-school"></i>
-                        {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                        {% if est_superieur %}
+                          {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                        {% else %}
+                          {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                        {% endif %}
                       </h2>
                       <p class="class-description">{% trans "Gestion des bulletins et validations pour cette classe." %}</p>
                     </div>
@@ -166,13 +187,9 @@
                   </div>
 
                   <div class="bulletin-actions">
-                    <a href="{% url 'directeur:calculer_moyennes_periode' classe_data.classe.id %}{% if periode_active %}?periode={{ periode_active.id }}&classe_id={{ classe_data.classe.id }}{% else %}?classe_id={{ classe_data.classe.id }}{% endif %}" class="btn-primary">
+                    <a href="{% url 'directeur:calculer_moyennes_periode' classe_data.classe.id %}{% if classe_data.periode_courante %}?periode={{ classe_data.periode_courante.id }}&classe_id={{ classe_data.classe.id }}{% else %}?classe_id={{ classe_data.classe.id }}{% endif %}" class="btn-primary">
                       <i class="fas fa-calculator"></i>
-                      {% trans "Calculer les moyennes de la période" %}
-                    </a>
-                    <a href="{% url 'directeur:calculer_moyenne_annuelle' classe_data.classe.id %}{% if periode_active %}?periode={{ periode_active.id }}&classe_id={{ classe_data.classe.id }}{% else %}?classe_id={{ classe_data.classe.id }}{% endif %}" class="btn-primary">
-                      <i class="fas fa-chart-line"></i>
-                      {% trans "Calculer la moyenne de l'année" %}
+                      {{ classe_data.label_btn_calcul_moyenne }}
                     </a>
                     <button
                       type="submit"
@@ -188,7 +205,7 @@
                           Publier les bulletins
                         {% endif %}
                       </button>
-                    <a href="{% url 'directeur:imprimer_bulletins_classe' classe_data.classe.id %}" class="btn-outline" target="_blank">
+                    <a href="{% url 'directeur:imprimer_bulletins_classe' classe_data.classe.id %}{% if classe_data.periode_courante %}?periode={{ classe_data.periode_courante.id }}{% endif %}" class="btn-outline" target="_blank" rel="noopener">
                       <i class="fas fa-file-alt"></i>
                       {% trans "Imprimer tous les bulletins" %}
                     </a>
@@ -210,8 +227,8 @@
                         class="students-visibility-form"
                       >
                         {% csrf_token %}
-                        {% if periode_active %}
-                          <input type="hidden" name="periode" value="{{ periode_active.id }}" />
+                        {% if classe_data.periode_courante %}
+                          <input type="hidden" name="periode" value="{{ classe_data.periode_courante.id }}" />
                         {% endif %}
                         <input type="hidden" name="visibility_form_submitted" value="1" />
 

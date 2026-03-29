@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}?v=1.2.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
 <body>
@@ -63,8 +63,8 @@
         </div>
         {% endif %}
 
-        {% if periodes %}
-        <div class="periodes-tabs-container">
+        {% if periodes and not est_superieur %}
+        <div class="periodes-tabs-container" aria-label="{% trans 'Période scolaire (toutes les classes)' %}">
             {% for periode in periodes %}
                 {% if periode_selectionnee and periode.id == periode_selectionnee.id %}
                     <a class="periode-tab active" href="?periode={{ periode.id }}">
@@ -108,7 +108,7 @@
                         {% for classe_data in data.classes %}
                             <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
                                     onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                                <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                                 <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                             </button>
                         {% endfor %}
@@ -117,13 +117,35 @@
                     <!-- Contenu des sous-onglets (classes) -->
                     {% for classe_data in data.classes %}
                         <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
-                            
+                            {% if est_superieur %}
+                            <div class="periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre pour cette classe' %}">
+                                {% if classe_data.periodes_nav %}
+                                    {% for item in classe_data.periodes_nav %}
+                                        <a class="periode-tab {% if item.active %}active{% endif %}"
+                                           href="{{ request.path }}?{{ item.query }}">
+                                            <span class="periode-nom">{{ item.periode.libelle_affichage_superieur }}</span>
+                                            <span class="periode-annee">{{ item.periode.annee_scolaire }}</span>
+                                        </a>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="periodes-classe-empty">
+                                        <i class="fas fa-calendar-xmark"></i>
+                                        {% trans "Aucune période ne correspond au niveau de cette classe pour l'année active." %}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
                             <!-- En-tête de la classe -->
                             <div class="class-header">
                                 <div class="class-header-info">
                                     <h2 class="class-title">
                                         <i class="fas fa-chalkboard"></i>
-                                        {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                        {% if est_superieur %}
+                                          {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                                        {% else %}
+                                          {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                        {% endif %}
                                     </h2>
                                     <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
                                 </div>
@@ -218,8 +240,9 @@
                                                             <div class="matiere-header-content">
                                                                 <span class="matiere-nom">{{ matiere }}</span>
                                                                 <button class="btn-details-matiere" 
+                                                                        data-matiere-id=""
                                                                         data-periode-id="{{ classe_data.periode_id|default_if_none:'' }}"
-                                                                        onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere|escapejs }}', event)"
+                                                                        onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere|escapejs }}', event, null)"
                                                                         title="{% trans "Voir les détails des notes" %}">
                                                                     <i class="fas fa-eye"></i> {% trans "Détails" %}
                                                                 </button>
@@ -410,8 +433,9 @@
                                                         <div class="matiere-header-content">
                                                             <span class="matiere-nom">{{ matiere.nom }}</span>
                                                             <button class="btn-details-matiere" 
+                                                                    data-matiere-id="{{ matiere.id }}"
                                                                     data-periode-id="{{ classe_data.periode_id|default_if_none:'' }}"
-                                                                    onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere.nom|escapejs }}', event)"
+                                                                    onclick="ouvrirDetailsMatiere('{{ classe_data.classe.id }}', '{{ matiere.nom|escapejs }}', event, '{{ matiere.id }}')"
                                                                     title="{% trans "Voir les détails des notes" %}">
                                                                 <i class="fas fa-eye"></i> {% trans "Détails" %}
                                                             </button>
@@ -545,6 +569,15 @@
                     <i class="fas fa-chart-bar"></i>
                     <span id="modal-matiere-nom"></span>
                 </h3>
+                <button
+                    id="btn-debloquer-releve"
+                    type="button"
+                    class="btn btn-outline"
+                    style="margin-left: auto; margin-right: 0.75rem;"
+                    onclick="debloquerReleveMatiere()"
+                    title="{% trans 'Débloquer la soumission du relevé pour permettre de nouvelles modifications' %}">
+                    <i class="fas fa-unlock"></i> {% trans "Débloquer le relevé" %}
+                </button>
                 <button class="btn-close-modal" onclick="fermerDetailsMatiere()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -560,6 +593,28 @@
 
     <script>
         const periodeSelectionneeId = "{{ periode_selectionnee.id|default:'' }}";
+        const estSuperieur = {{ est_superieur|yesno:"true,false" }};
+        let detailsMatiereContext = {
+            classeId: null,
+            matiereId: null,
+            matiereNom: null,
+            periodeId: null,
+            estPrimaire: true,
+            apiUrl: null
+        };
+
+        function getCsrfToken() {
+            const name = 'csrftoken=';
+            const decodedCookie = decodeURIComponent(document.cookie || '');
+            const cookies = decodedCookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let c = cookies[i].trim();
+                if (c.indexOf(name) === 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return '';
+        }
         // Gestion des onglets principaux (niveaux)
         function switchMainTab(tabId) {
             document.querySelectorAll('.tab-content-panel').forEach(panel => {
@@ -611,7 +666,7 @@
         }
 
         // Ouvrir la modale de détails de matière
-        function ouvrirDetailsMatiere(classeId, matiereNom, event) {
+        function ouvrirDetailsMatiere(classeId, matiereNom, event, matiereId = null) {
             event.preventDefault();
             event.stopPropagation();
             
@@ -643,14 +698,38 @@
                 }
                 apiUrl = `/api/details-notes-matiere/?classe_id=${classeId}&matiere_nom=${encodeURIComponent(matiereNom)}&periode_id=${periodeId}`;
             } else {
-                // API secondaire (utilise la période active automatiquement)
+                // API secondaire / supérieur (période obligatoire pour le supérieur : onglet semestre)
                 const periodeId = trigger.dataset.periodeId || periodeSelectionneeId;
+                if (estSuperieur && !periodeId) {
+                    modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> {% trans "Période non indiquée : sélectionnez un semestre pour cette classe." %}</div>';
+                    return;
+                }
                 apiUrl = `/api/details-notes-matiere-secondaire/?classe_id=${classeId}&matiere_nom=${encodeURIComponent(matiereNom)}`;
                 if (periodeId) {
                     apiUrl += `&periode_id=${periodeId}`;
                 }
             }
-            
+
+            const periodMatch = apiUrl.match(/[?&]periode_id=([^&]+)/);
+            detailsMatiereContext = {
+                classeId: String(classeId),
+                matiereId: matiereId ? String(matiereId) : (trigger.dataset.matiereId || null),
+                matiereNom: matiereNom,
+                periodeId: periodMatch ? decodeURIComponent(periodMatch[1]) : null,
+                estPrimaire: estPrimaire,
+                apiUrl: apiUrl
+            };
+
+            const unlockBtn = document.getElementById('btn-debloquer-releve');
+            if (unlockBtn) {
+                unlockBtn.disabled = !detailsMatiereContext.periodeId;
+            }
+
+            chargerDetailsMatiere(apiUrl, estPrimaire);
+        }
+
+        function chargerDetailsMatiere(apiUrl, estPrimaire) {
+            const modalBody = document.getElementById('modal-body-content');
             fetch(apiUrl, {
                 method: 'GET',
                 headers: {
@@ -669,6 +748,58 @@
             .catch(error => {
                 console.error('Erreur:', error);
                 modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Erreur de connexion au serveur</div>';
+            });
+        }
+
+        function debloquerReleveMatiere() {
+            const ctx = detailsMatiereContext || {};
+            const modalBody = document.getElementById('modal-body-content');
+            const btn = document.getElementById('btn-debloquer-releve');
+
+            if (!ctx.classeId || !ctx.matiereNom || !ctx.periodeId) {
+                modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Informations insuffisantes pour débloquer ce relevé.</div>';
+                return;
+            }
+
+            const confirmMsg = `Confirmer le déblocage du relevé pour "${ctx.matiereNom}" ?\nLe professeur pourra modifier à nouveau les notes et soumettre de nouveau.`;
+            if (!window.confirm(confirmMsg)) {
+                return;
+            }
+
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% trans "Déblocage..." %}';
+
+            fetch("{% url 'directeur:api_debloquer_releve_matiere' %}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    classe_id: ctx.classeId,
+                    matiere_id: ctx.matiereId,
+                    matiere_nom: ctx.matiereNom,
+                    periode_id: ctx.periodeId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Erreur inconnue');
+                }
+                alert(data.message || 'Déblocage effectué avec succès.');
+                if (ctx.apiUrl) {
+                    chargerDetailsMatiere(ctx.apiUrl, !!ctx.estPrimaire);
+                }
+            })
+            .catch(error => {
+                alert(`Erreur: ${error.message}`);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
             });
         }
 

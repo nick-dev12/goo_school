@@ -116,7 +116,7 @@
                                 <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
                                         data-subtab="classe-{{ classe_data.classe.id }}"
                                         onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                                    <span class="classe-name">{{ classe_data.classe.nom }}</span>
+                                    <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                                     <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                                 </button>
                             {% endfor %}
@@ -130,7 +130,11 @@
                             <div class="class-info">
                                 <h2 class="class-title">
                                     <i class="fas fa-chalkboard"></i>
+                                    {% if est_superieur %}
+                                    {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                                    {% else %}
                                     {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                    {% endif %}
                                 </h2>
                                 <p class="class-description">{{ classe_data.classe.description|default:"Aucune description" }}</p>
                             </div>

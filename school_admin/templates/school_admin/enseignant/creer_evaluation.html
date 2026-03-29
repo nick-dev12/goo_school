@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.2">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -57,6 +57,7 @@
                 <p class="page-subtitle">
                     {{ classe.nom }} - {{ matiere.nom }}
                 </p>
+                <p class="enseignant-classe-niveau creer-eval-niveau"><i class="fas fa-layer-group" aria-hidden="true"></i>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</p>
             </div>
         </div>
 
@@ -65,6 +66,10 @@
             <div class="info-item">
                 <i class="fas fa-chalkboard"></i>
                 <span><strong>Classe :</strong> {{ classe.nom }}</span>
+            </div>
+            <div class="info-item info-item-niveau">
+                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                <span><strong>Niveau :</strong> {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</span>
             </div>
             <div class="info-item">
                 <i class="fas fa-book"></i>
@@ -193,22 +198,59 @@
                             <label for="periode_scolaire">
                                 <i class="fas fa-calendar-alt"></i>
                                 Période scolaire
+                                {% if periode_verrouillee_sup %}<span class="badge-periode-verrouillee" title="Déterminée par le module">Fixée</span>{% endif %}
                             </label>
+                            {% if periode_verrouillee_sup %}
+                                {% if periode_fixe_sup %}
+                                    <input type="hidden" name="periode_scolaire" value="{{ periode_fixe_sup.id }}">
+                                    <select id="periode_scolaire"
+                                            class="readonly-field periode-select-verrouillee"
+                                            disabled
+                                            aria-readonly="true"
+                                            title="Période imposée par le module pour cette classe">
+                                        {% for periode in periodes_scolaires %}
+                                        <option value="{{ periode.id }}"
+                                                {% if form_data.periode_scolaire|stringformat:"s" == periode.id|stringformat:"s" or periode_fixe_sup.id == periode.id %}selected{% endif %}>
+                                            {{ periode.libelle_affichage_superieur }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})
+                                            {% if periode.est_en_cours %} — En cours{% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="help-text help-text-periode-verrouillee">
+                                        <i class="fas fa-lock"></i>
+                                        Période rattachée au module de cette matière pour cette classe — non modifiable.
+                                    </div>
+                                {% else %}
+                                    <select id="periode_scolaire"
+                                            class="readonly-field periode-select-verrouillee periode-select-indisponible"
+                                            disabled
+                                            aria-readonly="true">
+                                        <option value="">— Période non disponible —</option>
+                                    </select>
+                                    {% if avertissement_periode_sup %}
+                                    <p class="help-text help-text-periode-avertissement" role="alert">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {{ avertissement_periode_sup }}
+                                    </p>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
                             <select id="periode_scolaire" name="periode_scolaire">
                                 <option value="">-- Sélectionner une période --</option>
                                 {% for periode in periodes_scolaires %}
                                     <option value="{{ periode.id }}" 
                                             {% if form_data.periode_scolaire|stringformat:"s" == periode.id|stringformat:"s" %}selected{% endif %}>
-                                        {{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})
+                                        {{ periode.libelle_affichage_superieur }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})
                                         {% if periode.est_en_cours %} - En cours{% endif %}
                                     </option>
                                 {% endfor %}
                             </select>
                             <div class="help-text">Recommandé : sélectionnez la période en cours.</div>
+                            {% endif %}
                             {% if errors.periode_scolaire %}
                                 <span class="error-message">{{ errors.periode_scolaire }}</span>
                             {% endif %}
-                            {% if not periodes_scolaires %}
+                            {% if not periode_verrouillee_sup and not periodes_scolaires %}
                                 <p class="help-text" style="color: #f39c12; margin-top: 0.5rem;">
                                     <i class="fas fa-exclamation-triangle"></i>
                                     Aucune période scolaire définie. Contactez l'administration.
@@ -238,6 +280,10 @@
                 <div class="summary-item">
                     <i class="fas fa-chalkboard"></i>
                     <span>{{ classe.nom }}</span>
+                </div>
+                <div class="summary-item summary-item-niveau">
+                    <i class="fas fa-layer-group" aria-hidden="true"></i>
+                    <span class="summary-niveau-text">{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</span>
                 </div>
                 <div class="summary-item">
                     <i class="fas fa-book-open"></i>

@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_eleves.css' %}?v=1.0.3">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_eleves.css' %}?v=1.0.4">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -73,6 +73,7 @@
                 <p class="page-subtitle">
                     {{ classe.nom }} - {{ matiere.nom }} - {{ eleves.count }} élève{{ eleves.count|pluralize }}
                 </p>
+                <p class="enseignant-classe-niveau noter-eleves-niveau"><i class="fas fa-layer-group" aria-hidden="true"></i>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</p>
             </div>
         </div>
 
@@ -84,7 +85,7 @@
                         <a href="?periode={{ periode.id }}" 
                            class="periode-tab {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
                             <i class="fas fa-calendar-check"></i>
-                            <span>{{ periode.nom_periode }}</span>
+                            <span>{{ periode.libelle_affichage_superieur }}</span>
                             {% if periode.est_en_cours %}
                                 <span class="tab-badge en-cours" style="background: #28a745;">
                                     <i class="fas fa-circle"></i>
@@ -307,10 +308,17 @@
                                 {% if session_examen %}
                                     <th class="retenue-header examen-retenue-header">
                                         <span class="retenue-label">
+                                            {% if est_superieur %}
+                                            <span class="retenue-status retenue-inactive" data-eval-id="examen_{{ session_examen.id }}" data-note-key="examen_{{ session_examen.id }}" title="Examen saisi à part : non inclus dans la moyenne affichée (contrôle continu uniquement) ; la combinaison CC / examen est gérée côté direction pour le bulletin.">
+                                                <i class="fas fa-info-circle"></i>
+                                                Hors moy. CC
+                                            </span>
+                                            {% else %}
                                             <span class="retenue-status retenue-active" data-eval-id="examen_{{ session_examen.id }}" data-note-key="examen_{{ session_examen.id }}" title="Note d'examen toujours retenue">
                                                 <i class="fas fa-check-circle"></i>
                                                 Retenue
                                             </span>
+                                            {% endif %}
                                         </span>
                                     </th>
                                 {% endif %}
@@ -390,7 +398,12 @@
                                                 <span class="absent-badge" title="Absent">ABS</span>
                                             {% elif note_examen %}
                                                 <div class="retenue-badge-wrapper">
-                                                    {% if note_examen.retenue %}
+                                                    {% if est_superieur %}
+                                                        <span class="retenue-badge retenue-inactive" title="Examen pour le bulletin — non mélangé à la moyenne CC de cette colonne">
+                                                            <i class="fas fa-graduation-cap"></i>
+                                                            Bulletin
+                                                        </span>
+                                                    {% elif note_examen.retenue %}
                                                         <span class="retenue-badge retenue-active" title="Note retenue pour le calcul">
                                                             <i class="fas fa-check-circle"></i>
                                                             Retenue

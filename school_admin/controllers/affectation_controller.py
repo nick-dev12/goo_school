@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
+from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 import logging
@@ -15,6 +16,8 @@ from ..model.professeur_model import Professeur
 from ..model.classe_model import Classe
 from ..model.matiere_model import Matiere
 from ..model.affectation_model import AffectationProfesseur
+from ..model.module_model import Module
+from ..model.academic_structure_model import Department
 from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
 from ..utils.session_utils import get_session_active
 
@@ -47,33 +50,71 @@ class AffectationController:
             messages.warning(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire pour voir les affectations.")
             # Continuer quand même pour afficher la page vide avec un message
         
+        est_superieur = etablissement.type_etablissement == 'superieur'
+
         # Récupérer tous les professeurs avec leurs matières et affectations
         professeurs = Professeur.objects.filter(
             etablissement=etablissement
-        ).select_related('matiere_principale').prefetch_related('matieres_secondaires', 'affectations__classe')
-        
-        # Récupérer toutes les classes
-        classes = Classe.objects.filter(etablissement=etablissement).order_by('nom')
-        
-        # Récupérer toutes les matières
-        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
-        
-        # Organiser les professeurs par matière
+        ).select_related(
+            'matiere_principale',
+            'matiere_principale__module',
+            'matiere_principale__department',
+        ).prefetch_related(
+            'matiere_principale__classes',
+            'matiere_principale__module__classes',
+            Prefetch(
+                'matieres_secondaires',
+                queryset=Matiere.objects.select_related('module', 'department').prefetch_related(
+                    'classes', 'module__classes'
+                ),
+            ),
+            'affectations__classe',
+        )
+
+        # Classes : supérieur = uniquement classes niveau supérieur + filière
+        if est_superieur:
+            classes = (
+                Classe.objects.filter(
+                    etablissement=etablissement,
+                    niveau='superieur',
+                    actif=True,
+                )
+                .select_related('department', 'academic_level')
+                .order_by('department__nom', 'nom')
+            )
+        else:
+            classes = Classe.objects.filter(etablissement=etablissement).order_by('nom')
+
+        # Matières (liaisons classes / module pour le filtrage JS supérieur)
+        matieres = (
+            Matiere.objects.filter(etablissement=etablissement)
+            .select_related('module', 'department')
+            .prefetch_related('classes', 'module__classes')
+            .order_by('nom')
+        )
+
+        matieres_pour_onglets = (
+            matieres.filter(actif=True, department__isnull=False)
+            if est_superieur
+            else matieres
+        )
+
+        # Organiser les professeurs par matière (onglets)
         professeurs_par_matiere = {}
-        for matiere in matieres:
+        for matiere in matieres_pour_onglets:
             professeurs_principaux = professeurs.filter(matiere_principale=matiere)
             professeurs_secondaires = professeurs.filter(matieres_secondaires=matiere)
             professeurs_par_matiere[matiere] = {
                 'principaux': professeurs_principaux,
                 'secondaires': professeurs_secondaires,
-                'total': professeurs_principaux.count() + professeurs_secondaires.count()
+                'total': professeurs_principaux.count() + professeurs_secondaires.count(),
             }
         
         # Créer les statistiques
         stats = {
             'total_professeurs': professeurs.count(),
             'total_classes': classes.count(),
-            'total_matieres': matieres.count(),
+            'total_matieres': matieres_pour_onglets.count(),
             'professeurs_affectes': 0,  # À calculer
         }
         
@@ -119,7 +160,14 @@ class AffectationController:
                     affectations_actives_query = professeur.affectations.filter(
                         actif=True,
                         annee_scolaire=annee_scolaire_active
-                    ).select_related('classe', 'matiere')
+                    ).select_related(
+                        'classe',
+                        'classe__department',
+                        'classe__academic_level',
+                        'matiere',
+                        'matiere__module',
+                        'matiere__department',
+                    )
                 else:
                     # Si pas d'année active, aucune affectation
                     affectations_actives_query = professeur.affectations.none()
@@ -148,14 +196,65 @@ class AffectationController:
                 'matieres_enseignables': matieres_enseignables,
             })
         
+        # Supérieur : structure Filière > Module > Matière (pour filtres / cohérence UI)
+        matieres_par_module = None
+        matieres_structure_superieur = []
+        departments_affectation = []
+        if est_superieur:
+            departments_affectation = list(
+                Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+            )
+            for dep in departments_affectation:
+                modules_dep = (
+                    Module.objects.filter(
+                        etablissement=etablissement,
+                        department=dep,
+                        actif=True,
+                    )
+                    .order_by('ordre', 'nom')
+                    .prefetch_related(
+                        Prefetch(
+                            'matieres',
+                            queryset=Matiere.objects.filter(
+                                actif=True, department=dep
+                            ).order_by('nom'),
+                        )
+                    )
+                )
+                for mod in modules_dep:
+                    for m in mod.matieres.all():
+                        matieres_structure_superieur.append(
+                            {'department': dep, 'module': mod, 'matiere': m}
+                        )
+                for m in (
+                    Matiere.objects.filter(
+                        etablissement=etablissement,
+                        department=dep,
+                        module__isnull=True,
+                        actif=True,
+                    )
+                    .order_by('nom')
+                ):
+                    matieres_structure_superieur.append(
+                        {'department': dep, 'module': None, 'matiere': m}
+                    )
+            # Compat : liste (module, matiere) pour anciens fragments éventuels
+            matieres_par_module = [
+                (row['module'], row['matiere']) for row in matieres_structure_superieur
+            ]
+
         context = {
             'etablissement': etablissement,
             'professeurs_with_classes': professeurs_with_classes,
             'classes': classes,
             'matieres': matieres,
+            'matieres_par_module': matieres_par_module,
+            'matieres_structure_superieur': matieres_structure_superieur,
+            'departments_affectation': departments_affectation,
             'professeurs_par_matiere': professeurs_par_matiere,
             'stats': stats,
             'type_etablissement': etablissement.type_etablissement,
+            'est_superieur': est_superieur,
             'annee_scolaire_active': annee_scolaire_active,
         }
         
@@ -310,6 +409,27 @@ class AffectationController:
                                 f"Cette matière n'est ni sa matière principale ni une de ses matières secondaires."
                             )
                             return redirect('affectation:affectation_professeurs')
+                        
+                        # Supérieur : même filière + classes cibles (matière ou module / ModuleClasse)
+                        if etablissement.type_etablissement == 'superieur':
+                            if (
+                                matiere.department_id
+                                and classe.department_id
+                                and matiere.department_id != classe.department_id
+                            ):
+                                messages.error(
+                                    request,
+                                    f"La classe {classe.nom} n'appartient pas à la filière de la matière {matiere.nom}. "
+                                    f"Veuillez sélectionner une classe de la filière {matiere.department.nom}.",
+                                )
+                                return redirect('affectation:affectation_professeurs')
+                            if not matiere.classe_est_compatible_affectation_superieur(classe):
+                                messages.error(
+                                    request,
+                                    f"La classe {classe.nom} n'est pas rattachée à la matière « {matiere.nom} » "
+                                    f"(ni au module associé). Configurez les classes sur la matière ou le module.",
+                                )
+                                return redirect('affectation:affectation_professeurs')
                         
                         # Vérifier si une affectation existe déjà pour cette année scolaire (actif ou non)
                         existing_affectation = AffectationProfesseur.objects.filter(

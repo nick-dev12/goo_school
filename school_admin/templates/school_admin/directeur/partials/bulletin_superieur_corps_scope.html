@@ -1,0 +1,4 @@
+{# Passe le dict de contexte bulletin (retour de _build_bulletin_context) au partial corps. #}
+{% with etablissement=bsup.etablissement eleve=bsup.eleve periode=bsup.periode annee_scolaire_active=bsup.annee_scolaire_active bulletin_barre_academique=bsup.bulletin_barre_academique poids_cc_pct=bsup.poids_cc_pct poids_exam_pct=bsup.poids_exam_pct bulletin_ue_blocs=bsup.bulletin_ue_blocs bsup_bilan_annuel=bsup.bsup_bilan_annuel complement_info=bsup.complement_info recap_ue_slots=bsup.recap_ue_slots total_credits_obtenus=bsup.total_credits_obtenus total_credits_attendus=bsup.total_credits_attendus moyenne_generale=bsup.moyenne_generale date_generation=bsup.date_generation bulletin_numero_serie=bsup.bulletin_numero_serie bulletin_signature=bsup.bulletin_signature bulletin_qr_image_url=bsup.bulletin_qr_image_url %}
+{% include 'school_admin/directeur/partials/bulletin_superieur_corps.html' %}
+{% endwith %}

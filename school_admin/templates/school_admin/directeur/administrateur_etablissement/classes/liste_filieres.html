@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Gestion des Spécialités" %} - {{ etablissement.nom }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.1.1"
+    />
+    <style>
+      .filieres-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+        gap: 1.25rem;
+      }
+      .specialite-card {
+        background: var(--white);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+        transition: box-shadow 0.2s, transform 0.2s;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .specialite-card:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+      }
+      .specialite-card-header {
+        padding: 1rem 1.25rem;
+        background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+        color: var(--white);
+      }
+      .specialite-card-title {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        line-height: 1.3;
+      }
+      .specialite-card-title i {
+        opacity: 0.9;
+        flex-shrink: 0;
+      }
+      .specialite-card-body {
+        padding: 1rem 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .specialite-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+      }
+      .specialite-card-meta i {
+        color: var(--info);
+        width: 1rem;
+        flex-shrink: 0;
+      }
+      .specialite-card-meta span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        word-break: break-word;
+      }
+      @media (max-width: 360px) {
+        .specialite-card-meta span {
+          white-space: normal;
+        }
+      }
+      .specialite-card-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        background: var(--primary-light);
+        color: var(--primary);
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        width: fit-content;
+      }
+      .specialite-card-footer {
+        padding: 0.75rem 1.25rem;
+        border-top: 1px solid var(--gray-200);
+        background: var(--gray-50);
+      }
+      .specialite-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .specialite-card-actions .btn-spec {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        white-space: nowrap;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      .btn-spec-classes {
+        background: var(--primary);
+        color: var(--white);
+      }
+      .btn-spec-classes:hover {
+        background: #2563eb;
+      }
+      .btn-spec-modifier {
+        background: var(--white);
+        color: var(--gray-700);
+        border: 1px solid var(--gray-300);
+      }
+      .btn-spec-modifier:hover {
+        background: var(--gray-100);
+      }
+      .btn-spec-supprimer {
+        background: var(--white);
+        color: var(--accent);
+        border: 1px solid var(--gray-300);
+      }
+      .btn-spec-supprimer:hover:not(:disabled) {
+        background: #fef2f2;
+      }
+      .btn-spec-supprimer:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .specialite-delete-form {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .specialite-delete-form button {
+        width: 100%;
+      }
+      @media (max-width: 480px) {
+        .specialite-card-actions {
+          flex-direction: column;
+        }
+        .specialite-card-actions .btn-spec {
+          width: 100%;
+        }
+      }
+      .modal-filiere-fullscreen .modal-container-fullscreen {
+        max-width: 500px;
+      }
+      .back-link:hover {
+        color: var(--primary) !important;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="content-container">
+      <div class="container">
+        <div class="page-header">
+          <div class="page-title-section">
+            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="back-link" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--text-secondary);text-decoration:none;font-size:0.875rem;margin-bottom:0.5rem;transition:color 0.2s;">
+              <i class="fas fa-arrow-left"></i>
+              {% trans "Retour aux classes" %}
+            </a>
+            <h1 class="page-title">
+              <i class="fas fa-sitemap"></i>
+              {% trans "Gestion des Spécialités" %}
+            </h1>
+            <p class="page-subtitle">
+              {% trans "Gérez les spécialités de" %} {{ etablissement.nom }}
+            </p>
+          </div>
+          <div class="page-actions">
+            <button type="button" class="btn-add-classe" id="addFiliereBtn">
+              <i class="fas fa-plus"></i>
+              <span>{% trans "Ajouter une spécialité" %}</span>
+            </button>
+          </div>
+        </div>
+
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="filieres-section">
+          {% if filieres %}
+            <div class="filieres-grid">
+              {% for item in filieres %}
+                <article class="specialite-card">
+                  <header class="specialite-card-header">
+                    <h3 class="specialite-card-title">
+                      <i class="fas fa-graduation-cap"></i>
+                      <span>{{ item.department.nom }}</span>
+                    </h3>
+                  </header>
+                  <div class="specialite-card-body">
+                    {% if item.department.domaine %}
+                    <div class="specialite-card-meta">
+                      <i class="fas fa-folder-open"></i>
+                      <span title="{{ item.department.domaine }}">{{ item.department.domaine }}</span>
+                    </div>
+                    {% endif %}
+                    {% if item.department.mention %}
+                    <div class="specialite-card-meta">
+                      <i class="fas fa-tag"></i>
+                      <span title="{{ item.department.mention }}">{{ item.department.mention }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="specialite-card-stat">
+                      <i class="fas fa-chalkboard"></i>
+                      {% blocktrans count counter=item.nb_classes %}
+                        {{ counter }} classe
+                      {% plural %}
+                        {{ counter }} classes
+                      {% endblocktrans %}
+                    </div>
+                  </div>
+                  <footer class="specialite-card-footer">
+                    <div class="specialite-card-actions">
+                      <a href="{% url 'administrateur_etablissement:liste_classes_specialite' item.department.id %}" class="btn-spec btn-spec-classes">
+                        <i class="fas fa-list"></i>
+                        <span>{% trans "Voir les classes" %}</span>
+                      </a>
+                      <button type="button" class="btn-spec btn-spec-modifier btn-filiere-modifier" data-filiere-id="{{ item.department.id }}" data-filiere-nom="{{ item.department.nom }}" data-filiere-domaine="{{ item.department.domaine|default:'' }}" data-filiere-mention="{{ item.department.mention|default:'' }}">
+                        <i class="fas fa-edit"></i>
+                        <span>{% trans "Modifier" %}</span>
+                      </button>
+                      <form method="post" action="{% url 'administrateur_etablissement:supprimer_filiere' item.department.id %}" class="specialite-delete-form" data-filiere-nom="{{ item.department.nom }}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-spec btn-spec-supprimer" {% if item.nb_classes > 0 %}disabled title="{% trans 'Impossible de supprimer : cette spécialité contient des classes' %}"{% endif %}>
+                          <i class="fas fa-trash-alt"></i>
+                          <span>{% trans "Supprimer" %}</span>
+                        </button>
+                      </form>
+                    </div>
+                  </footer>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-sitemap"></i>
+              </div>
+              <h3>{% trans "Aucune spécialité" %}</h3>
+              <p>{% trans "Commencez par créer une spécialité pour organiser vos classes (ex: Logistique et Transport, Informatique)" %}</p>
+              <button type="button" class="btn-add-classe" id="addFiliereBtnEmpty">
+                <i class="fas fa-plus"></i>
+                <span>{% trans "Ajouter une spécialité" %}</span>
+              </button>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal - Modifier une spécialité -->
+    <div class="modal-overlay-fullscreen modal-filiere-fullscreen" id="modifierFiliereModal">
+      <div class="modal-container-fullscreen">
+        <div class="modal-header-fullscreen">
+          <h2 class="modal-title-fullscreen">
+            <i class="fas fa-edit"></i>
+            {% trans "Modifier la spécialité" %}
+          </h2>
+          <button type="button" class="modal-close-fullscreen" id="closeModifierFiliereModal" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" id="formModifierFiliere" class="modal-form-fullscreen" data-action-template="{% url 'administrateur_etablissement:modifier_filiere' 0 %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label" for="modifier_nom_filiere">{% trans "Nom de la spécialité *" %}</label>
+            <input type="text" class="form-control" id="modifier_nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modifier_domaine">{% trans "Domaine" %}</label>
+            <input type="text" class="form-control" id="modifier_domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modifier_mention">{% trans "Mention" %}</label>
+            <input type="text" class="form-control" id="modifier_mention" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+          </div>
+          <div class="modal-actions-fullscreen">
+            <button type="button" class="btn-cancel" id="cancelModifierFiliere">{% trans "Annuler" %}</button>
+            <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Enregistrer" %}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal plein écran - Ajouter une spécialité -->
+    <div class="modal-overlay-fullscreen modal-filiere-fullscreen" id="addFiliereModal">
+      <div class="modal-container-fullscreen">
+        <div class="modal-header-fullscreen">
+          <h2 class="modal-title-fullscreen">
+            <i class="fas fa-sitemap"></i>
+            {% trans "Ajouter une spécialité" %}
+          </h2>
+          <button type="button" class="modal-close-fullscreen" id="closeFiliereModal" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" action="{% url 'administrateur_etablissement:ajouter_filiere' %}" class="modal-form-fullscreen">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label" for="nom_filiere">{% trans "Nom de la spécialité *" %}</label>
+            <input type="text" class="form-control" id="nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="domaine">{% trans "Domaine" %}</label>
+            <input type="text" class="form-control" id="domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mention">{% trans "Mention" %}</label>
+            <input type="text" class="form-control" id="mention" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+          </div>
+          <div class="modal-actions-fullscreen">
+            <button type="button" class="btn-cancel" id="cancelFiliere">{% trans "Annuler" %}</button>
+            <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Créer la spécialité" %}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const addFiliereBtn = document.getElementById('addFiliereBtn');
+        const addFiliereBtnEmpty = document.getElementById('addFiliereBtnEmpty');
+        const filiereModal = document.getElementById('addFiliereModal');
+        const modifierFiliereModal = document.getElementById('modifierFiliereModal');
+        const formModifierFiliere = document.getElementById('formModifierFiliere');
+        const modifierNomInput = document.getElementById('modifier_nom_filiere');
+        const closeFiliereModal = document.getElementById('closeFiliereModal');
+        const closeModifierFiliereModal = document.getElementById('closeModifierFiliereModal');
+        const cancelFiliere = document.getElementById('cancelFiliere');
+        const cancelModifierFiliere = document.getElementById('cancelModifierFiliere');
+
+        function openFiliereModal() {
+          if (filiereModal) {
+            filiereModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          }
+        }
+
+        function closeFiliereModalFunc() {
+          if (filiereModal) {
+            filiereModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+          }
+        }
+
+        const modifierDomaineInput = document.getElementById('modifier_domaine');
+        const modifierMentionInput = document.getElementById('modifier_mention');
+
+        function openModifierFiliereModal(filiereId, filiereNom, filiereDomaine, filiereMention) {
+          if (formModifierFiliere && formModifierFiliere.dataset.actionTemplate) {
+            formModifierFiliere.action = formModifierFiliere.dataset.actionTemplate.replace('/0/', '/' + filiereId + '/');
+          }
+          if (modifierNomInput) modifierNomInput.value = filiereNom || '';
+          if (modifierDomaineInput) modifierDomaineInput.value = filiereDomaine || '';
+          if (modifierMentionInput) modifierMentionInput.value = filiereMention || '';
+          if (modifierFiliereModal) {
+            modifierFiliereModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          }
+        }
+
+        function closeModifierFiliereModalFunc() {
+          if (modifierFiliereModal) {
+            modifierFiliereModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+          }
+        }
+
+        if (addFiliereBtn) addFiliereBtn.addEventListener('click', openFiliereModal);
+        if (addFiliereBtnEmpty) addFiliereBtnEmpty.addEventListener('click', openFiliereModal);
+        if (closeFiliereModal) closeFiliereModal.addEventListener('click', closeFiliereModalFunc);
+        if (cancelFiliere) cancelFiliere.addEventListener('click', closeFiliereModalFunc);
+        if (filiereModal) {
+          filiereModal.addEventListener('click', function(e) {
+            if (e.target === filiereModal) closeFiliereModalFunc();
+          });
+        }
+
+        document.querySelectorAll('.btn-filiere-modifier').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const id = this.dataset.filiereId;
+            const nom = this.dataset.filiereNom || '';
+            const domaine = this.dataset.filiereDomaine || '';
+            const mention = this.dataset.filiereMention || '';
+            openModifierFiliereModal(id, nom, domaine, mention);
+          });
+        });
+
+        if (closeModifierFiliereModal) closeModifierFiliereModal.addEventListener('click', closeModifierFiliereModalFunc);
+        if (cancelModifierFiliere) cancelModifierFiliere.addEventListener('click', closeModifierFiliereModalFunc);
+        if (modifierFiliereModal) {
+          modifierFiliereModal.addEventListener('click', function(e) {
+            if (e.target === modifierFiliereModal) closeModifierFiliereModalFunc();
+          });
+        }
+
+        document.querySelectorAll('.specialite-delete-form').forEach(function(form) {
+          form.addEventListener('submit', function(e) {
+            const nom = this.dataset.filiereNom || '';
+            if (!confirm('{% trans "Êtes-vous sûr de vouloir supprimer la spécialité" %} « ' + nom + ' » ?')) {
+              e.preventDefault();
+            }
+          });
+        });
+
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            if (filiereModal && filiereModal.classList.contains('active')) closeFiliereModalFunc();
+            if (modifierFiliereModal && modifierFiliereModal.classList.contains('active')) closeModifierFiliereModalFunc();
+          }
+        });
+      });
+    </script>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+  </body>
+</html>

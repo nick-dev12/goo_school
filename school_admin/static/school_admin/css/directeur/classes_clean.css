@@ -166,6 +166,54 @@ body {
   font-size: 0.875rem;
 }
 
+.btn-add-filiere {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn-add-filiere:hover {
+  background: var(--gray-200);
+  color: var(--gray-800);
+  border-color: var(--border-medium);
+}
+
+.filiere-block {
+  margin-bottom: var(--space-8);
+}
+
+.filiere-block:last-child {
+  margin-bottom: 0;
+}
+
+.filiere-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.filiere-title i {
+  margin-right: var(--space-2);
+  color: var(--primary);
+}
+
+.modal-sm {
+  max-width: 420px;
+}
+
 /* ===== STATISTIQUES ===== */
 .stats-container {
   margin-bottom: var(--space-8);
@@ -314,6 +362,85 @@ body {
 }
 
 .tab-panel.active {
+  display: block;
+}
+
+/* Sous-onglets par niveau LMD (liste classes — supérieur) */
+.classes-niveau-tabs-hint {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.classes-niveau-tabs-inner {
+  width: 100%;
+}
+
+.classes-niveau-tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px dashed var(--border-medium);
+}
+
+.classes-niveau-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-family: inherit;
+}
+
+.classes-niveau-tab-btn:hover {
+  border-color: var(--info);
+  color: var(--info);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.classes-niveau-tab-btn.active {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: var(--white);
+  border-color: transparent;
+}
+
+.classes-niveau-tab-btn .tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0;
+}
+
+.classes-niveau-tab-btn:not(.active) .tab-count {
+  background: var(--gray-200);
+  color: var(--text-muted);
+}
+
+.classes-niveau-panels-wrap {
+  min-height: 200px;
+}
+
+.classes-niveau-panel {
+  display: none;
+}
+
+.classes-niveau-panel.active {
   display: block;
 }
 

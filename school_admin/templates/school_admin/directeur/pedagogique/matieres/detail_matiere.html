@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-{% load static notes_tags %}
+{% load static i18n notes_tags %}
+{% load classe_tags %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -90,6 +91,15 @@
                             <span>{{ matiere.niveau_display }}</span>
                         </div>
                     </div>
+                    {% if matiere.department %}
+                        <div class="info-item">
+                            <i class="fas fa-building"></i>
+                            <div>
+                                <strong>{% trans "Filière" %}</strong>
+                                <span>{{ matiere.department.nom }}</span>
+                            </div>
+                        </div>
+                    {% endif %}
                     {% if est_lycee and coefficients_existants %}
                         <div class="info-item" style="grid-column: 1 / -1;">
                             <i class="fas fa-weight-hanging"></i>
@@ -161,7 +171,7 @@
                                 </div>
                                 <div class="groupe-classes">
                                     {% for classe in classes_groupe %}
-                                        <span class="class-badge">{{ classe.nom }}</span>
+                                        <span class="class-badge">{{ classe.nom }}{% if est_superieur %} — {{ classe.get_libelle_niveau_superieur_complet }}{% endif %}</span>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -301,12 +311,115 @@
                             </option>
                         {% endfor %}
                     </select>
-                    {% if field_errors.type_matiere %}
-                        <div class="invalid-feedback">{{ field_errors.type_matiere }}</div>
-                    {% endif %}
-                </div>
+                        {% if field_errors.type_matiere %}
+                            <div class="invalid-feedback">{{ field_errors.type_matiere }}</div>
+                        {% endif %}
+                    </div>
 
-                {% if est_lycee %}
+                {% if est_superieur %}
+                    <!-- Pour les établissements supérieurs : filière, module, crédits, classes -->
+                    <div class="form-group">
+                        <label class="form-label" for="department">
+                            <i class="fas fa-building"></i>
+                            {% trans "Filière *" %}
+                        </label>
+                        {% if departments %}
+                            <select class="form-control {% if field_errors.department %}is-invalid{% endif %}"
+                                    id="department"
+                                    name="department"
+                                    required>
+                                <option value="">{% trans "Sélectionnez une filière" %}</option>
+                                {% for dep in departments %}
+                                    <option value="{{ dep.id }}" {% if form_data.department == dep.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ dep.nom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <div class="alert alert-error" style="padding: 10px; font-size: 0.9rem;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                {% trans "Aucune filière configurée." %}
+                            </div>
+                        {% endif %}
+                        {% if field_errors.department %}
+                            <div class="invalid-feedback">{{ field_errors.department }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group" id="module-superieur-container">
+                        <label class="form-label" for="module">{% trans "Module *" %}</label>
+                        <div id="module-select-hint" class="classes-select-hint" style="padding: 12px; background: #f5f5f5; border-radius: 8px; color: #666;">{% trans "Sélectionnez d'abord une filière." %}</div>
+                        <div id="modules-by-department" style="display: none;">
+                            {% for dep_id, modules_list in modules_by_department.items %}
+                                <div class="module-department-block" data-department-id="{{ dep_id }}" style="display: none;">
+                                    <select class="form-control module-select {% if field_errors.module %}is-invalid{% endif %}" id="module-{{ dep_id }}" name="module">
+                                        <option value="">{% trans "Sélectionnez un module" %}</option>
+                                        {% for mod in modules_list %}
+                                            <option value="{{ mod.id }}" data-has-credits="{% if mod.credits and mod.credits > 0 %}1{% else %}0{% endif %}" {% if form_data.module == mod.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ mod.nom }}{% if mod.credits and mod.credits > 0 %} ({{ mod.credits }} crédits){% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if field_errors.module %}<div class="invalid-feedback">{{ field_errors.module }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-group" id="credits-superieur-container" style="display: none;">
+                        <label class="form-label" for="credits">{% trans "Crédits de la matière *" %}</label>
+                        <input type="number" class="form-control {% if field_errors.credits %}is-invalid{% endif %}" id="credits" name="credits" value="{{ form_data.credits }}" min="0" step="0.5" placeholder="Ex: 3">
+                        {% if field_errors.credits %}<div class="invalid-feedback">{{ field_errors.credits }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-group" id="classes-superieur-container">
+                        <label class="form-label">
+                            <i class="fas fa-users"></i>
+                            {% trans "Classes concernées" %}
+                        </label>
+                        <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                            <i class="fas fa-info-circle"></i>
+                            {% trans "Sélectionnez d'abord une filière ci-dessus pour afficher les classes de cette filière." %}
+                        </p>
+                        <div id="classes-select-hint" class="classes-select-hint" style="padding: 12px; background: #f5f5f5; border-radius: 8px; color: #666;">
+                            {% trans "Les classes s'afficheront après la sélection de la filière." %}
+                        </div>
+                        <div id="classes-by-department" style="display: none;">
+                            {% for dep_id, classes_list in classes_by_department.items %}
+                                <div class="classes-department-block" data-department-id="{{ dep_id }}" style="display: none;">
+                                    <p style="font-weight: 600; margin-bottom: 10px; font-size: 0.9rem;">
+                                        {% trans "Sélectionnez les classes pour cette matière :" %}
+                                    </p>
+                                    <div class="classes-selection classes-selection-superieur">
+                                        {% for classe in classes_list %}
+                                            <label class="class-checkbox groupe-checkbox">
+                                                <input type="checkbox" 
+                                                       name="classes_ids" 
+                                                       value="{{ classe.id }}"
+                                                       class="class-checkbox-superieur"
+                                                       data-department-id="{{ dep_id }}"
+                                                       {% if classe.id|stringformat:"s" in form_data.classes_ids %}checked{% endif %}>
+                                                <span class="checkmark">
+                                                    <i class="fas fa-check"></i>
+                                                </span>
+                                                <span class="class-name">
+                                                    <strong>{{ classe.nom }}</strong>
+                                                    {% if est_superieur %}
+                                                        <small style="display: block; font-size: 11px; color: #888;">({{ classe.get_libelle_niveau_superieur_complet }})</small>
+                                                    {% endif %}
+                                                </span>
+                                            </label>
+                                        {% empty %}
+                                            <p style="color: #888; font-style: italic;">{% trans "Aucune classe dans cette filière." %}</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <p style="color: #888; font-style: italic;">{% trans "Aucune classe avec filière configurée." %}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif est_lycee %}
                     <!-- Pour les établissements lycée : coefficient par groupe -->
                     <div class="form-group">
                         <label class="form-label">
@@ -466,6 +579,34 @@
                     }
                 }
             });
+            {% endif %}
+            
+            {% if est_superieur %}
+            // Supérieur : afficher les classes de la filière sélectionnée
+            const departmentSelect = document.getElementById('department');
+            const classesHint = document.getElementById('classes-select-hint');
+            const classesByDept = document.getElementById('classes-by-department');
+            const deptBlocks = document.querySelectorAll('.classes-department-block');
+            
+            function updateClassesByDepartment() {
+                const depId = departmentSelect ? departmentSelect.value : '';
+                if (classesHint) classesHint.style.display = depId ? 'none' : 'block';
+                if (classesByDept) classesByDept.style.display = depId ? 'block' : 'none';
+                
+                deptBlocks.forEach(function(block) {
+                    const blockDepId = block.getAttribute('data-department-id');
+                    const isMatch = blockDepId === depId;
+                    block.style.display = isMatch ? 'block' : 'none';
+                    block.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                        cb.disabled = !isMatch;
+                    });
+                });
+            }
+            
+            if (departmentSelect) {
+                departmentSelect.addEventListener('change', updateClassesByDepartment);
+                updateClassesByDepartment();
+            }
             {% endif %}
         });
         

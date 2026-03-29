@@ -1,0 +1,333 @@
+/**
+ * Modal « Ajouter une classe » — sections, grille examens/concours, charte app
+ */
+:root {
+  --cam-primary: #3b82f6;
+  --cam-primary-dark: #1d4ed8;
+  --cam-secondary: #7c3aed;
+  --cam-radius: 12px;
+  --cam-shadow: 0 10px 40px rgba(15, 23, 42, 0.12);
+}
+
+.classe-add-modal .modal-container {
+  max-width: 640px;
+  width: 94%;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--cam-radius);
+  box-shadow: var(--cam-shadow);
+  border: 1px solid #e2e8f0;
+}
+
+.classe-add-modal .modal-header {
+  flex-shrink: 0;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border-radius: var(--cam-radius) var(--cam-radius) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.classe-add-modal .modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.classe-add-modal .modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.classe-add-modal .modal-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.classe-add-modal .modal-form {
+  padding: 1.25rem 1.5rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cam-section {
+  margin-bottom: 1.5rem;
+  padding: 1.15rem 1.25rem;
+  background: #f8fafc;
+  border-radius: var(--cam-radius);
+  border: 1px solid #e2e8f0;
+}
+
+.cam-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.cam-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cam-section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.cam-section-icon--acad {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.cam-section-icon--id {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.cam-section-icon--parcours {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.cam-section-icon--org {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.cam-section-titles h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cam-section-titles p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.cam-form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 520px) {
+  .cam-form-grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cam-examen-categorie {
+  margin-bottom: 1rem;
+}
+
+.cam-examen-categorie:last-child {
+  margin-bottom: 0;
+}
+
+.cam-examen-categorie-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin: 0 0 0.5rem;
+}
+
+.cam-examen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.cam-examen-card {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.cam-examen-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cam-examen-card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  min-height: 3.25rem;
+}
+
+.cam-examen-card-body:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+}
+
+.cam-examen-card input:focus-visible + .cam-examen-card-body {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.cam-examen-card input:checked + .cam-examen-card-body {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.cam-examen-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-size: 0.65rem;
+  transition: all 0.2s;
+}
+
+.cam-examen-card input:checked + .cam-examen-card-body .cam-examen-check {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.cam-examen-text strong {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.cam-examen-text small {
+  display: block;
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+.cam-hint-banner {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.85rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  color: #1e40af;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.cam-hint-banner i {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+/* Cartes liste : badges examens */
+.classe-card-examens {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.classe-card-examens-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.classe-card-examens-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.classe-examen-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(59, 130, 246, 0.1));
+  color: #5b21b6;
+  border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+.classe-examen-tag i {
+  font-size: 0.6rem;
+  opacity: 0.85;
+}
+
+.btn-examens-concours-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 10px;
+  text-decoration: none;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-examens-concours-quick:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
+  color: #fff !important;
+}
+
+.btn-examens-concours-quick .ec-count {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}

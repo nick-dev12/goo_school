@@ -100,7 +100,11 @@ class ComptabiliteController:
             return redirect('directeur:dashboard_directeur')
         
         # Récupérer toutes les classes de l'établissement
-        classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+        classes = (
+            Classe.objects.filter(etablissement=etablissement, actif=True)
+            .select_related('department', 'academic_level')
+            .order_by('niveau', 'nom')
+        )
         
         # Grouper les classes par niveau
         classes_grouped = {}
@@ -237,6 +241,7 @@ class ComptabiliteController:
             'is_directeur': is_directeur,
             'personnel': personnel,
             'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
+            'est_superieur': etablissement.type_etablissement == 'superieur',
         }
         
         return render(request, 'school_admin/directeur/comptabilite/liste_comptabilite_eleves.html', context)

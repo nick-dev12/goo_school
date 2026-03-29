@@ -1,11 +1,14 @@
 """
 Controller pour la gestion des examens selon la logique sénégalaise
 """
+from collections import OrderedDict
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Prefetch
+from django.utils.translation import gettext as _
 from datetime import datetime, timedelta
 import json
 import re
@@ -19,6 +22,202 @@ from ..model.matiere_model import Matiere
 from ..model.professeur_model import Professeur
 from ..model.salle_model import Salle
 from ..utils.decorators_permissions import require_permission
+
+
+def _libelle_niveau_classe_superieur_py(classe):
+    """
+    Libellé court du niveau (LMD / académique), aligné sur niveau_classe_superieur.html.
+    """
+    if classe.niveau_lmd == 'AUTRE' and classe.niveau_libelle:
+        return classe.niveau_libelle.strip()
+    if classe.niveau_lmd:
+        return str(classe.niveau_lmd)
+    if classe.academic_level_id:
+        return f"{classe.academic_level.code} — {classe.academic_level.nom}"
+    return str(_("Niveau non renseigné"))
+
+
+def _build_matieres_session_superieur_meta(etablissement):
+    """
+    Métadonnées pour le formulaire de session (supérieur) : matières rattachées aux classes
+    via M2M matière.classes ou via module.classes. Utilisé côté JS pour filtrer selon les classes cochées.
+    """
+    classes_sup = (
+        Classe.objects.filter(etablissement=etablissement, actif=True, niveau='superieur')
+        .select_related('department', 'academic_level')
+        .order_by('nom')
+    )
+    all_ids = set(classes_sup.values_list('id', flat=True))
+    id_to_classe = {c.id: c for c in classes_sup}
+    if not all_ids:
+        return []
+
+    matieres = (
+        Matiere.objects.filter(etablissement=etablissement, actif=True)
+        .filter(Q(niveau='superieur') | Q(niveau='tous'))
+        .select_related('department', 'module')
+        .prefetch_related('classes', 'module__classes')
+        .order_by('nom')
+    )
+
+    out = []
+    for m in matieres:
+        raw = set(m.get_classe_ids_pour_affectation_superieur())
+        if raw:
+            applicable = raw & all_ids
+        else:
+            applicable = set(all_ids)
+        if not applicable:
+            continue
+        par_classe = []
+        for cid in sorted(applicable):
+            c = id_to_classe.get(cid)
+            if not c:
+                continue
+            par_classe.append(
+                {
+                    'classe_id': cid,
+                    'classe_nom': c.nom,
+                    'niveau_label': _libelle_niveau_classe_superieur_py(c),
+                }
+            )
+        out.append(
+            {
+                'id': m.id,
+                'nom': m.nom,
+                'code': m.code,
+                'classe_ids': sorted(applicable),
+                'par_classe': par_classe,
+            }
+        )
+    return out
+
+
+def _valider_matieres_session_superieur(classes_selectionnees, matieres):
+    """
+    Vérifie que chaque matière est enseignée / rattachée à au moins une des classes sélectionnées.
+    Retourne (True, None) ou (False, message d'erreur).
+    """
+    if not classes_selectionnees:
+        return False, _("Sélectionnez au moins une classe avant les matières.")
+    ids_sel = {c.id for c in classes_selectionnees}
+    for m in matieres:
+        applicable = set(m.get_classe_ids_pour_affectation_superieur())
+        if not applicable:
+            continue
+        if not (applicable & ids_sel):
+            return False, _("La matière « %(nom)s » ne correspond à aucune des classes sélectionnées.") % {
+                'nom': m.nom
+            }
+    return True, None
+
+
+def _build_groupes_classes_examens(etablissement, est_superieur):
+    """
+    Construit les groupes affichés dans les onglets / formulaires de session d'examen.
+
+    - Établissement supérieur : regroupement par filière (Department), classes LMD explicites.
+    - Autres : regroupement par « niveau » déduit du nom de classe (comportement historique).
+    """
+    classes = (
+        Classe.objects.filter(etablissement=etablissement, actif=True)
+        .select_related('department', 'academic_level')
+        .order_by('niveau', 'nom')
+    )
+
+    if est_superieur:
+        classes = classes.filter(niveau='superieur')
+        groupes = OrderedDict()
+        sans = [c for c in classes if c.department_id is None]
+        if sans:
+            groupes['sans_filiere'] = {
+                'label': 'Sans filière',
+                'classes': sans,
+            }
+        by_dept = {}
+        for c in classes:
+            if c.department_id:
+                by_dept.setdefault(c.department_id, []).append(c)
+        for dept_id in sorted(
+            by_dept.keys(),
+            key=lambda did: (by_dept[did][0].department.nom.lower() if by_dept[did][0].department else ''),
+        ):
+            dept = by_dept[dept_id][0].department
+            groupes[f'dept_{dept_id}'] = {
+                'label': dept.nom if dept else f'Filière {dept_id}',
+                'classes': by_dept[dept_id],
+            }
+        return groupes
+
+    groupes_classes = {}
+    for classe in classes:
+        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+        if match:
+            niveau = match.group(1)
+        else:
+            niveau = classe.nom
+
+        if niveau not in groupes_classes:
+            groupes_classes[niveau] = {
+                'label': niveau,
+                'niveau': niveau,
+                'classes': [],
+            }
+
+        groupes_classes[niveau]['classes'].append(classe)
+
+    return groupes_classes
+
+
+def _classes_depuis_formulaire_session(etablissement, post):
+    """
+    Retourne (liste de Classe, message d'erreur ou None).
+    Supérieur : IDs explicites (cases à cocher par classe).
+    Autres : clés de groupe « niveau » (même logique que l'affichage).
+    """
+    est_superieur = etablissement.type_etablissement == 'superieur'
+
+    if est_superieur:
+        raw_ids = post.getlist('classes_concernees')
+        ids = []
+        for x in raw_ids:
+            try:
+                ids.append(int(x))
+            except (TypeError, ValueError):
+                continue
+        ids = list(dict.fromkeys(ids))
+        if not ids:
+            return None, "Veuillez sélectionner au moins une classe."
+        qs = Classe.objects.filter(
+            id__in=ids,
+            etablissement=etablissement,
+            actif=True,
+            niveau='superieur',
+        ).select_related('department', 'academic_level')
+        if qs.count() != len(ids):
+            return None, "Sélection de classes invalide (identifiants incorrects)."
+        return list(qs.order_by('nom')), None
+
+    groupes_keys = post.getlist('groupes_classes')
+    if not groupes_keys:
+        return None, "Veuillez sélectionner au moins un groupe de classes."
+
+    classes_out = []
+    seen = set()
+    for classe in Classe.objects.filter(etablissement=etablissement, actif=True):
+        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
+        if match:
+            niveau = match.group(1)
+        else:
+            niveau = classe.nom
+        if niveau in groupes_keys and classe.id not in seen:
+            classes_out.append(classe)
+            seen.add(classe.id)
+
+    if not classes_out:
+        return None, "Aucune classe trouvée pour les groupes sélectionnés."
+
+    return classes_out, None
 
 
 @login_required
@@ -43,6 +242,8 @@ def gestion_examens(request):
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de gérer les examens.")
         return redirect('directeur:creer_annee_scolaire_obligatoire')
     
+    est_superieur = etablissement.type_etablissement == 'superieur'
+
     # Traitement de l'ajout d'une nouvelle session d'examen
     if request.method == 'POST':
         try:
@@ -52,7 +253,6 @@ def gestion_examens(request):
                 date_debut_str = request.POST.get('date_debut')
                 date_fin_str = request.POST.get('date_fin')
                 description = request.POST.get('description', '').strip()
-                groupes_classes = request.POST.getlist('groupes_classes')  # Liste des niveaux sélectionnés
                 matieres_ids = request.POST.getlist('matieres')  # Liste des matières sélectionnées
                 
                 # Validations
@@ -60,35 +260,31 @@ def gestion_examens(request):
                     messages.error(request, "Tous les champs obligatoires doivent être remplis.")
                     return redirect('directeur:gestion_examens')
                 
-                if not groupes_classes:
-                    messages.error(request, "Veuillez sélectionner au moins un groupe de classes.")
-                    return redirect('directeur:gestion_examens')
-                
                 if not matieres_ids:
                     messages.error(request, "Veuillez sélectionner au moins une matière.")
+                    return redirect('directeur:gestion_examens')
+                
+                classes, err_classes = _classes_depuis_formulaire_session(etablissement, request.POST)
+                if err_classes:
+                    messages.error(request, err_classes)
                     return redirect('directeur:gestion_examens')
                 
                 # Récupération des objets
                 periode = get_object_or_404(PeriodeScolaire, id=periode_id, etablissement=etablissement)
                 matieres = Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement)
+                if matieres.count() != len(set(matieres_ids)):
+                    messages.error(request, _("Sélection de matières invalide."))
+                    return redirect('directeur:gestion_examens')
+                
+                if etablissement.type_etablissement == 'superieur':
+                    ok_m, err_m = _valider_matieres_session_superieur(classes, matieres)
+                    if not ok_m:
+                        messages.error(request, err_m)
+                        return redirect('directeur:gestion_examens')
                 
                 # Conversion des dates
                 date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
                 date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
-                
-                # Récupération des classes pour les groupes sélectionnés
-                classes = []
-                for groupe in groupes_classes:
-                    # Rechercher les classes qui correspondent au groupe (ex: "6e" pour toutes les classes de 6e)
-                    classes_groupe = Classe.objects.filter(
-                        etablissement=etablissement,
-                        nom__icontains=groupe
-                    )
-                    classes.extend(classes_groupe)
-                
-                if not classes:
-                    messages.error(request, "Aucune classe trouvée pour les groupes sélectionnés.")
-                    return redirect('directeur:gestion_examens')
                 
                 # Création de la session d'examen avec l'année scolaire active
                 session = SessionExamen.objects.create(
@@ -124,29 +320,7 @@ def gestion_examens(request):
     
     periodes = periodes.order_by('date_debut')
     
-    # Récupérer toutes les classes de l'établissement et les grouper par niveau
-    classes = Classe.objects.filter(
-        etablissement=etablissement,
-        actif=True
-    ).order_by('niveau', 'nom')
-    
-    # Grouper les classes par niveau
-    groupes_classes = {}
-    for classe in classes:
-        # Extraire le niveau de la classe (ex: "6eme" de "6eme A")
-        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', classe.nom)
-        if match:
-            niveau = match.group(1)
-        else:
-            niveau = classe.nom
-        
-        if niveau not in groupes_classes:
-            groupes_classes[niveau] = {
-                'niveau': niveau,
-                'classes': []
-            }
-        
-        groupes_classes[niveau]['classes'].append(classe)
+    groupes_classes = _build_groupes_classes_examens(etablissement, est_superieur)
     
     # Récupérer toutes les matières
     matieres = Matiere.objects.filter(
@@ -164,7 +338,13 @@ def gestion_examens(request):
     if annee_scolaire_active:
         sessions = sessions.filter(annee_scolaire=annee_scolaire_active)
     
-    sessions = sessions.select_related('periode').prefetch_related('classes', 'matieres').order_by('-date_creation')
+    sessions = sessions.select_related('periode', 'etablissement').prefetch_related(
+        Prefetch(
+            'classes',
+            queryset=Classe.objects.select_related('academic_level', 'department').order_by('nom'),
+        ),
+        'matieres',
+    ).order_by('-date_creation')
     
     # Grouper les sessions par période
     sessions_par_periode = {}
@@ -177,6 +357,10 @@ def gestion_examens(request):
             }
         sessions_par_periode[periode_id]['sessions'].append(session)
     
+    matieres_session_superieur_meta = (
+        _build_matieres_session_superieur_meta(etablissement) if est_superieur else []
+    )
+    
     context = {
         'etablissement': etablissement,
         'periodes': periodes,
@@ -184,6 +368,8 @@ def gestion_examens(request):
         'matieres': matieres,
         'sessions_par_periode': sessions_par_periode,
         'annee_scolaire_active': annee_scolaire_active,
+        'est_superieur': est_superieur,
+        'matieres_session_superieur_meta': matieres_session_superieur_meta,
     }
     
     return render(request, 'school_admin/directeur/gestion_examens.html', context)
@@ -576,7 +762,6 @@ def modifier_session_examen(request, session_id):
                 periode_id = request.POST.get('periode_id')
                 date_debut_str = request.POST.get('date_debut')
                 date_fin_str = request.POST.get('date_fin')
-                groupes_classes = request.POST.getlist('groupes_classes')
                 matieres_ids = request.POST.getlist('matieres_ids')
                 description = request.POST.get('description', '').strip()
                 
@@ -585,13 +770,25 @@ def modifier_session_examen(request, session_id):
                     messages.error(request, "Tous les champs obligatoires doivent être remplis.")
                     return redirect('directeur:gestion_examens')
                 
-                if not groupes_classes:
-                    messages.error(request, "Veuillez sélectionner au moins un groupe de classes.")
-                    return redirect('directeur:gestion_examens')
-                
                 if not matieres_ids:
                     messages.error(request, "Veuillez sélectionner au moins une matière.")
                     return redirect('directeur:gestion_examens')
+                
+                classes_a_assigner, err_classes = _classes_depuis_formulaire_session(etablissement, request.POST)
+                if err_classes:
+                    messages.error(request, err_classes)
+                    return redirect('directeur:gestion_examens')
+                
+                matieres = Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement)
+                if matieres.count() != len(set(matieres_ids)):
+                    messages.error(request, _("Sélection de matières invalide."))
+                    return redirect('directeur:gestion_examens')
+                
+                if etablissement.type_etablissement == 'superieur':
+                    ok_m, err_m = _valider_matieres_session_superieur(classes_a_assigner, matieres)
+                    if not ok_m:
+                        messages.error(request, err_m)
+                        return redirect('directeur:gestion_examens')
                 
                 # Récupération de la période
                 periode = get_object_or_404(PeriodeScolaire, id=periode_id, etablissement=etablissement)
@@ -609,19 +806,9 @@ def modifier_session_examen(request, session_id):
                 session.save()
                 
                 # Mise à jour des classes
-                classes_a_assigner = []
-                for groupe in groupes_classes:
-                    classes_du_groupe = Classe.objects.filter(
-                        etablissement=etablissement,
-                        nom__startswith=groupe,
-                        actif=True
-                    )
-                    classes_a_assigner.extend(list(classes_du_groupe))
-                
                 session.classes.set(classes_a_assigner)
                 
-                # Mise à jour des matières
-                matieres = Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement)
+                # Mise à jour des matières (déjà validées ci-dessus)
                 session.matieres.set(matieres)
                 
                 messages.success(request, f"Session d'examen '{session.nom_examen}' modifiée avec succès.")

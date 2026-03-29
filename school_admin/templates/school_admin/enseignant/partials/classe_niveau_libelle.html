@@ -1,0 +1,9 @@
+{% comment %}
+  Libellé du niveau pour une classe (cycle + détail LMD / académique).
+  Contexte requis : variable `classe` (instance Classe).
+{% endcomment %}
+{% if classe.niveau == 'superieur' %}
+  {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}
+{% else %}
+  {{ classe.get_niveau_display }}{% if classe.academic_level %} — {{ classe.academic_level.nom }}{% endif %}
+{% endif %}

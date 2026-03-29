@@ -50,6 +50,7 @@
             </h1>
             <p class="page-subtitle">
               Configuration de l'emploi du temps pour la classe {{ classe.nom }}
+              — {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}
             </p>
           </div>
         </div>
@@ -86,7 +87,7 @@
                   </div>
                   <div class="info-row">
                     <span class="info-label">{% trans "Niveau :" %}</span>
-                    <span class="info-value">{{ classe.get_niveau_display }}</span>
+                    <span class="info-value">{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</span>
                   </div>
                   <div class="info-row">
                     <span class="info-label">{% trans "Nombre d'élèves :" %}</span>

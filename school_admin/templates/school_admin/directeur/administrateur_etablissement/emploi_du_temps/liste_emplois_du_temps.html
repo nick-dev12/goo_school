@@ -184,7 +184,7 @@
                               <i class="fas fa-chalkboard"></i>
                               {{ classe_data.classe.nom }}
                             </h4>
-                            <p class="classe-niveau">{{ classe_data.classe.get_niveau_display }}</p>
+                            <p class="classe-niveau">{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe_data.classe only %}</p>
                           </div>
                           <div class="classe-badge">
                             {% if classe_data.a_emploi_du_temps %}

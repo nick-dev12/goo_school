@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant.css' %}?v=1.0.1">
 </head>
 <body>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
@@ -138,6 +138,10 @@
                         </div>
                         <div class="class-content">
                             <h4>{{ classe_data.classe.nom }}{% if classe_data.matiere %} - {{ classe_data.matiere.nom }}{% endif %}</h4>
+                            <p class="class-item-niveau enseignant-classe-niveau">
+                                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                                {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe_data.classe only %}
+                            </p>
                             <div class="class-details">
                                 <span><i class="fas fa-users"></i> {{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
                         

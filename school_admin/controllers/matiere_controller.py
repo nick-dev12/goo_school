@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Prefetch
 import logging
 import random
 import string
@@ -12,8 +12,172 @@ from ..model.matiere_model import Matiere
 from ..model.etablissement_model import Etablissement
 from ..model.classe_model import Classe
 from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
+from ..model.academic_structure_model import Department
+from ..model.module_model import Module
+from ..model.classe_model import libelle_cle_niveau_superieur
 
 logger = logging.getLogger(__name__)
+
+# Clé interne pour l’onglet « sans niveau LMD » (modules sans niveau ni classes côté filière)
+NIVEAU_TAB_SANS_NIVEAU = '__sans_niveau__'
+
+_ORDER_NIVEAUX_SUP_TAB = {
+    'L1': 1, 'L2': 2, 'L3': 3, 'BTS': 4, 'DUT': 5, 'BUT': 6, 'BT': 7, 'LP': 8,
+    'M1': 9, 'M2': 10, 'D1': 11, 'D2': 12, 'D3': 13, 'CERT': 14, 'DIPL': 15, 'AUTRE': 98,
+}
+
+
+def _niveau_key_from_classe(classe):
+    if not classe or not classe.niveau_lmd:
+        return None
+    if classe.niveau_lmd == 'AUTRE':
+        return (classe.niveau_libelle or 'AUTRE').strip()
+    return classe.niveau_lmd
+
+
+def _niveau_keys_for_module_in_dep(module, dep_id):
+    """Niveaux LMD d’un module pour une filière (code module ou classes liées)."""
+    if module.niveau_lmd and module.niveau_lmd != 'AUTRE':
+        return {module.niveau_lmd}
+    keys = set()
+    for c in module.classes.all():
+        if c.department_id == dep_id:
+            k = _niveau_key_from_classe(c)
+            if k:
+                keys.add(k)
+    if not keys and module.niveau_lmd == 'AUTRE':
+        keys.add('AUTRE')
+    if not keys:
+        keys.add(NIVEAU_TAB_SANS_NIVEAU)
+    return keys
+
+
+def _niveau_keys_for_matiere_in_dep(matiere, dep_id):
+    keys = set()
+    for c in matiere.classes.all():
+        if c.department_id == dep_id:
+            k = _niveau_key_from_classe(c)
+            if k:
+                keys.add(k)
+    if not keys:
+        keys.add(NIVEAU_TAB_SANS_NIVEAU)
+    return keys
+
+
+def _classe_matches_niveau_tab(classe, dep_id, nk):
+    """True si la classe est dans la filière et son niveau LMD correspond à l’onglet nk."""
+    if not classe or classe.department_id != dep_id:
+        return False
+    key = _niveau_key_from_classe(classe)
+    if nk == NIVEAU_TAB_SANS_NIVEAU:
+        return key is None
+    if key is None:
+        return False
+    return key == nk
+
+
+def _matiere_a_pour_niveau_dans_dep(matiere, dep_id, nk):
+    """Matière rattachée au niveau nk via au moins une classe de la filière (comme sur la fiche module)."""
+    for c in matiere.classes.all():
+        if _classe_matches_niveau_tab(c, dep_id, nk):
+            return True
+    return False
+
+
+def _classes_matiere_pour_niveau_tab(matiere, dep_id, nk):
+    """Classes de la matière dans la filière, limitées au niveau de l’onglet."""
+    result = []
+    for c in matiere.classes.filter(department_id=dep_id).order_by('niveau_lmd', 'nom'):
+        if _classe_matches_niveau_tab(c, dep_id, nk):
+            result.append(c)
+    return result
+
+
+def _sort_niveau_tab_keys(keys):
+    def sort_key(k):
+        if k == NIVEAU_TAB_SANS_NIVEAU:
+            return (1000, '')
+        return (_ORDER_NIVEAUX_SUP_TAB.get(k, 500), k)
+
+    return sorted(keys, key=sort_key)
+
+
+def _label_for_niveau_tab(niveau_key):
+    if niveau_key == NIVEAU_TAB_SANS_NIVEAU:
+        return 'Sans niveau'
+    return libelle_cle_niveau_superieur(niveau_key)
+
+
+def build_matieres_par_filiere_superieur(matieres_qs, departments, modules_by_department, classes_by_department):
+    """
+    Filière → onglets par niveau LMD → modules → matières (vue liste supérieur).
+    """
+    matieres_par_filiere = []
+    for dep in departments:
+        modules_dep = modules_by_department.get(dep.id, [])
+        classes_dep = classes_by_department.get(dep.id, [])
+
+        all_keys = set()
+        for mod in modules_dep:
+            all_keys |= _niveau_keys_for_module_in_dep(mod, dep.id)
+        for c in classes_dep:
+            k = _niveau_key_from_classe(c)
+            if k:
+                all_keys.add(k)
+            elif c.niveau == 'superieur':
+                all_keys.add(NIVEAU_TAB_SANS_NIVEAU)
+
+        sans_mod_qs = matieres_qs.filter(department=dep, module__isnull=True)
+        sans_mod_list = list(sans_mod_qs.order_by('nom'))
+        for m in sans_mod_list:
+            all_keys |= _niveau_keys_for_matiere_in_dep(m, dep.id)
+
+        if not all_keys:
+            all_keys.add(NIVEAU_TAB_SANS_NIVEAU)
+
+        sorted_keys = _sort_niveau_tab_keys(all_keys)
+        niveaux_list = []
+
+        for nk in sorted_keys:
+            modules_avec_matieres = []
+            for mod in modules_dep:
+                if nk not in _niveau_keys_for_module_in_dep(mod, dep.id):
+                    continue
+                matieres_mod = matieres_qs.filter(department=dep, module=mod).order_by('nom')
+                matieres_list = []
+                dep_id = dep.id
+                for m in matieres_mod:
+                    if not _matiere_a_pour_niveau_dans_dep(m, dep_id, nk):
+                        continue
+                    matieres_list.append({
+                        'matiere': m,
+                        'classes': _classes_matiere_pour_niveau_tab(m, dep_id, nk),
+                    })
+                modules_avec_matieres.append({'module': mod, 'matieres': matieres_list})
+
+            matieres_sans = []
+            dep_id = dep.id
+            for m in sans_mod_list:
+                if nk in _niveau_keys_for_matiere_in_dep(m, dep_id):
+                    matieres_sans.append({
+                        'matiere': m,
+                        'classes': _classes_matiere_pour_niveau_tab(m, dep_id, nk),
+                    })
+            if matieres_sans:
+                modules_avec_matieres.append({'module': None, 'matieres': matieres_sans})
+
+            niveaux_list.append({
+                'niveau_key': nk,
+                'niveau_label': _label_for_niveau_tab(nk),
+                'modules': modules_avec_matieres,
+            })
+
+        matieres_par_filiere.append({
+            'department': dep,
+            'niveaux': niveaux_list,
+        })
+
+    return matieres_par_filiere
 
 
 class MatiereController:
@@ -40,6 +204,7 @@ class MatiereController:
             'collège_lycée': 'college',  # Par défaut pour collège+lycée
             'coll�ge_lyc�e': 'college',  # Version avec caractères spéciaux
             'mixte': 'tous',  # Pour mixte, on peut utiliser "tous" pour permettre tous les niveaux
+            'superieur': 'superieur',  # Enseignement supérieur (modules et crédits LMD)
         }
         return mapping.get(type_etablissement, 'tous')
     
@@ -61,12 +226,17 @@ class MatiereController:
                 messages.error(request, "Accès non autorisé.")
                 return redirect('school_admin:connexion_compte_user')
         
-        # Récupérer les matières
-        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
+        # Récupérer les matières (avec department pour affichage filière)
+        _classes_qs = Classe.objects.select_related('department', 'academic_level')
+        matieres = Matiere.objects.filter(etablissement=etablissement).select_related(
+            'department', 'module'
+        ).prefetch_related(Prefetch('classes', queryset=_classes_qs)).order_by('nom')
         
         # Récupérer les classes et créer les groupes
         import re
-        classes = Classe.objects.filter(etablissement=etablissement).order_by('niveau', 'nom')
+        classes = Classe.objects.filter(etablissement=etablissement).select_related(
+            'department', 'academic_level'
+        ).order_by('niveau', 'nom')
         
         # Créer les groupes de classes
         groupes_classes = {}
@@ -115,7 +285,9 @@ class MatiereController:
         
         # Vérifier si c'est un établissement de type lycée
         est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
-        
+        # Vérifier si c'est un établissement supérieur (modules et crédits LMD)
+        est_superieur = etablissement.type_etablissement == 'superieur'
+
         # Pour chaque matière, récupérer les coefficients par groupe (si établissement lycée)
         matieres_avec_coefficients = []
         for matiere in matieres:
@@ -135,15 +307,55 @@ class MatiereController:
             
             matieres_avec_coefficients.append(matiere_data)
         
+        departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
+        
+        # Pour supérieur : classes et modules groupés par filière
+        classes_by_department = {}
+        modules_by_department = {}
+        if est_superieur:
+            department_ids = list(Department.objects.filter(etablissement=etablissement).values_list('id', flat=True))
+            classes_superieur = Classe.objects.filter(
+                etablissement=etablissement,
+                department_id__in=department_ids
+            ).select_related('department').order_by('department', 'niveau_lmd', 'nom')
+            for classe in classes_superieur:
+                dep_id = classe.department_id
+                if dep_id not in classes_by_department:
+                    classes_by_department[dep_id] = []
+                classes_by_department[dep_id].append(classe)
+            modules_list = Module.objects.filter(
+                etablissement=etablissement,
+                department_id__in=department_ids,
+                actif=True
+            ).select_related('department').prefetch_related('classes').order_by('department', 'ordre', 'nom')
+            for dep_id in department_ids:
+                modules_by_department[dep_id] = [m for m in modules_list if m.department_id == dep_id]
+        
+        form_data = {'department': '', 'module': '', 'departments_ids': [], 'modules_ids': [], 'credits': '', 'classes_ids': []}
+        
+        # Pour supérieur : filières -> niveaux LMD -> modules -> matières
+        matieres_par_filiere = []
+        if est_superieur and departments:
+            matieres_par_filiere = build_matieres_par_filiere_superieur(
+                matieres, departments, modules_by_department, classes_by_department
+            )
+        
         context = {
             'matieres': matieres,
             'matieres_avec_coefficients': matieres_avec_coefficients,
+            'matieres_par_filiere': matieres_par_filiere,
             'classes': classes,
             'groupes_classes': groupes_liste,
             'etablissement': etablissement,
             'stats': stats,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
             'est_lycee': est_lycee,
+            'est_superieur': est_superieur,
+            'departments': departments,
+            'classes_by_department': classes_by_department,
+            'modules_by_department': modules_by_department,
+            'form_data': form_data,
+            'field_errors': {},
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
@@ -174,15 +386,20 @@ class MatiereController:
             # Récupération automatique du niveau depuis le type_etablissement
             niveau_auto = MatiereController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
             
-            # Vérifier si c'est un établissement de type lycée
+            # Vérifier si c'est un établissement de type lycée ou supérieur
             est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+            est_superieur = etablissement.type_etablissement == 'superieur'
             
             # Récupération des données
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'type_matiere': request.POST.get('type_matiere', ''),
                 'coefficient': request.POST.get('coefficient', '1.0'),
+                'credits': request.POST.get('credits', '').strip() or None,
                 'groupes_classes': request.POST.getlist('groupes_classes', []),
+                'classes_ids': [x for x in request.POST.getlist('classes_ids') if x.isdigit()],
+                'departments_ids': [x for x in request.POST.getlist('departments_ids') if x.isdigit()],
+                'modules_ids': [x for x in request.POST.getlist('modules_ids') if x.isdigit()],
             }
             
             # Pour les établissements lycée, récupérer les coefficients par groupe
@@ -211,29 +428,81 @@ class MatiereController:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                     is_valid = False
             
+            # Validation filières et modules obligatoires pour enseignement supérieur
+            modules_objs = []
+            any_module_without_credits = False
+            if est_superieur:
+                if not form_data['departments_ids']:
+                    field_errors['departments_ids'] = "Sélectionnez au moins une filière."
+                    is_valid = False
+                if not form_data['modules_ids']:
+                    field_errors['modules_ids'] = "Sélectionnez au moins un module."
+                    is_valid = False
+                else:
+                    modules_objs = list(Module.objects.filter(
+                        id__in=form_data['modules_ids'],
+                        etablissement=etablissement,
+                        department_id__in=form_data['departments_ids']
+                    ).select_related('department'))
+                    if len(modules_objs) != len(form_data['modules_ids']):
+                        field_errors['modules_ids'] = "Un ou plusieurs modules sont invalides ou n'appartiennent pas aux filières sélectionnées."
+                        is_valid = False
+                    else:
+                        any_module_without_credits = any(
+                            m.credits is None or m.credits <= 0 for m in modules_objs
+                        )
+            
             # Validation du nom
             if form_data['nom'] and len(form_data['nom']) < 2:
                 field_errors['nom'] = "Le nom de la matière doit contenir au moins 2 caractères."
                 is_valid = False
             
-            # Vérification de l'unicité du nom
-            if form_data['nom'] and Matiere.objects.filter(
-                nom__iexact=form_data['nom'], 
-                etablissement=etablissement
-            ).exists():
-                field_errors['nom'] = "Cette matière existe déjà dans cet établissement."
-                is_valid = False
+            # Vérification de l'unicité du nom (selon filière et module pour supérieur - permet plusieurs "Mathématiques" dans différents modules)
+            if form_data['nom'] and is_valid:
+                if est_superieur and modules_objs:
+                    for mod in modules_objs:
+                        if Matiere.objects.filter(
+                            nom__iexact=form_data['nom'],
+                            etablissement=etablissement,
+                            department=mod.department,
+                            module=mod
+                        ).exists():
+                            field_errors['nom'] = f"Cette matière existe déjà dans le module '{mod.nom}'."
+                            is_valid = False
+                            break
+                elif not est_superieur:
+                    if Matiere.objects.filter(
+                        nom__iexact=form_data['nom'],
+                        etablissement=etablissement,
+                        department__isnull=True
+                    ).exists():
+                        field_errors['nom'] = "Cette matière existe déjà dans cet établissement."
+                        is_valid = False
             
-            
-            # Validation du coefficient
-            try:
-                coefficient = float(form_data['coefficient'])
-                if coefficient < 0 or coefficient > 10:
-                    field_errors['coefficient'] = "Le coefficient doit être entre 0 et 10."
+            # Validation du coefficient (primaire/secondaire) ou crédits (supérieur)
+            if est_superieur:
+                if any_module_without_credits:
+                    if not form_data['credits']:
+                        field_errors['credits'] = "Les crédits sont obligatoires (au moins un module n'a pas de crédits définis)."
+                        is_valid = False
+                    else:
+                        try:
+                            credits_val = float(form_data['credits'])
+                            if credits_val < 0:
+                                field_errors['credits'] = "Les crédits doivent être positifs."
+                                is_valid = False
+                        except ValueError:
+                            field_errors['credits'] = "Les crédits doivent être un nombre valide."
+                            is_valid = False
+            else:
+                try:
+                    coefficient = float(form_data['coefficient'])
+                    if coefficient < 0 or coefficient > 10:
+                        field_errors['coefficient'] = "Le coefficient doit être entre 0 et 10."
+                        is_valid = False
+                except ValueError:
+                    field_errors['coefficient'] = "Le coefficient doit être un nombre valide."
                     is_valid = False
-            except ValueError:
-                field_errors['coefficient'] = "Le coefficient doit être un nombre valide."
-                is_valid = False
             
             # Validation du niveau (vérifier qu'il est valide)
             valid_niveaux = [choice[0] for choice in Matiere.NIVEAU_CHOICES]
@@ -242,52 +511,85 @@ class MatiereController:
                 field_errors['__all__'] = f"Erreur de niveau: Le niveau '{form_data['niveau']}' déterminé depuis le type d'établissement '{etablissement.type_etablissement}' n'est pas valide. Niveaux valides: {', '.join(valid_niveaux)}"
                 is_valid = False
             
-            # Si tout est valide, créer la matière
+            # Si tout est valide, créer la/les matière(s)
             if is_valid:
                 try:
                     with transaction.atomic():
-                        # Générer un code unique
-                        base_code = form_data['nom'][:3].upper()
-                        code = base_code
-                        
-                        # Vérifier si le code existe déjà et générer un nouveau si nécessaire
-                        counter = 1
-                        while Matiere.objects.filter(code=code).exists():
-                            code = f"{base_code}{counter}"
-                            counter += 1
-                            if counter > 100:  # Sécurité pour éviter une boucle infinie
-                                code = f"{base_code}{random.randint(1000, 9999)}"
-                                break
-                        
-                        # Créer la matière
-                        matiere = Matiere(
-                            nom=form_data['nom'],
-                            code=code,
-                            type_matiere=form_data['type_matiere'],
-                            niveau=form_data['niveau'],
-                            coefficient=float(form_data['coefficient']),
-                            etablissement=etablissement,
-                        )
-                        matiere.save()
-                        
-                        # Assigner les classes selon les groupes sélectionnés
-                        if form_data['groupes_classes']:
+                        if est_superieur and modules_objs:
+                            # Supérieur : une matière par module sélectionné
+                            matieres_creees = []
+                            for mod in modules_objs:
+                                credits_matiere = None
+                                if mod.credits is not None and mod.credits > 0:
+                                    credits_matiere = float(mod.credits)
+                                elif form_data.get('credits'):
+                                    try:
+                                        credits_matiere = float(form_data['credits'])
+                                    except (ValueError, TypeError):
+                                        credits_matiere = None
+                                base_code = form_data['nom'][:3].upper()
+                                code = base_code
+                                counter = 1
+                                while Matiere.objects.filter(code=code).exists():
+                                    code = f"{base_code}{counter}"
+                                    counter += 1
+                                    if counter > 100:
+                                        code = f"{base_code}{random.randint(1000, 9999)}"
+                                        break
+                                matiere = Matiere(
+                                    nom=form_data['nom'],
+                                    code=code,
+                                    type_matiere=form_data['type_matiere'],
+                                    niveau=form_data['niveau'],
+                                    coefficient=1.0,
+                                    credits=credits_matiere,
+                                    etablissement=etablissement,
+                                    department=mod.department,
+                                    module=mod,
+                                )
+                                matiere.save()
+                                # Classes définies lors de la création du module
+                                if mod.classes.exists():
+                                    matiere.classes.set(mod.classes.all())
+                                matieres_creees.append(matiere)
+                            messages.success(
+                                request,
+                                f"{len(matieres_creees)} matière(s) '{form_data['nom']}' ajoutée(s) avec succès !"
+                            )
+                            return redirect('matiere:liste_matieres')
+                        else:
+                            # Primaire / Lycée : une seule matière
                             import re
+                            base_code = form_data['nom'][:3].upper()
+                            code = base_code
+                            counter = 1
+                            while Matiere.objects.filter(code=code).exists():
+                                code = f"{base_code}{counter}"
+                                counter += 1
+                                if counter > 100:
+                                    code = f"{base_code}{random.randint(1000, 9999)}"
+                                    break
+                            matiere = Matiere(
+                                nom=form_data['nom'],
+                                code=code,
+                                type_matiere=form_data['type_matiere'],
+                                niveau=form_data['niveau'],
+                                coefficient=float(form_data['coefficient']),
+                                credits=None,
+                                etablissement=etablissement,
+                                department=None,
+                                module=None,
+                            )
+                            matiere.save()
                             classes_a_assigner = []
-                            
                             for groupe in form_data['groupes_classes']:
-                                # Récupérer toutes les classes de ce groupe
                                 classes_groupe = Classe.objects.filter(
                                     etablissement=etablissement,
                                     nom__startswith=groupe
                                 )
                                 classes_a_assigner.extend(list(classes_groupe))
-                            
-                            # Supprimer les doublons
                             classes_uniques = list(set(classes_a_assigner))
                             matiere.classes.set(classes_uniques)
-                            
-                            # Pour les établissements lycée, créer les coefficients par groupe
                             if est_lycee and 'coefficients_par_groupe' in form_data:
                                 for groupe, coefficient in form_data['coefficients_par_groupe'].items():
                                     CoefficientMatiereGroupe.objects.update_or_create(
@@ -296,9 +598,8 @@ class MatiereController:
                                         nom_groupe=groupe,
                                         defaults={'coefficient': coefficient}
                                     )
-                        
-                        messages.success(request, f"La matière '{matiere.nom_complet}' a été ajoutée avec succès !")
-                        return redirect('matiere:liste_matieres')
+                            messages.success(request, f"La matière '{matiere.nom_complet}' a été ajoutée avec succès !")
+                            return redirect('matiere:liste_matieres')
                         
                 except Exception as e:
                     error_message = str(e)
@@ -319,7 +620,9 @@ class MatiereController:
         
         # Récupérer les classes et créer les groupes
         import re
-        classes = Classe.objects.filter(etablissement=etablissement).order_by('niveau', 'nom')
+        classes = Classe.objects.filter(etablissement=etablissement).select_related(
+            'department', 'academic_level'
+        ).order_by('niveau', 'nom')
         
         # Créer les groupes de classes
         groupes_classes = {}
@@ -345,11 +648,93 @@ class MatiereController:
         # Convertir en liste triée
         groupes_liste = sorted(groupes_classes.values(), key=lambda x: (x['niveau'], x['nom']))
         
-        # Vérifier si c'est un établissement de type lycée
+        # Vérifier si c'est un établissement de type lycée ou supérieur
         est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+        est_superieur = etablissement.type_etablissement == 'superieur'
         
         # Pour les établissements lycée, récupérer les coefficients existants par groupe (vide pour nouveau formulaire)
         coefficients_existants = {}
+        
+        # Contexte complet pour le template (liste_matieres.html)
+        _classes_prefetch = Classe.objects.select_related('department', 'academic_level')
+        matieres = Matiere.objects.filter(etablissement=etablissement).select_related(
+            'department', 'module'
+        ).prefetch_related(Prefetch('classes', queryset=_classes_prefetch)).order_by('nom')
+        matieres_avec_coefficients = []
+        for matiere in matieres:
+            matiere_data = {
+                'matiere': matiere,
+                'coefficients_par_groupe': {}
+            }
+            if est_lycee:
+                coeffs = CoefficientMatiereGroupe.objects.filter(
+                    matiere=matiere,
+                    etablissement=etablissement
+                )
+                for coeff in coeffs:
+                    matiere_data['coefficients_par_groupe'][coeff.nom_groupe] = coeff.coefficient
+            matieres_avec_coefficients.append(matiere_data)
+        
+        stats = {
+            'total': matieres.count(),
+            'actives': matieres.filter(actif=True).count(),
+            'inactives': matieres.filter(actif=False).count(),
+            'par_type': {},
+            'par_niveau': {},
+        }
+        for type_matiere, label in Matiere.TYPE_MATIERE_CHOICES:
+            count = matieres.filter(type_matiere=type_matiere).count()
+            if count > 0:
+                stats['par_type'][label] = count
+        for niveau, label in Matiere.NIVEAU_CHOICES:
+            count = matieres.filter(niveau=niveau).count()
+            if count > 0:
+                stats['par_niveau'][label] = count
+        
+        departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
+        
+        matieres_par_filiere = []
+        classes_by_department = {}
+        modules_by_department = {}
+        if est_superieur:
+            department_ids = list(
+                Department.objects.filter(etablissement=etablissement).values_list('id', flat=True)
+            )
+            classes_superieur = Classe.objects.filter(
+                etablissement=etablissement,
+                department_id__in=department_ids
+            ).select_related('department').order_by('department', 'niveau_lmd', 'nom')
+            for classe in classes_superieur:
+                dep_id = classe.department_id
+                if dep_id not in classes_by_department:
+                    classes_by_department[dep_id] = []
+                classes_by_department[dep_id].append(classe)
+            modules_list = Module.objects.filter(
+                etablissement=etablissement,
+                department_id__in=department_ids,
+                actif=True
+            ).select_related('department').prefetch_related('classes').order_by('department', 'ordre', 'nom')
+            for dep_id in department_ids:
+                modules_by_department[dep_id] = [m for m in modules_list if m.department_id == dep_id]
+        
+        if est_superieur and departments:
+            matieres_par_filiere = build_matieres_par_filiere_superieur(
+                matieres, departments, modules_by_department, classes_by_department
+            )
+        
+        # S'assurer que form_data a tous les champs pour le template
+        if 'department' not in form_data:
+            form_data['department'] = ''
+        if 'module' not in form_data:
+            form_data['module'] = ''
+        if 'departments_ids' not in form_data:
+            form_data['departments_ids'] = []
+        if 'modules_ids' not in form_data:
+            form_data['modules_ids'] = []
+        if 'credits' not in form_data:
+            form_data['credits'] = ''
+        if 'classes_ids' not in form_data:
+            form_data['classes_ids'] = []
         
         context = {
             'form_data': form_data,
@@ -360,7 +745,15 @@ class MatiereController:
             'groupes_classes': groupes_liste,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
             'est_lycee': est_lycee,
+            'est_superieur': est_superieur,
             'coefficients_existants': coefficients_existants,
+            'matieres': matieres,
+            'matieres_avec_coefficients': matieres_avec_coefficients,
+            'matieres_par_filiere': matieres_par_filiere,
+            'stats': stats,
+            'departments': departments,
+            'classes_by_department': classes_by_department,
+            'modules_by_department': modules_by_department,
         }
         
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
@@ -402,10 +795,14 @@ class MatiereController:
         ).select_related('matiere_principale')
         
         # Récupérer les classes associées
-        classes_associees = matiere.classes.all().order_by('nom')
+        classes_associees = matiere.classes.select_related(
+            'department', 'academic_level'
+        ).order_by('nom')
         
         # Récupérer toutes les classes pour le formulaire de modification
-        toutes_classes = Classe.objects.filter(etablissement=etablissement).order_by('nom')
+        toutes_classes = Classe.objects.filter(etablissement=etablissement).select_related(
+            'department', 'academic_level'
+        ).order_by('nom')
         
         # Créer des groupes de classes pour l'affichage
         import re
@@ -454,15 +851,20 @@ class MatiereController:
             # Récupération automatique du niveau depuis le type_etablissement
             niveau_auto = MatiereController.get_niveau_from_type_etablissement(etablissement.type_etablissement)
             
-            # Vérifier si c'est un établissement de type lycée
+            # Vérifier si c'est un établissement de type lycée ou supérieur
             est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+            est_superieur = etablissement.type_etablissement == 'superieur'
             
             # Récupération des données (utiliser 'groupes_classes' pour les groupes)
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'type_matiere': request.POST.get('type_matiere', ''),
                 'coefficient': request.POST.get('coefficient', '1.0'),
+                'credits': request.POST.get('credits', '').strip() or None,
                 'groupes_classes': request.POST.getlist('groupes_classes', []),
+                'classes_ids': [x for x in request.POST.getlist('classes_ids') if x.isdigit()],
+                'department': request.POST.get('department', '').strip() or None,
+                'module': request.POST.get('module', '').strip() or None,
             }
             
             # Pour les établissements lycée, récupérer les coefficients par groupe
@@ -491,28 +893,87 @@ class MatiereController:
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                     is_valid = False
             
+            # Validation filière et module pour supérieur
+            department_obj = None
+            module_obj = None
+            module_a_des_credits = False
+            if est_superieur:
+                if not form_data['department']:
+                    field_errors['department'] = "La filière est obligatoire pour les établissements supérieurs."
+                    is_valid = False
+                else:
+                    try:
+                        department_obj = Department.objects.get(
+                            id=int(form_data['department']),
+                            etablissement=etablissement
+                        )
+                    except (ValueError, Department.DoesNotExist):
+                        field_errors['department'] = "Filière invalide."
+                        is_valid = False
+                if not form_data['module']:
+                    field_errors['module'] = "Le module est obligatoire pour les établissements supérieurs."
+                    is_valid = False
+                elif department_obj:
+                    try:
+                        module_obj = Module.objects.get(
+                            id=int(form_data['module']),
+                            etablissement=etablissement,
+                            department=department_obj
+                        )
+                        module_a_des_credits = module_obj.credits is not None and module_obj.credits > 0
+                    except (ValueError, Module.DoesNotExist):
+                        field_errors['module'] = "Module invalide ou n'appartient pas à cette filière."
+                        is_valid = False
+            
             # Validation du nom
             if form_data['nom'] and len(form_data['nom']) < 2:
                 field_errors['nom'] = "Le nom de la matière doit contenir au moins 2 caractères."
                 is_valid = False
             
-            # Vérification de l'unicité du nom (sauf pour la matière actuelle)
-            if form_data['nom'] and Matiere.objects.filter(
-                nom__iexact=form_data['nom'], 
-                etablissement=etablissement
-            ).exclude(id=matiere.id).exists():
-                field_errors['nom'] = "Cette matière existe déjà dans cet établissement."
-                is_valid = False
+            # Vérification de l'unicité du nom (sauf pour la matière actuelle, selon module pour supérieur)
+            if form_data['nom']:
+                if est_superieur and department_obj and module_obj:
+                    if Matiere.objects.filter(
+                        nom__iexact=form_data['nom'],
+                        etablissement=etablissement,
+                        department=department_obj,
+                        module=module_obj
+                    ).exclude(id=matiere.id).exists():
+                        field_errors['nom'] = "Cette matière existe déjà dans ce module."
+                        is_valid = False
+                elif not est_superieur:
+                    if Matiere.objects.filter(
+                        nom__iexact=form_data['nom'],
+                        etablissement=etablissement,
+                        department__isnull=True
+                    ).exclude(id=matiere.id).exists():
+                        field_errors['nom'] = "Cette matière existe déjà dans cet établissement."
+                        is_valid = False
             
-            # Validation du coefficient
-            try:
-                coefficient = float(form_data['coefficient'])
-                if coefficient < 0 or coefficient > 10:
-                    field_errors['coefficient'] = "Le coefficient doit être entre 0 et 10."
+            # Validation du coefficient (primaire/secondaire) ou crédits (supérieur)
+            if est_superieur:
+                if not module_a_des_credits:
+                    if not form_data['credits']:
+                        field_errors['credits'] = "Les crédits sont obligatoires (le module n'a pas de crédits définis)."
+                        is_valid = False
+                    else:
+                        try:
+                            credits_val = float(form_data['credits'])
+                            if credits_val < 0:
+                                field_errors['credits'] = "Les crédits doivent être positifs."
+                                is_valid = False
+                        except ValueError:
+                            field_errors['credits'] = "Les crédits doivent être un nombre valide."
+                            is_valid = False
+            else:
+                try:
+                    coefficient = float(form_data['coefficient'])
+                    if coefficient < 0 or coefficient > 10:
+                        field_errors['coefficient'] = "Le coefficient doit être entre 0 et 10."
+                        is_valid = False
+                except ValueError:
+                    field_errors['coefficient'] = "Le coefficient doit être un nombre valide."
                     is_valid = False
-            except ValueError:
-                field_errors['coefficient'] = "Le coefficient doit être un nombre valide."
-                is_valid = False
             
             # Validation du niveau (vérifier qu'il est valide)
             valid_niveaux = [choice[0] for choice in Matiere.NIVEAU_CHOICES]
@@ -546,14 +1007,34 @@ class MatiereController:
                         # Si le nom n'a pas changé, on garde le code actuel (pas besoin de le modifier)
                         
                         # Modifier la matière
+                        credits_matiere = None
+                        if est_superieur and module_obj:
+                            if not module_a_des_credits and form_data.get('credits'):
+                                try:
+                                    credits_matiere = float(form_data['credits'])
+                                except (ValueError, TypeError):
+                                    credits_matiere = None
                         matiere.nom = form_data['nom']
                         matiere.type_matiere = form_data['type_matiere']
                         matiere.niveau = form_data['niveau']
-                        matiere.coefficient = float(form_data['coefficient'])
+                        matiere.coefficient = float(form_data['coefficient']) if not est_superieur else 1.0
+                        matiere.credits = credits_matiere
+                        matiere.department = department_obj if est_superieur else None
+                        matiere.module = module_obj if est_superieur else None
                         matiere.save()
                         
-                        # Assigner les classes selon les groupes sélectionnés
-                        if form_data['groupes_classes']:
+                        # Assigner les classes selon le type d'établissement
+                        if est_superieur and form_data['classes_ids']:
+                            # Supérieur : classes sélectionnées par ID (filtrées par filière et niveau LMD du module)
+                            classes_qs = Classe.objects.filter(
+                                id__in=form_data['classes_ids'],
+                                etablissement=etablissement,
+                                department=department_obj
+                            )
+                            if module_obj and module_obj.niveau_lmd:
+                                classes_qs = classes_qs.filter(niveau_lmd=module_obj.niveau_lmd)
+                            matiere.classes.set(classes_qs)
+                        elif form_data['groupes_classes']:
                             import re
                             classes_a_assigner = []
                             
@@ -630,11 +1111,16 @@ class MatiereController:
                 'type_matiere': matiere.type_matiere,
                 'niveau': matiere.niveau,
                 'coefficient': str(matiere.coefficient),
+                'credits': str(matiere.credits) if matiere.credits is not None else '',
                 'groupes_classes': list(groupes_selectionnes),
+                'classes_ids': [str(c.id) for c in matiere.classes.all()],
+                'department': str(matiere.department_id) if matiere.department_id else '',
+                'module': str(matiere.module_id) if matiere.module_id else '',
             }
         
-        # Vérifier si c'est un établissement de type lycée
+        # Vérifier si c'est un établissement de type lycée ou supérieur
         est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée','lycee_college','mixte','lycee','college']
+        est_superieur = etablissement.type_etablissement == 'superieur'
         
         # Pour les établissements lycée, récupérer les coefficients existants par groupe
         coefficients_existants = {}
@@ -645,6 +1131,30 @@ class MatiereController:
             )
             for coeff in coeffs:
                 coefficients_existants[coeff.nom_groupe] = coeff.coefficient
+        
+        departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
+        
+        # Pour supérieur : classes et modules groupés par filière (modification)
+        classes_by_department = {}
+        modules_by_department = {}
+        if est_superieur:
+            department_ids = list(Department.objects.filter(etablissement=etablissement).values_list('id', flat=True))
+            classes_superieur = Classe.objects.filter(
+                etablissement=etablissement,
+                department_id__in=department_ids
+            ).select_related('department').order_by('department', 'niveau_lmd', 'nom')
+            for classe in classes_superieur:
+                dep_id = classe.department_id
+                if dep_id not in classes_by_department:
+                    classes_by_department[dep_id] = []
+                classes_by_department[dep_id].append(classe)
+            modules_list = Module.objects.filter(
+                etablissement=etablissement,
+                department_id__in=department_ids,
+                actif=True
+            ).select_related('department').prefetch_related('classes').order_by('department', 'ordre', 'nom')
+            for dep_id in department_ids:
+                modules_by_department[dep_id] = [m for m in modules_list if m.department_id == dep_id]
         
         context = {
             'matiere': matiere,
@@ -660,6 +1170,10 @@ class MatiereController:
             'etablissement': etablissement,
             'type_choices': Matiere.TYPE_MATIERE_CHOICES,
             'est_lycee': est_lycee,
+            'est_superieur': est_superieur,
+            'departments': departments,
+            'classes_by_department': classes_by_department,
+            'modules_by_department': modules_by_department,
             'coefficients_existants': coefficients_existants,
         }
         

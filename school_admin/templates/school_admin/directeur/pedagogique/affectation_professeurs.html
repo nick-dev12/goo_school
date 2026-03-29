@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Affectation des Professeurs - {{ etablissement.nom }}</title>
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/affectation_professeurs.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/affectation_professeurs.css' %}?v=1.1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -101,9 +101,15 @@
                         <label for="matiereFilter">{% trans "Filtrer par matière :" %}</label>
                         <select id="matiereFilter" class="filter-select">
                             <option value="">{% trans "Toutes les matières" %}</option>
-                            {% for matiere in matieres %}
-                                <option value="{{ matiere.id }}">{{ matiere.nom }}</option>
-                            {% endfor %}
+                            {% if est_superieur and matieres_structure_superieur %}
+                                {% for row in matieres_structure_superieur %}
+                                    <option value="{{ row.matiere.id }}">{{ row.department.nom }} › {% if row.module %}{{ row.module.nom }} › {% endif %}{{ row.matiere.nom }}</option>
+                                {% endfor %}
+                            {% else %}
+                                {% for matiere in matieres %}
+                                    <option value="{{ matiere.id }}">{{ matiere.nom }}</option>
+                                {% endfor %}
+                            {% endif %}
                         </select>
                     </div>
                     <div class="filter-group">
@@ -111,7 +117,7 @@
                         <select id="classeFilter" class="filter-select">
                             <option value="">{% trans "Toutes les classes" %}</option>
                             {% for classe in classes %}
-                                <option value="{{ classe.id }}">{{ classe.nom }}</option>
+                                <option value="{{ classe.id }}">{% if est_superieur %}{{ classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}{% if classe.department %}, {{ classe.department.nom }}{% endif %}{% else %}{{ classe.nom }}{% endif %}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -147,7 +153,7 @@
                     {% for matiere, data in professeurs_par_matiere.items %}
                         <button class="matiere-tab-btn" data-matiere="{{ matiere.id }}">
                             <i class="fas fa-book"></i>
-                            <span>{{ matiere.nom }}</span>
+                            <span>{% if est_superieur and matiere.department %}{{ matiere.department.nom }} › {% endif %}{% if est_superieur and matiere.module %}{{ matiere.module.nom }} › {% endif %}{{ matiere.nom }}</span>
                             <span class="tab-count">{{ data.total }}</span>
                         </button>
                     {% endfor %}
@@ -158,14 +164,14 @@
         <div class="professors-grid" id="professorsGrid">
             {% for item in professeurs_with_classes %}
                 {% with professeur=item.professeur affectations=item.affectations classes_disponibles=item.classes_disponibles matieres_enseignables=item.matieres_enseignables %}
-                    <div class="professor-card" data-professeur-id="{{ professeur.id }}" data-matiere="{{ professeur.matiere_principale.id }}">
+                    <div class="professor-card" data-professeur-id="{{ professeur.id }}" data-matiere="{% if professeur.matiere_principale %}{{ professeur.matiere_principale.id }}{% endif %}">
                         <div class="professor-header">
                             <div class="professor-avatar">
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="professor-info">
                                 <h3>{{ professeur.nom }}</h3>
-                                <p class="professor-matiere">{{ professeur.matiere_principale.nom }}</p>
+                                <p class="professor-matiere">{% if professeur.matiere_principale %}{% if est_superieur and professeur.matiere_principale.department %}{{ professeur.matiere_principale.department.nom }} › {% endif %}{% if est_superieur and professeur.matiere_principale.module %}{{ professeur.matiere_principale.module.nom }} › {% endif %}{{ professeur.matiere_principale.nom }}{% else %}—{% endif %}</p>
                                 <div class="professor-status">
                                     <span class="status-badge {% if affectations %}status-active{% else %}status-inactive{% endif %}">
                                         {% if affectations %}Affecté{% else %}Non affecté{% endif %}
@@ -196,10 +202,10 @@
                                 <i class="fas fa-door-open"></i>
                                 <div class="classes-list">
                                     {% for affectation in affectations %}
-                                        <span class="classe-badge {% if affectation.is_principal %}badge-principal{% else %}badge-classique{% endif %}" {% if type_etablissement != 'primary' %}title="{{ affectation.matiere.nom }}"{% endif %}>
-                                            {{ affectation.classe.nom }}
-                                            {% if type_etablissement != 'primary' %}
-                                                ({{ affectation.matiere.nom }})
+                                        <span class="classe-badge {% if affectation.is_principal %}badge-principal{% else %}badge-classique{% endif %}" {% if type_etablissement != 'primary' and affectation.matiere %}title="{% if est_superieur %}{{ affectation.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=affectation.classe only %} · {% endif %}{% if est_superieur and affectation.matiere.department %}{{ affectation.matiere.department.nom }} › {% endif %}{% if est_superieur and affectation.matiere.module %}{{ affectation.matiere.module.nom }} › {% endif %}{{ affectation.matiere.nom }}"{% endif %}>
+                                            {% if est_superieur %}{{ affectation.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=affectation.classe only %}{% else %}{{ affectation.classe.nom }}{% endif %}
+                                            {% if type_etablissement != 'primary' and affectation.matiere %}
+                                                ({% if est_superieur and affectation.matiere.department %}{{ affectation.matiere.department.nom }} › {% endif %}{% if est_superieur and affectation.matiere.module %}{{ affectation.matiere.module.nom }} › {% endif %}{{ affectation.matiere.nom }})
                                             {% endif %}
                                             {% if affectation.is_principal %}
                                                 <i class="fas fa-crown" title="Professeur Principal"></i>
@@ -247,7 +253,7 @@
                                             <div>
                                                 <h2>{{ professeur.nom_complet }}</h2>
                                                 <p class="professor-matiere-modal">
-                                                    <i class="fas fa-book"></i> {{ professeur.matiere_principale.nom }}
+                                                    <i class="fas fa-book"></i> {% if professeur.matiere_principale %}{% if est_superieur and professeur.matiere_principale.department %}{{ professeur.matiere_principale.department.nom }} › {% endif %}{% if est_superieur and professeur.matiere_principale.module %}{{ professeur.matiere_principale.module.nom }} › {% endif %}{{ professeur.matiere_principale.nom }}{% else %}—{% endif %}
                                                     {% if professeur.matieres_secondaires.exists %}
                                                         <span class="secondary-count">+ {{ professeur.matieres_secondaires.count }} secondaire(s)</span>
                                                     {% endif %}
@@ -268,9 +274,9 @@
                                     <div class="affectation-item" data-classe-id="{{ affectation.classe.id }}">
                                         <span class="classe-name">
                                             <i class="fas fa-chalkboard"></i>
-                                            {{ affectation.classe.nom }}
+                                            {% if est_superieur %}{{ affectation.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=affectation.classe only %}{% else %}{{ affectation.classe.nom }}{% endif %}
                                             {% if type_etablissement != 'primary' and affectation.matiere %}
-                                                - <strong>{{ affectation.matiere.nom }}</strong>
+                                                - <strong>{% if est_superieur and affectation.matiere.department %}{{ affectation.matiere.department.nom }} › {% endif %}{% if est_superieur and affectation.matiere.module %}{{ affectation.matiere.module.nom }} › {% endif %}{{ affectation.matiere.nom }}</strong>
                                             {% endif %}
                                             {% if affectation.is_principal %}
                                                 <span class="statut-badge principal">{% trans "Principal" %}</span>
@@ -304,29 +310,37 @@
                                             <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
                                             <input type="hidden" name="action" value="add">
                                             
-                                            <div class="form-row">
-                                                <div class="form-group-modal">
-                                                    <label for="classe{{ professeur.id }}" class="form-label-modal">
-                                                        <i class="fas fa-chalkboard"></i> {% trans "Classe" %}
+                                            <div class="form-row form-row-affectation{% if est_superieur %} form-row-affectation-superieur{% endif %}">
+                                                {% if est_superieur and departments_affectation %}
+                                                <div class="form-group-modal form-group-filiere">
+                                                    <label for="filiere{{ professeur.id }}" class="form-label-modal">
+                                                        <i class="fas fa-graduation-cap"></i> {% trans "Filière" %}
                                                     </label>
-                                                    <select name="classe_id" id="classe{{ professeur.id }}" class="form-control-modal" required>
-                                                        <option value="">{% trans "Sélectionner une classe" %}</option>
-                                                        {% for classe in classes_disponibles %}
-                                                            <option value="{{ classe.id }}">{{ classe.nom }}</option>
+                                                    <select id="filiere{{ professeur.id }}" class="form-control-modal affectation-filiere-select" data-professeur-id="{{ professeur.id }}" autocomplete="off">
+                                                        <option value="">{% trans "Sélectionnez une filière" %}</option>
+                                                        {% for dep in departments_affectation %}
+                                                        <option value="{{ dep.id }}">{{ dep.nom }}</option>
                                                         {% endfor %}
                                                     </select>
+                                                    <p class="form-hint-affectation">{% trans "Choisissez d'abord la filière pour filtrer les matières et les classes cohérentes." %}</p>
                                                 </div>
-                                                
+                                                {% elif est_superieur %}
+                                                <p class="form-hint-affectation"><i class="fas fa-info-circle"></i> {% trans "Aucune filière configurée : toutes les matières du professeur sont proposées." %}</p>
+                                                {% endif %}
+
                                                 {% if type_etablissement != 'primary' %}
                                                 <div class="form-group-modal">
                                                     <label for="matiere{{ professeur.id }}" class="form-label-modal">
                                                         <i class="fas fa-book"></i> {% trans "Matière" %}
                                                     </label>
-                                                    <select name="matiere_id" id="matiere{{ professeur.id }}" class="form-control-modal" required>
+                                                    <select name="matiere_id" id="matiere{{ professeur.id }}" class="form-control-modal affectation-matiere-select" required data-professeur-id="{{ professeur.id }}">
+                                                        {% if est_superieur and departments_affectation %}
+                                                        <option value="" data-department-id="">{% trans "Choisissez une filière puis une matière" %}</option>
+                                                        {% endif %}
                                                         {% for matiere in matieres_enseignables %}
                                                             {% if matiere %}
-                                                                <option value="{{ matiere.id }}" {% if forloop.first %}selected{% endif %}>
-                                                                    {{ matiere.nom }}{% if forloop.first and professeur.matiere_principale and matiere.id == professeur.matiere_principale.id %} (Principale){% else %} (Secondaire){% endif %}
+                                                                <option value="{{ matiere.id }}" data-department-id="{{ matiere.department_id|default:'' }}" data-classe-ids="{% if est_superieur %}{{ matiere.get_classe_ids_pour_affectation_superieur_csv }}{% endif %}" {% if not est_superieur and forloop.first %}selected{% elif est_superieur and not departments_affectation and forloop.first %}selected{% endif %}>
+                                                                    {% if est_superieur and matiere.department %}{{ matiere.department.nom }} › {% endif %}{% if est_superieur and matiere.module %}{{ matiere.module.nom }} › {% endif %}{{ matiere.nom }}{% if professeur.matiere_principale and matiere.id == professeur.matiere_principale.id %} ({% trans "Principale" %}){% elif professeur.matiere_principale %} ({% trans "Secondaire" %}){% endif %}
                                                                 </option>
                                                             {% endif %}
                                                         {% empty %}
@@ -335,7 +349,19 @@
                                                     </select>
                                                 </div>
                                                 {% endif %}
-                                                
+
+                                                <div class="form-group-modal">
+                                                    <label for="classe{{ professeur.id }}" class="form-label-modal">
+                                                        <i class="fas fa-chalkboard"></i> {% trans "Classe" %}
+                                                    </label>
+                                                    <select name="classe_id" id="classe{{ professeur.id }}" class="form-control-modal affectation-classe-select" required data-professeur-id="{{ professeur.id }}">
+                                                        <option value="">{% trans "Sélectionner une classe" %}</option>
+                                                        {% for classe in classes_disponibles %}
+                                                            <option value="{{ classe.id }}" data-department-id="{{ classe.department_id|default:'' }}" data-classe-id="{{ classe.id }}">{% if est_superieur %}{{ classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}{% if classe.department %}, {{ classe.department.nom }}{% endif %}{% else %}{{ classe.nom }}{% endif %}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+
                                                 <div class="form-group-modal">
                                                     <label for="statut{{ professeur.id }}" class="form-label-modal">
                                                         <i class="fas fa-user-tag"></i> {% trans "Statut" %}
@@ -377,7 +403,7 @@
     {% csrf_token %}
     
     <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/affectation_professeurs.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/affectation_professeurs.js' %}?v=1.1.0"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

@@ -1,0 +1,144 @@
+{% load i18n classe_tags %}
+<div class="module-add-modal-overlay{% if show_modal_ajouter %} is-open{% endif %}" id="moduleAddModal" role="dialog" aria-modal="true" aria-labelledby="moduleAddModalTitle">
+  <div class="module-add-modal-backdrop" data-module-modal-close type="button" aria-label="{% trans 'Fermer' %}"></div>
+  <div class="module-add-modal-panel">
+    <header class="module-add-modal-header">
+      <div class="module-add-modal-header-text">
+        <h2 id="moduleAddModalTitle" class="module-add-modal-title">
+          <i class="fas fa-cube" aria-hidden="true"></i>
+          {% trans "Nouveau module" %}
+        </h2>
+        <p class="module-add-modal-subtitle">{% trans "Renseignez les informations puis validez. Le code interne (MOD-xxxx) est généré automatiquement." %}</p>
+      </div>
+      <button type="button" class="module-add-modal-close" data-module-modal-close aria-label="{% trans 'Fermer' %}">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <form method="post" action="{% url 'matiere:ajouter_module' %}" class="module-add-modal-form-shell" id="ajouterModuleForm">
+      {% csrf_token %}
+      <div class="module-add-modal-body">
+        <div class="module-add-modal-form">
+
+        {% if modal_field_errors %}
+        <div class="module-add-alert module-add-alert-error" role="alert">
+          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+          <div>
+            <strong>{% trans "Erreurs détectées" %}</strong>
+            <p class="module-add-alert-p">{% trans "Veuillez corriger les champs indiqués." %}</p>
+            {% if modal_field_errors.non_field %}<p class="module-add-alert-p">{{ modal_field_errors.non_field }}</p>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="module-add-grid-2">
+          <div class="module-add-field">
+            <label class="module-add-label" for="modal_nom_module">
+              <i class="fas fa-signature" aria-hidden="true"></i> {% trans "Nom du module *" %}
+            </label>
+            <input type="text" class="module-add-input {% if modal_field_errors.nom %}is-invalid{% endif %}"
+                   id="modal_nom_module" name="nom" required maxlength="255"
+                   value="{{ modal_form_data.nom }}"
+                   placeholder="{% trans 'Ex. Mathématiques appliquées' %}" autocomplete="off">
+            {% if modal_field_errors.nom %}<p class="module-add-field-error">{{ modal_field_errors.nom }}</p>{% endif %}
+          </div>
+          <div class="module-add-field">
+            <label class="module-add-label" for="modal_department_module">
+              <i class="fas fa-building" aria-hidden="true"></i> {% trans "Spécialité *" %}
+            </label>
+            <select class="module-add-input {% if modal_field_errors.department %}is-invalid{% endif %}"
+                    id="modal_department_module" name="department" required
+                    data-url-base="{% url 'matiere:liste_modules' %}">
+              <option value="">{% trans "Sélectionnez une spécialité" %}</option>
+              {% for dep in departments %}
+              <option value="{{ dep.id }}" {% if modal_form_data.department == dep.id|stringformat:"s" %}selected{% endif %}>{{ dep.nom }}</option>
+              {% endfor %}
+            </select>
+            {% if modal_field_errors.department %}<p class="module-add-field-error">{{ modal_field_errors.department }}</p>{% endif %}
+            <p class="module-add-hint">{% trans "Changer la spécialité recharge la page pour afficher les niveaux disponibles." %}</p>
+          </div>
+        </div>
+
+        <section class="module-add-niveaux-section" id="niveaux-container">
+          <h3 class="module-add-section-title">
+            <i class="fas fa-layer-group" aria-hidden="true"></i> {% trans "Niveaux, numéro UE et crédits" %}
+          </h3>
+          <p class="module-add-hint module-add-hint-block">{% trans "Activez un niveau pour le configurer. Numéro UE, période et crédits sont facultatifs ; le même numéro s'applique à toutes les classes de ce niveau." %}</p>
+
+          {% if modal_groupes_classes %}
+          <div class="niveaux-grid module-add-niveaux-grid">
+            {% for niveau, classes_list in modal_groupes_classes.items %}
+            <div class="niveau-card" data-niveau="{{ niveau }}" data-nb-classes="{{ classes_list|length }}"
+                 data-initial-credits="{{ modal_form_data.credits_per_niveau|dict_get:niveau|credits_input_display|default:'0' }}"
+                 data-initial-numero="{{ modal_form_data.numeros_per_niveau|dict_get:niveau }}"
+                 data-initial-periode="{{ modal_form_data.periodes_per_niveau|dict_get:niveau }}">
+              <div class="niveau-card-header" role="button" tabindex="0">
+                <div class="niveau-header-main">
+                  <span class="niveau-badge">{{ niveau|libelle_niveau_lmd_key }}</span>
+                  <span class="niveau-count">({{ classes_list|length }} classe{{ classes_list|length|pluralize }})</span>
+                </div>
+                <span class="niveau-action-hint">{% trans "Cliquer pour configurer" %}</span>
+              </div>
+              <div class="niveau-credits-block" style="display: none;">
+                <input type="hidden" name="niveaux" value="{{ niveau }}" class="niveau-hidden-input" disabled>
+                <div class="niveau-field-stack">
+                  <label class="credits-label" for="numero_{{ niveau }}">{% trans "N° unité (UE)" %}</label>
+                  <input type="text" class="module-add-input numero-ue-input" id="numero_{{ niveau }}" name="numero_{{ niveau }}"
+                         maxlength="80" value="{{ modal_form_data.numeros_per_niveau|dict_get:niveau }}"
+                         placeholder="{% trans 'Ex. UE3.1.1' %}" autocomplete="off">
+                </div>
+                <div class="niveau-field-stack">
+                  <label class="credits-label" for="periode_{{ niveau }}">{% trans "Période (semestre)" %}</label>
+                  <select class="module-add-input periode-niveau-input" id="periode_{{ niveau }}" name="periode_{{ niveau }}">
+                    <option value="">{% trans "Sélectionnez une période" %}</option>
+                    {% with periodes_niveau=modal_periodes_par_niveau|dict_get:niveau %}
+                      {% for p in periodes_niveau %}
+                      <option value="{{ p.id }}" {% if modal_form_data.periodes_per_niveau|dict_get:niveau == p.id|stringformat:"s" %}selected{% endif %}>
+                        {{ p.nom_periode }}
+                      </option>
+                      {% endfor %}
+                    {% endwith %}
+                  </select>
+                </div>
+                <div class="niveau-field-stack">
+                  <label class="credits-label" for="credits_{{ niveau }}">{% trans "Crédits" %}</label>
+                  <input type="number" name="credits_{{ niveau }}" id="credits_{{ niveau }}" class="module-add-input credits-niveau-input"
+                         value="{{ modal_form_data.credits_per_niveau|dict_get:niveau|credits_input_display|default:'0' }}" min="0" step="0.5" placeholder="0">
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if modal_field_errors.credits_per_niveau %}
+          <p class="module-add-field-error">{{ modal_field_errors.credits_per_niveau }}</p>
+          {% endif %}
+          {% if modal_field_errors.periodes_per_niveau %}
+          <p class="module-add-field-error">{{ modal_field_errors.periodes_per_niveau }}</p>
+          {% endif %}
+          {% if modal_field_errors.niveaux %}
+          <p class="module-add-field-error">{{ modal_field_errors.niveaux }}</p>
+          {% endif %}
+          {% endif %}
+
+          {% if not modal_groupes_classes %}
+          <div id="niveaux-placeholder" class="niveaux-placeholder module-add-placeholder">
+            {% if modal_form_data.department %}
+            <p><i class="fas fa-info-circle" aria-hidden="true"></i> {% trans "Aucune classe pour cette spécialité. Créez des classes avec niveau LMD." %}</p>
+            {% else %}
+            <p><i class="fas fa-info-circle" aria-hidden="true"></i> {% trans "Choisissez une spécialité pour afficher les niveaux." %}</p>
+            {% endif %}
+          </div>
+          {% endif %}
+        </section>
+        </div>
+      </div>
+
+      <footer class="module-add-modal-footer">
+        <button type="button" class="module-add-btn module-add-btn-ghost" data-module-modal-close>{% trans "Annuler" %}</button>
+        <button type="submit" class="module-add-btn module-add-btn-primary">
+          <i class="fas fa-save" aria-hidden="true"></i> {% trans "Créer le module" %}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>

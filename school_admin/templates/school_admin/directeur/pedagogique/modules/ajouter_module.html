@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+{% load static i18n notes_tags %}
+{% load classe_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Ajouter un module" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}" />
+</head>
+<body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="main-content-container">
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-plus-circle"></i>
+                    {% trans "Ajouter un module" %}
+                </h1>
+                <p class="page-subtitle">
+                    {% trans "Créez un nouveau module pour organiser les matières par crédits LMD" %}
+                </p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'matiere:liste_modules' %}" class="btn-add btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>{% trans "Retour" %}</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="form-card" style="max-width: 700px;">
+            <div class="form-header">
+                <h2>{% trans "Nouveau module" %}</h2>
+            </div>
+
+            <form method="post" action="{% url 'matiere:ajouter_module' %}" class="matiere-form" id="ajouterModuleForm">
+                {% csrf_token %}
+
+                {% if field_errors %}
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>{% trans "Erreurs détectées :" %}</strong> {% trans "Veuillez corriger les champs marqués." %}
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label class="form-label" for="nom">
+                        <i class="fas fa-cube"></i>
+                        {% trans "Nom du module *" %}
+                    </label>
+                    <input type="text"
+                           class="form-control {% if field_errors.nom %}is-invalid{% endif %}"
+                           id="nom"
+                           name="nom"
+                           value="{{ form_data.nom }}"
+                           placeholder="{% trans "Ex: Mathématiques appliquées" %}">
+                    {% if field_errors.nom %}
+                        <div class="invalid-feedback">{{ field_errors.nom }}</div>
+                    {% endif %}
+                </div>
+
+                <p class="form-hint" style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 1rem;">
+                    <i class="fas fa-info-circle"></i>
+                    {% trans "Le code du module est généré automatiquement (ex: MOD-0001, MOD-0002...)" %}
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" for="department">
+                        <i class="fas fa-building"></i>
+                        {% trans "Spécialité *" %}
+                    </label>
+                    <select class="form-control {% if field_errors.department %}is-invalid{% endif %}"
+                            id="department"
+                            name="department"
+                            required>
+                        <option value="">{% trans "Sélectionnez une spécialité" %}</option>
+                        {% for dep in departments %}
+                            <option value="{{ dep.id }}" {% if form_data.department == dep.id|stringformat:"s" %}selected{% endif %}>
+                                {{ dep.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="form-hint" style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem;">
+                        {% trans "Un même nom de module peut exister dans plusieurs spécialités (ex: Mathématiques en Logistique et en Mines)." %}
+                    </p>
+                    {% if field_errors.department %}
+                        <div class="invalid-feedback">{{ field_errors.department }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group" id="niveaux-container" style="display: none;">
+                    <label class="form-label">
+                        <i class="fas fa-graduation-cap"></i>
+                        {% trans "Niveaux et crédits *" %}
+                    </label>
+                    <p class="form-hint" style="font-size: 0.75rem; color: var(--gray-500); margin-bottom: 0.75rem;">
+                        {% trans "Cliquez sur un niveau pour l'ajouter au module et renseigner les crédits. Seuls les niveaux ayant des classes dans cette spécialité sont affichés." %}
+                    </p>
+                    {% if groupes_classes %}
+                        <div class="niveaux-grid">
+                            {% for niveau, classes_list in groupes_classes.items %}
+                            <div class="niveau-card" data-niveau="{{ niveau }}" data-nb-classes="{{ classes_list|length }}" data-initial-credits="{{ form_data.credits_per_niveau|get_item:niveau|default:'' }}">
+                                <div class="niveau-card-header">
+                                    <span class="niveau-badge">{{ niveau|libelle_niveau_lmd_key }}</span>
+                                    <span class="niveau-count">({{ classes_list|length }} classe{{ classes_list|length|pluralize }})</span>
+                                </div>
+                                <div class="niveau-credits-block" style="display: none;">
+                                    <input type="hidden" name="niveaux" value="{{ niveau }}" class="niveau-hidden-input" disabled>
+                                    <label class="credits-label">{% trans "Crédits" %}</label>
+                                    <input type="number" name="credits_{{ niveau }}" class="form-control credits-niveau-input" value="{{ form_data.credits_per_niveau|get_item:niveau|default:'0' }}" min="0" step="0.5" placeholder="0">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if field_errors.credits_per_niveau %}
+                            <div class="invalid-feedback">{{ field_errors.credits_per_niveau }}</div>
+                        {% endif %}
+                        {% if field_errors.niveaux %}
+                            <div class="invalid-feedback">{{ field_errors.niveaux }}</div>
+                        {% endif %}
+                    {% endif %}
+                    {% if not groupes_classes %}
+                        <div id="niveaux-placeholder" class="niveaux-placeholder">
+                            {% if form_data.department %}
+                            <p style="color: var(--gray-500); font-style: italic;">
+                                <i class="fas fa-info-circle"></i>
+                                {% trans "Aucune classe configurée pour cette spécialité. Créez d'abord des classes avec une spécialité et un niveau LMD." %}
+                            </p>
+                            {% else %}
+                            <p style="color: var(--gray-500); font-style: italic;">
+                                <i class="fas fa-info-circle"></i>
+                                {% trans "Sélectionnez une spécialité pour afficher les niveaux disponibles (L1, L2, etc.)." %}
+                            </p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'matiere:liste_modules' %}" class="btn-cancel">
+                        <i class="fas fa-times"></i>
+                        <span>{% trans "Annuler" %}</span>
+                    </a>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-save"></i>
+                        <span>{% trans "Créer le module" %}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const departmentSelect = document.getElementById('department');
+            const niveauxContainer = document.getElementById('niveaux-container');
+            const niveauxPlaceholder = document.getElementById('niveaux-placeholder');
+
+            function toggleNiveauxSection() {
+                const hasDept = departmentSelect && departmentSelect.value;
+                if (niveauxContainer) {
+                    niveauxContainer.style.display = hasDept ? 'block' : 'none';
+                }
+                if (niveauxPlaceholder && hasDept) {
+                    niveauxPlaceholder.style.display = 'none';
+                }
+            }
+
+            document.querySelectorAll('.niveau-card').forEach(function(card) {
+                const header = card.querySelector('.niveau-card-header');
+                const creditsBlock = card.querySelector('.niveau-credits-block');
+                const hiddenInput = card.querySelector('.niveau-hidden-input');
+                const creditsInput = card.querySelector('.credits-niveau-input');
+                const initialCredits = card.getAttribute('data-initial-credits');
+
+                function toggleNiveau(show) {
+                    if (show) {
+                        creditsBlock.style.display = 'block';
+                        if (hiddenInput) hiddenInput.disabled = false;
+                        if (creditsInput) creditsInput.required = true;
+                        card.classList.add('niveau-selected');
+                    } else {
+                        creditsBlock.style.display = 'none';
+                        if (hiddenInput) hiddenInput.disabled = true;
+                        if (creditsInput) { creditsInput.value = '0'; creditsInput.required = false; }
+                        card.classList.remove('niveau-selected');
+                    }
+                }
+
+                if (initialCredits && initialCredits !== '' && parseFloat(initialCredits) > 0) {
+                    toggleNiveau(true);
+                }
+
+                header.addEventListener('click', function() {
+                    const isActive = creditsBlock.style.display !== 'none';
+                    toggleNiveau(!isActive);
+                    if (!isActive && creditsInput) creditsInput.focus();
+                });
+            });
+
+            toggleNiveauxSection();
+            if (departmentSelect) {
+                departmentSelect.addEventListener('change', function() {
+                    if (this.value) {
+                        var params = new URLSearchParams(window.location.search);
+                        params.set('department', this.value);
+                        params.set('nom', document.getElementById('nom').value || '');
+                        window.location.search = params.toString();
+                    } else {
+                        window.location.href = '{% url "matiere:ajouter_module" %}';
+                    }
+                });
+            }
+
+        });
+    </script>
+    <style>
+        .niveaux-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .niveau-card {
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 10px;
+            border: 2px solid var(--gray-200);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .niveau-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .niveau-card.niveau-selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .niveau-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .niveau-badge {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        .niveau-count {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+        .niveau-credits-block {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--gray-200);
+        }
+        .credits-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+        .credits-niveau-input {
+            max-width: 100%;
+        }
+    </style>
+</body>
+</html>

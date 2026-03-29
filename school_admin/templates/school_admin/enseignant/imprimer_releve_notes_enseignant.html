@@ -42,7 +42,7 @@
         <!-- Titre du document -->
         <div class="document-title">
             <h2>RELEVÉ DE NOTES{% if periode %} - {{ periode.nom_periode }}{% endif %}</h2>
-            <p class="document-subtitle">{{ matiere.nom }} - {{ classe.nom }}</p>
+            <p class="document-subtitle">{{ matiere.nom }} - {{ classe.nom }} — <span class="imprimer-niveau-classe">{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</span></p>
         </div>
 
         <!-- Informations de la classe -->
@@ -50,7 +50,7 @@
             <div class="info-row">
                 <div class="info-item">
                     <span class="info-label">Classe :</span>
-                    <span class="info-value">{{ classe.nom }}</span>
+                    <span class="info-value">{{ classe.nom }} — {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Matière :</span>

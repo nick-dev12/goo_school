@@ -16,7 +16,83 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Animation du badge de statut
     animateStatusBadge();
+
+    initModalMatiereSecondaire();
 });
+
+/**
+ * Modal « Ajouter une matière secondaire ».
+ * Supérieur : voir initProfesseurSuperieurMatierePicker (ajouter_professeur.js).
+ * Collège / lycée : liste + recherche.
+ */
+function initModalMatiereSecondaire() {
+    /* Supérieur : même logique que /professeurs/ajouter/ via initProfesseurSuperieurMatierePicker (ajouter_professeur.js). */
+    if (document.getElementById('matiere-principale-list')) {
+        return;
+    }
+
+    var list = document.getElementById('modal-matiere-pick-list');
+    var searchInput = document.getElementById('modal-matiere-search');
+    var hiddenId = document.getElementById('modal-matiere-id');
+    var hint = document.getElementById('modal-matiere-selected-hint');
+    var labelEl = document.getElementById('modal-matiere-selected-label');
+
+    if (!list || !hiddenId) {
+        return;
+    }
+
+    var items = list.querySelectorAll('.modal-matiere-pick-item');
+
+    function normalizeStr(s) {
+        var t = (s || '').toString().toLowerCase();
+        try {
+            if (typeof t.normalize === 'function') {
+                t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+        } catch (e) { /* ignore */ }
+        return t;
+    }
+
+    function filterPickList() {
+        var q = normalizeStr(searchInput ? searchInput.value : '');
+        items.forEach(function (btn) {
+            var raw = btn.getAttribute('data-matiere-search');
+            var hay = normalizeStr(raw != null && raw !== '' ? raw : btn.textContent);
+            var match = !q || hay.indexOf(q) !== -1;
+            btn.hidden = !match;
+        });
+    }
+
+    function selectMatiere(btn) {
+        var id = btn.getAttribute('data-matiere-id');
+        hiddenId.value = id || '';
+        var main = btn.querySelector('.modal-matiere-pick-main');
+        var txt = main ? main.textContent.trim() : btn.textContent.trim();
+        items.forEach(function (b) {
+            b.classList.toggle('is-selected', b === btn);
+        });
+        if (hint && labelEl) {
+            labelEl.textContent = txt;
+            hint.hidden = false;
+        }
+        filterPickList();
+    }
+
+    items.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            selectMatiere(btn);
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterPickList);
+        searchInput.addEventListener('keyup', filterPickList);
+        searchInput.addEventListener('search', filterPickList);
+        searchInput.addEventListener('paste', function () {
+            requestAnimationFrame(filterPickList);
+        });
+    }
+}
 
 /**
  * Animation d'apparition progressive des cartes

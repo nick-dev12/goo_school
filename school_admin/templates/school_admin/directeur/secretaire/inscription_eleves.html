@@ -140,7 +140,7 @@
 
         <!-- Formulaire d'inscription moderne -->
         <div class="form-container-modern">
-            <form method="post" action="{% url 'secretaire:inscription_eleves' %}" class="inscription-form-modern" id="inscriptionForm">
+            <form method="post" action="{% url 'secretaire:inscription_eleves' %}" class="inscription-form-modern" id="inscriptionForm"{% if est_superieur %} data-filiere-classe-mode="narrow"{% endif %}>
                 {% csrf_token %}
                 
                 <!-- Alertes d'erreur globales -->
@@ -296,7 +296,7 @@
                     <div class="form-group-modern full-width">
                         <label class="label-modern" for="adresse">
                             <i class="fas fa-home"></i>
-                            {% trans "Adresse de résidence <span class=\"optional-badge\">{% trans "Optionnel" %}</span>" %}
+                            {% trans "Adresse de résidence" %} <span class="optional-badge">{% trans "Optionnel" %}</span>
                         </label>
                         <textarea class="input-modern textarea-modern {% if field_errors.adresse %}input-error{% endif %}" 
                                   id="adresse" 
@@ -324,16 +324,41 @@
                     </div>
 
                     <div class="form-grid-modern">
+                        {% if est_superieur and departments_inscription %}
+                        <div class="form-group-modern">
+                            <label class="label-modern" for="filiere_inscription">
+                                <i class="fas fa-graduation-cap"></i>
+                                {% trans "Filière" %} <span class="required-star">*</span>
+                            </label>
+                            <select id="filiere_inscription" name="department_inscription" class="input-modern js-inscription-filiere {% if field_errors.department_inscription %}input-error{% endif %}">
+                                <option value="">{% trans "Sélectionnez une filière" %}</option>
+                                {% for dep in departments_inscription %}
+                                <option value="{{ dep.id }}" {% if form_data.department_inscription == dep.id|stringformat:"s" %}selected{% endif %}>{{ dep.nom }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="section-subtitle-modern" style="margin-top:0.35rem;font-size:0.85rem;">{% trans "Choisissez d'abord la filière pour afficher les classes correspondantes." %}</p>
+                            {% if field_errors.department_inscription %}
+                                <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.department_inscription }}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                         <div class="form-group-modern">
                             <label class="label-modern" for="classe">
                                 <i class="fas fa-chalkboard"></i>
-                                {% trans "Classe d'affectation <span class=\"required-star\">*</span>" %}
+                                {% trans "Classe d'affectation" %} <span class="required-star">*</span>
                             </label>
-                            <select class="input-modern {% if field_errors.classe %}input-error{% endif %}" id="classe" name="classe" required>
-                                <option value="">{% trans "Sélectionnez une classe" %}</option>
+                            <select class="input-modern js-inscription-classe {% if field_errors.classe %}input-error{% endif %}" id="classe" name="classe" required>
+                                <option value="">{% if est_superieur and departments_inscription %}{% trans "Sélectionnez une filière puis une classe" %}{% else %}{% trans "Sélectionnez une classe" %}{% endif %}</option>
                                 {% for classe in classes %}
-                                    <option value="{{ classe.id }}" {% if form_data.classe == classe.id|stringformat:"s" %}selected{% endif %}>
-                                        {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                    <option value="{{ classe.id }}"
+                                            data-classe-option="1"
+                                            data-department-id="{{ classe.department_id|default:'' }}"
+                                            {% if form_data.classe == classe.id|stringformat:"s" %}selected{% endif %}>
+                                        {% if est_superieur %}
+                                            {{ classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}{% if classe.department %}, {{ classe.department.nom }}{% endif %}
+                                        {% else %}
+                                            {{ classe.nom }} ({{ classe.get_niveau_display }})
+                                        {% endif %}
                                     </option>
                                 {% endfor %}
                             </select>
@@ -1002,6 +1027,9 @@
             }
         }
     </script>
+    {% if est_superieur %}
+    <script src="{% static 'school_admin/js/directeur/inscription_superieur_filiere_classe.js' %}?v=1.0.0"></script>
+    {% endif %}
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

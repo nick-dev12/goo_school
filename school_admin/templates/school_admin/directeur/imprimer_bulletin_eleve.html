@@ -126,7 +126,7 @@
                 {% if has_note_examen %}
                 <th>{% trans "Note d'examen" %}</th>
                 {% endif %}
-                <th>{% trans "Coefficient" %}</th>
+                <th>{% if est_superieur %}{% trans "Crédits" %}{% else %}{% trans "Coefficient" %}{% endif %}</th>
                 <th>{% trans "Moyenne élève" %}</th>
                 <th>{% trans "Moyenne × Coefficient" %}</th>
                 <th>{% trans "Rang" %}</th>
@@ -153,7 +153,7 @@
                     {% endif %}
                   </td>
                   {% endif %}
-                  <td>{{ matiere.coefficient|floatformat:1 }}</td>
+                  <td>{% if est_superieur and matiere.credits is not None %}{{ matiere.credits|floatformat:2 }}{% else %}{{ matiere.coefficient|floatformat:1 }}{% endif %}</td>
                   <td class="{% if matiere.moyenne_eleve is not None and matiere.moyenne_eleve >= 10 %}moyenne-reussie{% elif matiere.moyenne_eleve is not None %}moyenne-echec{% endif %}">
                     {% if matiere.moyenne_eleve is not None %}
                       {{ matiere.moyenne_eleve|floatformat:2 }}

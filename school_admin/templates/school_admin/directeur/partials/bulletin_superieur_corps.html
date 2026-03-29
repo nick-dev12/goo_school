@@ -1,0 +1,569 @@
+{% load i18n notes_tags %}
+<div class="bulletin-sup">
+  <div class="bsup-doc-flow">
+  <div class="bsup-header-grid">
+    <div class="bsup-header-left">
+      {% if etablissement.logo %}
+        <img src="{{ etablissement.logo.url }}" alt="" class="bsup-logo" width="72" height="72" />
+      {% else %}
+        <div class="bsup-logo-ph" aria-hidden="true"><i class="fas fa-school"></i></div>
+      {% endif %}
+      <div class="bsup-header-left-text">
+        <h1 class="bsup-etab-name">{{ etablissement.nom }}</h1>
+        {% if etablissement.description %}
+          <p class="bsup-etab-sub">{{ etablissement.description|truncatechars:120 }}</p>
+        {% elif etablissement.adresse or etablissement.ville %}
+          <p class="bsup-etab-sub">{% if etablissement.adresse %}{{ etablissement.adresse }}{% endif %}{% if etablissement.ville %}{% if etablissement.adresse %} — {% endif %}{{ etablissement.ville }}{% endif %}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="bsup-header-center">
+      <div class="bsup-header-top-band">
+        <div class="bsup-identity-wrap">
+          <table class="bsup-identity-table bsup-identity-split-top">
+            <tbody>
+              <tr>
+                <th>{% trans "Année académique" %}</th>
+                <td>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ periode.annee_scolaire|default:"—" }}{% endif %}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Matricule" %}</th>
+                <td>{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bsup-header-right" aria-label="{% trans 'Titre du document' %}">
+          <p class="bsup-doc-title">{% trans "Bulletin de notes" %}</p>
+          <p class="bsup-doc-sub">{{ periode.nom_periode|default:"—" }}</p>
+        </div>
+      </div>
+      <table class="bsup-identity-table bsup-identity-split-bottom">
+        <tbody>
+          <tr>
+            <th>{% trans "Prénom et nom" %}</th>
+            <td>{{ eleve.nom_complet }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Sexe" %}</th>
+            <td>{% if eleve.sexe == 'M' %}{% trans "Masculin" %}{% elif eleve.sexe == 'F' %}{% trans "Féminin" %}{% else %}—{% endif %}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Date et lieu de naissance" %}</th>
+            <td>
+              {% if eleve.date_naissance %}{{ eleve.date_naissance|date:"d/m/Y" }}{% else %}—{% endif %}
+              {% if eleve.lieu_naissance %} {% trans "à" %} {{ eleve.lieu_naissance }}{% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bsup-academic-bar">
+    <div class="bsup-academic-cell">
+      <span class="lbl">{% trans "Domaine" %}</span>
+      <span class="val">{{ bulletin_barre_academique.domaine|default:"—" }}</span>
+    </div>
+    <div class="bsup-academic-cell">
+      <span class="lbl">{% trans "Mention" %}</span>
+      <span class="val">{{ bulletin_barre_academique.mention|default:"—" }}</span>
+    </div>
+    <div class="bsup-academic-cell">
+      <span class="lbl">{% trans "Spécialité" %}</span>
+      <span class="val">{{ bulletin_barre_academique.specialite|default:"—" }}</span>
+    </div>
+    <div class="bsup-academic-cell">
+      <span class="lbl">{% trans "Grade" %}</span>
+      <span class="val">
+        {% if classe.niveau_lmd %}
+          {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}
+        {% else %}
+          {{ bulletin_barre_academique.grade|default:"—" }}
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="bsup-table-wrap table-responsive">
+    <table class="bsup-main-table">
+      <colgroup>
+        <col class="bsup-col-w-ue" />
+        <col class="bsup-col-w-n" />
+        <col class="bsup-col-w-n" />
+        <col class="bsup-col-w-n" />
+        <col class="bsup-col-w-n" />
+        <col class="bsup-col-w-n" />
+        <col class="bsup-col-w-n" />
+        <col class="bsup-col-w-cred" />
+        <col class="bsup-col-w-moyue" />
+        <col class="bsup-col-w-app" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="bsup-col-ue-ec">{% trans "UE / Éléments constitutifs" %}</th>
+          <th>{% trans "MCC" %} {{ poids_cc_pct }}%</th>
+          <th>{% trans "Examen" %} {{ poids_exam_pct }}%</th>
+          <th>{% trans "Rattrap." %} {{ poids_exam_pct }}%</th>
+          <th>{% trans "Moyenne EC" %}</th>
+          <th>{% trans "Coef. EC" %}</th>
+          <th>{% trans "Moyenne Coef" %}</th>
+          <th>{% trans "Crédit EC" %}</th>
+          <th>{% trans "Moyenne UE" %}</th>
+          <th>{% trans "Appréciation" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bloc in bulletin_ue_blocs %}
+          <tr class="bsup-ue-row">
+            <td colspan="10">{{ bloc.ue_titre }}</td>
+          </tr>
+          {% for ec in bloc.ecs %}
+            <tr class="bsup-ec-row">
+              <td class="txt-left bsup-col-ue-ec">{{ ec.nom }}</td>
+              <td class="num">
+                {% if ec.note_controle_continu is not None %}
+                  {{ ec.note_controle_continu|floatformat:2 }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+              <td class="num">
+                {% if ec.note_examen is not None %}
+                  {{ ec.note_examen|floatformat:2 }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+              <td class="num">
+                {% if ec.note_rattrapage is not None %}
+                  {{ ec.note_rattrapage|floatformat:2 }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+              <td class="num">
+                {% if ec.moyenne_eleve is not None %}
+                  {{ ec.moyenne_eleve|floatformat:2 }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+              <td class="num">
+                {% if ec.coefficient is not None %}
+                  {{ ec.coefficient|floatformat:2 }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+              <td class="num">
+                {% if ec.moyenne_avec_coefficient is not None %}
+                  {{ ec.moyenne_avec_coefficient|floatformat:2 }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+              <td class="num bsup-ec-empty"></td>
+              <td class="num bsup-ec-empty"></td>
+              <td class="txt-left">
+                {% if ec.appreciation %}
+                  {{ ec.appreciation }}
+                {% else %}
+                  <span class="bsup-dash">–</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          <tr class="bsup-ue-summary">
+            <td colspan="6" class="lbl">{% trans "Synthèse de l'UE" %}</td>
+            <td class="num">
+              {% if bloc.sum_moyenne_coef is not None %}
+                {{ bloc.sum_moyenne_coef|floatformat:2 }}
+              {% else %}
+                –
+              {% endif %}
+            </td>
+            <td class="num">
+              {% if bloc.total_credits is not None %}
+                {{ bloc.total_credits|floatformat:2 }}
+              {% else %}
+                –
+              {% endif %}
+            </td>
+            <td class="num">
+              {% if bloc.moyenne_ue is not None %}
+                {{ bloc.moyenne_ue|floatformat:3 }}
+              {% else %}
+                –
+              {% endif %}
+            </td>
+            <td class="num bsup-ue-statut">{{ bloc.statut_ue }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10" style="text-align:center;padding:1rem;">{% trans "Aucune ligne de note pour cette période." %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if bsup_bilan_annuel and bsup_bilan_annuel.actif %}
+  <div class="table-responsive bsup-annual-summary-wrap">
+    <table class="bsup-annual-bilan-table" role="region" aria-label="{% trans 'Bilan année universitaire' %}">
+      <tbody>
+        <tr>
+          <th class="bsup-ab-sem-lbl" rowspan="2" scope="rowgroup">{{ bsup_bilan_annuel.periode_s1_nom }}</th>
+          <td class="bsup-ab-data-lbl">{% trans "Crédits" %}</td>
+          <td class="bsup-ab-data-val">
+            {% if bsup_bilan_annuel.credits_s1_obt is not None and bsup_bilan_annuel.credits_s1_att is not None %}
+              {{ bsup_bilan_annuel.credits_s1_obt|floatformat:2 }} / {{ bsup_bilan_annuel.credits_s1_att|floatformat:2 }}
+            {% else %}<span class="bsup-dash">–</span>{% endif %}
+          </td>
+          <th class="bsup-ab-sem-lbl" rowspan="2" scope="rowgroup">{{ bsup_bilan_annuel.periode_s2_nom }}</th>
+          <td class="bsup-ab-data-lbl">{% trans "Crédits" %}</td>
+          <td class="bsup-ab-data-val">
+            {% if bsup_bilan_annuel.credits_s2_obt is not None and bsup_bilan_annuel.credits_s2_att is not None %}
+              {{ bsup_bilan_annuel.credits_s2_obt|floatformat:2 }} / {{ bsup_bilan_annuel.credits_s2_att|floatformat:2 }}
+            {% else %}<span class="bsup-dash">–</span>{% endif %}
+          </td>
+          <td class="bsup-ab-data-lbl bsup-ab-data-lbl--annual">{% trans "Total crédits" %}</td>
+          <td class="bsup-ab-data-val bsup-ab-data-val--annual">
+            {% if bsup_bilan_annuel.total_credits_obt_annee is not None and bsup_bilan_annuel.total_credits_att_annee is not None %}
+              {{ bsup_bilan_annuel.total_credits_obt_annee|floatformat:2 }} / {{ bsup_bilan_annuel.total_credits_att_annee|floatformat:2 }}
+            {% else %}<span class="bsup-dash">–</span>{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="bsup-ab-data-lbl">{% trans "Moyenne" %}</td>
+          <td class="bsup-ab-data-val">
+            {% if bsup_bilan_annuel.moyenne_s1 is not None %}{{ bsup_bilan_annuel.moyenne_s1|floatformat:2 }} / 20{% else %}<span class="bsup-dash">–</span>{% endif %}
+          </td>
+          <td class="bsup-ab-data-lbl">{% trans "Moyenne" %}</td>
+          <td class="bsup-ab-data-val">
+            {% if bsup_bilan_annuel.moyenne_s2 is not None %}{{ bsup_bilan_annuel.moyenne_s2|floatformat:2 }} / 20{% else %}<span class="bsup-dash">–</span>{% endif %}
+          </td>
+          <td class="bsup-ab-data-lbl bsup-ab-data-lbl--annual">{% trans "Moy generale" %}</td>
+          <td class="bsup-ab-data-val bsup-ab-data-val--annual">
+            {% if bsup_bilan_annuel.moyenne_annuelle_univ is not None %}
+              {{ bsup_bilan_annuel.moyenne_annuelle_univ|floatformat:2 }} / 20
+            {% else %}
+              <span class="bsup-dash">–</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="bsup-ab-decision" colspan="8">
+            <span class="bsup-ab-decision-part"><span class="bsup-ab-decision-lbl">{% trans "Décision conseil de classe" %}</span> :
+              {% if complement_info.statut_conseil_label %}
+                {{ complement_info.statut_conseil_label }}
+              {% elif complement_info.appreciation_generale_originale %}
+                {{ complement_info.appreciation_generale_originale }}
+              {% elif complement_info.appreciation_generale %}
+                {{ complement_info.appreciation_generale }}
+              {% else %}
+                <span class="bsup-dash">–</span>
+              {% endif %}
+            </span>
+            <span class="bsup-ab-decision-sep" aria-hidden="true"> / </span>
+            <span class="bsup-ab-decision-part"><span class="bsup-ab-decision-lbl">{% trans "Résultat" %}</span> :
+              {% if complement_info.decision_conseil %}
+                <strong>{{ complement_info.decision_conseil }}</strong>
+              {% else %}
+                <span class="bsup-dash">–</span>
+              {% endif %}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="bsup-dual-recap" role="region">
+    <div class="table-responsive bsup-recap-responsive">
+      <table class="bsup-recap-table bsup-recap-table-maquette bsup-recap-table-dual">
+        <colgroup>
+          <col class="bsup-recap-col-label" />
+          {% for _ in "0123456"|make_list %}<col class="bsup-recap-col-mod" />{% endfor %}
+          {% for _ in "0123456"|make_list %}<col class="bsup-recap-col-mod" />{% endfor %}
+        </colgroup>
+        <tbody>
+          <tr>
+            <td class="bsup-recap-corner" rowspan="2">{% trans "Récapitulatifs des unités" %}</td>
+            <th class="bsup-dual-recap-title-cell" colspan="7">{% trans "Récap du 1er semestre de l'année" %} ({{ bsup_bilan_annuel.periode_s1_nom }})</th>
+            <th class="bsup-dual-recap-title-cell bsup-dual-recap-title-cell--s2" colspan="7">{% trans "Récap du 2e semestre de l'année" %} ({{ bsup_bilan_annuel.periode_s2_nom }})</th>
+          </tr>
+          <tr>
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
+              <td class="bsup-recap-ue-head" {% if slot and slot.ue_titre %}title="{{ slot.ue_titre|escape }}"{% endif %}>
+                {% if slot and slot.ue_titre %}
+                  <span class="bsup-recap-ue-head-txt">{{ slot.ue_titre|truncatechars:20 }}</span>
+                {% else %}
+                  <span class="bsup-recap-ue-head-fallback">UE {{ forloop.counter }}</span>
+                {% endif %}
+              </td>
+              {% endwith %}
+            {% endfor %}
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
+              <td class="bsup-recap-ue-head {% if forloop.first %}bsup-dual-recap-s2-first{% endif %}" {% if slot and slot.ue_titre %}title="{{ slot.ue_titre|escape }}"{% endif %}>
+                {% if slot and slot.ue_titre %}
+                  <span class="bsup-recap-ue-head-txt">{{ slot.ue_titre|truncatechars:20 }}</span>
+                {% else %}
+                  <span class="bsup-recap-ue-head-fallback">UE {{ forloop.counter }}</span>
+                {% endif %}
+              </td>
+              {% endwith %}
+            {% endfor %}
+          </tr>
+          <tr>
+            <th class="bsup-recap-row-label" scope="row">{% trans "Moyennes" %}</th>
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
+                <td class="bsup-recap-moyenne-cell">
+                  {% if slot and slot.moyenne is not None %}
+                    <span class="bsup-recap-moyenne-val">{{ slot.moyenne|floatformat:2 }}</span>
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
+                <td class="bsup-recap-moyenne-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %}">
+                  {% if slot and slot.moyenne is not None %}
+                    <span class="bsup-recap-moyenne-val">{{ slot.moyenne|floatformat:2 }}</span>
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+          </tr>
+          <tr>
+            <th class="bsup-recap-row-label" scope="row">{% trans "Validations" %}</th>
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
+                <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+                  {% if slot %}
+                    {% if slot.statut == 'Validée' %}
+                      <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
+                    {% elif slot.statut and slot.statut != '—' %}
+                      {{ slot.statut }}
+                    {% endif %}
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
+                <td class="bsup-recap-valid-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %} {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+                  {% if slot %}
+                    {% if slot.statut == 'Validée' %}
+                      <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
+                    {% elif slot.statut and slot.statut != '—' %}
+                      {{ slot.statut }}
+                    {% endif %}
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+          </tr>
+          <tr>
+            <th class="bsup-recap-row-label" scope="row">{% trans "Crédits obtenus" %}</th>
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
+                <td class="bsup-recap-credits-cell">
+                  {% if slot and slot.credits is not None %}
+                    <strong>{{ slot.credits|floatformat:2 }}</strong>
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+            {% for idx in "0123456"|make_list %}
+              {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
+                <td class="bsup-recap-credits-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %}">
+                  {% if slot and slot.credits is not None %}
+                    <strong>{{ slot.credits|floatformat:2 }}</strong>
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="bsup-summary-block" role="region" aria-label="{% trans 'Synthèse du semestre' %}">
+    <table class="bsup-summary-table">
+      <colgroup>
+        <col class="bsup-sum-col-label" />
+        <col class="bsup-sum-col-value" />
+      </colgroup>
+      <tbody>
+        <tr>
+          <td class="bsup-sum-lbl">{% trans "Total crédits obtenus" %}&nbsp;:</td>
+          <td class="bsup-sum-val">
+            {% if total_credits_obtenus is not None and total_credits_attendus is not None %}
+              {{ total_credits_obtenus|floatformat:2 }} / {{ total_credits_attendus|floatformat:2 }}
+            {% elif total_credits_attendus is not None %}
+              – / {{ total_credits_attendus|floatformat:2 }}
+            {% else %}
+              –
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="bsup-sum-lbl">{% trans "Moyenne du semestre" %}&nbsp;:</td>
+          <td class="bsup-sum-val">
+            {% if moyenne_generale is not None %}
+              {{ moyenne_generale|floatformat:2 }} / 20
+            {% else %}
+              –
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="bsup-sum-appreciation" colspan="2">
+            <span class="bsup-sum-appreciation-lbl">{% trans "Appréciation conseil de classe" %}&nbsp;:</span>{% if complement_info.decision_conseil %}
+              <span class="bsup-sum-appreciation-txt">{{ complement_info.decision_conseil }}</span>
+            {% elif complement_info.appreciation_generale %}
+              <span class="bsup-sum-appreciation-txt">{{ complement_info.appreciation_generale }}</span>
+            {% else %}
+              <span class="bsup-sum-appreciation-txt bsup-dash">–</span>
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% if recap_ue_slots %}
+    <div class="bsup-recap-wrap" role="region">
+      <div class="table-responsive bsup-recap-responsive">
+        <table class="bsup-recap-table bsup-recap-table-maquette">
+          <colgroup>
+            <col class="bsup-recap-col-label" />
+            {% for _ in recap_ue_slots %}<col class="bsup-recap-col-mod" />{% endfor %}
+          </colgroup>
+          <tbody>
+            <tr>
+              <td class="bsup-recap-corner" rowspan="2">{% trans "Récapitulatifs des unités" %}</td>
+              {% for slot in recap_ue_slots %}
+                <td class="bsup-recap-ue-head">{% if slot %}UE {{ forloop.counter }}{% endif %}</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for slot in recap_ue_slots %}
+                <td class="bsup-recap-moyenne-cell">
+                  {% if slot %}
+                    {% if slot.moyenne is not None %}
+                      <span class="bsup-recap-moyenne-val">{{ slot.moyenne|floatformat:2 }}</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th class="bsup-recap-row-label" scope="row">{% trans "Validations" %}</th>
+              {% for slot in recap_ue_slots %}
+                <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+                  {% if slot %}
+                    {% if slot.statut == 'Validée' %}
+                      <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
+                    {% elif slot.statut and slot.statut != '—' %}
+                      {{ slot.statut }}
+                    {% endif %}
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th class="bsup-recap-row-label" scope="row">{% trans "Crédits obtenus" %}</th>
+              {% for slot in recap_ue_slots %}
+                <td class="bsup-recap-credits-cell">
+                  {% if slot and slot.credits is not None %}
+                    <strong>{{ slot.credits|floatformat:2 }}</strong>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="bsup-footer-grid">
+    <div class="bsup-footer-main-row">
+      <div class="bsup-footer-col bsup-footer-col--legend">
+        <fieldset class="bsup-legend-fieldset">
+          <legend class="bsup-legend-legend">{% trans "Légende" %}</legend>
+          <div class="bsup-legend-inner">
+            <div class="bsup-legend-line" role="presentation">
+              <span class="bsup-legend-cell">{% trans "MCC = Moyenne contrôles" %}</span>
+              <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell">{% trans "EC = Élément constitutif" %}</span>
+              <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell">{% trans "Rattrapage = note de rattrapage" %}</span>
+              <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell">{% trans "Moy = Moyenne EC" %}</span>
+            </div>
+            <div class="bsup-legend-line" role="presentation">
+              <span class="bsup-legend-cell bsup-legend-cell--code">
+                <span class="bsup-legend-swatch bsup-legend-swatch--exam" aria-hidden="true"></span>
+                <span>{% trans "Examen(s) à faire" %}</span>
+              </span>
+              <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell bsup-legend-cell--code">
+                <span class="bsup-legend-swatch bsup-legend-swatch--invalid" aria-hidden="true"></span>
+                <span>{% trans "UE invalidée" %}</span>
+              </span>
+              <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell bsup-legend-cell--code">
+                <span class="bsup-legend-swatch bsup-legend-swatch--valid" aria-hidden="true"></span>
+                <span>{% trans "UE validée" %}</span>
+              </span>
+              <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell bsup-legend-cell--code">
+                <span class="bsup-legend-swatch bsup-legend-swatch--retake" aria-hidden="true"></span>
+                <span>{% trans "UE validée en rattrapage" %}</span>
+              </span>
+            </div>
+          </div>
+        </fieldset>
+        <p class="bsup-footer-date">{% trans "Le" %} : {{ date_generation|date:"d /m /Y" }}</p>
+      </div>
+      <div class="bsup-footer-col bsup-footer-col--sign">
+        <div class="bsup-sign-block">
+          <p class="bsup-sign-role"><span class="bsup-sign-underline">{% trans "Directeur des Etudes" %}</span></p>
+          <p class="bsup-sign-name">{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}</p>
+          <div class="bsup-sign-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="bsup-doc-bottom">
+    <div class="bsup-doc-bottom-text">
+      {% if etablissement.adresse or etablissement.ville or etablissement.telephone or etablissement.email %}
+      <p class="bsup-footer-contact">
+        {% if etablissement.adresse %}{{ etablissement.adresse }}{% endif %}{% if etablissement.ville %}{% if etablissement.adresse %}, {% endif %}{{ etablissement.ville }}{% endif %}{% if etablissement.pays %} {{ etablissement.pays }}{% endif %}
+        {% if etablissement.telephone %} — {% trans "Tel" %} : {{ etablissement.telephone }}{% endif %}
+        {% if etablissement.email %} — {{ etablissement.email }}{% endif %}
+      </p>
+      {% endif %}
+      <div class="bsup-security">
+        <div class="bsup-security-row">
+          <span><strong>{% trans "N° de série" %} :</strong> {{ bulletin_numero_serie|default:"—" }}</span>
+          <span class="sig"><strong>{% trans "Signature" %} :</strong> {{ bulletin_signature|default:"—"|truncatechars:48 }}</span>
+        </div>
+      </div>
+    </div>
+    {% if bulletin_qr_image_url %}
+    <div class="bsup-doc-bottom-qr">
+      <img src="{{ bulletin_qr_image_url }}" alt="{% trans 'QR code de vérification du bulletin' %}" class="bsup-qr-img" width="80" height="80" loading="lazy" decoding="async" />
+    </div>
+    {% endif %}
+  </div>
+</div>

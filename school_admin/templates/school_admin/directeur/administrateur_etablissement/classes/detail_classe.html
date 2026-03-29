@@ -22,12 +22,18 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_improved.css' %}?v=1.1.0"
+      href="{% static 'school_admin/css/directeur/classes_improved.css' %}?v=1.2.1"
     />
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/releve_notes_classe.css' %}"
     />
+    {% if est_superieur %}
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}"
+    />
+    {% endif %}
   </head>
   <body>
     <!-- Header -->
@@ -40,12 +46,20 @@
         <div class="page-header">
           <div class="page-title-section">
             <h1 class="page-title">
-              <i class="fas fa-chalkboard"></i>
-              {{ classe.nom }}
+              <i class="fas fa-chalkboard" aria-hidden="true"></i>
+              <span class="page-title-stack">
+                <span class="page-title-name">{{ classe.nom }}</span>
+                <span class="page-title-niveau">
+                  <i class="fas fa-layer-group" aria-hidden="true"></i>
+                  {% if classe.niveau == 'superieur' %}
+                    {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}
+                  {% else %}
+                    {{ classe.get_niveau_display }}{% if classe.academic_level %} — {{ classe.academic_level.nom }}{% endif %}
+                  {% endif %}
+                </span>
+              </span>
             </h1>
-            <p class="page-subtitle">
-              {{ classe.get_niveau_display }} - {{ etablissement.nom }}
-            </p>
+            <p class="page-subtitle">{{ etablissement.nom }}</p>
           </div>
           <div class="page-actions">
             <button type="button" class="btn-action btn-edit" id="btnModifierClasse">
@@ -74,22 +88,37 @@
           {% endfor %}
         {% endif %}
 
-        <!-- Formulaire de modification (masqué par défaut) -->
-        <div class="edit-form-container" id="editFormContainer" style="display: none;">
-          <div class="edit-form-card">
-            <div class="edit-form-header">
-              <h3 class="edit-form-title">
-                <i class="fas fa-edit"></i>
-                Modifier la classe {{ classe.nom }}
-              </h3>
-              <button type="button" class="btn-close-form" id="btnCloseForm">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-            
-            <form method="post" action="{% url 'administrateur_etablissement:modifier_classe' classe.id %}" class="edit-form">
+        <!-- Modale plein écran : modification de classe -->
+        <div
+          class="classe-edit-modal"
+          id="editFormContainer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="editModalTitle"
+          aria-hidden="true"
+        >
+          <button
+            type="button"
+            class="classe-edit-modal__backdrop"
+            id="editFormBackdrop"
+            aria-label="{% trans 'Fermer le formulaire' %}"
+            tabindex="-1"
+          ></button>
+          <div class="classe-edit-modal__panel">
+            <div class="edit-form-card">
+              <div class="edit-form-header">
+                <h3 class="edit-form-title" id="editModalTitle">
+                  <i class="fas fa-edit" aria-hidden="true"></i>
+                  {% trans "Modifier la classe" %} — {{ classe.nom }}
+                </h3>
+                <button type="button" class="btn-close-form" id="btnCloseForm" aria-label="{% trans 'Fermer' %}">
+                  <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+              </div>
+
+                <form method="post" action="{% url 'administrateur_etablissement:modifier_classe' classe.id %}" class="edit-form">
               {% csrf_token %}
-              
+
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label" for="nom">{% trans "Nom de la classe *" %}</label>
@@ -125,6 +154,44 @@
                           rows="3"
                           placeholder="{% trans "Description de la classe..." %}">{{ classe.description|default:"" }}</textarea>
               </div>
+
+              {% if est_superieur %}
+              <div class="cam-section cam-section--parcours" style="margin-top: 1rem;">
+                <div class="cam-section-header">
+                  <div class="cam-section-icon cam-section-icon--parcours"><i class="fas fa-route"></i></div>
+                  <div class="cam-section-titles">
+                    <h3>{% trans "Examens & concours accessibles" %}</h3>
+                    <p>{% trans "Sélection multiple : concours BTS, BT, DUT, certifications… en complément du parcours LMD." %}</p>
+                  </div>
+                </div>
+                <div class="cam-hint-banner">
+                  <i class="fas fa-info-circle"></i>
+                  <span>{% trans "Exemple : une Licence 2 QHSE peut préparer concours BTS ou BT sans quitter le cadre LMD. Aucune sélection = parcours standard uniquement." %}</span>
+                </div>
+                {% for grp in catalogue_examens_groupes %}
+                <div class="cam-examen-categorie">
+                  <p class="cam-examen-categorie-title">{{ grp.label }}</p>
+                  <div class="cam-examen-grid">
+                    {% for op in grp.items %}
+                    <label class="cam-examen-card" for="ec-edit-detail-{{ op.id }}">
+                      <input type="checkbox" name="examens_concours_ids" value="{{ op.id }}" id="ec-edit-detail-{{ op.id }}"
+                        {% with sid=op.id|stringformat:"s" %}{% if sid in examens_concours_ids_selected %}checked{% endif %}{% endwith %}>
+                      <span class="cam-examen-card-body">
+                        <span class="cam-examen-check"><i class="fas fa-check"></i></span>
+                        <span class="cam-examen-text">
+                          <strong>{{ op.libelle }}</strong>
+                          {% if op.description %}<small>{{ op.description }}</small>{% endif %}
+                        </span>
+                      </span>
+                    </label>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% empty %}
+                <p class="text-muted" style="font-size: .875rem;">{% trans "Catalogue vide — contactez l'administrateur." %}</p>
+                {% endfor %}
+              </div>
+              {% endif %}
               
               <div class="form-actions">
                 <button type="button" class="btn-cancel" id="btnAnnulerModif">
@@ -132,11 +199,12 @@
                   <span>{% trans "Annuler" %}</span>
                 </button>
                 <button type="submit" class="btn-submit">
-                  <i class="fas fa-save"></i>
+                  <i class="fas fa-save" aria-hidden="true"></i>
                   <span>{% trans "Enregistrer les modifications" %}</span>
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
 
@@ -177,10 +245,14 @@
             </div>
             <div class="classe-info">
               <h2 class="classe-nom">{{ classe.nom }}</h2>
-              <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
-              <div class="classe-badge niveau-{{ classe.niveau }}">
-                <span>{{ classe.get_niveau_display }}</span>
-              </div>
+              <p class="classe-niveau-detail">
+                <span class="classe-badge niveau-{{ classe.niveau }}">{{ classe.get_niveau_display }}</span>
+                {% if classe.niveau == 'superieur' %}
+                <span class="classe-niveau-libelle">{% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</span>
+                {% elif classe.academic_level %}
+                <span class="classe-niveau-libelle classe-niveau-academic">{{ classe.academic_level.code }} — {{ classe.academic_level.nom }}</span>
+                {% endif %}
+              </p>
             </div>
             <div class="classe-status">
               <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
@@ -191,7 +263,7 @@
           </div>
 
           <!-- Quick Stats -->
-          <div class="quick-stats">
+          <div class="quick-stats quick-stats--hero" role="region" aria-label="{% trans 'Indicateurs de la classe' %}">
             <div class="stat-item">
               <div class="stat-icon">
                 <i class="fas fa-user-graduate"></i>
@@ -852,7 +924,7 @@
             <!-- Relevé de Notes Tab -->
             <div class="tab-panel" id="releve-notes">
               <div class="panel-content">
-                {% trans "<style>
+                <style>
                   /* Styles améliorés pour le relevé de notes */
                   .releve-table-wrapper {
                     margin-top: 20px;
@@ -1122,14 +1194,145 @@
                   .periode-tab-content.active {
                     display: block;
                   }
-                </style>" %}
-                <!-- Sous-onglets par période -->
+                  .periode-tabs-nav-detail {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    margin-bottom: 20px;
+                  }
+                  .periode-tab-link {
+                    padding: 10px 16px;
+                    border-radius: 10px;
+                    border: 1px solid #e5e7eb;
+                    background: #f9fafb;
+                    color: #374151;
+                    font-weight: 600;
+                    font-size: 13px;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                  }
+                  .periode-tab-link.active {
+                    background: #4f46e5;
+                    color: white;
+                    border-color: #4f46e5;
+                    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+                  }
+                </style>
+                {% if est_superieur %}
+                <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.75rem;">
+                  <i class="fas fa-info-circle"></i> {% trans "Choisissez le semestre affiché pour le relevé (filtré selon le niveau de la classe)." %}
+                </p>
+                <div class="periode-tabs-nav-detail">
+                  {% if periodes_nav_detail %}
+                    {% for item in periodes_nav_detail %}
+                      <a href="{{ request.path }}?{{ item.query }}" class="periode-tab-link {% if item.active %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        {{ item.periode.libelle_affichage_superieur }}
+                        <span style="opacity: 0.9; font-size: 12px;">{{ item.periode.annee_scolaire }}</span>
+                      </a>
+                    {% endfor %}
+                  {% else %}
+                    <p style="color: #6b7280; font-size: 14px; margin: 0;"><i class="fas fa-calendar-xmark"></i> {% trans "Aucune période pour ce niveau." %}</p>
+                  {% endif %}
+                </div>
+                {% if periode_releve %}
+                <div class="periode-tab-content active" id="periode-{{ periode_releve.id }}">
+                  <div class="releve-notes-container">
+                    <div class="releve-header">
+                      <h3>
+                        <i class="fas fa-clipboard-list"></i>
+                        {% trans "Relevé de notes" %} - {{ classe.nom }} - {{ periode_releve.libelle_affichage_superieur }}
+                      </h3>
+                      <div class="releve-info">
+                        <span><i class="fas fa-calendar"></i> {{ periode_releve.date_debut|date:"d/m/Y" }} - {{ periode_releve.date_fin|date:"d/m/Y" }}</span>
+                        <span><i class="fas fa-users"></i> {{ stats_eleves.total }} élève(s)</span>
+                        {% if matieres_classe %}
+                        <span><i class="fas fa-book"></i> {{ matieres_classe|length }} matière(s)</span>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    {% if matieres_classe and eleves %}
+                    <div class="releve-table-wrapper">
+                      <table class="releve-table">
+                        <thead>
+                          <tr>
+                            <th class="th-rang">{% trans "Rang" %}</th>
+                            <th class="th-eleve">{% trans "Élève" %}</th>
+                            {% for matiere in matieres_classe %}
+                            <th class="th-matiere">
+                              <div class="matiere-header-content">
+                                <span class="matiere-nom">{{ matiere.nom }}</span>
+                                <button type="button" class="btn-details-matiere" 
+                                        onclick="ouvrirDetailsMatiere('{{ classe.id }}', '{{ matiere.nom|escapejs }}', event)"
+                                        title="{% trans "Voir les détails des notes" %}">
+                                  <i class="fas fa-eye"></i> {% trans "Détails" %}
+                                </button>
+                              </div>
+                            </th>
+                            {% endfor %}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for eleve_data in releves_notes_par_periode|get_item:periode_releve.id %}
+                          <tr class="eleve-row">
+                            <td class="td-rang">
+                              {% if eleve_data.moyenne_tri %}
+                                <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                                  {{ forloop.counter }}
+                                </span>
+                              {% else %}
+                                <span class="rang-badge">-</span>
+                              {% endif %}
+                            </td>
+                            <td class="td-eleve">
+                              <div class="eleve-info">
+                                <div class="eleve-avatar">
+                                  <i class="fas fa-user"></i>
+                                </div>
+                                <span class="eleve-nom">{{ eleve_data.eleve.nom_complet }}</span>
+                              </div>
+                            </td>
+                            {% for matiere in matieres_classe %}
+                            <td class="td-moyenne">
+                              {% if eleve_data.moyennes|get_item:matiere.id %}
+                                {% with moyenne=eleve_data.moyennes|get_item:matiere.id %}
+                                <span class="moyenne-text {% if moyenne.moyenne >= 16 %}text-excellent{% elif moyenne.moyenne >= 14 %}text-bien{% elif moyenne.moyenne >= 12 %}text-assez-bien{% elif moyenne.moyenne >= 10 %}text-passable{% else %}text-insuffisant{% endif %}">
+                                  {{ moyenne.moyenne|floatformat:2 }}/20
+                                </span>
+                                {% endwith %}
+                              {% else %}
+                                <span class="moyenne-non-disponible">
+                                  <i class="fas fa-hourglass-half"></i>
+                                </span>
+                              {% endif %}
+                            </td>
+                            {% endfor %}
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                      <i class="fas fa-clipboard"></i>
+                      <h3>{% trans "Aucune matière ou élève" %}</h3>
+                      <p>{% trans "Cette classe n'a pas encore de matières enseignées ou d'élèves inscrits." %}</p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}
+                {% else %}
+                <!-- Sous-onglets par période (hors supérieur) -->
                 <div class="periode-tabs">
                   {% for periode in periodes %}
-                  <button class="periode-tab-btn {% if forloop.first %}active{% endif %}" 
+                  <button type="button" class="periode-tab-btn {% if forloop.first %}active{% endif %}" 
                           onclick="switchPeriodeTab(event, 'periode-{{ periode.id }}')">
                     <i class="fas fa-calendar-alt"></i>
-                    {{ periode.nom_periode }}
+                    {{ periode.libelle_affichage_superieur }}
                   </button>
                   {% endfor %}
                 </div>
@@ -1142,7 +1345,7 @@
                     <div class="releve-header">
                       <h3>
                         <i class="fas fa-clipboard-list"></i>
-                        Relevé de notes - {{ classe.nom }} - {{ periode.nom_periode }}
+                        Relevé de notes - {{ classe.nom }} - {{ periode.libelle_affichage_superieur }}
                       </h3>
                       <div class="releve-info">
                         <span><i class="fas fa-calendar"></i> {{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }}</span>
@@ -1164,7 +1367,7 @@
                             <th class="th-matiere">
                               <div class="matiere-header-content">
                                 <span class="matiere-nom">{{ matiere.nom }}</span>
-                                <button class="btn-details-matiere" 
+                                <button type="button" class="btn-details-matiere" 
                                         onclick="ouvrirDetailsMatiere('{{ classe.id }}', '{{ matiere.nom|escapejs }}', event)"
                                         title="{% trans "Voir les détails des notes" %}">
                                   <i class="fas fa-eye"></i> {% trans "Détails" %}
@@ -1224,6 +1427,7 @@
                   </div>
                 </div>
                 {% endfor %}
+                {% endif %}
 
               </div>
             </div>
@@ -1386,21 +1590,27 @@
         const btnCloseForm = document.getElementById('btnCloseForm');
         const btnAnnulerModif = document.getElementById('btnAnnulerModif');
 
-        // Fonction pour afficher le formulaire de modification
+        const editFormBackdrop = document.getElementById('editFormBackdrop');
+
         function showEditForm() {
-          editFormContainer.style.display = 'block';
-          editFormContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          
-          // Focus sur le premier champ
+          editFormContainer.classList.add('classe-edit-modal--open');
+          editFormContainer.setAttribute('aria-hidden', 'false');
+          document.body.classList.add('classe-edit-modal-open');
           const firstInput = editFormContainer.querySelector('input[name="nom"]');
           if (firstInput) {
-            setTimeout(() => firstInput.focus(), 300);
+            requestAnimationFrame(function () {
+              firstInput.focus();
+            });
           }
         }
 
-        // Fonction pour masquer le formulaire de modification
         function hideEditForm() {
-          editFormContainer.style.display = 'none';
+          editFormContainer.classList.remove('classe-edit-modal--open');
+          editFormContainer.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('classe-edit-modal-open');
+          if (btnModifier) {
+            btnModifier.focus();
+          }
         }
 
         // Fonction pour confirmer la suppression
@@ -1478,6 +1688,10 @@
           btnAnnulerModif.addEventListener('click', hideEditForm);
         }
 
+        if (editFormBackdrop) {
+          editFormBackdrop.addEventListener('click', hideEditForm);
+        }
+
         // Event listeners pour le modal de confirmation
         const btnCancelDelete = document.getElementById('btnCancelDelete');
         const btnConfirmDeleteModal = document.getElementById('btnConfirmDelete');
@@ -1506,10 +1720,10 @@
         // Fermer les modals avec la touche Escape
         document.addEventListener('keydown', function(e) {
           if (e.key === 'Escape') {
-            if (editFormContainer.style.display === 'block') {
+            if (editFormContainer.classList.contains('classe-edit-modal--open')) {
               hideEditForm();
             }
-            if (deleteModal.style.display === 'flex') {
+            if (deleteModal && deleteModal.style.display === 'flex') {
               closeDeleteModal();
             }
           }

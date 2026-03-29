@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% load classe_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Classes — examens et concours" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.2.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}?v=1.0.0" />
+    <style>
+      .ec-page-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 1.25rem 1.5rem;
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      }
+      .ec-page-title { margin: 0; font-size: 1.35rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: .6rem; }
+      .ec-back-link {
+        display: inline-flex; align-items: center; gap: .4rem;
+        padding: .5rem 1rem; font-size: .875rem; font-weight: 600;
+        border-radius: 10px; background: #f1f5f9; color: #334155; text-decoration: none;
+        border: 1px solid #e2e8f0;
+      }
+      .ec-back-link:hover { background: #e2e8f0; color: #0f172a; }
+      .ec-total-pill {
+        font-size: .875rem; font-weight: 600; color: #1e40af;
+        background: #eff6ff; padding: .35rem .85rem; border-radius: 999px;
+        border: 1px solid #bfdbfe;
+      }
+      .ec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+      .ec-card {
+        background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
+        overflow: hidden; box-shadow: 0 4px 20px rgba(15,23,42,.06);
+      }
+      .ec-card-top {
+        padding: 1rem 1.15rem;
+        background: linear-gradient(135deg, rgba(59,130,246,.08), rgba(124,58,237,.08));
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .ec-card-top h2 { margin: 0 0 .25rem; font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+      .ec-meta { font-size: .8rem; color: #64748b; }
+      .ec-card-body { padding: 1rem 1.15rem 1.15rem; }
+    </style>
+  </head>
+  <body>
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="content-container">
+      <div class="container">
+        <div class="ec-page-header">
+          <div>
+            <h1 class="ec-page-title">
+              <i class="fas fa-clipboard-list" style="color:#d97706;"></i>
+              {% trans "Classes préparant des examens ou concours" %}
+            </h1>
+            <p style="margin:.4rem 0 0;font-size:.875rem;color:#64748b;">{{ etablissement.nom }}</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.65rem;">
+            <span class="ec-total-pill">{{ total }} {% trans "classe" %}{{ total|pluralize }}</span>
+            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="ec-back-link">
+              <i class="fas fa-arrow-left"></i> {% trans "Toutes les classes" %}
+            </a>
+          </div>
+        </div>
+
+        {% if classes_with_teachers %}
+        <div class="ec-grid">
+          {% for item in classes_with_teachers %}
+          {% with classe=item.classe %}
+          <article class="ec-card">
+            <div class="ec-card-top">
+              <h2>{{ classe.nom }}</h2>
+              <div class="ec-meta">
+                {% if classe.department %}<i class="fas fa-sitemap"></i> {{ classe.department.nom }}{% endif %}
+                {% if classe.department %} · {% endif %}
+                <i class="fas fa-graduation-cap"></i> {{ classe.get_libelle_niveau_superieur_complet }}
+              </div>
+            </div>
+            <div class="ec-card-body">
+              <div class="classe-card-examens" style="margin-top:0;border-top:none;padding-top:0;">
+                <div class="classe-card-examens-label"><i class="fas fa-flag-checkered"></i> {% trans "Examens & concours visés" %}</div>
+                <div class="classe-card-examens-tags">
+                  {% for lien in classe.liens_examens_concours.all %}
+                  <span class="classe-examen-tag" title="{{ lien.option.description }}"><i class="fas fa-star"></i> {{ lien.option.libelle }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+              <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+                <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail" style="text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .85rem;border-radius:8px;font-size:.8125rem;font-weight:600;background:#3b82f6;color:#fff;">
+                  <i class="fas fa-eye"></i> {% trans "Détails" %}
+                </a>
+              </div>
+            </div>
+          </article>
+          {% endwith %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="background:#fff;border-radius:12px;padding:2.5rem;text-align:center;border:1px dashed #cbd5e1;">
+          <i class="fas fa-inbox" style="font-size:2.5rem;color:#94a3b8;margin-bottom:.75rem;"></i>
+          <h3 style="margin:0 0 .5rem;color:#334155;">{% trans "Aucune classe avec parcours examen/concours" %}</h3>
+          <p style="color:#64748b;margin:0 0 1rem;">{% trans "Lors de la création d'une classe, cochez les examens ou concours concernés." %}</p>
+          <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="ec-back-link" style="display:inline-flex;"><i class="fas fa-chalkboard"></i> {% trans "Retour à la liste" %}</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+  </body>
+</html>

@@ -59,12 +59,13 @@ window.initCoefficientFields = function() {
     });
 };
 
-// Toggle du formulaire d'ajout - Fonction globale
+// Toggle du formulaire d'ajout - Modal plein écran
 window.toggleAddForm = function() {
     const formContainer = document.getElementById('addFormContainer');
     if (formContainer) {
-        const isVisible = formContainer.style.display !== 'none';
-        formContainer.style.display = isVisible ? 'none' : 'block';
+        const isVisible = formContainer.style.display === 'flex';
+        formContainer.style.display = isVisible ? 'none' : 'flex';
+        document.body.style.overflow = isVisible ? '' : 'hidden';
         
         if (!isVisible) {
             // Focus sur le premier champ
@@ -84,6 +85,16 @@ window.toggleAddForm = function() {
         }
     }
 };
+
+// Fermer le modal avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const formContainer = document.getElementById('addFormContainer');
+        if (formContainer && formContainer.style.display === 'flex') {
+            window.toggleAddForm();
+        }
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page de gestion des matières chargée');

@@ -1,0 +1,54 @@
+{% load i18n %}
+{% if recap_ue_slots %}
+<div class="table-responsive bsup-recap-responsive">
+  <table class="bsup-recap-table bsup-recap-table-maquette">
+    <colgroup>
+      <col class="bsup-recap-col-label" />
+      {% for _ in recap_ue_slots %}<col class="bsup-recap-col-mod" />{% endfor %}
+    </colgroup>
+    <tbody>
+      <tr>
+        <td class="bsup-recap-corner" rowspan="2">{% trans "Récapitulatifs des unités" %}</td>
+        {% for slot in recap_ue_slots %}
+          <td class="bsup-recap-ue-head">{% if slot %}UE {{ forloop.counter }}{% endif %}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for slot in recap_ue_slots %}
+          <td class="bsup-recap-moyenne-cell">
+            {% if slot %}
+              {% if slot.moyenne is not None %}
+                <span class="bsup-recap-moyenne-val">{{ slot.moyenne|floatformat:2 }}</span>
+              {% endif %}
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <th class="bsup-recap-row-label" scope="row">{% trans "Validations" %}</th>
+        {% for slot in recap_ue_slots %}
+          <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+            {% if slot %}
+              {% if slot.statut == 'Validée' %}
+                <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
+              {% elif slot.statut and slot.statut != '—' %}
+                {{ slot.statut }}
+              {% endif %}
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <th class="bsup-recap-row-label" scope="row">{% trans "Crédits obtenus" %}</th>
+        {% for slot in recap_ue_slots %}
+          <td class="bsup-recap-credits-cell">
+            {% if slot and slot.credits is not None %}
+              <strong>{{ slot.credits|floatformat:2 }}</strong>
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endif %}

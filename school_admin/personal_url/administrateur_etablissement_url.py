@@ -12,7 +12,13 @@ urlpatterns = [
     
     # URLs pour la gestion des classes
     path('classes/', ClasseController.liste_classes, name='liste_classes'),
+    path('classes/examens-concours/', ClasseController.liste_classes_examens_concours, name='liste_classes_examens_concours'),
     path('classes/ajouter/', ClasseController.ajouter_classe, name='ajouter_classe'),
+    path('classes/filieres/', ClasseController.liste_filieres, name='liste_filieres'),
+    path('classes/specialite/<int:specialite_id>/', ClasseController.liste_classes_specialite, name='liste_classes_specialite'),
+    path('classes/filieres/ajouter/', ClasseController.ajouter_filiere, name='ajouter_filiere'),
+    path('classes/filieres/<int:filiere_id>/modifier/', ClasseController.modifier_filiere, name='modifier_filiere'),
+    path('classes/filieres/<int:filiere_id>/supprimer/', ClasseController.supprimer_filiere, name='supprimer_filiere'),
     # URLs spécifiques avant l'URL générique detail_classe pour éviter les conflits
     path('classes/<int:classe_id>/data/', ClasseController.get_classe_data, name='get_classe_data'),
     path('classes/<int:classe_id>/modifier/', ClasseController.modifier_classe, name='modifier_classe'),

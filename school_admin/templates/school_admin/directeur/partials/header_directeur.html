@@ -36,12 +36,16 @@
           <span class="scanner-text">{% trans "Scanner" %}</span>
         </button>
 
+        <div class="header-language-switcher" aria-label="{% trans 'Sélecteur de langue' %}">
+          <div class="gtranslate_wrapper gtranslate_wrapper_header"></div>
+        </div>
+
         <div class="header-profile">
           {% if is_directeur %}
             <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
             <div class="header-user-info">
               <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-              <div class="header-user-role">{% trans "Directeur" %}</div>
+              <div class="header-user-role">{% if titre_direction %}{{ titre_direction }}{% else %}{% trans "Directeur" %}{% endif %}</div>
             </div>
           {% elif is_personnel_administratif and personnel %}
             <div class="header-avatar">{{ personnel.prenom|first|upper }}{{ personnel.nom|first|upper }}</div>
@@ -53,7 +57,7 @@
             <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
             <div class="header-user-info">
               <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-              <div class="header-user-role">{% trans "Directeur" %}</div>
+              <div class="header-user-role">{% if titre_direction %}{{ titre_direction }}{% else %}{% trans "Directeur" %}{% endif %}</div>
             </div>
           {% endif %}
         </div>
@@ -238,6 +242,14 @@
 
 <!-- QR Code Scanner Library -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  window.gtranslateSettings = {
+    default_language: "fr",
+    languages: ["fr", "en", "ar"],
+    wrapper_selector: ".gtranslate_wrapper"
+  };
+</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/dwf.js" defer></script>
 
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
@@ -662,6 +674,62 @@
     color: var(--directeur-primary, #3b82f6);
   }
 
+  .header-language-switcher {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    min-width: 110px;
+    position: relative;
+    z-index: 35;
+  }
+
+  .header-language-switcher .gtranslate_wrapper {
+    display: flex;
+    align-items: center;
+    position: static !important;
+  }
+
+  .header-language-switcher .gtranslate_wrapper [class*="gt_container"] {
+    position: static !important;
+  }
+
+  .header-language-switcher .gtranslate_wrapper .gt_switcher_wrapper {
+    margin: 0;
+    position: relative;
+  }
+
+  .header-language-switcher .gtranslate_wrapper .gt_selected a,
+  .header-language-switcher .gtranslate_wrapper a.open {
+    min-height: 36px;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 8px;
+    background: var(--white, #ffffff);
+    color: var(--gray-700, #374151) !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.35rem 0.6rem !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .header-language-switcher .gtranslate_wrapper .gt_selected a:hover,
+  .header-language-switcher .gtranslate_wrapper .gt_selected a:focus,
+  .header-language-switcher .gtranslate_wrapper a.open:hover,
+  .header-language-switcher .gtranslate_wrapper a.open:focus {
+    border-color: var(--directeur-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    outline: none;
+  }
+
+  .header-language-switcher .gtranslate_wrapper .gt_option,
+  .header-language-switcher .gtranslate_wrapper .gt_options {
+    z-index: 60 !important;
+  }
+
   /* Responsive - Le texte reste toujours visible */
   @media (max-width: 768px) {
     .header-button-scanner {
@@ -676,6 +744,18 @@
 
     .scanner-text {
       font-size: 0.625rem;
+    }
+
+    .header-language-switcher {
+      min-height: 32px;
+      min-width: 96px;
+    }
+
+    .header-language-switcher .gtranslate_wrapper .gt_selected a,
+    .header-language-switcher .gtranslate_wrapper a.open {
+      min-height: 32px;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.45rem !important;
     }
   }
 

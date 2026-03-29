@@ -43,7 +43,8 @@ class EtablissementController:
             'collège': 'COL-',
             'lycée': 'LYC-',
             'collège_lycée': 'CL-',
-            'mixte': 'MIX-'
+            'mixte': 'MIX-',
+            'superieur': 'SUP-',
         }
         
         prefix = prefixes.get(type_etablissement, 'ETB-')
@@ -142,7 +143,8 @@ class EtablissementController:
             'collège': 'Collèges',
             'lycée': 'Lycées',
             'collège_lycée': 'Collège + Lycée',
-            'mixte': 'Établissements Mixtes'
+            'mixte': 'Établissements Mixtes',
+            'superieur': 'Établissements Supérieurs',
         }
         return {type_labels.get(item['type_etablissement'], item['type_etablissement']): item['count'] for item in stats}
 
@@ -181,7 +183,8 @@ class EtablissementController:
             'collège': 'Collège',
             'lycée': 'Lycée',
             'collège_lycée': 'Collège + Lycée',
-            'mixte': 'Établissement Mixte (Primaire + Collège + Lycée)'
+            'mixte': 'Établissement Mixte (Primaire + Collège + Lycée)',
+            'superieur': 'Établissement Supérieur (Université, Grande École)',
         }
         
         type_facturation_labels = {
@@ -331,7 +334,7 @@ class EtablissementController:
             logger.info(f"Mot de passe provisoire généré automatiquement (8 caractères)")
             
             # Vérification du type d'établissement
-            valid_types = ['primary', 'collège', 'lycée', 'collège_lycée', 'mixte']
+            valid_types = ['primary', 'collège', 'lycée', 'collège_lycée', 'mixte', 'superieur']
             if data['establishment_type'] not in valid_types:
                 errors['establishment_type'] = "Le type d'établissement n'est pas valide."
                 return False, "Le type d'établissement n'est pas valide.", None, errors

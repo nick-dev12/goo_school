@@ -8,13 +8,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_examens.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_examens.css' %}?v=1.3.1">
     <title>Gestion des Examens - {{ etablissement.nom }}</title>
 </head>
 <body>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="container">
+    <div class="container" id="gestion-examens-root" data-est-superieur="{{ est_superieur|yesno:'true,false' }}">
         <!-- Page Header -->
         <div class="page-header">
             <h1>
@@ -46,6 +46,18 @@
         </div>
         {% endif %}
 
+        {% if est_superieur %}
+        <div class="active-year-info" style="background: var(--secondary-light, rgba(124,58,237,0.08)); padding: 0.85rem 1rem; border-radius: 10px; margin-bottom: 1.25rem; border: 1px solid rgba(124,58,237,0.25);">
+          <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
+            <i class="fas fa-graduation-cap" style="color: var(--secondary, #7c3aed); margin-right: 0.5rem;"></i>
+            {% trans "Enseignement supérieur" %}
+          </p>
+          <p style="margin: 0.35rem 0 0 0; color: var(--gray-600, #4b5563); font-size: 0.875rem; line-height: 1.45;">
+            {% trans "Rattachez la session à une période (semestre S1/S2). À la création : choisissez d'abord une filière, puis cochez les promotions — le détail LMD s'affiche pour chaque classe." %}
+          </p>
+        </div>
+        {% endif %}
+
         <!-- Tabs for Periods -->
         <div class="tabs-container">
             <div class="tabs">
@@ -65,10 +77,10 @@
                 <!-- Sub-tabs for Class Groups -->
                 <div class="sub-tabs-container">
                     <div class="sub-tabs">
-                        {% for niveau, groupe in groupes_classes.items %}
-                        <button class="sub-tab-button {% if forloop.first %}active{% endif %}" onclick="showSubTab('periode-{{ periode.id }}-{{ niveau|slugify }}')">
+                        {% for cle, groupe in groupes_classes.items %}
+                        <button class="sub-tab-button {% if forloop.first %}active{% endif %}" onclick="showSubTab('pt{{ periode.id }}-sg{{ forloop.counter0 }}')">
                             <i class="fas fa-users"></i>
-                            {{ niveau }}
+                            {{ groupe.label }}
                         </button>
                         {% endfor %}
                     </div>
@@ -76,21 +88,34 @@
 
                 <!-- Sub-tab Content -->
                 <div class="sub-tab-content">
-                    {% for niveau, groupe in groupes_classes.items %}
-                    <div id="periode-{{ periode.id }}-{{ niveau|slugify }}" class="sub-tab-panel {% if forloop.first %}active{% endif %}">
+                    {% for cle, groupe in groupes_classes.items %}
+                    <div id="pt{{ periode.id }}-sg{{ forloop.counter0 }}" class="sub-tab-panel {% if forloop.first %}active{% endif %}">
                         <div class="sessions-grid">
                             {% if sessions_par_periode|get_item:periode.id %}
                                 {% for session in sessions_par_periode|get_item:periode.id|get_item:'sessions' %}
-                                    {% if session|has_classe_niveau:niveau %}
+                                    {% if session|has_classe_groupe_examen:cle %}
                                         <div class="session-card">
                                             <div class="session-header">
                                                 <h3>{{ session.nom_examen }}</h3>
                                                 <span class="session-period">{{ session.periode.nom_periode }}</span>
                                             </div>
                                             <div class="session-details">
-                                                <div class="detail-item">
+                                                <div class="detail-item detail-item--classes">
                                                     <i class="fas fa-users"></i>
-                                                    <span>{{ session.classes_str }}</span>
+                                                    <span class="session-classes-detail">
+                                                        {% if est_superieur %}
+                                                            {% for classe in session.classes.all %}
+                                                                <span class="session-classe-chip">
+                                                                    <strong>{{ classe.nom }}</strong>
+                                                                    <span class="exam-class-niveau"> — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</span>
+                                                                </span>{% if not forloop.last %}<span class="session-classe-sep"> ; </span>{% endif %}
+                                                            {% empty %}
+                                                                {{ session.classes_str }}
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            {{ session.classes_str }}
+                                                        {% endif %}
+                                                    </span>
                                                 </div>
                                                 <div class="detail-item">
                                                     <i class="fas fa-book"></i>
@@ -112,7 +137,7 @@
                                                 <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="btn btn-sm btn-secondary" title="{% trans "Voir l" %}'emploi du temps">
                                                     <i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps" %}
                                                 </a>
-                                                <button class="btn btn-sm btn-warning" onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}')" title="Modifier">
+                                                <button type="button" class="btn btn-sm btn-warning" onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}'{% if est_superieur %}, [{% for c in session.classes.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}], [{% for m in session.matieres.all %}{{ m.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %})" title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-danger" onclick="deleteSession({{ session.id }}, '{{ session.nom_examen|escapejs }}')" title="Supprimer">
@@ -133,70 +158,182 @@
     </div>
 
     <!-- Modal for Adding Exam Session -->
-    <div id="sessionModal" class="modal">
+    <div id="sessionModal" class="modal exam-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>{% trans "Ajouter une session d'examen" %}</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
+                <h2><i class="fas fa-plus-circle"></i> {% trans "Nouvelle session d'examen" %}</h2>
+                <span class="close" onclick="closeModal()" aria-label="{% trans 'Fermer' %}">&times;</span>
             </div>
-            <form method="post" action="{% url 'directeur:gestion_examens' %}">
+            <form method="post" action="{% url 'directeur:gestion_examens' %}" id="form-create-session-examen">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="nom_examen">{% trans "Nom de la session d'examen" %} <span class="required">*</span></label>
-                        <input type="text" id="nom_examen" name="nom_examen" class="form-control" required placeholder="{% trans "Ex: Examen du 1er Trimestre" %}" />
-                    </div>
+                    <div class="exam-form-body">
+                        <!-- 1 — Identité -->
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" aria-hidden="true">1</span>
+                                <div>
+                                    <h3>{% trans "Intitulé et période" %}</h3>
+                                    <p class="exam-section-desc">{% trans "Donnez un nom clair à la session et rattachez-la à une période scolaire (trimestre ou semestre)." %}</p>
+                                </div>
+                            </div>
+                            <label class="exam-label" for="nom_examen">{% trans "Nom de la session" %} <span class="required">*</span></label>
+                            <input type="text" id="nom_examen" name="nom_examen" class="exam-input" required placeholder="{% if est_superieur %}{% trans "Ex : Partiels semestre 1 – janvier 2026" %}{% else %}{% trans "Ex : Examen du 1er trimestre" %}{% endif %}" />
+                            <label class="exam-label" for="periode_id" style="margin-top:1rem;">{% trans "Période scolaire" %} <span class="required">*</span></label>
+                            <select id="periode_id" name="periode_id" class="exam-select" required>
+                                <option value="">{% trans "Choisir une période…" %}</option>
+                                {% for periode in periodes %}
+                                <option value="{{ periode.id }}">{{ periode.nom_periode }} — {{ periode.date_debut|date:"d/m/Y" }} → {{ periode.date_fin|date:"d/m/Y" }}</option>
+                                {% endfor %}
+                            </select>
+                        </section>
 
-                    <div class="form-group">
-                        <label for="periode_id">{% trans "Période scolaire" %} <span class="required">*</span></label>
-                        <select id="periode_id" name="periode_id" class="form-control" required>
-                            <option value="">{% trans "Sélectionnez une période" %}</option>
-                            {% for periode in periodes %}
-                            <option value="{{ periode.id }}">{{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                        <!-- 2 — Calendrier -->
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" aria-hidden="true">2</span>
+                                <div>
+                                    <h3>{% trans "Période de passage" %}</h3>
+                                    <p class="exam-section-desc">{% trans "Intervalle pendant lequel les épreuves de cette session sont planifiées." %}</p>
+                                </div>
+                            </div>
+                            <div class="exam-form-row">
+                                <div>
+                                    <label class="exam-label" for="date_debut">{% trans "Début" %} <span class="required">*</span></label>
+                                    <input type="date" id="date_debut" name="date_debut" class="exam-input" required />
+                                </div>
+                                <div>
+                                    <label class="exam-label" for="date_fin">{% trans "Fin" %} <span class="required">*</span></label>
+                                    <input type="date" id="date_fin" name="date_fin" class="exam-input" required />
+                                </div>
+                            </div>
+                        </section>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="date_debut">{% trans "Date de début" %} <span class="required">*</span></label>
-                            <input type="date" id="date_debut" name="date_debut" class="form-control" required />
-                        </div>
-                        <div class="form-group">
-                            <label for="date_fin">{% trans "Date de fin" %} <span class="required">*</span></label>
-                            <input type="date" id="date_fin" name="date_fin" class="form-control" required />
-                        </div>
-                    </div>
+                        <!-- 3 — Classes -->
+                        <section class="exam-form-section exam-form-section--classes">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" aria-hidden="true">3</span>
+                                <div>
+                                    <h3>{% trans "Public concerné" %}</h3>
+                                    <p class="exam-section-desc">
+                                      {% if est_superieur %}
+                                        {% trans "Choisissez d'abord une filière, puis cochez une ou plusieurs promotions. Vous pouvez enchaîner plusieurs filières." %}
+                                      {% else %}
+                                        {% trans "Sélectionnez les groupes de classes (niveaux) inclus dans cette session." %}
+                                      {% endif %}
+                                    </p>
+                                </div>
+                            </div>
 
-                    <div class="form-group">
-                        <label>{% trans "Groupes de classes concernés" %} <span class="required">*</span></label>
-                        <div class="checkbox-group">
-                            {% for niveau, groupe in groupes_classes.items %}
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="groupes_classes" value="{{ niveau }}" />
-                                <span class="checkmark"></span>
-                                {{ niveau }} ({{ groupe.classes|length }} classe(s))
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
+                            {% if est_superieur %}
+                            <div class="exam-filiere-block js-exam-superieur-create">
+                                <div class="exam-filiere-flow">
+                                    <div class="exam-filiere-step">
+                                        <div class="exam-filiere-step-title">{% trans "Étape 1 — Filière" %}</div>
+                                        <label class="exam-label" for="filiere_select_create">{% trans "Spécialité / département" %} <span class="required">*</span></label>
+                                        <div class="exam-filiere-select-wrap">
+                                            <select id="filiere_select_create" class="exam-select js-filiere-select-examen" data-modal="create" autocomplete="off">
+                                                <option value="">{% trans "— Choisir une filière —" %}</option>
+                                                {% for cle, groupe in groupes_classes.items %}
+                                                <option value="{{ cle }}">{{ groupe.label }} ({{ groupe.classes|length }} {% trans "classe(s)" %})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="exam-filiere-step exam-filiere-step--promotions">
+                                        <div class="exam-filiere-step-title">{% trans "Étape 2 — Promotions concernées" %}</div>
+                                        <p class="exam-filiere-help">{% trans "Choisissez d'abord la filière ci-dessus. Ensuite, cochez les classes de cette filière que cette session concerne. Répétez pour chaque autre filière si besoin." %}</p>
+                                        <div class="exam-selection-badge" role="status" aria-live="polite">
+                                            <i class="fas fa-layer-group" aria-hidden="true"></i>
+                                            <span>{% trans "Total classes cochées" %} :</span>
+                                            <strong class="js-selection-count">0</strong>
+                                        </div>
+                                        <div class="exam-filiere-panels exam-filiere-panels-scroll">
+                                            {% if groupes_classes %}
+                                            <div class="exam-filiere-placeholder js-filiere-placeholder">
+                                                <i class="fas fa-user-graduate"></i>
+                                                {% trans "Sélectionnez une filière à l'étape 1 pour afficher les promotions à cocher ici." %}
+                                            </div>
+                                            {% for cle, groupe in groupes_classes.items %}
+                                            <div class="exam-filiere-panel js-filiere-panel-examen" data-groupe-key="{{ cle }}">
+                                                <p class="exam-section-desc exam-filiere-panel-intro"><strong>{{ groupe.label }}</strong> — {% trans "cochez une ou plusieurs promotions." %}</p>
+                                                <div class="exam-class-grid">
+                                                    {% for classe in groupe.classes %}
+                                                    <label class="exam-checkbox-card js-exam-cb-card">
+                                                        <input type="checkbox" name="classes_concernees" value="{{ classe.id }}" class="js-class-cb-superieur" />
+                                                        <span class="exam-checkbox-card__text">
+                                                            <strong>{{ classe.nom }}</strong>
+                                                            <span class="exam-class-niveau"> — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</span>
+                                                        </span>
+                                                    </label>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                            {% else %}
+                                            <p class="exam-filiere-placeholder exam-filiere-placeholder--warn">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                {% trans "Aucune classe supérieure. Créez des classes avec filière et niveau dans la gestion pédagogique." %}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="exam-group-grid">
+                                {% for cle, groupe in groupes_classes.items %}
+                                <label class="exam-checkbox-card">
+                                    <input type="checkbox" name="groupes_classes" value="{{ cle }}" />
+                                    <span class="exam-checkbox-card__text">
+                                        <strong>{{ groupe.label }}</strong>
+                                        <span class="exam-class-niveau"> — {{ groupe.classes|length }} {% trans "classe(s)" %}</span>
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </section>
 
-                    <div class="form-group">
-                        <label>{% trans "Matières de l'examen" %} <span class="required">*</span></label>
-                        <div class="checkbox-group">
-                            {% for matiere in matieres %}
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="matieres" value="{{ matiere.id }}" />
-                                <span class="checkmark"></span>
-                                {{ matiere.nom }}
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
+                        <!-- 4 — Matières -->
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" aria-hidden="true">4</span>
+                                <div>
+                                    <h3>{% trans "Matières évaluées" %}</h3>
+                                    <p class="exam-section-desc">{% trans "Une ou plusieurs matières peuvent être associées à cette session." %}</p>
+                                </div>
+                            </div>
+                            <label class="exam-label">{% trans "Matières" %} <span class="required">*</span></label>
+                            {% if est_superieur %}
+                            {{ matieres_session_superieur_meta|json_script:"exam-matieres-superieur-data" }}
+                            <p class="exam-filiere-help" style="margin-top:0;">{% trans "Cochez d'abord les promotions à l'étape 3 : seules les matières rattachées à ces classes apparaissent, avec le niveau correspondant." %}</p>
+                            <div class="exam-scroll-list js-exam-matieres-superieur-mount" id="create_matieres_superieur" data-input-name="matieres" role="group" aria-label="{% trans 'Matières' %}"></div>
+                            <p class="exam-filiere-placeholder js-exam-matieres-superieur-empty" style="display:none;">{% trans "Aucune matière pour les classes sélectionnées. Vérifiez les affectations matières / classes ou sélectionnez d'autres promotions." %}</p>
+                            {% else %}
+                            <div class="exam-scroll-list">
+                                {% for matiere in matieres %}
+                                <label class="exam-checkbox-card">
+                                    <input type="checkbox" name="matieres" value="{{ matiere.id }}" />
+                                    <span class="exam-checkbox-card__text"><strong>{{ matiere.nom }}</strong></span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </section>
 
-                    <div class="form-group">
-                        <label for="description">{% trans "Description" %}</label>
-                        <textarea id="description" name="description" class="form-control" placeholder="{% trans "Instructions ou informations supplémentaires..." %}"></textarea>
+                        <!-- 5 — Notes -->
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" style="background: linear-gradient(135deg, #64748b, #475569);" aria-hidden="true">5</span>
+                                <div>
+                                    <h3>{% trans "Consignes (optionnel)" %}</h3>
+                                    <p class="exam-section-desc">{% trans "Informations pour les enseignants ou la scolarité (horaires, documents autorisés, etc.)." %}</p>
+                                </div>
+                            </div>
+                            <label class="exam-label" for="description">{% trans "Description" %}</label>
+                            <textarea id="description" name="description" class="exam-textarea" placeholder="{% trans "Instructions ou informations supplémentaires…" %}"></textarea>
+                        </section>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -204,7 +341,7 @@
                         {% trans "Annuler" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
+                        <i class="fas fa-check"></i>
                         {% trans "Créer la session" %}
                     </button>
                 </div>
@@ -213,76 +350,150 @@
     </div>
 
     <!-- Modal for Editing Exam Session -->
-    <div id="editSessionModal" class="modal">
+    <div id="editSessionModal" class="modal exam-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>{% trans "Modifier la session d'examen" %}</h2>
-                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2><i class="fas fa-edit"></i> {% trans "Modifier la session" %}</h2>
+                <span class="close" onclick="closeEditModal()" aria-label="{% trans 'Fermer' %}">&times;</span>
             </div>
             <form id="editSessionForm" method="post" action="">
                 {% csrf_token %}
                 <div class="modal-body">
                     <input type="hidden" id="edit_session_id" name="session_id" />
-                    
-                    <div class="form-group">
-                        <label for="edit_nom_examen">{% trans "Nom de la session d'examen" %} <span class="required">*</span></label>
-                        <input type="text" id="edit_nom_examen" name="nom_examen" class="form-control" required placeholder="{% trans "Ex: Examen du 1er Trimestre" %}" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit_periode_id">{% trans "Période scolaire" %} <span class="required">*</span></label>
-                        <select id="edit_periode_id" name="periode_id" class="form-control" required>
-                            <option value="">{% trans "Sélectionnez une période" %}</option>
-                            {% for periode in periodes %}
-                            <option value="{{ periode.id }}">{{ periode.nom_periode }} ({{ periode.date_debut|date:"d/m/Y" }} - {{ periode.date_fin|date:"d/m/Y" }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="edit_date_debut">{% trans "Date de début" %} <span class="required">*</span></label>
-                            <input type="date" id="edit_date_debut" name="date_debut" class="form-control" required />
-                        </div>
-                        <div class="form-group">
-                            <label for="edit_date_fin">{% trans "Date de fin" %} <span class="required">*</span></label>
-                            <input type="date" id="edit_date_fin" name="date_fin" class="form-control" required />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>{% trans "Groupes de classes concernés" %} <span class="required">*</span></label>
-                        <div class="checkbox-group" id="edit_groupes_classes">
-                            {% for niveau, groupe in groupes_classes.items %}
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="edit_groupe_{{ niveau|slugify }}" name="groupes_classes" value="{{ niveau }}" />
-                                <label for="edit_groupe_{{ niveau|slugify }}">
-                                    <i class="fas fa-check"></i>
-                                    {{ niveau }} ({{ groupe|length }} classe(s))
-                                </label>
+                    <div class="exam-form-body">
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step">1</span>
+                                <div>
+                                    <h3>{% trans "Intitulé et période" %}</h3>
+                                </div>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                            <label class="exam-label" for="edit_nom_examen">{% trans "Nom de la session" %} <span class="required">*</span></label>
+                            <input type="text" id="edit_nom_examen" name="nom_examen" class="exam-input" required placeholder="{% trans "Nom de la session" %}" />
+                            <label class="exam-label" for="edit_periode_id" style="margin-top:1rem;">{% trans "Période scolaire" %} <span class="required">*</span></label>
+                            <select id="edit_periode_id" name="periode_id" class="exam-select" required>
+                                <option value="">{% trans "Choisir une période…" %}</option>
+                                {% for periode in periodes %}
+                                <option value="{{ periode.id }}">{{ periode.nom_periode }} — {{ periode.date_debut|date:"d/m/Y" }} → {{ periode.date_fin|date:"d/m/Y" }}</option>
+                                {% endfor %}
+                            </select>
+                        </section>
 
-                    <div class="form-group">
-                        <label>{% trans "Matières de l'examen" %} <span class="required">*</span></label>
-                        <div class="checkbox-group" id="edit_matieres">
-                            {% for matiere in matieres %}
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="edit_matiere_{{ matiere.id }}" name="matieres_ids" value="{{ matiere.id }}" />
-                                <label for="edit_matiere_{{ matiere.id }}">
-                                    <i class="fas fa-check"></i>
-                                    {{ matiere.nom }}
-                                </label>
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step">2</span>
+                                <div><h3>{% trans "Période de passage" %}</h3></div>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                            <div class="exam-form-row">
+                                <div>
+                                    <label class="exam-label" for="edit_date_debut">{% trans "Début" %} <span class="required">*</span></label>
+                                    <input type="date" id="edit_date_debut" name="date_debut" class="exam-input" required />
+                                </div>
+                                <div>
+                                    <label class="exam-label" for="edit_date_fin">{% trans "Fin" %} <span class="required">*</span></label>
+                                    <input type="date" id="edit_date_fin" name="date_fin" class="exam-input" required />
+                                </div>
+                            </div>
+                        </section>
 
-                    <div class="form-group">
-                        <label for="edit_description">{% trans "Description" %}</label>
-                        <textarea id="edit_description" name="description" class="form-control" rows="3" placeholder="{% trans "Instructions ou informations supplémentaires..." %}"></textarea>
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step">3</span>
+                                <div>
+                                    <h3>{% trans "Public concerné" %}</h3>
+                                    {% if est_superieur %}
+                                    <p class="exam-section-desc">{% trans "Choisissez une filière, puis les promotions concernées." %}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if est_superieur %}
+                            <div class="exam-filiere-block js-exam-superieur-edit">
+                                <div class="exam-filiere-flow">
+                                    <div class="exam-filiere-step">
+                                        <div class="exam-filiere-step-title">{% trans "Étape 1 — Filière" %}</div>
+                                        <label class="exam-label" for="filiere_select_edit">{% trans "Spécialité / département" %}</label>
+                                        <div class="exam-filiere-select-wrap">
+                                            <select id="filiere_select_edit" class="exam-select js-filiere-select-examen" data-modal="edit" autocomplete="off">
+                                                <option value="">{% trans "— Choisir une filière —" %}</option>
+                                                {% for cle, groupe in groupes_classes.items %}
+                                                <option value="{{ cle }}">{{ groupe.label }} ({{ groupe.classes|length }} {% trans "classe(s)" %})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="exam-filiere-step exam-filiere-step--promotions">
+                                        <div class="exam-filiere-step-title">{% trans "Étape 2 — Promotions" %}</div>
+                                        <p class="exam-filiere-help">{% trans "Sélectionnez la filière puis cochez les classes concernées." %}</p>
+                                        <div class="exam-selection-badge" role="status" aria-live="polite">
+                                            <i class="fas fa-layer-group"></i>
+                                            <span>{% trans "Total classes cochées" %} :</span>
+                                            <strong class="js-selection-count">0</strong>
+                                        </div>
+                                        <div class="exam-filiere-panels exam-filiere-panels-scroll">
+                                            <div class="exam-filiere-placeholder js-filiere-placeholder">
+                                                <i class="fas fa-user-graduate"></i>
+                                                {% trans "Choisissez une filière pour afficher les promotions." %}
+                                            </div>
+                                            {% for cle, groupe in groupes_classes.items %}
+                                            <div class="exam-filiere-panel js-filiere-panel-examen" data-groupe-key="{{ cle }}">
+                                                <p class="exam-section-desc exam-filiere-panel-intro"><strong>{{ groupe.label }}</strong></p>
+                                                <div class="exam-class-grid">
+                                                    {% for classe in groupe.classes %}
+                                                    <label class="exam-checkbox-card js-exam-cb-card" for="edit_classe_{{ classe.id }}">
+                                                        <input type="checkbox" id="edit_classe_{{ classe.id }}" name="classes_concernees" value="{{ classe.id }}" class="js-class-cb-superieur" />
+                                                        <span class="exam-checkbox-card__text">
+                                                            <strong>{{ classe.nom }}</strong>
+                                                            <span class="exam-class-niveau"> — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</span>
+                                                        </span>
+                                                    </label>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="exam-group-grid" id="edit_groupes_classes">
+                                {% for cle, groupe in groupes_classes.items %}
+                                <label class="exam-checkbox-card" for="edit_groupe_{{ cle|slugify }}">
+                                    <input type="checkbox" id="edit_groupe_{{ cle|slugify }}" name="groupes_classes" value="{{ cle }}" />
+                                    <span class="exam-checkbox-card__text">
+                                        <strong>{{ groupe.label }}</strong>
+                                        <span> — {{ groupe.classes|length }} {% trans "classe(s)" %}</span>
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </section>
+
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step">4</span>
+                                <div><h3>{% trans "Matières" %}</h3></div>
+                            </div>
+                            {% if est_superieur %}
+                            <p class="exam-filiere-help" style="margin-top:0;">{% trans "Les matières affichées suivent les promotions cochées ; le niveau (LMD, etc.) est rappelé à côté du nom." %}</p>
+                            <div class="exam-scroll-list js-exam-matieres-superieur-mount" id="edit_matieres" data-input-name="matieres_ids" role="group" aria-label="{% trans 'Matières' %}"></div>
+                            <p class="exam-filiere-placeholder js-exam-matieres-superieur-empty" style="display:none;">{% trans "Aucune matière pour les classes sélectionnées." %}</p>
+                            {% else %}
+                            <div class="exam-scroll-list" id="edit_matieres">
+                                {% for matiere in matieres %}
+                                <label class="exam-checkbox-card" for="edit_matiere_{{ matiere.id }}">
+                                    <input type="checkbox" id="edit_matiere_{{ matiere.id }}" name="matieres_ids" value="{{ matiere.id }}" />
+                                    <span class="exam-checkbox-card__text"><strong>{{ matiere.nom }}</strong></span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </section>
+
+                        <section class="exam-form-section">
+                            <label class="exam-label" for="edit_description">{% trans "Description" %}</label>
+                            <textarea id="edit_description" name="description" class="exam-textarea" placeholder="{% trans "Instructions optionnelles…" %}"></textarea>
+                        </section>
                     </div>
                 </div>
 
@@ -292,14 +503,14 @@
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        {% trans "Modifier la session" %}
+                        {% trans "Enregistrer" %}
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=2"></script>
+    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=6"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

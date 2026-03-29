@@ -29,7 +29,7 @@
                 </p>
             </div>
             <div class="header-actions">
-                <a href="{% url 'enseignant:gestion_notes' %}?periode={{ periode_active.id }}" class="btn-action">
+                <a href="{% url 'enseignant:gestion_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-action">
                     <i class="fas fa-arrow-left"></i>
                     <span>Retour aux notes</span>
                 </a>
@@ -37,7 +37,7 @@
         </div>
 
         {% if stats.total_classes > 0 %}
-            <!-- Onglets de périodes -->
+            {% if not est_superieur %}
             <div class="periodes-tabs-horizontal">
                 <div class="periodes-nav">
                     {% if periodes_scolaires %}
@@ -59,6 +59,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <!-- Statistiques globales -->
             <div class="stats-container">
@@ -152,6 +153,19 @@
                                         </h3>
                                         <span class="eleves-count" style="color: #ef4444;">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} en difficulté sur {{ classe_data.nombre_total_eleves }}</span>
                                     </div>
+                                    {% if est_superieur and classe_data.periodes_nav %}
+                                    <div class="periodes-tabs-horizontal" style="flex-basis: 100%; width: 100%; margin-top: 0.5rem;">
+                                        <div class="periodes-nav">
+                                            {% for nav in classe_data.periodes_nav %}
+                                            <a href="?{{ nav.query }}"
+                                               class="periode-tab-horizontal {% if nav.active %}active{% endif %}">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                <span>{{ nav.periode.libelle_affichage_superieur }}</span>
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                     <div class="action-buttons">
                                         <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action info" title="Voir les détails de la classe">
                                             <i class="fas fa-eye"></i>
@@ -173,7 +187,7 @@
                                         </div>
                                         <div class="stat-box">
                                             <span class="stat-label">Période</span>
-                                            <span class="stat-value-small">{{ periode_active.nom_periode }}</span>
+                                            <span class="stat-value-small">{% if classe_data.periode_courante %}{{ classe_data.periode_courante.libelle_affichage_superieur }}{% else %}—{% endif %}</span>
                                         </div>
                                         <div class="stat-box">
                                             <span class="stat-label">Élèves en difficulté</span>
@@ -314,7 +328,7 @@
                 </div>
                 <h3 style="color: #10b981;">Excellent travail !</h3>
                 <p>Aucun élève n'a une moyenne inférieure à 9/20. Vos élèves sont tous sur la bonne voie ! 🎉</p>
-                <a href="{% url 'enseignant:gestion_notes' %}?periode={{ periode_active.id }}" class="btn-action">
+                <a href="{% url 'enseignant:gestion_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-action">
                     <i class="fas fa-arrow-left"></i>
                     <span>Retour aux notes</span>
                 </a>

@@ -11,6 +11,26 @@ from ..model.affectation_professeur_primaire_model import AffectationProfesseurP
 register = template.Library()
 
 @register.filter
+def get_item(d, key):
+    """
+    Dict : clé str ou native.
+    Liste / tuple : index entier (ex. récap UE bulletin supérieur : recap_ue_slots_s1|get_item:'0').
+    """
+    if d is None:
+        return ''
+    if isinstance(d, dict):
+        return d.get(str(key), d.get(key, ''))
+    if isinstance(d, (list, tuple)):
+        try:
+            ik = int(key) if not isinstance(key, int) else key
+        except (TypeError, ValueError):
+            return ''
+        if 0 <= ik < len(d):
+            return d[ik]
+        return ''
+    return ''
+
+@register.filter
 def get_note(notes_dict, key):
     """
     Récupère une note depuis un dictionnaire imbriqué
@@ -69,6 +89,26 @@ def get_note_color_class(note_value, bareme):
             
     except (ValueError, TypeError):
         return ''
+
+@register.filter
+def classes_niveaux_lmd(classes):
+    """
+    Retourne la liste des libellés de niveau uniques (ex: Licence 1, Master 1).
+    Usage: {{ module.classes.all|classes_niveaux_lmd }}
+    """
+    if not classes:
+        return []
+    seen = set()
+    result = []
+    for c in classes:
+        label = c.get_libelle_niveau_superieur_complet()
+        if not label:
+            label = 'Sans niveau'
+        if label not in seen:
+            seen.add(label)
+            result.append(label)
+    return sorted(result, key=lambda x: (x == 'Sans niveau', x.lower()))
+
 
 @register.filter
 def group_classes(classes):
@@ -157,24 +197,6 @@ def get_matiere_color(matiere_nom):
         if key.lower() in matiere_nom.lower() or matiere_nom.lower() in key.lower():
             return color
     return '#64748b'
-
-@register.filter
-def get_item(dictionary, key):
-    """
-    Récupère un élément d'un dictionnaire par sa clé
-    Usage: {{ mon_dict|get_item:ma_cle }}
-    """
-    if dictionary is None:
-        return None
-    if isinstance(dictionary, list):
-        # Si c'est une liste, utiliser l'index
-        try:
-            index = int(key)
-            if 0 <= index < len(dictionary):
-                return dictionary[index]
-        except (ValueError, TypeError, IndexError):
-            return None
-    return dictionary.get(key) if hasattr(dictionary, 'get') else None
 
 
 @register.filter

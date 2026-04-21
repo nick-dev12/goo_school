@@ -871,7 +871,9 @@ def carte_identite_eleve(request, eleve_id):
         return redirect('school_admin:connexion_compte_user')
 
     try:
-        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
+        eleve = Eleve.objects.select_related(
+            'classe', 'classe__academic_level',
+        ).get(id=eleve_id, etablissement=etablissement)
     except Eleve.DoesNotExist:
         messages.error(request, "Élève non trouvé.")
         return redirect('secretaire:cartes_identite_eleves')
@@ -928,7 +930,9 @@ def cartes_identite_classe(request, classe_id):
         return redirect('school_admin:connexion_compte_user')
 
     try:
-        classe = Classe.objects.get(id=classe_id, etablissement=etablissement, actif=True)
+        classe = Classe.objects.select_related('academic_level').get(
+            id=classe_id, etablissement=etablissement, actif=True
+        )
     except Classe.DoesNotExist:
         messages.error(request, "Classe introuvable ou non autorisée.")
         return redirect('secretaire:cartes_identite_eleves')
@@ -958,7 +962,9 @@ def cartes_identite_classe(request, classe_id):
     
     # Créer un queryset à partir de la liste pour maintenir la compatibilité
     eleves_ids = [eleve.id for eleve in eleves_list]
-    eleves_queryset = Eleve.objects.filter(id__in=eleves_ids).order_by(Lower('nom'), Lower('prenom'))
+    eleves_queryset = Eleve.objects.filter(id__in=eleves_ids).select_related(
+        'classe', 'classe__academic_level',
+    ).order_by(Lower('nom'), Lower('prenom'))
     eleves = list(eleves_queryset)
 
     erreurs_qr = []

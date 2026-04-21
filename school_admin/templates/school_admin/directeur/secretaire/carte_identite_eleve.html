@@ -22,7 +22,7 @@
       </div>
       <div class="card-title">
         <h1>{% trans "Carte d'identité scolaire" %}</h1>
-        <p>{{ eleve.nom_complet }} · {{ eleve.classe.nom|default:"Classe non définie" }}</p>
+        <p>{{ eleve.nom_complet }}{% if eleve.classe %} · {{ eleve.classe.get_libelle_niveau_complet_pour_eleve }} · {{ eleve.classe.nom }}{% else %} · {% trans "Classe non définie" %}{% endif %}</p>
       </div>
       <div class="card-actions-right">
         <button type="button" class="btn-primary" id="print-card">
@@ -42,7 +42,7 @@
           <div class="student-idcard-front">
             <div class="idcard-header">
               <div class="idcard-flag">
-                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo de l" %}'établissement">
+                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo de l'établissement" %}">
               </div>
               <div class="idcard-header-text">
                 <p class="idcard-country">{{ personnalisation.pays_nom|default:"RÉPUBLIQUE DE [VOTRE PAYS]" }}</p>
@@ -85,6 +85,12 @@
                   <span class="info-label">{% trans "À :" %}</span>
                   <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
                 </div>
+                {% if eleve.classe %}
+                <div class="idcard-info-row">
+                  <span class="info-label">{% trans "Niveau :" %}</span>
+                  <span class="info-value info-value-wrap">{{ eleve.classe.get_libelle_niveau_complet_pour_eleve }}</span>
+                </div>
+                {% endif %}
                 <div class="idcard-info-row double">
                   <span class="info-label">{% trans "Sexe :" %}</span>
                   <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
@@ -96,9 +102,6 @@
                       Non assignée
                     {% endif %}
                   </span>
-                </div>
-                <div class="idcard-info-row">
-                 
                 </div>
               </div>
               <div class="idcard-qr">

@@ -5,7 +5,7 @@
   href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.2">
 <!-- Messages Template -->
 {% include 'school_admin/partials/messages.html' %}
-<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4" />
 
 
 <div class="dashboard">
@@ -14,11 +14,15 @@
     <header class="dashboard-header-horizontal">
       <div class="header-left">
         <div class="header-logo">
-          <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria Logo" style="height: 90px; width: auto;">
+          <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria Logo" class="header-logo-img" width="120" height="48">
         </div>
       </div>
 
       <div class="header-right">
+        <div class="header-language-switcher" aria-label="{% trans 'Sélecteur de langue' %}">
+          <div class="gtranslate_wrapper gtranslate_directeur_header" id="directeurGtranslateMount"></div>
+        </div>
+
         <a href="{% url 'directeur:notifications_directeur' %}" class="header-button" aria-label="Notifications">
           <i class="fas fa-bell"></i>
           {% if notifications_directeur_non_lues > 0 %}
@@ -35,10 +39,6 @@
           <i class="fas fa-qrcode"></i>
           <span class="scanner-text">{% trans "Scanner" %}</span>
         </button>
-
-        <div class="header-language-switcher" aria-label="{% trans 'Sélecteur de langue' %}">
-          <div class="gtranslate_wrapper gtranslate_wrapper_header"></div>
-        </div>
 
         <div class="header-profile">
           {% if is_directeur %}
@@ -246,7 +246,7 @@
   window.gtranslateSettings = {
     default_language: "fr",
     languages: ["fr", "en", "ar"],
-    wrapper_selector: ".gtranslate_wrapper"
+    wrapper_selector: ".gtranslate_directeur_header"
   };
 </script>
 <script src="https://cdn.gtranslate.net/widgets/latest/dwf.js" defer></script>
@@ -678,56 +678,78 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     min-height: 36px;
-    min-width: 110px;
+    min-width: 100px;
+    max-width: min(200px, 42vw);
     position: relative;
-    z-index: 35;
+    z-index: 45;
   }
 
-  .header-language-switcher .gtranslate_wrapper {
-    display: flex;
+  .header-language-switcher .gtranslate_directeur_header {
+    display: flex !important;
     align-items: center;
-    position: static !important;
+    justify-content: center;
+    width: 100%;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
   }
 
-  .header-language-switcher .gtranslate_wrapper [class*="gt_container"] {
-    position: static !important;
+  .header-language-switcher .gtranslate_directeur_header [class*="gt_container"] {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    inset: auto !important;
+    float: none !important;
+    margin: 0 !important;
   }
 
-  .header-language-switcher .gtranslate_wrapper .gt_switcher_wrapper {
+  .header-language-switcher .gtranslate_directeur_header .gt_switcher_wrapper {
     margin: 0;
-    position: relative;
+    position: relative !important;
   }
 
-  .header-language-switcher .gtranslate_wrapper .gt_selected a,
-  .header-language-switcher .gtranslate_wrapper a.open {
-    min-height: 36px;
+  .header-language-switcher .gtranslate_directeur_header div.gt_selected {
+    width: 130px !important;
+    height: 40px !important;
+  }
+
+  .header-language-switcher .gtranslate_directeur_header .gt_selected a,
+  .header-language-switcher .gtranslate_directeur_header a.open {
+    width: 110px !important;
+    min-height: 25px;
     border: 1px solid var(--gray-200, #e5e7eb);
     border-radius: 8px;
     background: var(--white, #ffffff);
     color: var(--gray-700, #374151) !important;
-    font-size: 0.8125rem;
+    font-size: 12px !important;
     font-weight: 500;
-    padding: 0.35rem 0.6rem !important;
+    padding: 5px 10px !important;
     box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    display: inline-flex !important;
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 5px;
   }
 
-  .header-language-switcher .gtranslate_wrapper .gt_selected a:hover,
-  .header-language-switcher .gtranslate_wrapper .gt_selected a:focus,
-  .header-language-switcher .gtranslate_wrapper a.open:hover,
-  .header-language-switcher .gtranslate_wrapper a.open:focus {
+  .header-language-switcher .gtranslate_directeur_header .gt_selected a:hover,
+  .header-language-switcher .gtranslate_directeur_header .gt_selected a:focus,
+  .header-language-switcher .gtranslate_directeur_header a.open:hover,
+  .header-language-switcher .gtranslate_directeur_header a.open:focus {
     border-color: var(--directeur-primary, #3b82f6);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     outline: none;
   }
 
-  .header-language-switcher .gtranslate_wrapper .gt_option,
-  .header-language-switcher .gtranslate_wrapper .gt_options {
-    z-index: 60 !important;
+  .header-language-switcher .gtranslate_directeur_header .gt_option,
+  .header-language-switcher .gtranslate_directeur_header .gt_options {
+    z-index: 120 !important;
   }
 
   /* Responsive - Le texte reste toujours visible */
@@ -751,11 +773,11 @@
       min-width: 96px;
     }
 
-    .header-language-switcher .gtranslate_wrapper .gt_selected a,
-    .header-language-switcher .gtranslate_wrapper a.open {
-      min-height: 32px;
-      font-size: 0.75rem;
-      padding: 0.25rem 0.45rem !important;
+    .header-language-switcher .gtranslate_directeur_header .gt_selected a,
+    .header-language-switcher .gtranslate_directeur_header a.open {
+      min-height: 25px;
+      font-size: 12px;
+      padding: 5px 10px !important;
     }
   }
 

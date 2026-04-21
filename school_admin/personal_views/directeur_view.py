@@ -7675,7 +7675,9 @@ def generer_certificat_scolarite(request, eleve_id):
         messages.warning(request, "Aucune année scolaire active. Le certificat sera généré sans référence à une session spécifique.")
     
     try:
-        eleve = Eleve.objects.select_related('classe').get(
+        eleve = Eleve.objects.select_related(
+            'classe', 'classe__academic_level',
+        ).get(
             id=eleve_id,
             etablissement=etablissement
         )
@@ -8338,7 +8340,9 @@ def generer_attestation_reussite(request, eleve_id):
         messages.warning(request, "Aucune année scolaire active. L'attestation sera générée sans référence à une session spécifique.")
     
     try:
-        eleve = Eleve.objects.select_related('classe').get(
+        eleve = Eleve.objects.select_related(
+            'classe', 'classe__academic_level',
+        ).get(
             id=eleve_id,
             etablissement=etablissement
         )
@@ -8451,7 +8455,9 @@ def generer_attestation_conduite(request, eleve_id):
         messages.warning(request, "Aucune année scolaire active. L'attestation sera générée sans référence à une session spécifique.")
     
     try:
-        eleve = Eleve.objects.select_related('classe').get(
+        eleve = Eleve.objects.select_related(
+            'classe', 'classe__academic_level',
+        ).get(
             id=eleve_id,
             etablissement=etablissement
         )
@@ -8569,7 +8575,9 @@ def generer_fiche_inscription(request, eleve_id):
         messages.warning(request, "Aucune année scolaire active. La fiche sera générée sans référence à une session spécifique.")
     
     try:
-        eleve = Eleve.objects.select_related('classe').get(
+        eleve = Eleve.objects.select_related(
+            'classe', 'classe__academic_level',
+        ).get(
             id=eleve_id,
             etablissement=etablissement
         )
@@ -8617,7 +8625,7 @@ def imprimer_fiches_classe(request, classe_id):
         return redirect('directeur:creer_annee_scolaire_obligatoire')
     
     try:
-        classe = Classe.objects.get(
+        classe = Classe.objects.select_related('academic_level').get(
             id=classe_id,
             etablissement=etablissement,
             actif=True
@@ -8638,7 +8646,7 @@ def imprimer_fiches_classe(request, classe_id):
         id__in=eleves_ids_inscrits,
         classe=classe,
         actif=True
-    ).order_by('nom', 'prenom')
+    ).select_related('classe', 'classe__academic_level').order_by('nom', 'prenom')
     
     if not eleves.exists():
         messages.warning(request, "Aucun élève inscrit dans cette classe pour l'année scolaire active.")

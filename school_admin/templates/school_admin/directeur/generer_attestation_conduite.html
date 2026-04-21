@@ -54,6 +54,10 @@
                     <span class="info-value">{{ eleve.numero_eleve }}</span>
                 </div>
                 <div class="info-row">
+                    <span class="info-label">{% trans "Niveau :" %}</span>
+                    <span class="info-value">{{ eleve.classe.get_libelle_niveau_complet_pour_eleve }}</span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">{% trans "Classe :" %}</span>
                     <span class="info-value">{{ eleve.classe.nom }}</span>
                 </div>
@@ -70,14 +74,12 @@
                 <p class="text-atteste">{% trans "Atteste que" %}</p>
                 
                 <p class="text-eleve">
-                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>{% trans ", 
-                    né(e) le" %} <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> {% trans "à" %} <strong>{{ eleve.lieu_naissance }}</strong>{% trans ",
-                    élève en classe de" %} <strong>{{ eleve.classe.nom }}</strong>,
+                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>{% trans ", né(e) le" %} <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> {% trans "à" %} <strong>{{ eleve.lieu_naissance }}</strong>{% trans ", élève en classe de" %} <strong>{{ eleve.classe.nom }}</strong>,
                 </p>
                 
                 <p class="text-content">
-                    {% trans "a fait preuve durant l'année scolaire" %} <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong> 
-                    {% trans "d'une <strong class=\"text-excellent\">{% trans "excellente conduite" %}</strong> et d'un" %}
+                    {% trans "a fait preuve durant l'année scolaire" %} <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire }}{% endif %}</strong>
+                    {% trans "d'une" %} <strong class="text-excellent">{% trans "excellente conduite" %}</strong> {% trans "et d'un" %}
                     <strong class="text-excellent">{% trans "comportement exemplaire" %}</strong> {% trans "au sein de notre établissement." %}
                 </p>
 

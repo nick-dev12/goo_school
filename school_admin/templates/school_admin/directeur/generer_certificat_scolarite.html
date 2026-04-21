@@ -87,8 +87,12 @@
                     <span class="info-value">{{ eleve.numero_eleve }}</span>
                 </div>
                 <div class="info-row">
+                    <span class="info-label">{% trans "Niveau :" %}</span>
+                    <span class="info-value">{{ eleve.classe.get_libelle_niveau_complet_pour_eleve }}</span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">{% trans "Classe :" %}</span>
-                    <span class="info-value">{{ eleve.classe.nom }} - {{ eleve.classe.get_niveau_display }}</span>
+                    <span class="info-value">{{ eleve.classe.nom }}</span>
                 </div>
             </div>
 

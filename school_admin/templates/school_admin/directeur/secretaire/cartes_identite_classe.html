@@ -129,7 +129,7 @@
               </div>
               <div style="flex: 1;">
                 <p style="margin: 0; line-height: 1.4; font-size: 12px; opacity: 0.95;">
-                  <strong>{% trans "Note :" %}</strong> {% trans "Veuillez personnaliser les informations de votre établissement via le bouton" %} <strong>{% trans ""Personnaliser l'en-tête"" %}</strong> : 
+                  <strong>{% trans "Note :" %}</strong> {% trans "Veuillez personnaliser les informations de votre établissement via le bouton" %} <strong>{% trans "Personnaliser l'en-tête" %}</strong> : 
                   <strong>{% trans "République du pays" %}</strong>, <strong>{% trans "Devise du pays" %}</strong> {% trans "et" %} <strong>{% trans "Devise de l'établissement" %}</strong> {% trans "(verso)." %}
                 </p>
               </div>
@@ -146,7 +146,7 @@
                       <h2>{{ eleve.nom_complet }}</h2>
                       <p class="card-print-meta">
                         Matricule : {{ eleve.matricule_eleve|default:eleve.numero_eleve }} · Né(e) le
-                        {{ eleve.date_naissance|date:"d/m/Y" }} · Classe {{ classe.nom }}
+                        {{ eleve.date_naissance|date:"d/m/Y" }} · {{ classe.get_libelle_niveau_complet_pour_eleve }} · {% trans "Classe" %} {{ classe.nom }}
                       </p>
                     </div>
                     <div class="card-print-heading-right">
@@ -158,7 +158,7 @@
                     <div class="student-idcard-front">
                       <div class="idcard-header">
                         <div class="idcard-flag">
-                          <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo de l" %}'établissement" />
+                          <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo de l'établissement" %}" />
                         </div>
                         <div class="idcard-header-text">
                           <p class="idcard-country editable-header" 
@@ -216,13 +216,16 @@
                             <span class="info-label">{% trans "À :" %}</span>
                             <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
                           </div>
+                          <div class="idcard-info-row">
+                            <span class="info-label">{% trans "Niveau :" %}</span>
+                            <span class="info-value info-value-wrap">{{ classe.get_libelle_niveau_complet_pour_eleve }}</span>
+                          </div>
                           <div class="idcard-info-row double">
                             <span class="info-label">{% trans "Sexe :" %}</span>
                             <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
                             <span class="info-label">{% trans "Classe :" %}</span>
                             <span class="info-value info-uppercase info-value-wrap">{{ classe.nom }}</span>
                           </div>
-                         
                         </div>
                         <div class="idcard-qr">
                           {% if eleve.qr_code_image %}

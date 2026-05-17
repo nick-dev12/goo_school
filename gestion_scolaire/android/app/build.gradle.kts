@@ -11,7 +11,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.gestion_scolaire"
+    namespace = "com.ariaedu.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

@@ -184,6 +184,20 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# True uniquement si un reverse proxy de confiance définit X-Forwarded-For (sinon risque de spoofing).
+LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR = (
+    os.getenv('LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', 'False').lower() == 'true'
+)
+
+# Cache (limitation des tentatives de connexion, etc.)
+# En production multi-workers, préférer Redis/Memcached pour un état partagé.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'school-admin-locmem',
+    }
+}
+
 # Configuration du modèle d'utilisateur personnalisé
 AUTH_USER_MODEL = 'school_admin.CompteUser'
 

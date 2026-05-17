@@ -1,0 +1,21 @@
+{% load i18n %}
+<div class="header-language-switcher" aria-label="{% trans 'Sélecteur de langue' %}">
+  <div class="gtranslate_wrapper gtranslate_app_header" id="gtranslateHeaderMount"></div>
+</div>
+<script>
+(function () {
+  window.gtranslateSettings = {
+    default_language: "fr",
+    languages: ["fr", "en", "ar"],
+    wrapper_selector: ".gtranslate_app_header"
+  };
+  if (document.querySelector('script[data-gtranslate-dwf="1"]')) {
+    return;
+  }
+  var st = document.createElement("script");
+  st.src = "https://cdn.gtranslate.net/widgets/latest/dwf.js";
+  st.defer = true;
+  st.setAttribute("data-gtranslate-dwf", "1");
+  document.head.appendChild(st);
+})();
+</script>

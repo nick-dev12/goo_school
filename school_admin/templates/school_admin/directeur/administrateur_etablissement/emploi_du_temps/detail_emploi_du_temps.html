@@ -28,7 +28,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps_detail.css' %}?v=1.0.0"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_detail.css' %}?v=1.0.1"
     />
     <link
       rel="stylesheet"
@@ -199,9 +199,22 @@
                                                   </div>
                                                 {% endif %}
                                                 <div class="creneau-actions" style="margin-top: 8px; display: none; gap: 5px;">
-                                                  <a href="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}" class="btn-icon btn-icon-edit" title="{% trans "Modifier" %}" style="padding: 4px 8px; font-size: 12px;">
+                                                  <button
+                                                    type="button"
+                                                    class="btn-icon btn-icon-edit js-ouvrir-modal-modifier-creneau"
+                                                    title="{% trans "Modifier" %}"
+                                                    style="padding: 4px 8px; font-size: 12px; border: none; cursor: pointer;"
+                                                    data-action-url="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}"
+                                                    data-jour="{{ creneau.jour }}"
+                                                    data-heure-debut="{{ creneau.heure_debut|time:'H:i' }}"
+                                                    data-heure-fin="{{ creneau.heure_fin|time:'H:i' }}"
+                                                    data-matiere-id="{{ creneau.matiere.id|default:'' }}"
+                                                    data-professeur-id="{{ creneau.professeur.id|default:'' }}"
+                                                    data-salle-id="{{ creneau.salle.id|default:'' }}"
+                                                    data-type-cours="{{ creneau.type_cours }}"
+                                                  >
                                                     <i class="fas fa-edit"></i>
-                                                  </a>
+                                                  </button>
                                                   <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?');">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn-icon btn-icon-delete" title="{% trans "Supprimer" %}" style="padding: 4px 8px; font-size: 12px;">
@@ -461,7 +474,7 @@
           }
         });
       }
-    </script>" %}
+    </script>
 
     <!-- Modal pour ajouter un créneau -->
     <div id="modalAjouterCreneau" class="modal-creneau-fullscreen">
@@ -623,95 +636,346 @@
       </div>
     </div>
 
+    <!-- Modal pour modifier un créneau (même structure que l'ajout) -->
+    <div id="modalModifierCreneau" class="modal-creneau-fullscreen">
+      <div class="modal-creneau-overlay" id="modalOverlayModifier"></div>
+      <div class="modal-creneau-content">
+        <div class="modal-creneau-header">
+          <h2 class="modal-creneau-title">
+            <i class="fas fa-edit"></i>
+            {% trans "Modifier le créneau" %}
+          </h2>
+          <button type="button" class="modal-creneau-close" id="btnFermerModalModifierCreneau">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-creneau-body">
+          {% if annee_scolaire_active %}
+          <div class="alert alert-info modal-alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>
+              {% trans "Modification du créneau pour l'année scolaire" %} <strong>{{ annee_scolaire_active.libelle }}</strong>
+            </span>
+          </div>
+          {% endif %}
+
+          <div id="modalModifErrorsGlobales" class="alert alert-error" {% if not modifier_creneau_field_errors.non_field_errors %}style="display: none;"{% endif %}>
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="modalModifErrorMessage">{% if modifier_creneau_field_errors.non_field_errors %}{{ modifier_creneau_field_errors.non_field_errors }}{% endif %}</span>
+          </div>
+
+          <form
+            method="post"
+            id="formModifierCreneau"
+            class="form-creneau-modal"
+            action="{% if modifier_creneau_id %}{% url 'administrateur_etablissement:modifier_creneau' modifier_creneau_id %}{% else %}#{% endif %}"
+          >
+            {% csrf_token %}
+            <div class="form-row-modal">
+              <div class="form-group-modal" id="formGroupModifJour">
+                <label for="modalModifJour" class="form-label-modal required">
+                  <i class="fas fa-calendar-day"></i>
+                  {% trans "Jour de la semaine <span class=\"required\">*</span>" %}
+                </label>
+                <select id="modalModifJour" name="jour" class="form-control-modal" required>
+                  <option value="">{% trans "Sélectionnez un jour" %}</option>
+                  {% for value, label in jours_choices %}
+                    <option value="{{ value }}" {% if modifier_creneau_form_data.jour == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <span class="error-message-modal" id="errorModifJour" {% if not modifier_creneau_field_errors.jour %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if modifier_creneau_field_errors.jour %}{{ modifier_creneau_field_errors.jour }}{% endif %}</span>
+                </span>
+              </div>
+              <div class="form-group-modal" id="formGroupModifHeureDebut">
+                <label for="modalModifHeureDebut" class="form-label-modal required">
+                  <i class="fas fa-clock"></i>
+                  {% trans "Heure de début <span class=\"required\">*</span>" %}
+                </label>
+                <input type="time" id="modalModifHeureDebut" name="heure_debut" class="form-control-modal" value="{% if modifier_creneau_form_data.heure_debut %}{{ modifier_creneau_form_data.heure_debut }}{% endif %}" required />
+                <span class="error-message-modal" id="errorModifHeureDebut" {% if not modifier_creneau_field_errors.heure_debut %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if modifier_creneau_field_errors.heure_debut %}{{ modifier_creneau_field_errors.heure_debut }}{% endif %}</span>
+                </span>
+              </div>
+              <div class="form-group-modal" id="formGroupModifHeureFin">
+                <label for="modalModifHeureFin" class="form-label-modal required">
+                  <i class="fas fa-clock"></i>
+                  {% trans "Heure de fin <span class=\"required\">*</span>" %}
+                </label>
+                <input type="time" id="modalModifHeureFin" name="heure_fin" class="form-control-modal" value="{% if modifier_creneau_form_data.heure_fin %}{{ modifier_creneau_form_data.heure_fin }}{% endif %}" required />
+                <span class="error-message-modal" id="errorModifHeureFin" {% if not modifier_creneau_field_errors.heure_fin %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if modifier_creneau_field_errors.heure_fin %}{{ modifier_creneau_field_errors.heure_fin }}{% endif %}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group-modal" id="formGroupModifTypeCours">
+              <label for="modalModifTypeCours" class="form-label-modal required">
+                <i class="fas fa-tag"></i>
+                {% trans "Type de cours <span class=\"required\">*</span>" %}
+              </label>
+              <select id="modalModifTypeCours" name="type_cours" class="form-control-modal" required>
+                {% for value, label in type_cours_choices %}
+                  <option value="{{ value }}" {% if modifier_creneau_form_data.type_cours == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <span class="error-message-modal" id="errorModifTypeCours" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span></span>
+              </span>
+            </div>
+
+            <div class="form-group-modal" id="formGroupModifMatiere">
+              <label for="modalModifMatiere" class="form-label-modal">
+                <i class="fas fa-book"></i>
+                {% trans "Matière" %}
+                <span class="optional">{% trans "(Optionnel)" %}</span>
+              </label>
+              <select id="modalModifMatiere" name="matiere" class="form-control-modal">
+                <option value="">{% trans "Sélectionnez une matière" %}</option>
+                {% for matiere in matieres %}
+                  <option value="{{ matiere.id }}" {% if modifier_creneau_form_data.matiere_id == matiere.id|stringformat:"s" or modifier_creneau_form_data.matiere_id == matiere.id %}selected{% endif %}>{{ matiere.nom }}</option>
+                {% endfor %}
+              </select>
+              <span class="error-message-modal" id="errorModifMatiere" {% if not modifier_creneau_field_errors.matiere %}style="display: none;"{% endif %}>
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{% if modifier_creneau_field_errors.matiere %}{{ modifier_creneau_field_errors.matiere }}{% endif %}</span>
+              </span>
+            </div>
+
+            <div class="form-row-modal">
+              <div class="form-group-modal" id="formGroupModifProfesseur">
+                <label for="modalModifProfesseur" class="form-label-modal">
+                  <i class="fas fa-user-tie"></i>
+                  {% trans "Professeur" %}
+                  <span class="optional">{% trans "(Optionnel)" %}</span>
+                </label>
+                <select id="modalModifProfesseur" name="professeur" class="form-control-modal">
+                  <option value="">{% trans "Sélectionnez un professeur" %}</option>
+                  {% if professeurs_options %}
+                    {% for prof in professeurs_options %}
+                      <option value="{{ prof.id }}" {% if modifier_creneau_form_data.professeur_id == prof.id|stringformat:"s" %}selected{% endif %}>{{ prof.label }}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled>{% trans "Aucun professeur n'est affecté à cette classe." %}</option>
+                  {% endif %}
+                </select>
+                <span class="error-message-modal" id="errorModifProfesseur" {% if not modifier_creneau_field_errors.professeur %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if modifier_creneau_field_errors.professeur %}{{ modifier_creneau_field_errors.professeur }}{% endif %}</span>
+                </span>
+              </div>
+              <div class="form-group-modal" id="formGroupModifSalle">
+                <label for="modalModifSalle" class="form-label-modal">
+                  <i class="fas fa-door-open"></i>
+                  {% trans "Salle" %}
+                  <span class="optional">{% trans "(Optionnel)" %}</span>
+                </label>
+                <select id="modalModifSalle" name="salle" class="form-control-modal">
+                  <option value="">{% trans "Sélectionnez une salle" %}</option>
+                  {% for salle in salles %}
+                    <option value="{{ salle.id }}" {% if modifier_creneau_form_data.salle_id == salle.id|stringformat:"s" or modifier_creneau_form_data.salle_id == salle.id %}selected{% endif %}>Salle {{ salle.numero }} - {{ salle.nom }}</option>
+                  {% endfor %}
+                </select>
+                <span class="error-message-modal" id="errorModifSalle" {% if not modifier_creneau_field_errors.salle %}style="display: none;"{% endif %}>
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{% if modifier_creneau_field_errors.salle %}{{ modifier_creneau_field_errors.salle }}{% endif %}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="form-actions-modal">
+              <button type="button" class="btn btn-secondary-modal" id="btnAnnulerModalModifier">
+                <i class="fas fa-times"></i>
+                <span>{% trans "Annuler" %}</span>
+              </button>
+              <button type="submit" class="btn btn-primary-modal">
+                <i class="fas fa-check"></i>
+                <span>{% trans "Enregistrer les modifications" %}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- JavaScript pour le modal -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('modalAjouterCreneau');
+        const modalModifier = document.getElementById('modalModifierCreneau');
         const btnOuvrir = document.getElementById('btnOuvrirModalAjouterCreneau');
         const btnFermer = document.getElementById('btnFermerModalAjouterCreneau');
         const btnAnnuler = document.getElementById('btnAnnulerModal');
         const overlay = document.getElementById('modalOverlay');
         const form = document.getElementById('formAjouterCreneau');
+        const overlayModifier = document.getElementById('modalOverlayModifier');
+        const btnFermerModifier = document.getElementById('btnFermerModalModifierCreneau');
+        const btnAnnulerModifier = document.getElementById('btnAnnulerModalModifier');
+        const formModifier = document.getElementById('formModifierCreneau');
 
-        // Ouvrir le modal
-        if (btnOuvrir) {
-          btnOuvrir.addEventListener('click', function() {
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-          });
+        function setBodyScrollForModals() {
+          var oneOpen = (modal && modal.classList.contains('active')) ||
+            (modalModifier && modalModifier.classList.contains('active'));
+          document.body.style.overflow = oneOpen ? 'hidden' : '';
         }
 
-        // Ouvrir automatiquement le modal si show_modal_creneau est True
-        {% if show_modal_creneau %}
-        if (modal) {
-          modal.classList.add('active');
-          document.body.style.overflow = 'hidden';
-        }
-        {% endif %}
-
-        // Fonction pour fermer le modal
-        function fermerModal() {
+        function fermerModalAjouter() {
+          if (!modal) return;
           modal.classList.remove('active');
-          document.body.style.overflow = '';
-          // Réinitialiser le formulaire
+          setBodyScrollForModals();
           if (form) {
             form.reset();
-            // Masquer les erreurs
-            document.querySelectorAll('.error-message-modal').forEach(el => {
+            modal.querySelectorAll('.error-message-modal').forEach(function(el) {
               el.style.display = 'none';
             });
-            document.getElementById('modalErrorsGlobales').style.display = 'none';
+            var g = document.getElementById('modalErrorsGlobales');
+            if (g) g.style.display = 'none';
           }
         }
 
-        // Fermer via le bouton X
-        if (btnFermer) {
-          btnFermer.addEventListener('click', fermerModal);
+        function fermerModalModifier() {
+          if (!modalModifier) return;
+          modalModifier.classList.remove('active');
+          setBodyScrollForModals();
+          if (formModifier) {
+            formModifier.reset();
+            modalModifier.querySelectorAll('.error-message-modal').forEach(function(el) {
+              el.style.display = 'none';
+            });
+            var gm = document.getElementById('modalModifErrorsGlobales');
+            if (gm) gm.style.display = 'none';
+          }
         }
 
-        // Fermer via le bouton Annuler
-        if (btnAnnuler) {
-          btnAnnuler.addEventListener('click', fermerModal);
-        }
-
-        // Fermer en cliquant sur l'overlay
-        if (overlay) {
-          overlay.addEventListener('click', fermerModal);
-        }
-
-        // Empêcher la fermeture en cliquant sur le contenu du modal
-        const modalContent = document.querySelector('.modal-creneau-content');
-        if (modalContent) {
-          modalContent.addEventListener('click', function(e) {
-            e.stopPropagation();
+        if (btnOuvrir) {
+          btnOuvrir.addEventListener('click', function() {
+            fermerModalModifier();
+            modal.classList.add('active');
+            setBodyScrollForModals();
           });
         }
 
-        // Validation côté client avant soumission
+        {% if show_modal_modifier_creneau %}
+        if (modalModifier) {
+          modalModifier.classList.add('active');
+          setBodyScrollForModals();
+        }
+        {% elif show_modal_creneau %}
+        if (modal) {
+          modal.classList.add('active');
+          setBodyScrollForModals();
+        }
+        {% endif %}
+
+        if (btnFermer) {
+          btnFermer.addEventListener('click', fermerModalAjouter);
+        }
+        if (btnAnnuler) {
+          btnAnnuler.addEventListener('click', fermerModalAjouter);
+        }
+        if (overlay) {
+          overlay.addEventListener('click', fermerModalAjouter);
+        }
+        if (modal) {
+          var modalContent = modal.querySelector('.modal-creneau-content');
+          if (modalContent) {
+            modalContent.addEventListener('click', function(e) {
+              e.stopPropagation();
+            });
+          }
+        }
+
+        if (btnFermerModifier) {
+          btnFermerModifier.addEventListener('click', fermerModalModifier);
+        }
+        if (btnAnnulerModifier) {
+          btnAnnulerModifier.addEventListener('click', fermerModalModifier);
+        }
+        if (overlayModifier) {
+          overlayModifier.addEventListener('click', fermerModalModifier);
+        }
+        if (modalModifier) {
+          var modalContentMod = modalModifier.querySelector('.modal-creneau-content');
+          if (modalContentMod) {
+            modalContentMod.addEventListener('click', function(e) {
+              e.stopPropagation();
+            });
+          }
+        }
+
+        document.querySelectorAll('.js-ouvrir-modal-modifier-creneau').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!modalModifier || !formModifier) return;
+            if (modal) modal.classList.remove('active');
+            formModifier.action = btn.dataset.actionUrl || '#';
+            var elJour = document.getElementById('modalModifJour');
+            var elDeb = document.getElementById('modalModifHeureDebut');
+            var elFin = document.getElementById('modalModifHeureFin');
+            var elMat = document.getElementById('modalModifMatiere');
+            var elProf = document.getElementById('modalModifProfesseur');
+            var elSalle = document.getElementById('modalModifSalle');
+            var elType = document.getElementById('modalModifTypeCours');
+            if (elJour) elJour.value = btn.dataset.jour || '';
+            if (elDeb) elDeb.value = btn.dataset.heureDebut || '';
+            if (elFin) elFin.value = btn.dataset.heureFin || '';
+            if (elMat) elMat.value = btn.dataset.matiereId ? String(btn.dataset.matiereId) : '';
+            if (elProf) elProf.value = btn.dataset.professeurId ? String(btn.dataset.professeurId) : '';
+            if (elSalle) elSalle.value = btn.dataset.salleId ? String(btn.dataset.salleId) : '';
+            if (elType) elType.value = btn.dataset.typeCours || 'cours';
+            modalModifier.querySelectorAll('.error-message-modal').forEach(function(el) {
+              el.style.display = 'none';
+            });
+            var gm = document.getElementById('modalModifErrorsGlobales');
+            if (gm) gm.style.display = 'none';
+            modalModifier.classList.add('active');
+            setBodyScrollForModals();
+          });
+        });
+
+        function validerHeuresModales(heureDebut, heureFin, errorHeureFinId) {
+          if (!heureDebut || !heureFin) {
+            return false;
+          }
+          if (heureFin <= heureDebut) {
+            var errorHeureFin = document.getElementById(errorHeureFinId);
+            if (errorHeureFin) {
+              var sp = errorHeureFin.querySelector('span');
+              if (sp) sp.textContent = "L'heure de fin doit être après l'heure de début.";
+              errorHeureFin.style.display = 'flex';
+            }
+            return false;
+          }
+          return true;
+        }
+
         if (form) {
           form.addEventListener('submit', function(e) {
-            const heureDebut = document.getElementById('modalHeureDebut').value;
-            const heureFin = document.getElementById('modalHeureFin').value;
-            
-            if (!heureDebut || !heureFin) {
+            var heureDebut = document.getElementById('modalHeureDebut').value;
+            var heureFin = document.getElementById('modalHeureFin').value;
+            if (!validerHeuresModales(heureDebut, heureFin, 'errorHeureFin')) {
               e.preventDefault();
-              return false;
-            }
-            
-            // Vérifier que l'heure de fin est après l'heure de début
-            if (heureFin <= heureDebut) {
-              e.preventDefault();
-              const errorHeureFin = document.getElementById('errorHeureFin');
-              if (errorHeureFin) {
-                errorHeureFin.querySelector('span').textContent = "L'heure de fin doit être après l'heure de début.";
-                errorHeureFin.style.display = 'flex';
-              }
               return false;
             }
           });
         }
 
-        // Gestion de l'affichage des boutons au clic sur les créneaux
+        if (formModifier) {
+          formModifier.addEventListener('submit', function(e) {
+            var heureDebut = document.getElementById('modalModifHeureDebut').value;
+            var heureFin = document.getElementById('modalModifHeureFin').value;
+            if (!validerHeuresModales(heureDebut, heureFin, 'errorModifHeureFin')) {
+              e.preventDefault();
+              return false;
+            }
+          });
+        }
+
         const creneauxInteractifs = document.querySelectorAll('.creneau-interactif');
         creneauxInteractifs.forEach(function(creneau) {
           creneau.addEventListener('click', function(e) {

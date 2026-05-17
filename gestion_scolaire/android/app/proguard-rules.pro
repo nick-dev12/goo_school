@@ -53,6 +53,11 @@
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -dontwarn com.dexterous.flutterlocalnotifications.**
 
+# Firebase / Play Services (messagerie, éviter coupures en release avec minify)
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+
 # Google Play Core supprimé - incompatible avec SDK 34
 # Flutter référence ces classes mais nous ne les utilisons pas (pas de téléchargement dynamique)
 # Ignorer les avertissements pour les classes Play Core manquantes

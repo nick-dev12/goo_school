@@ -292,6 +292,14 @@
         "documentation": {}
     },
     {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
         "label": "Dict",
         "importPath": "typing",
         "description": "typing",
@@ -906,6 +914,14 @@
         "description": "django.urls",
         "isExtraImport": true,
         "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
         "documentation": {}
     },
     {
@@ -10694,6 +10710,14 @@
         "documentation": {}
     },
     {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
         "label": "NotificationDirecteur",
         "importPath": "school_admin.model.notification_directeur_model",
         "description": "school_admin.model.notification_directeur_model",
@@ -10881,6 +10905,32 @@
         "documentation": {}
     },
     {
+        "label": "hmac",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "hmac",
+        "description": "hmac",
+        "detail": "hmac",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "cache",
+        "importPath": "django.core.cache",
+        "description": "django.core.cache",
+        "isExtraImport": true,
+        "detail": "django.core.cache",
+        "documentation": {}
+    },
+    {
         "label": "UserAdmin",
         "importPath": "django.contrib.auth.admin",
         "description": "django.contrib.auth.admin",
@@ -10960,15 +11010,6 @@
         "description": "django.test",
         "isExtraImport": true,
         "detail": "django.test",
-        "documentation": {}
-    },
-    {
-        "label": "time",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "time",
-        "description": "time",
-        "detail": "time",
         "documentation": {}
     },
     {
@@ -11462,7 +11503,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/5.2/howto/static-files/\n# STATIC_URL est déjà défini plus haut (ligne 22)\n# Configuration pour la collecte des fichiers statiques en production\nSTATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')\n# Default primary key field type\n# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'\n# Configuration du modèle d'utilisateur personnalisé",
+        "peekOfCode": "FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/5.2/howto/static-files/\n# STATIC_URL est déjà défini plus haut (ligne 22)\n# Configuration pour la collecte des fichiers statiques en production\nSTATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')\n# Default primary key field type\n# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'\n# True uniquement si un reverse proxy de confiance définit X-Forwarded-For (sinon risque de spoofing).",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -11471,7 +11512,7 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')\n# Default primary key field type\n# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'\n# Configuration du modèle d'utilisateur personnalisé\nAUTH_USER_MODEL = 'school_admin.CompteUser'\n# Configuration des backends d'authentification\nAUTHENTICATION_BACKENDS = [\n    'school_admin.authentication_backends.MultiUserBackend',\n    'django.contrib.auth.backends.ModelBackend',  # Garder le backend par défaut en fallback",
+        "peekOfCode": "STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')\n# Default primary key field type\n# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'\n# True uniquement si un reverse proxy de confiance définit X-Forwarded-For (sinon risque de spoofing).\nLOGIN_THROTTLE_TRUST_X_FORWARDED_FOR = (\n    os.getenv('LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', 'False').lower() == 'true'\n)\n# Cache (limitation des tentatives de connexion, etc.)\n# En production multi-workers, préférer Redis/Memcached pour un état partagé.",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -11480,7 +11521,25 @@
         "kind": 5,
         "importPath": "school.settings",
         "description": "school.settings",
-        "peekOfCode": "DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'\n# Configuration du modèle d'utilisateur personnalisé\nAUTH_USER_MODEL = 'school_admin.CompteUser'\n# Configuration des backends d'authentification\nAUTHENTICATION_BACKENDS = [\n    'school_admin.authentication_backends.MultiUserBackend',\n    'django.contrib.auth.backends.ModelBackend',  # Garder le backend par défaut en fallback\n]\n# Configuration des fichiers média\nMEDIA_URL = '/media/'",
+        "peekOfCode": "DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'\n# True uniquement si un reverse proxy de confiance définit X-Forwarded-For (sinon risque de spoofing).\nLOGIN_THROTTLE_TRUST_X_FORWARDED_FOR = (\n    os.getenv('LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', 'False').lower() == 'true'\n)\n# Cache (limitation des tentatives de connexion, etc.)\n# En production multi-workers, préférer Redis/Memcached pour un état partagé.\nCACHES = {\n    'default': {\n        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR = (\n    os.getenv('LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', 'False').lower() == 'true'\n)\n# Cache (limitation des tentatives de connexion, etc.)\n# En production multi-workers, préférer Redis/Memcached pour un état partagé.\nCACHES = {\n    'default': {\n        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',\n        'LOCATION': 'school-admin-locmem',\n    }",
+        "detail": "school.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CACHES",
+        "kind": 5,
+        "importPath": "school.settings",
+        "description": "school.settings",
+        "peekOfCode": "CACHES = {\n    'default': {\n        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',\n        'LOCATION': 'school-admin-locmem',\n    }\n}\n# Configuration du modèle d'utilisateur personnalisé\nAUTH_USER_MODEL = 'school_admin.CompteUser'\n# Configuration des backends d'authentification\nAUTHENTICATION_BACKENDS = [",
         "detail": "school.settings",
         "documentation": {}
     },
@@ -18988,6 +19047,87 @@
         "description": "school_admin.utils.formatting_utils",
         "peekOfCode": "def formater_nom_complet(nom, prenom):\n    \"\"\"\n    Formate un nom complet en combinant nom (MAJUSCULES) et prénom (Première lettre majuscule).\n    Retourne le format \"NOM Prénom\"\n    Args:\n        nom (str): Le nom de famille\n        prenom (str): Le prénom\n    Returns:\n        str: Le nom complet formaté \"NOM Prénom\"\n    \"\"\"",
         "detail": "school_admin.utils.formatting_utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_client_ip",
+        "kind": 2,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "def get_client_ip(request) -> str:\n    trust = getattr(settings, 'LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', False)\n    if trust:\n        xff = request.META.get('HTTP_X_FORWARDED_FOR')\n        if xff:\n            return xff.split(',')[0].strip()[:45]\n    return (request.META.get('REMOTE_ADDR') or 'unknown')[:45]\ndef _cache_key(ip: str, username_norm: str) -> str:\n    payload = f\"{ip}\\0{username_norm}\".encode()\n    digest = hmac.new(_throttle_secret(), payload, hashlib.sha256).hexdigest()",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "get_state",
+        "kind": 2,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "def get_state(request, username_raw: str) -> dict[str, Any]:\n    ip = get_client_ip(request)\n    un = _normalize_username(username_raw)\n    key = _cache_key(ip, un)\n    state = cache.get(key)\n    if not state:\n        return _default_state()\n    lu = state.get(\"locked_until\")\n    if lu is not None and lu <= time.time():\n        state = {**state, \"locked_until\": None}",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "get_seconds_remaining",
+        "kind": 2,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "def get_seconds_remaining(request, username_raw: str) -> int:\n    state = get_state(request, username_raw)\n    lu = state.get(\"locked_until\")\n    if not lu:\n        return 0\n    rem = lu - time.time()\n    return max(0, int(rem + 0.5))\ndef clear_on_success(request, username_raw: str) -> None:\n    ip = get_client_ip(request)\n    un = _normalize_username(username_raw)",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "clear_on_success",
+        "kind": 2,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "def clear_on_success(request, username_raw: str) -> None:\n    ip = get_client_ip(request)\n    un = _normalize_username(username_raw)\n    cache.delete(_cache_key(ip, un))\ndef register_auth_failure(request, username_raw: str) -> int:\n    \"\"\"\n    Enregistre un échec d'authentification (mot de passe incorrect).\n    Retourne le nombre de secondes avant nouvel essai si verrouillage\n    (déjà actif ou déclenché), sinon 0.\n    \"\"\"",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "register_auth_failure",
+        "kind": 2,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "def register_auth_failure(request, username_raw: str) -> int:\n    \"\"\"\n    Enregistre un échec d'authentification (mot de passe incorrect).\n    Retourne le nombre de secondes avant nouvel essai si verrouillage\n    (déjà actif ou déclenché), sinon 0.\n    \"\"\"\n    ip = get_client_ip(request)\n    un = _normalize_username(username_raw)\n    key = _cache_key(ip, un)\n    state = cache.get(key) or _default_state()",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "CACHE_KEY_PREFIX",
+        "kind": 5,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "CACHE_KEY_PREFIX = \"login_main_throttle:v1\"\nATTEMPT_LIMIT = 5\n# Durées après chaque série de 5 échecs : 5 min, 15 min, 30 min\nLOCK_DURATIONS_FIRST = (300, 900, 1800)\nCACHE_TIMEOUT_SEC = 3 * 24 * 3600\ndef _throttle_secret() -> bytes:\n    return (getattr(settings, \"SECRET_KEY\", \"\") or \"fallback\").encode()\ndef _normalize_username(raw: str) -> str:\n    return (raw or \"\").strip().lower()[:255]\ndef get_client_ip(request) -> str:",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "ATTEMPT_LIMIT",
+        "kind": 5,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "ATTEMPT_LIMIT = 5\n# Durées après chaque série de 5 échecs : 5 min, 15 min, 30 min\nLOCK_DURATIONS_FIRST = (300, 900, 1800)\nCACHE_TIMEOUT_SEC = 3 * 24 * 3600\ndef _throttle_secret() -> bytes:\n    return (getattr(settings, \"SECRET_KEY\", \"\") or \"fallback\").encode()\ndef _normalize_username(raw: str) -> str:\n    return (raw or \"\").strip().lower()[:255]\ndef get_client_ip(request) -> str:\n    trust = getattr(settings, 'LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', False)",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "LOCK_DURATIONS_FIRST",
+        "kind": 5,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "LOCK_DURATIONS_FIRST = (300, 900, 1800)\nCACHE_TIMEOUT_SEC = 3 * 24 * 3600\ndef _throttle_secret() -> bytes:\n    return (getattr(settings, \"SECRET_KEY\", \"\") or \"fallback\").encode()\ndef _normalize_username(raw: str) -> str:\n    return (raw or \"\").strip().lower()[:255]\ndef get_client_ip(request) -> str:\n    trust = getattr(settings, 'LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', False)\n    if trust:\n        xff = request.META.get('HTTP_X_FORWARDED_FOR')",
+        "detail": "school_admin.utils.login_throttle",
+        "documentation": {}
+    },
+    {
+        "label": "CACHE_TIMEOUT_SEC",
+        "kind": 5,
+        "importPath": "school_admin.utils.login_throttle",
+        "description": "school_admin.utils.login_throttle",
+        "peekOfCode": "CACHE_TIMEOUT_SEC = 3 * 24 * 3600\ndef _throttle_secret() -> bytes:\n    return (getattr(settings, \"SECRET_KEY\", \"\") or \"fallback\").encode()\ndef _normalize_username(raw: str) -> str:\n    return (raw or \"\").strip().lower()[:255]\ndef get_client_ip(request) -> str:\n    trust = getattr(settings, 'LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', False)\n    if trust:\n        xff = request.META.get('HTTP_X_FORWARDED_FOR')\n        if xff:",
+        "detail": "school_admin.utils.login_throttle",
         "documentation": {}
     },
     {

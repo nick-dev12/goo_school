@@ -110,8 +110,8 @@
         <div class="card-body">
         
           <!-- Bouton Scanner QR Code -->
-          <div class="qr-scanner-section">
-            <button type="button" class="btn-qr-scanner" id="btnQrScanner" onclick="ouvrirScannerQR()">
+            <div class="qr-scanner-section">
+            <button type="button" class="btn-qr-scanner" id="btnQrScanner" onclick="ouvrirScannerQR()" {% if login_lockout_seconds %}disabled{% endif %}>
               <i class="fas fa-qrcode"></i>
               <span>Scanner un QR Code</span>
             </button>
@@ -136,6 +136,20 @@
             <div class="login-gtranslate-wrapper" aria-hidden="true"></div>
           </div>
 
+          {% if login_lockout_seconds %}
+          <div
+            class="login-lockout-banner"
+            role="alert"
+            data-initial-seconds="{{ login_lockout_seconds }}"
+          >
+            <p>
+              <i class="fas fa-shield-alt" aria-hidden="true"></i>
+              Trop de tentatives de connexion. Vous pourrez réessayer dans
+              <strong id="login-lockout-countdown">--:--</strong>.
+            </p>
+          </div>
+          {% endif %}
+
           <form
             id="compte-user-login-form"
             method="post"
@@ -143,8 +157,18 @@
           >
             {% csrf_token %}
 
+            {% for err_key, err_msg in field_errors.items %}
+            {% if err_key == "__all__" %}
+            <div class="alert alert-error login-error-all" role="alert">
+              <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+              <span>{{ err_msg }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+
             <!-- Champ caché pour l'URL de redirection -->
 
+            <fieldset class="login-form-fieldset" {% if login_lockout_seconds %}disabled{% endif %}>
             <div class="form-section">
               <div
                 class="form-group {% if field_errors.email %}has-error{% endif %}"
@@ -214,6 +238,7 @@
                 <i class="fas fa-sign-in-alt"></i> Se connecter
               </button>
             </div>
+            </fieldset>
           </form>
 
           <div class="card-footer">
@@ -278,6 +303,33 @@
     </script>
     <script src="https://cdn.gtranslate.net/widgets/latest/dwf.js" defer></script>
     <script src="{% static 'school_admin/js/connexion_admin.js' %}"></script>
+    {% if login_lockout_seconds %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var banner = document.querySelector('.login-lockout-banner');
+        var el = document.getElementById('login-lockout-countdown');
+        if (!banner || !el) return;
+        var sec = parseInt(banner.getAttribute('data-initial-seconds'), 10);
+        if (isNaN(sec) || sec < 0) sec = 0;
+        function formatMmSs(s) {
+          var m = Math.floor(s / 60);
+          var r = s % 60;
+          return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+        }
+        function tick() {
+          if (sec <= 0) {
+            el.textContent = '00:00';
+            window.location.reload();
+            return;
+          }
+          el.textContent = formatMmSs(sec);
+          sec -= 1;
+          setTimeout(tick, 1000);
+        }
+        tick();
+      });
+    </script>
+    {% endif %}
 
     <style>
       /* Styles pour les messages flash */
@@ -447,6 +499,48 @@
         clip: rect(0, 0, 0, 0);
         clip-path: inset(50%);
         white-space: nowrap;
+      }
+
+      .login-lockout-banner {
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        color: #9a3412;
+        padding: 0.875rem 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .login-lockout-banner p {
+        margin: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .login-form-fieldset {
+        border: none;
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+      }
+
+      .login-form-fieldset:disabled .form-group,
+      .login-form-fieldset:disabled .form-actions {
+        opacity: 0.65;
+        pointer-events: none;
+      }
+
+      .login-error-all {
+        margin-bottom: 1rem;
+      }
+
+      .btn-qr-scanner:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
       }
 
       /* Modal Scanner QR Code */

@@ -20,6 +20,7 @@ from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.eleve_model import Eleve
 from ..model.professeur_model import Professeur
 from ..model.parent_model import Parent
+from ..utils.login_throttle import clear_on_success, get_seconds_remaining, register_auth_failure
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +184,8 @@ class CompteUserController:
         """
         form_data = {}
         field_errors = {}
-        
+        login_lockout_seconds = 0
+
         # Récupérer l'URL de redirection après connexion (si présente)
         next_url = request.GET.get('next', '')
         
@@ -222,6 +224,19 @@ class CompteUserController:
                         sanitized_next = f"{sanitized_next}?{parsed_next.query}"
                     next_url = sanitized_next
             
+            # Verrouillage après échecs (IP + identifiant) — non contournable côté client
+            if form_data.get('username'):
+                rem = get_seconds_remaining(request, form_data['username'])
+                if rem > 0:
+                    return {
+                        'form_data': form_data,
+                        'field_errors': {
+                            '__all__': 'Trop de tentatives de connexion. Veuillez patienter avant un nouvel essai.',
+                        },
+                        'next_url': next_url,
+                        'login_lockout_seconds': rem,
+                    }, None
+
             # Vérification des champs
             if not form_data['username']:
                 field_errors['email'] = "L'email est obligatoire."
@@ -311,7 +326,8 @@ class CompteUserController:
                             logger.info(f"Conditions acceptées mises à jour pour l'utilisateur: {type(user).__name__} - {getattr(user, 'email', getattr(user, 'username', 'N/A'))}")
                         
                         login(request, user)
-                        
+                        clear_on_success(request, form_data['username'])
+
                         # Configuration de la session persistante "à vie"
                         # Définir une expiration très longue (10 ans) pour que la session ne s'expire jamais
                         # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
@@ -371,14 +387,23 @@ class CompteUserController:
                                 # Redirection basée sur la fonction de l'utilisateur (CompteUser)
                                 return None, CompteUserController._redirect_based_on_function(user.fonction)
                     else:
-                        # Si l'authentification échoue, vérifier si c'est à cause d'un compte désactivé
-                        # (déjà vérifié plus haut, donc ici c'est un mauvais mot de passe)
-                        field_errors['__all__'] = "Email ou mot de passe incorrect."
+                        # Mauvais mot de passe (compte actif ou inexistant : même message)
+                        login_lockout_seconds = register_auth_failure(
+                            request, form_data['username']
+                        )
+                        if login_lockout_seconds > 0:
+                            field_errors['__all__'] = (
+                                'Trop de tentatives de connexion. '
+                                'Veuillez patienter avant un nouvel essai.'
+                            )
+                        else:
+                            field_errors['__all__'] = 'Email ou mot de passe incorrect.'
                     
         return {
             'form_data': form_data,
             'field_errors': field_errors,
-            'next_url': next_url,  # Passer l'URL next au template
+            'next_url': next_url,
+            'login_lockout_seconds': login_lockout_seconds,
         }, None
     
     @staticmethod

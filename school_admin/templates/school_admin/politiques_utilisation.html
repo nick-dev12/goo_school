@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Politique d'utilisation et de confidentialité - Aria</title>
+    <title>Conditions d'utilisation &amp; politique de confidentialité — Aria</title>
+    <meta name="description" content="Conditions générales d'utilisation et politique de confidentialité de la plateforme éducative Aria : données personnelles, sécurité et droits des utilisateurs.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,17 +13,15 @@
     <style>
         :root {
             --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
             --secondary: #7c3aed;
             --accent: #ef4444;
             --success: #10b981;
-            --warning: #fbbf24;
-            --info: #8b5cf6;
             --white: #ffffff;
             --gray-50: #f9fafb;
             --gray-100: #f3f4f6;
             --gray-200: #e5e7eb;
             --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
             --gray-500: #6b7280;
             --gray-600: #4b5563;
             --gray-700: #374151;
@@ -30,10 +29,12 @@
             --gray-900: #111827;
             --text-primary: var(--gray-800);
             --text-secondary: var(--gray-600);
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 40px -12px rgba(15, 23, 42, 0.15);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --max-read: 52rem;
         }
 
         * {
@@ -42,462 +43,891 @@
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+            font-size: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            html { font-size: 94%; }
+        }
+
+        @media (max-width: 640px) {
+            html { font-size: 88%; }
+        }
+
+        @media (max-width: 400px) {
+            html { font-size: 85%; }
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color:rgb(238, 238, 238);
-            min-height: 100vh;
-            padding: 2rem 1rem;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(180deg, var(--gray-50) 0%, var(--gray-100) 35%, var(--gray-50) 100%);
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.65;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding-inline: env(safe-area-inset-left, 0);
+            padding-right: env(safe-area-inset-right, 0);
+            padding-bottom: env(safe-area-inset-bottom, 0);
         }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+        .legal-topbar {
             background: var(--white);
-            border-radius: 1rem;
-            box-shadow: var(--shadow-lg);
-            overflow: hidden;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0.65rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow-sm);
         }
 
-        .header {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: var(--white);
-            padding: 2.5rem 2rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: pulse 3s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-
-        .header-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .header-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.9;
-        }
-
-        .header h1 {
-            font-size: 2rem;
+        .legal-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 1.05rem;
+            color: var(--gray-900);
+            text-decoration: none;
         }
 
-        .header p {
-            font-size: 1rem;
-            opacity: 0.95;
+        .legal-brand img {
+            height: clamp(28px, 6vw, 36px);
+            width: auto;
+            border-radius: 6px;
         }
 
-        .content {
-            padding: 2.5rem 2rem;
-        }
-
-        .section {
-            margin-bottom: 2.5rem;
-        }
-
-        .section:last-child {
-            margin-bottom: 0;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 1rem;
+        .legal-topbar-actions {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--gray-200);
-        }
-
-        .section-title i {
-            font-size: 1.25rem;
-        }
-
-        .section-content {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            line-height: 1.8;
-        }
-
-        .section-content p {
-            margin-bottom: 1rem;
-        }
-
-        .section-content p:last-child {
-            margin-bottom: 0;
-        }
-
-        .subsection {
-            margin-top: 1.5rem;
-            padding-left: 1.5rem;
-            border-left: 3px solid var(--primary);
-        }
-
-        .subsection-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.75rem;
-        }
-
-        .subsection-content {
-            font-size: 0.9375rem;
-            color: var(--text-secondary);
-            line-height: 1.7;
-        }
-
-        .subsection-content ul {
-            margin-left: 1.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .subsection-content li {
-            margin-bottom: 0.5rem;
-        }
-
-        .highlight-box {
-            background: var(--gray-50);
-            border-left: 4px solid var(--primary);
-            padding: 1.25rem;
-            margin: 1.5rem 0;
-            border-radius: 0.5rem;
-        }
-
-        .highlight-box strong {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .footer-actions {
-            padding: 2rem;
-            background: var(--gray-50);
-            border-top: 1px solid var(--gray-200);
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
             flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
-        .btn {
-            padding: 0.75rem 2rem;
-            border-radius: 0.5rem;
+        .legal-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            text-decoration: none;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .legal-chip i { color: var(--primary); }
+
+        .btn-legal-nav {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: var(--white);
-            box-shadow: var(--shadow-md);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn-secondary {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid var(--gray-200);
             background: var(--white);
+            color: var(--gray-800);
+            transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-legal-nav:hover {
+            border-color: var(--primary);
             color: var(--primary);
-            border: 2px solid var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
 
-        .btn-secondary:hover {
-            background: var(--primary);
+        .btn-legal-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: var(--white);
+            border-color: transparent;
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem 0.5rem;
+        .btn-legal-primary:hover {
+            color: var(--white);
+            filter: brightness(1.05);
+            box-shadow: var(--shadow);
+        }
+
+        .legal-hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(1.25rem, 4vw, 2.5rem) clamp(0.75rem, 3vw, 1.25rem) clamp(1rem, 3vw, 2rem);
+        }
+
+        .legal-hero-inner {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
+            color: var(--white);
+            border-radius: clamp(8px, 2vw, var(--radius));
+            padding: clamp(1.25rem, 4vw, 2.25rem) clamp(1rem, 4vw, 2rem);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .legal-hero-inner::after {
+            content: '';
+            position: absolute;
+            inset: -40% 40% auto -20%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .legal-hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: var(--max-read);
+        }
+
+        .legal-hero h1 {
+            font-size: clamp(1.2rem, 4.5vw, 2.15rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.65rem;
+            letter-spacing: -0.02em;
+        }
+
+        .legal-hero-lead {
+            font-size: clamp(0.875rem, 2.4vw, 1.05rem);
+            opacity: 0.95;
+            max-width: 38rem;
+            margin-bottom: 1rem;
+            line-height: 1.55;
+        }
+
+        .legal-hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 0.75rem;
+            align-items: center;
+            font-size: clamp(0.7rem, 2vw, 0.8125rem);
+            opacity: 0.9;
+        }
+
+        .legal-hero-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .legal-layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 clamp(0.75rem, 3vw, 1.25rem) clamp(2rem, 5vw, 3.5rem);
+            display: grid;
+            grid-template-columns: minmax(0, 16.5rem) minmax(0, 1fr);
+            gap: clamp(1rem, 3vw, 2rem);
+            align-items: start;
+        }
+
+        .legal-toc-wrap {
+            position: sticky;
+            top: clamp(3.75rem, 12vw, 4.5rem);
+        }
+
+        .legal-toc {
+            background: var(--white);
+            border-radius: clamp(8px, 2vw, var(--radius));
+            border: 1px solid var(--gray-200);
+            padding: clamp(0.85rem, 2.5vw, 1.15rem) clamp(0.75rem, 2vw, 1rem);
+            box-shadow: var(--shadow);
+        }
+
+        .legal-toc-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gray-500);
+            margin-bottom: 0.75rem;
+        }
+
+        .legal-toc ul {
+            list-style: none;
+        }
+
+        .legal-toc li { margin-bottom: 0.35rem; }
+
+        .legal-toc a {
+            display: block;
+            font-size: 0.8125rem;
+            color: var(--gray-700);
+            text-decoration: none;
+            padding: 0.35rem 0.5rem;
+            border-radius: 6px;
+            line-height: 1.4;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .legal-toc a:hover,
+        .legal-toc a:focus-visible {
+            background: rgba(59, 130, 246, 0.08);
+            color: var(--primary-dark);
+            outline: none;
+        }
+
+        .legal-main {
+            min-width: 0;
+        }
+
+        .trust-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+            gap: clamp(0.65rem, 2vw, 1rem);
+            margin-bottom: clamp(1.25rem, 4vw, 2.25rem);
+        }
+
+        .trust-card {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            padding: clamp(0.75rem, 2.5vw, 1.1rem) clamp(0.85rem, 2.5vw, 1.15rem);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .trust-card i {
+            font-size: clamp(1.1rem, 3vw, 1.35rem);
+            color: var(--primary);
+            margin-bottom: 0.4rem;
+            display: block;
+        }
+
+        .trust-card h3 {
+            font-size: clamp(0.875rem, 2.2vw, 0.95rem);
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.3rem;
+        }
+
+        .trust-card p {
+            font-size: clamp(0.75rem, 2vw, 0.8125rem);
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .legal-paper {
+            background: var(--white);
+            border-radius: clamp(8px, 2vw, var(--radius));
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .legal-section {
+            padding: clamp(1.15rem, 3.5vw, 2rem) clamp(0.9rem, 3vw, 1.75rem);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .legal-section h2 {
+            font-size: clamp(1.05rem, 2.8vw, 1.25rem);
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            scroll-margin-top: clamp(4rem, 14vw, 5.5rem);
+            flex-wrap: wrap;
+        }
+
+        .legal-section h2 i {
+            color: var(--primary);
+            font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+            opacity: 0.95;
+            margin-top: 0.15em;
+            flex-shrink: 0;
+        }
+
+        .legal-section h3 {
+            font-size: clamp(0.95rem, 2.4vw, 1.05rem);
+            font-weight: 600;
+            color: var(--gray-800);
+            margin: 1.1rem 0 0.5rem;
+        }
+
+        .legal-section p {
+            font-size: clamp(0.8125rem, 2.1vw, 0.9375rem);
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            max-width: var(--max-read);
+            line-height: 1.6;
+        }
+
+        .legal-section ul,
+        .legal-section ol {
+            margin: 0.45rem 0 0.75rem 1.1rem;
+            max-width: var(--max-read);
+            color: var(--text-secondary);
+            font-size: clamp(0.8125rem, 2.1vw, 0.9375rem);
+            line-height: 1.55;
+            padding-inline-start: 0.15rem;
+        }
+
+        .legal-section li { margin-bottom: 0.4rem; }
+
+        .legal-section:last-of-type {
+            border-bottom: none;
+        }
+
+        .legal-section strong { color: var(--gray-800); }
+
+        .legal-callout {
+            border-radius: var(--radius-sm);
+            padding: clamp(0.8rem, 2.5vw, 1rem) clamp(0.9rem, 2.5vw, 1.15rem);
+            margin: clamp(0.85rem, 2.5vw, 1.15rem) 0;
+            max-width: var(--max-read);
+            font-size: clamp(0.78rem, 2.1vw, 0.9rem);
+            line-height: 1.55;
+        }
+
+        .legal-callout--info {
+            background: rgba(59, 130, 246, 0.08);
+            border-left: 4px solid var(--primary);
+            color: var(--gray-800);
+        }
+
+        .legal-callout--warn {
+            background: rgba(251, 191, 36, 0.12);
+            border-left: 4px solid #d97706;
+            color: var(--gray-800);
+        }
+
+        .legal-callout--ok {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success);
+            color: var(--gray-800);
+        }
+
+        .legal-table-wrap {
+            overflow-x: auto;
+            margin: clamp(0.65rem, 2vw, 1rem) 0;
+            max-width: 100%;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--gray-200);
+        }
+
+        .legal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.7rem, 2vw, 0.8125rem);
+            min-width: 320px;
+        }
+
+        .legal-table th,
+        .legal-table td {
+            border: 1px solid var(--gray-200);
+            padding: clamp(0.45rem, 1.8vw, 0.65rem) clamp(0.5rem, 2vw, 0.75rem);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .legal-table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .legal-table td {
+            color: var(--text-secondary);
+        }
+
+        .legal-footer-cta {
+            max-width: 1200px;
+            margin: 0 auto clamp(1.25rem, 4vw, 2rem);
+            padding: 0 clamp(0.75rem, 3vw, 1.25rem);
+        }
+
+        .legal-footer-cta-inner {
+            background: var(--gray-900);
+            color: var(--white);
+            border-radius: clamp(8px, 2vw, var(--radius));
+            padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 3vw, 1.75rem);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+        }
+
+        .legal-footer-cta-inner p {
+            font-size: clamp(0.78rem, 2.1vw, 0.9rem);
+            opacity: 0.92;
+            max-width: 36rem;
+            line-height: 1.5;
+        }
+
+        .legal-footer-cta-inner .btn-row {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .legal-inline-link {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.35);
+        }
+
+        .legal-inline-link:hover {
+            border-bottom-color: var(--primary);
+        }
+
+        .legal-small {
+            font-size: clamp(0.72rem, 2vw, 0.8125rem);
+            color: var(--gray-500);
+            max-width: var(--max-read);
+            line-height: 1.5;
+            padding-inline: clamp(0.75rem, 3vw, 1.25rem);
+        }
+
+        .legal-page-footnote {
+            font-size: clamp(0.68rem, 1.9vw, 0.78rem);
+            color: var(--gray-500);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 40rem;
+            margin: 0 auto;
+            padding: 0 clamp(0.75rem, 3vw, 1.25rem) max(1.5rem, env(safe-area-inset-bottom, 0px));
+        }
+
+        /* Tablette : sommaire en grille compacte */
+        @media (max-width: 1024px) {
+            .legal-toc ul {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.2rem 0.5rem;
             }
 
-            .header {
-                padding: 2rem 1.5rem;
+            .legal-toc li {
+                margin-bottom: 0;
             }
 
-            .header h1 {
-                font-size: 1.75rem;
+            .legal-toc a {
+                font-size: 0.78rem;
+                padding: 0.32rem 0.45rem;
             }
 
-            .content {
-                padding: 2rem 1.5rem;
+            .legal-toc-title {
+                margin-bottom: 0.55rem;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .legal-layout {
+                grid-template-columns: 1fr;
             }
 
-            .section-title {
-                font-size: 1.25rem;
+            .legal-toc-wrap {
+                position: relative;
+                top: auto;
             }
 
-            .subsection {
-                padding-left: 1rem;
+            .legal-toc {
+                max-height: none;
             }
 
-            .footer-actions {
+            .legal-toc ul {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .legal-toc ul {
+                grid-template-columns: 1fr;
+            }
+
+            .legal-toc a {
+                font-size: 0.8rem;
+                padding: 0.38rem 0.5rem;
+            }
+
+            .legal-topbar {
+                flex-direction: column;
+                align-items: stretch;
+                padding-inline: max(0.65rem, env(safe-area-inset-left));
+                padding-right: max(0.65rem, env(safe-area-inset-right));
+            }
+
+            .legal-topbar-actions {
+                justify-content: stretch;
                 flex-direction: column;
             }
 
-            .btn {
-                width: 100%;
+            .btn-legal-nav {
                 justify-content: center;
+                width: 100%;
+                min-width: 0;
+                padding: 0.5rem 0.85rem;
+            }
+
+            .legal-chip {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .legal-footer-cta-inner .btn-row {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .legal-footer-cta-inner .btn-row .btn-legal-nav {
+                width: 100%;
             }
         }
 
         @media (max-width: 480px) {
-            .header h1 {
-                font-size: 1.5rem;
+            .legal-brand {
+                font-size: 0.95rem;
             }
 
-            .section-title {
-                font-size: 1.125rem;
+            .legal-hero-meta span {
+                width: 100%;
             }
 
-            .section-content {
-                font-size: 0.875rem;
+            .trust-cards {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-content">
-                <div class="header-icon">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <h1>Politique d'utilisation et de confidentialité</h1>
-                <p>Conditions générales d'utilisation de la plateforme Aria</p>
-            </div>
-        </div>
-
-        <div class="content">
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-file-contract"></i>
-                    1. Objet et champ d'application
-                </h2>
-                <div class="section-content">
-                    <p>
-                        Les présentes conditions d'utilisation ont pour but de définir les règles d'accès, d'utilisation et de sécurité de l'application de gestion administrative des écoles (ci-après « l'Application »).
-                    </p>
-                    <p>
-                        Elles s'appliquent à l'ensemble des utilisateurs : direction, enseignants, élèves, parents d'élèves et tout autre intervenant autorisé.
-                    </p>
-                    <div class="highlight-box">
-                        <strong>Important :</strong> L'accès à l'Application implique l'acceptation pleine et entière des présentes conditions.
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-users"></i>
-                    2. Rôles et responsabilités des utilisateurs
-                </h2>
-                <div class="section-content">
-                    <div class="subsection">
-                        <h3 class="subsection-title">a) Direction de l'établissement</h3>
-                        <div class="subsection-content">
-                            <ul>
-                                <li>Gère les comptes des enseignants, élèves et parents.</li>
-                                <li>Assure la véracité et la mise à jour des données administratives.</li>
-                                <li>Supervise la sécurité et la confidentialité des informations.</li>
-                                <li>Ne doit pas communiquer ses identifiants à un tiers.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="subsection">
-                        <h3 class="subsection-title">b) Enseignants</h3>
-                        <div class="subsection-content">
-                            <ul>
-                                <li>Utilisent l'Application uniquement pour leurs activités pédagogiques.</li>
-                                <li>S'engagent à enregistrer les notes, devoirs et commentaires avec exactitude et respect.</li>
-                                <li>Respectent la confidentialité des informations concernant les élèves.</li>
-                                <li>Ne publient aucun contenu inapproprié, diffamatoire ou non lié à l'enseignement.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="subsection">
-                        <h3 class="subsection-title">c) Élèves</h3>
-                        <div class="subsection-content">
-                            <ul>
-                                <li>Utilisent leur compte uniquement à des fins scolaires.</li>
-                                <li>S'interdisent toute tentative d'accès non autorisé aux données d'autrui.</li>
-                                <li>Respectent les consignes et les devoirs affichés dans l'Application.</li>
-                                <li>Signalent toute anomalie à l'administration.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="subsection">
-                        <h3 class="subsection-title">d) Parents d'élèves</h3>
-                        <div class="subsection-content">
-                            <ul>
-                                <li>Ont accès exclusivement aux informations concernant leur(s) enfant(s).</li>
-                                <li>S'engagent à utiliser l'Application pour le suivi scolaire et le paiement des frais uniquement.</li>
-                                <li>S'interdisent toute diffusion ou capture d'écran des informations privées d'autres utilisateurs.</li>
-                                <li>Sont responsables de la mise à jour de leurs informations personnelles (adresse, contact, etc.).</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="subsection">
-                        <h3 class="subsection-title">e) Autres acteurs externes (prestataires, support technique, etc.)</h3>
-                        <div class="subsection-content">
-                            <ul>
-                                <li>Interviennent uniquement dans le cadre de leur mission et sous autorisation écrite de la direction.</li>
-                                <li>S'engagent à respecter la confidentialité et la protection des données traitées.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-lock"></i>
-                    3. Confidentialité et protection des données
-                </h2>
-                <div class="section-content">
-                    <p>
-                        Toutes les données personnelles (élèves, parents, enseignants) sont strictement confidentielles.
-                    </p>
-                    <p>
-                        L'Application s'engage à ne pas vendre, louer ni partager ces données sans autorisation.
-                    </p>
-                    <p>
-                        Chaque utilisateur est responsable de la protection de son mot de passe.
-                    </p>
-                    <div class="highlight-box">
-                        <strong>En cas de perte ou de soupçon d'accès frauduleux,</strong> l'utilisateur doit immédiatement en informer l'administrateur.
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-shield-alt"></i>
-                    4. Sécurité et bon usage de la plateforme
-                </h2>
-                <div class="section-content">
-                    <p>
-                        L'utilisateur s'engage à utiliser l'Application de manière éthique et respectueuse.
-                    </p>
-                    <p>
-                        Tout acte de piratage, de falsification de notes ou de paiement frauduleux est strictement interdit.
-                    </p>
-                    <p>
-                        L'administration se réserve le droit de suspendre ou supprimer tout compte en cas de non-respect des présentes conditions.
-                    </p>
-                    <p>
-                        Les données doivent être consultées exclusivement à des fins scolaires et administratives.
-                    </p>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    5. Limitation de responsabilité
-                </h2>
-                <div class="section-content">
-                    <p>
-                        L'éditeur de l'Application ne saurait être tenu responsable des erreurs de saisie, des coupures réseau ou des pertes de données dues à une mauvaise utilisation.
-                    </p>
-                    <p>
-                        L'Application est fournie "en l'état" et peut faire l'objet de mises à jour pour améliorer les fonctionnalités ou la sécurité.
-                    </p>
-                    <p>
-                        L'utilisateur accepte que certaines fonctionnalités puissent être temporairement suspendues pour maintenance.
-                    </p>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-user-times"></i>
-                    6. Suppression de compte et de données
-                </h2>
-                <div class="section-content">
-                    <p>
-                        Dans l'application <strong>Aria</strong>, les comptes utilisateurs (élèves, parents, enseignants) 
-                        sont créés et gérés par les établissements scolaires. Les utilisateurs ne peuvent 
-                        pas supprimer directement leurs comptes depuis l'application.
-                    </p>
-                    <p>
-                        Pour demander la suppression de votre compte et de vos données personnelles, 
-                        vous devez contacter l'administration de votre établissement scolaire.
-                    </p>
-                    <div class="highlight-box">
-                        <strong>Procédure de suppression :</strong> 
-                        <ol style="margin-top: 0.5rem; margin-left: 1.5rem;">
-                            <li>Contactez l'administration de votre établissement (directeur, secrétaire)</li>
-                            <li>Fournissez vos informations (nom, matricule, email)</li>
-                            <li>L'établissement traitera votre demande dans un délai raisonnable</li>
-                        </ol>
-                    </div>
-                    <p>
-                        Pour plus d'informations détaillées sur la suppression de compte, les données 
-                        supprimées et conservées, consultez notre 
-                        <a href="{% url 'school_admin:suppression_compte' %}" class="link" style="color: var(--primary); text-decoration: none; font-weight: 500;">page dédiée à la suppression de compte</a>.
-                    </p>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-check-circle"></i>
-                    7. Acceptation et modification des conditions
-                </h2>
-                <div class="section-content">
-                    <p>
-                        L'utilisation de l'Application vaut acceptation sans réserve des présentes conditions.
-                    </p>
-                    <p>
-                        L'éditeur se réserve le droit de modifier les conditions d'utilisation à tout moment, les utilisateurs en seront informés via l'Application.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-actions">
-            <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn btn-primary">
-                <i class="fas fa-arrow-left"></i>
-                Retour à la connexion
+    <header class="legal-topbar">
+        <a href="{% url 'school_admin:connexion_compte_user' %}" class="legal-brand" aria-label="Aria — retour connexion">
+            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="" width="36" height="36">
+            <span>Aria</span>
+        </a>
+        <div class="legal-topbar-actions">
+            <span class="legal-chip"><i class="fas fa-shield-halved" aria-hidden="true"></i> Données &amp; sécurité</span>
+            <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn-legal-nav btn-legal-primary">
+                <i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                Connexion
             </a>
         </div>
+    </header>
+
+    <div class="legal-hero">
+        <div class="legal-hero-inner">
+            <div class="legal-hero-content">
+                <h1>Conditions d'utilisation &amp; politique de confidentialité</h1>
+                <p class="legal-hero-lead">
+                    Document unique dédié à la plateforme <strong>Aria</strong> : règles d'usage, traitement des données à caractère personnel, mesures de sécurité et droits des utilisateurs au sein d'un environnement scolaire numérique.
+                </p>
+                <div class="legal-hero-meta" role="note">
+                    <span><i class="fas fa-calendar-check" aria-hidden="true"></i> Dernière mise à jour : 17 mai 2026</span>
+                    <span><i class="fas fa-language" aria-hidden="true"></i> Version de référence : français</span>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <div class="legal-layout">
+        <aside class="legal-toc-wrap" aria-label="Sommaire">
+            <nav class="legal-toc">
+                <p class="legal-toc-title">Sommaire</p>
+                <ul>
+                    <li><a href="#introduction">Introduction</a></li>
+                    <li><a href="#definitions">Définitions</a></li>
+                    <li><a href="#acceptation">Acceptation</a></li>
+                    <li><a href="#cgu">Conditions d'utilisation</a></li>
+                    <li><a href="#donnees">Données personnelles</a></li>
+                    <li><a href="#securite">Sécurité</a></li>
+                    <li><a href="#cookies">Cookies &amp; traceurs</a></li>
+                    <li><a href="#droits">Vos droits</a></li>
+                    <li><a href="#mineurs">Mineurs</a></li>
+                    <li><a href="#propriete">Propriété intellectuelle</a></li>
+                    <li><a href="#responsabilite">Responsabilité</a></li>
+                    <li><a href="#suppression">Suppression de compte</a></li>
+                    <li><a href="#modifications">Évolution du document</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <article class="legal-main">
+            <div class="trust-cards">
+                <div class="trust-card">
+                    <i class="fas fa-user-lock" aria-hidden="true"></i>
+                    <h3>Accès contrôlé</h3>
+                    <p>Comptes, rôles et permissions : chaque profil ne voit que les données nécessaires à sa fonction.</p>
+                </div>
+                <div class="trust-card">
+                    <i class="fas fa-database" aria-hidden="true"></i>
+                    <h3>Finalités limitées</h3>
+                    <p>Les données servent la gestion de l'établissement, le suivi pédagogique ou la communication autorisée.</p>
+                </div>
+                <div class="trust-card">
+                    <i class="fas fa-headset" aria-hidden="true"></i>
+                    <h3>Transparence</h3>
+                    <p>Droits d'accès et de rectification : procédures claires et points de contact identifiés.</p>
+                </div>
+            </div>
+
+            <div class="legal-paper">
+                <section id="introduction" class="legal-section">
+                    <h2><i class="fas fa-book-open" aria-hidden="true"></i> Introduction</h2>
+                    <p>
+                        Les présentes conditions générales d'utilisation («&nbsp;<strong>CGU</strong>&nbsp;») et cette politique de confidentialité encadrent l'accès et l'usage du service en ligne <strong>Aria</strong> (la «&nbsp;<strong>Plateforme</strong>&nbsp;», l'«&nbsp;<strong>Application</strong>&nbsp;»), éditée et exploitée dans le respect du cadre légal applicable en matière de protection des données, notamment le Règlement (UE) 2016/679 («&nbsp;<strong>RGPD</strong>&nbsp;») et la loi française «&nbsp;Informatique et Libertés&nbsp;» dans leur version en vigueur.
+                    </p>
+                    <p>
+                        La Plateforme est utilisée par des <strong>établissements scolaires</strong> pour organiser la vie administrative et pédagogique (emplois du temps, notes, bulletins, communications, présences, etc.). Selon les cas, le <strong>responsable de traitement</strong> au sens du RGPD est l'établissement ou l'entité qui détermine les finalités (par exemple la direction de l'établissement). L'exploitant technique d'Aria agit le cas échéant comme <strong>sous-traitant</strong> ou co-responsable selon les conventions signées avec l'établissement. En cas de doute, l'administration de votre établissement peut vous préciser ce cadre contractuel.
+                    </p>
+                    <div class="legal-callout legal-callout--info">
+                        <strong>Important :</strong> la connexion à la Plateforme ou la poursuite de son utilisation vaut prise de connaissance et, le cas échéant, acceptation sans réserve des CGU et de cette politique, dans la mesure permise par la loi pour les utilisateurs concernés (notamment les mineurs — voir section dédiée).
+                    </div>
+                </section>
+
+                <section id="definitions" class="legal-section">
+                    <h2><i class="fas fa-list-ul" aria-hidden="true"></i> Définitions</h2>
+                    <ul>
+                        <li><strong>Compte :</strong> accès personnel ou rôle attribué permettant d'utiliser la Plateforme avec des identifiants (adresse électronique, matricule, etc.).</li>
+                        <li><strong>Donnée personnelle :</strong> toute information permettant d'identifier directement ou indirectement une personne physique.</li>
+                        <li><strong>Établissement :</strong> structure scolaire abonnée ou habilitée à utiliser Aria et ayant paramétré les comptes des utilisateurs.</li>
+                        <li><strong>Utilisateur :</strong> toute personne accédant à la Plateforme (direction, personnel, enseignants, élèves, parents, équipes d'exploitation, etc.).</li>
+                        <li><strong>Traitement :</strong> opération effectuée sur des données (collecte, conservation, consultation, communication, effacement…).</li>
+                    </ul>
+                </section>
+
+                <section id="acceptation" class="legal-section">
+                    <h2><i class="fas fa-handshake" aria-hidden="true"></i> Acceptation des règles</h2>
+                    <p>
+                        À la création du compte ou à la première connexion, tout utilisateur majeur capable reconnaît avoir lu les présentes informations. Pour les mineurs, la responsabilité incombe aux titulaires de l'autorité parentale et à l'établissement, conformément aux procédures locales (autorisations, informations transmises aux familles, etc.).
+                    </p>
+                    <p>
+                        Lorsque la case «&nbsp;j'accepte la politique et les conditions&nbsp;» (ou équivalent) est proposée sur un formulaire, elle matérialise cette prise de connaissance lorsque la loi l'exige. L'établissement peut compléter ces règles par un règlement intérieur ou une charte d'usage du numérique.
+                    </p>
+                </section>
+
+                <section id="cgu" class="legal-section">
+                    <h2><i class="fas fa-file-contract" aria-hidden="true"></i> Conditions d'utilisation</h2>
+                    <h3>1. Objet et description des services</h3>
+                    <p>
+                        Aria propose des fonctionnalités de gestion scolaire et de communication entre acteurs de l'éducation. La liste exacte des modules (bulletins, devoirs, messagerie, notifications, paiements si applicable, etc.) dépend du paramétrage réalisé par l'établissement et des droits associés à chaque rôle.
+                    </p>
+                    <h3>2. Création et gestion des comptes</h3>
+                    <p>
+                        Les comptes sont généralement créés ou validés par l'établissement. Vous vous engagez à fournir des informations exactes et à les mettre à jour lorsque l'on vous y invite. Les identifiants (login et mot de passe ou authentification renforcée) sont <strong>strictement personnels</strong> et ne doivent pas être partagés, sauf dispositif express prévu par l'établissement.
+                    </p>
+                    <h3>3. Obligations des utilisateurs</h3>
+                    <ul>
+                        <li>Utiliser la Plateforme de manière loyale, dans le respect des autres utilisateurs, du personnel et du cadre scolaire.</li>
+                        <li>Ne pas tenter d'accéder à des espaces, fichiers ou données pour lesquels vous n'avez pas d'autorisation.</li>
+                        <li>Ne pas introduire de virus, scripts malveillants, contenus illicites ou perturbateurs.</li>
+                        <li>Ne pas usurper l'identité d'un tiers ni tenter de contourner les mesures de sécurité (y compris limitation de tentatives de connexion, verrous de session, etc.).</li>
+                        <li>Respecter la confidentialité des données visibles à l'écran (pas de capture ou de diffusion abusive sur les réseaux sociaux, etc.).</li>
+                    </ul>
+                    <h3>4. Rôles types (rappel)</h3>
+                    <p>
+                        <strong>Direction et personnel administratif</strong> organisent la structure (classes, utilisateurs, paramètres). <strong>Enseignants</strong> saisissent des éléments pédagogiques conformément aux règles de l'établissement. <strong>Élèves</strong> consultent les informations qui leur sont destinées. <strong>Parents</strong> accèdent en principe aux données relatives à leur ou leurs enfants dans le cadre légal et contractuel défini avec l'établissement.
+                    </p>
+                    <h3>5. Sanctions et suspension</h3>
+                    <p>
+                        En cas de manquement grave aux CGU, de fraude ou d'atteinte à la sécurité, l'établissement et/ou l'exploitant peuvent suspendre ou clôturer un compte, restreindre l'accès à certaines fonctionnalités ou saisir les autorités compétentes conformément à la loi.
+                    </p>
+                </section>
+
+                <section id="donnees" class="legal-section">
+                    <h2><i class="fas fa-user-shield" aria-hidden="true"></i> Données personnelles</h2>
+                    <h3>1. Catégories de données susceptibles d'être traitées</h3>
+                    <p>Selon le périmètre activé par l'établissement, peuvent notamment être traitées&nbsp;:</p>
+                    <ul>
+                        <li>Données d'identité et de contact (nom, prénom, date de naissance, coordonnées des familles, photographies d'annuaire si collectées).</li>
+                        <li>Données de vie scolaire (notes, appréciations, absences, retards, sanctions disciplinaires si enregistrées, emplois du temps, devoirs).</li>
+                        <li>Données techniques de connexion (horodatages, adresse IP, journaux d'événements de sécurité, type d'appareil lorsque pertinent pour l'assistance).</li>
+                        <li>Contenus publiés dans les espaces prévus par la Plateforme (messages, pièces jointes si la fonctionnalité existe).</li>
+                        <li>Données relatives aux paiements ou facturations <strong>uniquement</strong> si un tel module est activé et dans le respect des obligations du prestataire de paiement concerné.</li>
+                    </ul>
+                    <h3>2. Finalités principales</h3>
+                    <ul>
+                        <li>Gestion administrative et pédagogique de l'établissement.</li>
+                        <li>Information des familles et communication liée au suivi scolaire.</li>
+                        <li>Sécurité du service, authentification, journalisation, prévention des abus.</li>
+                        <li>Respect des obligations légales (conservation de certaines traces, réponses aux autorités dans les cas prévus par la loi).</li>
+                        <li>Amélioration et maintenance de la Plateforme (statistiques agrégées ou anonymisées lorsque possible).</li>
+                    </ul>
+                    <h3>3. Bases légales (indicatif RGPD)</h3>
+                    <p>
+                        Les bases peuvent inclure : exécution d'une mission d'intérêt public ou mandatement officiel pour les établissements concernés ; obligation légale ; intérêt légitime (sécurité, prévention de la fraude) ; ou, le cas échéant, consentement pour certaines fonctionnalités facultatives. L'établissement précise dans son information recueillie ou son registre des traitements les fondements exacts par finalité.
+                    </p>
+                    <h3>4. Destinataires</h3>
+                    <p>
+                        Les données sont accessibles aux personnes habilitées au sein de l'établissement (selon rôles), aux sous-traitants techniques strictement nécessaires à l'hébergement et à l'exploitation d'Aria, et exceptionnellement à des prestataires désignés par contrat (support, envoi de notifications, etc.). Aucune revente de données personnelles à des annonceurs n'est prévue dans le cadre standard d'Aria.
+                    </p>
+                    <h3>5. Durées de conservation (principes)</h3>
+                    <p>
+                        Les durées sont fixées par l'établissement et les obligations légales (archives scolaires, obligations comptables le cas échéant, etc.). À titre indicatif uniquement&nbsp;:
+                    </p>
+                    <div class="legal-table-wrap">
+                        <table class="legal-table">
+                            <thead>
+                                <tr>
+                                    <th>Type de donnée</th>
+                                    <th>Logique de conservation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Données de scolarité (notes, bulletins…)</td>
+                                    <td>Souvent conservées plusieurs années après la fin de scolarité selon le cadre légal et les décisions d'archivage de l'établissement.</td>
+                                </tr>
+                                <tr>
+                                    <td>Journaux de connexion techniques</td>
+                                    <td>Durée limitée et proportionnée aux besoins de sécurité et d'enquête (quelques semaines à mois selon configuration).</td>
+                                </tr>
+                                <tr>
+                                    <td>Compte inactif</td>
+                                    <td>Désactivation ou suppression selon la politique de l'établissement, après information si nécessaire.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h3>6. Transferts hors de l'Espace économique européen</h3>
+                    <p>
+                        Lorsque des prestataires situés hors EEE sont utilisés (par exemple services d'infrastructure ou de notification), l'établissement et/ou l'exploitant veillent à la mise en place de garanties appropriées (clauses contractuelles types, pays reconnus adéquats, ou autres mécanismes prévus par le RGPD).
+                    </p>
+                    <div class="legal-callout legal-callout--warn">
+                        Les services de traduction automatique optionnels dans l'interface (par exemple via des widgets tiers) peuvent imposer le transit de contenus hors de votre navigateur vers des prestataires externes. Nous vous recommandons de ne pas y coller d'informations sensibles non nécessaires.
+                    </div>
+                </section>
+
+                <section id="securite" class="legal-section">
+                    <h2><i class="fas fa-lock" aria-hidden="true"></i> Sécurité</h2>
+                    <p>
+                        Nous mettons en œuvre des mesures techniques et organisationnelles appropriées au regard des risques : chiffrement des communications (HTTPS lorsque possible), gestion des mots de passe, contrôle d'accès par rôle, sauvegardes, journalisation d'événements de sécurité, limitation des tentatives de connexion, mises à jour régulières des composants.
+                    </p>
+                    <ul>
+                        <li><strong>Authentication :</strong> utilisez un mot de passe robuste et unique ; activez tout dispositif d'authentification renforcée proposé par votre établissement.</li>
+                        <li><strong>Poste de travail :</strong> verrouillez vos sessions, évitez les réseaux non sécurisés pour consulter des données sensibles.</li>
+                        <li><strong>Signalement :</strong> en cas de fuite suspectée, d'accès non autorisé ou de perte d'appareil contenant une session ouverte, contactez immédiatement l'administration de votre établissement.</li>
+                    </ul>
+                    <div class="legal-callout legal-callout--ok">
+                        Aucun dispositif de sécurité n'offre une garantie absolue. La sensibilisation des utilisateurs reste un pilier essentiel de la protection des données scolaires.
+                    </div>
+                </section>
+
+                <section id="cookies" class="legal-section">
+                    <h2><i class="fas fa-cookie-bite" aria-hidden="true"></i> Cookies &amp; traceurs</h2>
+                    <p>
+                        La Plateforme utilise des cookies ou stockages locaux nécessaires au fonctionnement du service (session, préférences de langue, éléments techniques de sécurité comme la protection CSRF). Des traceurs supplémentaires peuvent être déposés par des intégrations tierces (par exemple outils de traduction ou statistiques) selon le paramétrage effectif du site.
+                    </p>
+                    <p>
+                        Pour toute bannière de consentement ou gestion fine des traceurs non strictement nécessaires, référez-vous aux indications affichées sur le site ou contactez votre établissement, qui peut adapter la configuration globale.
+                    </p>
+                </section>
+
+                <section id="droits" class="legal-section">
+                    <h2><i class="fas fa-scale-balanced" aria-hidden="true"></i> Vos droits</h2>
+                    <p>
+                        Sous réserve des exceptions légales, vous disposez notamment des droits suivants à l'égard du responsable de traitement identifié par votre établissement&nbsp;:
+                    </p>
+                    <ul>
+                        <li><strong>Droit d'accès</strong> et <strong>rectification</strong> des données inexactes ;</li>
+                        <li><strong>Droit à l'effacement</strong> («&nbsp;droit à l'oubli&nbsp;») dans les cas prévus par le RGPD ;</li>
+                        <li><strong>Droit à la limitation</strong> du traitement ;</li>
+                        <li><strong>Droit d'opposition</strong> pour motifs tenant à votre situation particulière, lorsque le traitement repose sur l'intérêt légitime ;</li>
+                        <li><strong>Droit à la portabilité</strong> pour les traitements fondés sur le consentement ou un contrat et lorsque le traitement est automatisé ;</li>
+                        <li><strong>Droit de définir des directives</strong> relatives au sort de vos données après votre décès (selon la loi française).</li>
+                    </ul>
+                    <p>
+                        Vous pouvez introduire une <strong>réclamation</strong> auprès de l'autorité de contrôle (en France, la CNIL — <a href="https://www.cnil.fr" class="legal-inline-link" target="_blank" rel="noopener noreferrer">cnil.fr</a>) si vous estimez que vos droits ne sont pas respectés.
+                    </p>
+                    <p class="legal-small">
+                        La procédure de contact pour exercer vos droits dépend des modalités mises en place par votre établissement (courriel, formulaire, secrétariat). Pour toute demande transmise directement à l'exploitant technique, celle-ci pourra être acheminée vers l'établissement désigné comme responsable du traitement concerné.
+                    </p>
+                </section>
+
+                <section id="mineurs" class="legal-section">
+                    <h2><i class="fas fa-child" aria-hidden="true"></i> Mineurs</h2>
+                    <p>
+                        Les services d'Aria peuvent être utilisés par des élèves mineurs dans le cadre scolaire. Les informations relatives aux mineurs sont traitées sous la responsabilité de l'établissement et, le cas échéant, avec l'accord ou l'information des titulaires de l'autorité parentale, conformément aux textes applicables et aux usages locaux.
+                    </p>
+                    <p>
+                        Les parents sont invités à accompagner l'usage du numérique, à surveiller les identifiants fournis à de jeunes enfants et à signaler toute anomalie à la direction.
+                    </p>
+                </section>
+
+                <section id="propriete" class="legal-section">
+                    <h2><i class="fas fa-copyright" aria-hidden="true"></i> Propriété intellectuelle</h2>
+                    <p>
+                        Les éléments composant la Plateforme (marque, interface, textes, graphismes, code, bases de données structurelles lorsque protégées) restent la propriété de leurs titulaires respectifs. Toute reproduction ou exploitation non autorisée est interdite.
+                    </p>
+                    <p>
+                        Les contenus pédagogiques déposés par les utilisateurs restent en principe sous la responsabilité de leurs auteurs ; l'établissement peut prévoir dans ses règles internes les modalités de licence nécessaires au fonctionnement du service (consultation par les classes, correction en ligne, etc.).
+                    </p>
+                </section>
+
+                <section id="responsabilite" class="legal-section">
+                    <h2><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Limitation de responsabilité</h2>
+                    <p>
+                        La Plateforme est fournie selon la disponibilité technique et les engagements du contrat liant l'établissement à l'exploitant. Malgré le soin apporté aux contrôles et à la qualité du service, des interruptions (maintenance, panne réseau, cas de force majeure) peuvent survenir.
+                    </p>
+                    <ul>
+                        <li>L'exploitant ne saurait être tenu responsable des erreurs de saisie des utilisateurs ou des décisions pédagogiques prises par l'établissement.</li>
+                        <li>Les informations affichées (notes, moyennes, appréciations) ont valeur d'outil de suivi ; seules les validations officielles de l'établissement font foi sur le plan administratif lorsque la loi l'exige.</li>
+                        <li>Tout dommage indirect (perte d'opportunité, préjudice immatériël non prévu par la loi) pourra être exclu dans les limites permises par les textes applicables et le contrat souscrit.</li>
+                    </ul>
+                </section>
+
+                <section id="suppression" class="legal-section">
+                    <h2><i class="fas fa-user-xmark" aria-hidden="true"></i> Suppression de compte et de données</h2>
+                    <p>
+                        Dans la majorité des configurations, les comptes élèves, parents, enseignants et personnel sont <strong>créés et gérés par l'établissement</strong>. La suppression d'un compte ou l'effacement de certaines données peut nécessiter une demande formulée auprès de la direction ou du secrétariat, qui vérifiera les obligations légales de conservation.
+                    </p>
+                    <p>
+                        Pour les modalités détaillées et les délais utiles, vous pouvez consulter la page dédiée&nbsp;:
+                        <a href="{% url 'school_admin:suppression_compte' %}" class="legal-inline-link">Demande de suppression de compte et des données</a>.
+                    </p>
+                </section>
+
+                <section id="modifications" class="legal-section">
+                    <h2><i class="fas fa-rotate" aria-hidden="true"></i> Évolution du document</h2>
+                    <p>
+                        Les présentes CGU et cette politique peuvent être mises à jour pour refléter l'évolution légale, technique ou fonctionnelle de la Plateforme. La date de mise à jour est indiquée en tête de page. Lorsque le changement est substantiel, un avis peut être donné via la Plateforme, par courriel ou par affichage dans l'établissement selon les moyens retenus.
+                    </p>
+                </section>
+
+                <section id="contact" class="legal-section">
+                    <h2><i class="fas fa-envelope" aria-hidden="true"></i> Contact</h2>
+                    <p>
+                        Pour toute question relative à ce document, à la confidentialité ou à l'exercice de vos droits, adressez-vous en priorité à <strong>l'administration de votre établissement</strong> (secrétariat, direction, référent RGPD désigné le cas échéant).
+                    </p>
+                    <p>
+                        Pour les questions d'ordre purement technique ou contractuel concernant la solution Aria elle-même, l'établissement dispose des canaux prévus avec l'exploitant (support, assistance, DPO ou personne désignée selon l'organisation de l'éditeur).
+                    </p>
+                </section>
+            </div>
+        </article>
+    </div>
+
+    <div class="legal-footer-cta">
+        <div class="legal-footer-cta-inner">
+            <p>
+                Vous avez accepté ces règles lors de votre inscription ou de votre connexion. Vous pouvez les consulter à tout moment depuis cette page.
+            </p>
+            <div class="btn-row">
+                <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn-legal-nav btn-legal-primary">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    Retour à la connexion
+                </a>
+                <a href="{% url 'school_admin:suppression_compte' %}" class="btn-legal-nav" style="background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); color: #fff;">
+                    Suppression de données
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <p class="legal-page-footnote">
+        Les présentes informations ne remplacent pas un conseil juridique personnalisé. Elles visent à informer les utilisateurs de bonne foi sur le fonctionnement général d'Aria au regard des données personnelles et de l'usage du service.
+    </p>
 </body>
 </html>
-

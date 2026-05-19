@@ -202,14 +202,10 @@ class _WebViewScreenState extends State<WebViewScreen>
     }
   }
 
-  // Demander les permissions nécessaires
+  // Notifications au démarrage ; caméra, localisation et stockage uniquement
+  // au moment de l'usage (recommandation Apple HIG — demande contextuelle).
   Future<void> _requestPermissions() async {
-    await [
-      Permission.camera,
-      Permission.storage,
-      Permission.location,
-      Permission.notification,
-    ].request();
+    await Permission.notification.request();
   }
 
   // Gérer les messages JavaScript depuis la WebView

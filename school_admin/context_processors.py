@@ -202,3 +202,11 @@ def etablissement_type(request) -> Dict:
         'libelle_eleves': 'Étudiants' if est_superieur else 'Élèves',
         'titre_direction': 'Doyen' if est_superieur else 'Directeur',
     }
+
+
+def seo_context(request) -> Dict[str, object]:
+    """Métadonnées SEO automatiques selon l'URL (voir school_admin.seo)."""
+    from school_admin.seo import resolve_seo
+
+    overrides = getattr(request, "seo_overrides", None)
+    return {"seo": resolve_seo(request, overrides)}

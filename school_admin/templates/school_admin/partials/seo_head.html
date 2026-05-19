@@ -1,0 +1,29 @@
+{% load static %}
+{# SEO centralisé ARIA – ne pas dupliquer title/description ailleurs dans <head> #}
+<title>{{ seo.title|default:"ARIA – Gestion scolaire" }}</title>
+<meta name="description" content="{{ seo.description|default:'Plateforme ARIA de gestion scolaire pour établissements, enseignants, élèves et parents.' }}" />
+<meta name="keywords" content="{{ seo.keywords|default:'gestion scolaire, ARIA, logiciel école, éducation' }}" />
+<meta name="robots" content="{{ seo.robots|default:'noindex, nofollow' }}" />
+<meta name="author" content="{{ seo.site_name|default:'ARIA' }}" />
+<meta name="application-name" content="{{ seo.site_name|default:'ARIA' }}" />
+{% if seo.canonical_url %}
+<link rel="canonical" href="{{ seo.canonical_url }}" />
+{% endif %}
+
+{% if seo.og_enabled %}
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="fr_FR" />
+<meta property="og:site_name" content="{{ seo.site_name|default:'ARIA' }}" />
+<meta property="og:title" content="{{ seo.title }}" />
+<meta property="og:description" content="{{ seo.description }}" />
+{% if seo.canonical_url %}
+<meta property="og:url" content="{{ seo.canonical_url }}" />
+{% endif %}
+<meta property="og:image" content="{{ seo.og_image }}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ seo.title }}" />
+<meta name="twitter:description" content="{{ seo.description }}" />
+<meta name="twitter:image" content="{{ seo.og_image }}" />
+{% endif %}
+
+{% include 'school_admin/partials/pwa_meta.html' %}

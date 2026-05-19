@@ -3,8 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Commercial Dashboard - Goo-School{% endblock %}</title>
     {% load static %}
+    {% block seo_head %}
+    {% include 'school_admin/partials/seo_head.html' %}
+    {% endblock %}
     
     <!-- Intégration de Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -17,10 +19,6 @@
     
     <!-- CSS spécifique à la page -->
     {% block extra_css %}{% endblock %}
-    
-    <!-- Meta tags pour le SEO -->
-    <meta name="description" content="{% block description %}Interface commerciale Goo-School - Gestion des établissements et prospection{% endblock %}" />
-    <meta name="keywords" content="commercial, établissement, prospection, éducation, Goo-School" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'school_admin/img/favicon.ico' %}" />

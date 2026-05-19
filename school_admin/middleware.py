@@ -266,3 +266,25 @@ class SessionActiveMiddleware:
         
         response = self.get_response(request)
         return response
+
+
+class SeoMiddleware:
+    """Ajoute X-Robots-Tag sur les pages privées (noindex)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        content_type = response.get("Content-Type", "")
+        if "text/html" not in content_type:
+            return response
+
+        from school_admin.seo import resolve_seo
+
+        seo = resolve_seo(request, getattr(request, "seo_overrides", None))
+        robots = seo.get("robots", "")
+        if robots and "noindex" in robots:
+            response["X-Robots-Tag"] = robots
+
+        return response

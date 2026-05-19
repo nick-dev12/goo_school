@@ -54,6 +54,12 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
+# SEO & URLs canoniques
+SITE_URL = os.getenv('SITE_URL', 'https://aria-edu.com')
+SITE_NAME = 'ARIA'
+SITE_TAGLINE = 'Logiciel de gestion scolaire tout-en-un'
+SEO_DEFAULT_OG_IMAGE = f'{SITE_URL.rstrip("/")}/static/school_admin/img/logo.jpeg'
+
 
 # Application definition
 
@@ -81,6 +87,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé
     'school_admin.middleware.SessionActiveMiddleware',  # Middleware pour la gestion des sessions actives
+    'school_admin.middleware.SeoMiddleware',
 ]
 
 ROOT_URLCONF = 'school.urls'
@@ -103,6 +110,7 @@ TEMPLATES = [
                 'school_admin.context_processors.session_directeur',
                 'school_admin.context_processors.etablissement_type',
                 'school_admin.utils.context_processors.permissions',
+                'school_admin.context_processors.seo_context',
             ],
         },
     },

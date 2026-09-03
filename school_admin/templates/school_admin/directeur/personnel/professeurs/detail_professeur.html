@@ -22,11 +22,8 @@
     <div class="main-content-container" data-prof-detail-url="{% url 'professeur:detail_professeur' professeur.id %}">
         <!-- Page Header avec actions -->
         <div class="page-header">
-            <div class="header-left">
-                <a href="{% url 'personnel:liste_personnel' %}" class="btn-back">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour à la liste" %}</span>
-                </a>
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-left">
                 <div class="page-title-section">
                     <h1 class="page-title">
                         <i class="fas fa-chalkboard-teacher"></i>

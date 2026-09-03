@@ -95,15 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Gérer le profil utilisateur
-    const profileBtn = document.querySelector('.header-profile');
-    if (profileBtn) {
-        profileBtn.addEventListener('click', function () {
-            // Ici, on pourrait ajouter du code pour afficher un menu déroulant du profil
-            console.log('Profile button clicked');
-        });
-    }
-
     // Gestion de la recherche
     const searchInput = document.querySelector('.header-search input');
     if (searchInput) {
@@ -175,46 +166,4 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         deferredPrompt = null;
     });
-
-    // Gestion du bouton retour
-    const backButton = document.getElementById('backButton');
-    
-    if (backButton) {
-        // Gérer le clic sur le bouton retour
-        backButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Utiliser history.back() pour revenir à la page précédente
-            // Le navigateur gère automatiquement si aucune page précédente n'existe
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                // Fallback: si pas d'historique, rediriger vers le dashboard
-                // On utilise une URL relative pour éviter les problèmes de configuration
-                try {
-                    window.location.href = document.referrer || '/directeur/dashboard/';
-                } catch (error) {
-                    // Si document.referrer n'est pas disponible, utiliser history.back() quand même
-                    window.history.back();
-                }
-            }
-        });
-
-        // Ajouter un effet visuel au survol (géré par CSS, mais on peut ajouter des animations JS si nécessaire)
-        backButton.addEventListener('mouseenter', function() {
-            if (!backButton.disabled) {
-                const icon = backButton.querySelector('i');
-                if (icon) {
-                    icon.style.transform = 'translateX(-3px)';
-                }
-            }
-        });
-
-        backButton.addEventListener('mouseleave', function() {
-            const icon = backButton.querySelector('i');
-            if (icon) {
-                icon.style.transform = 'translateX(0)';
-            }
-        });
-    }
 });

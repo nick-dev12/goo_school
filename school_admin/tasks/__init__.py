@@ -1,0 +1,1 @@
+"""Tâches Celery du projet."""

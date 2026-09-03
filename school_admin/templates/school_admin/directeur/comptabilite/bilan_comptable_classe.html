@@ -402,7 +402,8 @@
     <div class="bilan-container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1>
                     <i class="fas fa-chart-line"></i>
                     Bilan Comptable - {{ classe.nom }}
@@ -414,12 +415,6 @@
                     <i class="fas fa-chalkboard"></i>
                     {{ classe.get_niveau_display }}
                 </span>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    {% trans "Retour" %}
-                </a>
             </div>
         </div>
         

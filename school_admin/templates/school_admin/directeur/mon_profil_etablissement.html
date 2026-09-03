@@ -16,11 +16,8 @@
 <body>
   <div class="page-wrapper">
     <header class="page-header">
-      <div class="header-actions">
-        <a href="{% url 'directeur:dashboard_directeur' %}" class="btn-secondary">
-          <i class="fas fa-arrow-left"></i>
-          {% trans "Retour" %}
-        </a>
+      {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-actions">
       </div>
       <div class="header-title">
         <h1>{% if is_personnel_administratif %}Mon Profil{% else %}Profil de l'établissement{% endif %}</h1>

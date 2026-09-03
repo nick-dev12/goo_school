@@ -11,7 +11,8 @@ SITE_URL = getattr(settings, "SITE_URL", "https://aria-edu.com").rstrip("/")
 PUBLIC_URLS = [
     {"loc": f"{SITE_URL}/connexion/", "priority": "0.9", "changefreq": "monthly"},
     {"loc": f"{SITE_URL}/inscription/", "priority": "0.8", "changefreq": "monthly"},
-    {"loc": f"{SITE_URL}/politiques-utilisation/", "priority": "0.5", "changefreq": "yearly"},
+    {"loc": f"{SITE_URL}/conditions-utilisation/", "priority": "0.5", "changefreq": "yearly"},
+    {"loc": f"{SITE_URL}/politique-confidentialite/", "priority": "0.5", "changefreq": "yearly"},
     {"loc": f"{SITE_URL}/suppression-compte/", "priority": "0.4", "changefreq": "yearly"},
     {"loc": f"{SITE_URL}/", "priority": "0.7", "changefreq": "weekly"},
 ]
@@ -25,6 +26,8 @@ def robots_txt(request):
         "User-agent: *",
         "Allow: /connexion/",
         "Allow: /inscription/",
+        "Allow: /conditions-utilisation/",
+        "Allow: /politique-confidentialite/",
         "Allow: /politiques-utilisation/",
         "Allow: /suppression-compte/",
         "Disallow: /dashboard/",

@@ -53,11 +53,19 @@ def inscription_compte_user(request):
     return render(request, 'school_admin/inscription.html', context)
 
 
+def conditions_utilisation(request):
+    """Affiche les conditions générales d'utilisation."""
+    return render(request, 'school_admin/conditions_utilisation.html')
+
+
+def politique_confidentialite(request):
+    """Affiche la politique de confidentialité."""
+    return render(request, 'school_admin/politique_confidentialite.html')
+
+
 def politiques_utilisation(request):
-    """
-    Affiche la page des politiques d'utilisation et de confidentialité
-    """
-    return render(request, 'school_admin/politiques_utilisation.html')
+    """Redirection permanente vers les conditions d'utilisation (ancienne URL)."""
+    return redirect('school_admin:conditions_utilisation', permanent=True)
 
 
 def suppression_compte(request):

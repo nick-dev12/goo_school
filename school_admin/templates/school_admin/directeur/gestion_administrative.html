@@ -21,7 +21,7 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}"
+        href="{% static 'school_admin/css/directeur/gestion_eleves.css' %}?v=1.0.2"
     />
 </head>
 <body>
@@ -32,6 +32,8 @@
     <div class="main-content-container">
         <!-- Page Header -->
         <div class="page-header">
+            {% url 'directeur:dashboard_directeur' as directeur_dashboard_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=directeur_dashboard_url %}
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-file-alt"></i>

@@ -207,6 +207,30 @@ PUBLIC_PREINSCRIPTION = SeoMeta(
     og_enabled=True,
 )
 
+PUBLIC_CONDITIONS = SeoMeta(
+    title=_title("Conditions d'utilisation", SITE_NAME),
+    description=(
+        "Conditions générales d'utilisation de la plateforme ARIA et de l'application "
+        "mobile Aria-edu pour la gestion scolaire."
+    ),
+    robots=PUBLIC_ROBOTS,
+    section="legal",
+    og_enabled=False,
+    canonical_path="/conditions-utilisation/",
+)
+
+PUBLIC_CONFIDENTIALITE = SeoMeta(
+    title=_title("Politique de confidentialité", SITE_NAME),
+    description=(
+        "Politique de confidentialité ARIA : collecte, finalités, droits RGPD, "
+        "sécurité des données et application mobile Aria-edu."
+    ),
+    robots=PUBLIC_ROBOTS,
+    section="legal",
+    og_enabled=False,
+    canonical_path="/politique-confidentialite/",
+)
+
 PUBLIC_POLITIQUES = SeoMeta(
     title=_title("Politiques d'utilisation", SITE_NAME),
     description=(
@@ -216,7 +240,7 @@ PUBLIC_POLITIQUES = SeoMeta(
     robots=PUBLIC_ROBOTS,
     section="legal",
     og_enabled=False,
-    canonical_path="/politiques-utilisation/",
+    canonical_path="/conditions-utilisation/",
 )
 
 PUBLIC_PASSWORD_RESET = SeoMeta(
@@ -270,7 +294,9 @@ _PATH_RULES: list[tuple[re.Pattern[str], SeoMeta]] = [
     # Public
     (re.compile(r"^/connexion/"), PUBLIC_CONNEXION),
     (re.compile(r"^/inscription/"), PUBLIC_INSCRIPTION),
-    (re.compile(r"^/politiques-utilisation/"), PUBLIC_POLITIQUES),
+    (re.compile(r"^/conditions-utilisation/"), PUBLIC_CONDITIONS),
+    (re.compile(r"^/politique-confidentialite/"), PUBLIC_CONFIDENTIALITE),
+    (re.compile(r"^/politiques-utilisation/"), PUBLIC_CONDITIONS),
     (re.compile(r"^/suppression-compte/"), PUBLIC_SUPPRESSION_COMPTE),
     (re.compile(r"^/password-reset/"), PUBLIC_PASSWORD_RESET),
     (re.compile(r"^/preinscription/"), PUBLIC_PREINSCRIPTION),

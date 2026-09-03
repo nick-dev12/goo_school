@@ -16,16 +16,14 @@
     <div class="container">
         <!-- Header Section -->
         <div class="page-header">
-            <div class="header-content">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-content">
                 <h1><i class="fas fa-eye"></i> {% trans "Aperçu de l'Annonce" %}</h1>
                 <p>{% trans "Voici comment votre annonce apparaîtra aux destinataires" %}</p>
             </div>
             <div class="header-actions">
                 <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="btn-secondary">
                     <i class="fas fa-edit"></i> {% trans "Modifier" %}
-                </a>
-                <a href="{% url 'directeur:annonces_directeur' %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i> {% trans "Retour" %}
                 </a>
             </div>
         </div>

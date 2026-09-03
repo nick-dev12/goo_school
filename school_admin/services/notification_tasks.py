@@ -22,19 +22,12 @@ def schedule_annonce_notification(annonce_id: int) -> None:
     """
     Programme l'envoi des notifications d'annonce une fois la transaction validée.
     """
+    from school_admin.services.task_dispatcher import run_after_commit
 
-    def _run_async() -> None:
-        try:
-            _send_annonce_notifications(annonce_id)
-        except Exception as exc:  # pragma: no cover - suivi log
-            logger.exception("Erreur lors de l'envoi des notifications d'annonce %s: %s", annonce_id, exc)
-
-    transaction.on_commit(
-        lambda: threading.Thread(
-            target=_run_async,
-            name=f"annonce-notification-{annonce_id}",
-            daemon=True,
-        ).start()
+    run_after_commit(
+        _send_annonce_notifications,
+        'school_admin.tasks.celery_tasks.send_annonce_notifications_task',
+        annonce_id,
     )
 
 
@@ -281,19 +274,12 @@ def schedule_emploi_publication(emploi_id: int) -> None:
     """
     Programme l'envoi des notifications lors de la publication d'un emploi du temps.
     """
+    from school_admin.services.task_dispatcher import run_after_commit
 
-    def _run_async() -> None:
-        try:
-            _send_emploi_publication(emploi_id)
-        except Exception as exc:  # pragma: no cover
-            logger.exception("Erreur lors de la notification emploi du temps %s: %s", emploi_id, exc)
-
-    transaction.on_commit(
-        lambda: threading.Thread(
-            target=_run_async,
-            name=f"emploi-publication-{emploi_id}",
-            daemon=True,
-        ).start()
+    run_after_commit(
+        _send_emploi_publication,
+        'school_admin.tasks.celery_tasks.send_emploi_publication_task',
+        emploi_id,
     )
 
 

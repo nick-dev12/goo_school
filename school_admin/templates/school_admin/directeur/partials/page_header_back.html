@@ -1,0 +1,19 @@
+{% load i18n %}
+<div class="page-header-back-row">
+  {% if back_url %}
+    <a href="{{ back_url }}" class="page-header-back-btn">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      <span>{% trans "Retour" %}</span>
+    </a>
+  {% elif request.META.HTTP_REFERER %}
+    <a href="{{ request.META.HTTP_REFERER }}" class="page-header-back-btn">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      <span>{% trans "Retour" %}</span>
+    </a>
+  {% else %}
+    <a href="{% url 'directeur:dashboard_directeur' %}" class="page-header-back-btn">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      <span>{% trans "Retour" %}</span>
+    </a>
+  {% endif %}
+</div>

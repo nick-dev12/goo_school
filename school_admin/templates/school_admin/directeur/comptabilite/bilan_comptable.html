@@ -353,7 +353,8 @@
     <div class="bilan-container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1>
                     <i class="fas fa-chart-line"></i>
                     {% trans "Bilan Comptable" %}
@@ -361,12 +362,6 @@
                 <p>
                     Statistiques détaillées de la comptabilité pour {{ annee_scolaire_active.libelle }}
                 </p>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    {% trans "Retour" %}
-                </a>
             </div>
         </div>
         

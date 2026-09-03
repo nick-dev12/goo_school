@@ -44,6 +44,7 @@
       <div class="container">
         <!-- Page Header -->
         <div class="page-header">
+          {% include 'school_admin/directeur/partials/page_header_back.html' %}
           <div class="page-title-section">
             <h1 class="page-title">
               <i class="fas fa-chalkboard" aria-hidden="true"></i>
@@ -70,10 +71,6 @@
               <i class="fas fa-trash"></i>
               <span>{% trans "Supprimer" %}</span>
             </button>
-            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-back">
-              <i class="fas fa-arrow-left"></i>
-              <span>{% trans "Retour à la liste" %}</span>
-            </a>
           </div>
         </div>
 
@@ -1437,10 +1434,6 @@
 
         <!-- Actions -->
         <div class="classe-actions">
-          <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-action btn-back">
-            <i class="fas fa-arrow-left"></i>
-            <span>{% trans "Retour à la liste" %}</span>
-          </a>
           <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
             <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
             <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>

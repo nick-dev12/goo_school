@@ -19,7 +19,8 @@
 <div class="main-content-container">
     <!-- Page Header -->
     <div class="page-header">
-        <div class="page-title-section">
+        {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
             <h1 class="page-title">
                 <i class="fas fa-book"></i>
                 {{ matiere.nom }}
@@ -27,10 +28,6 @@
             <p class="page-subtitle">{{ matiere.etablissement.nom }} - Détails de la matière</p>
         </div>
         <div class="page-actions">
-            <a href="{% url 'matiere:liste_matieres' %}" class="btn-add btn-secondary">
-                <i class="fas fa-arrow-left"></i>
-                <span>{% trans "Retour à la liste" %}</span>
-            </a>
             <button class="btn-add btn-primary" onclick="toggleEditForm()">
                 <i class="fas fa-edit"></i>
                 <span>{% trans "Modifier" %}</span>

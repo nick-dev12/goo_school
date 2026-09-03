@@ -15,16 +15,13 @@
     <div class="page-container">
         <!-- Header -->
         <div class="page-header">
-            <div class="header-content">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-content">
                 <div class="header-title">
                     <i class="fas fa-door-open"></i>
                     <h1>{{ salle.nom }}</h1>
                     <p>{{ salle.type_display }} - {{ etablissement.nom }}</p>
                 </div>
-                <a href="{% url 'salle:liste_salles' %}" class="btn-back">
-                    <i class="fas fa-arrow-left"></i>
-                    {% trans "Retour à la liste" %}
-                </a>
             </div>
         </div>
 
@@ -245,10 +242,6 @@
 
         <!-- Actions -->
         <div class="actions-section">
-            <a href="{% url 'salle:liste_salles' %}" class="btn-back">
-                <i class="fas fa-arrow-left"></i>
-                {% trans "Retour à la liste" %}
-            </a>
             <a href="{% url 'salle:toggle_actif' salle.id %}" class="btn-toggle {% if salle.actif %}active{% endif %}">
                 <i class="fas fa-{% if salle.actif %}pause{% else %}play{% endif %}"></i>
                 {% if salle.actif %}Désactiver{% else %}Activer{% endif %}

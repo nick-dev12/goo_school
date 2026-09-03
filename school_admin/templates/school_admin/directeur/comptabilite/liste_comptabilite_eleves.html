@@ -22,7 +22,7 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0"
+        href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.1"
     />
     <link
         rel="stylesheet"
@@ -37,7 +37,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-calculator"></i>
                     {% trans "Comptabilité des Élèves" %}
@@ -54,10 +55,6 @@
                 <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="btn-secondary" style="background: var(--info, #8b5cf6); color: white; border: none;">
                     <i class="fas fa-cog"></i>
                     <span>{% trans "Paramètres de comptabilité" %}</span>
-                </a>
-                <a href="{% url 'directeur:gestion_etablissement' %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour" %}</span>
                 </a>
             </div>
         </div>
@@ -99,7 +96,7 @@
         {% endif %}
 
         <!-- Statistiques globales -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="stats-grid">
             <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--info, #8b5cf6);">
                 <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">{% trans "Total élèves" %}</h3>
                 <p style="font-size: 2rem; font-weight: 700; color: var(--text-primary, #1f2937); margin: 0;">{{ total_eleves }}</p>
@@ -185,7 +182,7 @@
                                 </div>
 
                                 <!-- Statistiques spécifiques à la classe -->
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                <div class="stats-grid">
                                     <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--info, #8b5cf6);">
                                         <h3 style="font-size: 0.875rem; color: var(--text-secondary, #6b7280); margin: 0 0 0.5rem 0; font-weight: 500;">
                                             <i class="fas fa-money-bill-wave" style="margin-right: 0.5rem;"></i>

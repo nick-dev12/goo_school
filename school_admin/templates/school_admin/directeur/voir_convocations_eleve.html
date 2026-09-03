@@ -36,7 +36,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-bell"></i>
                     Convocations de {{ eleve.prenom }} {{ eleve.nom }}
@@ -49,10 +50,6 @@
                 <a href="{% url 'directeur:generer_convocation' eleve.id %}" class="btn-primary">
                     <i class="fas fa-plus"></i>
                     <span>{% trans "Nouvelle convocation" %}</span>
-                </a>
-                <a href="{% url 'directeur:convocation_liste' %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour à la liste" %}</span>
                 </a>
             </div>
         </div>

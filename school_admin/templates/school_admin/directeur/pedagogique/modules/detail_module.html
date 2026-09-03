@@ -21,7 +21,8 @@
     <div class="main-content-container">
         {% include 'school_admin/partials/messages.html' %}
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-cube"></i>
                     {{ module.nom }}
@@ -32,10 +33,6 @@
                 </p>
             </div>
             <div class="page-actions">
-                <a href="{% url 'matiere:liste_modules' %}" class="btn-add btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour" %}</span>
-                </a>
                 <button type="button" class="btn-add btn-primary" id="btnModifierModule">
                     <i class="fas fa-edit"></i>
                     <span>{% trans "Modifier" %}</span>

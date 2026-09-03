@@ -81,6 +81,8 @@ urlpatterns =[
     path('inscription/', views.inscription_compte_user, name='inscription_compte_user'),
     path('connexion/', views.connexion_compte_user, name='connexion_compte_user'),
     path('auth/qr/<str:token>/', CompteUserController.auth_qr_login, name='auth_qr_login'),
+    path('conditions-utilisation/', views.conditions_utilisation, name='conditions_utilisation'),
+    path('politique-confidentialite/', views.politique_confidentialite, name='politique_confidentialite'),
     path('politiques-utilisation/', views.politiques_utilisation, name='politiques_utilisation'),
     
     # Préinscriptions (routes publiques - doit être après les routes directeur pour éviter les conflits)

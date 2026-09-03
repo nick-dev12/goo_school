@@ -49,6 +49,8 @@ class AuthenticationMiddleware:
             reverse('school_admin:firebase_messaging_sw'),
             reverse('school_admin:prof_connexion_otp'),
             reverse('school_admin:password_reset_request'),
+            reverse('school_admin:conditions_utilisation'),
+            reverse('school_admin:politique_confidentialite'),
             reverse('school_admin:politiques_utilisation'),
             reverse('school_admin:suppression_compte'),
             reverse('school_admin:verifier_bulletin_qr'),
@@ -84,7 +86,9 @@ class AuthenticationMiddleware:
             or request.path.startswith('/static/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
             or request.path.startswith('/password-reset/')  # Pages de réinitialisation de mot de passe
-            or request.path.startswith('/politiques-utilisation/')  # Page des politiques d'utilisation
+            or request.path.startswith('/conditions-utilisation/')
+            or request.path.startswith('/politique-confidentialite/')
+            or request.path.startswith('/politiques-utilisation/')
             or request.path.startswith('/suppression-compte/')  # Page de suppression de compte
             or request.path.startswith('/bulletins/verifier/')  # Page de vérification de bulletin (accessible via QR code)
         ):
@@ -97,7 +101,9 @@ class AuthenticationMiddleware:
             or is_public_pattern
             or request.path.startswith('/password-reset/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
-            or request.path.startswith('/politiques-utilisation/')  # Page des politiques d'utilisation
+            or request.path.startswith('/conditions-utilisation/')
+            or request.path.startswith('/politique-confidentialite/')
+            or request.path.startswith('/politiques-utilisation/')
             or request.path.startswith('/suppression-compte/')  # Page de suppression de compte
             or request.path.startswith('/bulletins/verifier/')  # Page de vérification de bulletin (accessible via QR code)
         )

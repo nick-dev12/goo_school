@@ -249,23 +249,30 @@ p {
 
 .key-indicators {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   align-items: stretch;
 }
 
 /* Responsive pour key-indicators */
-@media (max-width: 1200px) {
+@media (min-width: 769px) and (max-width: 1024px) {
   .key-indicators {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
   }
 }
 
 @media (max-width: 768px) {
   .key-indicators {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .key-indicators {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
   }
 }
 

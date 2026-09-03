@@ -246,7 +246,7 @@ class CompteUserController:
             
             # Vérification de l'acceptation des conditions
             if not conditions_acceptees:
-                field_errors['conditions_acceptees'] = "Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour vous connecter."
+                field_errors['conditions_acceptees'] = "Vous devez accepter les conditions d'utilisation pour vous connecter."
                 
             # Si pas d'erreurs de validation, on vérifie d'abord si le compte existe et est actif
             if not field_errors:

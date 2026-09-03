@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'school_admin/partials/seo_head.html' %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% include 'school_admin/partials/legal_document_styles.html' %}
+</head>
+<body>
+    <header class="legal-topbar">
+        <a href="{% url 'school_admin:connexion_compte_user' %}" class="legal-brand" aria-label="Aria — retour connexion">
+            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="" width="36" height="36">
+            <span>Aria</span>
+        </a>
+        <div class="legal-topbar-actions">
+            <span class="legal-chip"><i class="fas fa-shield-halved" aria-hidden="true"></i> Confidentialité</span>
+            <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn-legal-nav btn-legal-primary">
+                <i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                Connexion
+            </a>
+        </div>
+    </header>
+
+    <div class="legal-hero">
+        <div class="legal-hero-inner">
+            <div class="legal-hero-content">
+                <h1>Politique de confidentialité</h1>
+                <p class="legal-hero-lead">
+                    Comment <strong>Aria</strong> et l'application <strong>Aria-edu</strong> collectent, utilisent, protègent et conservent vos données personnelles, conformément au RGPD et à la loi «&nbsp;Informatique et Libertés&nbsp;».
+                </p>
+                <div class="legal-hero-meta" role="note">
+                    <span><i class="fas fa-calendar-check" aria-hidden="true"></i> Dernière mise à jour : 20 mai 2026</span>
+                    <span><i class="fas fa-language" aria-hidden="true"></i> Version de référence : français</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="legal-layout">
+        <aside class="legal-toc-wrap" aria-label="Sommaire">
+            <nav class="legal-toc">
+                <p class="legal-toc-title">Sommaire</p>
+                <ul>
+                    <li><a href="#introduction">Introduction</a></li>
+                    <li><a href="#responsables">Responsables</a></li>
+                    <li><a href="#donnees">Données collectées</a></li>
+                    <li><a href="#finalites">Finalités &amp; bases légales</a></li>
+                    <li><a href="#destinataires">Destinataires</a></li>
+                    <li><a href="#conservation">Conservation</a></li>
+                    <li><a href="#app-mobile">Application mobile</a></li>
+                    <li><a href="#securite">Sécurité</a></li>
+                    <li><a href="#cookies">Cookies</a></li>
+                    <li><a href="#droits">Vos droits</a></li>
+                    <li><a href="#mineurs">Mineurs</a></li>
+                    <li><a href="#transferts">Transferts</a></li>
+                    <li><a href="#violations">Violations de données</a></li>
+                    <li><a href="#modifications">Évolution</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <article class="legal-main">
+            <div class="legal-related-doc">
+                <strong>Document complémentaire :</strong> les règles d'usage de la plateforme figurent dans les
+                <a href="{% url 'school_admin:conditions_utilisation' %}" class="legal-inline-link">conditions d'utilisation</a>.
+            </div>
+
+            <div class="trust-cards">
+                <div class="trust-card">
+                    <i class="fas fa-database" aria-hidden="true"></i>
+                    <h3>Finalités limitées</h3>
+                    <p>Vos données servent la gestion scolaire, pas la publicité ciblée.</p>
+                </div>
+                <div class="trust-card">
+                    <i class="fas fa-lock" aria-hidden="true"></i>
+                    <h3>Sécurité</h3>
+                    <p>Mesures techniques et organisationnelles adaptées aux risques.</p>
+                </div>
+                <div class="trust-card">
+                    <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+                    <h3>Vos droits</h3>
+                    <p>Accès, rectification, effacement, opposition : procédures claires.</p>
+                </div>
+            </div>
+
+            <div class="legal-paper">
+                <section id="introduction" class="legal-section">
+                    <h2><i class="fas fa-book-open" aria-hidden="true"></i> Introduction</h2>
+                    <p>
+                        La présente politique de confidentialité informe les utilisateurs de la plateforme <strong>Aria</strong> et de l'application mobile <strong>Aria-edu</strong> (<code>com.ariaedu.app</code>) sur le traitement de leurs données à caractère personnel, conformément au Règlement (UE) 2016/679 («&nbsp;<strong>RGPD</strong>&nbsp;») et à la loi n°&nbsp;78-17 modifiée («&nbsp;Informatique et Libertés&nbsp;»).
+                    </p>
+                    <p>
+                        Aria est un outil de gestion scolaire utilisé par des établissements. Selon les cas, le <strong>responsable de traitement</strong> est l'établissement scolaire ; l'exploitant technique d'Aria intervient le cas échéant en qualité de <strong>sous-traitant</strong> au sens du RGPD.
+                    </p>
+                    <div class="legal-callout legal-callout--info">
+                        <strong>Pas de vente de données :</strong> Aria ne vend pas vos données personnelles à des annonceurs et n'utilise pas vos informations à des fins de profilage publicitaire.
+                    </div>
+                </section>
+
+                <section id="responsables" class="legal-section">
+                    <h2><i class="fas fa-building" aria-hidden="true"></i> Responsables et contacts</h2>
+                    <h3>Responsable de traitement</h3>
+                    <p>
+                        Pour la majorité des traitements liés à la scolarité (notes, absences, identité des élèves, etc.), le responsable de traitement est <strong>votre établissement scolaire</strong> (direction, secrétariat ou entité habilitée).
+                    </p>
+                    <h3>Sous-traitant technique</h3>
+                    <p>
+                        L'exploitant de la solution Aria traite certaines données pour le compte de l'établissement (hébergement, maintenance, notifications push) dans le cadre d'un contrat de sous-traitance conforme à l'article 28 du RGPD.
+                    </p>
+                    <h3>Délégué à la protection des données (DPO)</h3>
+                    <p>
+                        L'établissement peut avoir désigné un référent ou DPO. Pour exercer vos droits ou poser une question, adressez-vous en priorité à <strong>l'administration de votre établissement</strong>. Les coordonnées du DPO ou du référent RGPD de l'établissement vous sont communiquées sur demande.
+                    </p>
+                </section>
+
+                <section id="donnees" class="legal-section">
+                    <h2><i class="fas fa-folder-open" aria-hidden="true"></i> Données collectées</h2>
+                    <p>Selon les modules activés par l'établissement, peuvent être traitées&nbsp;:</p>
+                    <ul>
+                        <li><strong>Identité :</strong> nom, prénom, date de naissance, matricule, photographie d'identité ou de profil, carte scolaire (QR code).</li>
+                        <li><strong>Contact :</strong> adresse, téléphone, courriel des élèves, parents ou personnel.</li>
+                        <li><strong>Vie scolaire :</strong> notes, appréciations, absences, retards, emplois du temps, devoirs, bulletins.</li>
+                        <li><strong>Données de connexion :</strong> identifiants, horodatages, adresse IP, journaux de sécurité, type d'appareil.</li>
+                        <li><strong>Contenus :</strong> messages, pièces jointes, documents déposés dans les espaces prévus.</li>
+                        <li><strong>Données de l'appareil mobile :</strong> jeton de notification push (FCM), préférences techniques locales.</li>
+                        <li><strong>Localisation :</strong> uniquement si une fonction de pointage géolocalisé est activée par l'établissement.</li>
+                        <li><strong>Paiements :</strong> uniquement si un module de facturation est activé, via le prestataire de paiement concerné.</li>
+                    </ul>
+                    <div class="legal-callout legal-callout--warn">
+                        Ne transmettez pas d'informations sensibles non nécessaires via des widgets tiers (traduction automatique, etc.).
+                    </div>
+                </section>
+
+                <section id="finalites" class="legal-section">
+                    <h2><i class="fas fa-bullseye" aria-hidden="true"></i> Finalités et bases légales</h2>
+                    <div class="legal-table-wrap">
+                        <table class="legal-table">
+                            <thead>
+                                <tr>
+                                    <th>Finalité</th>
+                                    <th>Exemples</th>
+                                    <th>Base légale (indicatif)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Gestion scolaire</td>
+                                    <td>Notes, bulletins, présences, emplois du temps</td>
+                                    <td>Mission d'intérêt public / contrat avec l'établissement</td>
+                                </tr>
+                                <tr>
+                                    <td>Authentification</td>
+                                    <td>Connexion, scan QR code carte élève</td>
+                                    <td>Exécution du service / intérêt légitime (sécurité)</td>
+                                </tr>
+                                <tr>
+                                    <td>Communication</td>
+                                    <td>Messages, notifications push</td>
+                                    <td>Intérêt légitime / consentement (notifications)</td>
+                                </tr>
+                                <tr>
+                                    <td>Sécurité</td>
+                                    <td>Journaux, limitation des tentatives de connexion</td>
+                                    <td>Intérêt légitime</td>
+                                </tr>
+                                <tr>
+                                    <td>Obligations légales</td>
+                                    <td>Archives, réponses aux autorités</td>
+                                    <td>Obligation légale</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>
+                        L'établissement précise les bases exactes dans son registre des traitements et son information aux personnes concernées.
+                    </p>
+                    <h3>Profilage et décisions automatisées</h3>
+                    <p>
+                        Aria n'effectue pas de profilage publicitaire. Certaines moyennes ou statistiques pédagogiques peuvent être calculées automatiquement à partir des notes saisies par les enseignants, dans le cadre du suivi scolaire défini par l'établissement.
+                    </p>
+                </section>
+
+                <section id="destinataires" class="legal-section">
+                    <h2><i class="fas fa-share-nodes" aria-hidden="true"></i> Destinataires et sous-traitants</h2>
+                    <p>Vos données peuvent être accessibles à&nbsp;:</p>
+                    <ul>
+                        <li>Personnels habilités de l'établissement (selon rôles et permissions).</li>
+                        <li>Parents ou tuteurs légaux, pour les données relatives à leurs enfants.</li>
+                        <li>Sous-traitants techniques contractuellement liés, notamment&nbsp;:
+                            <ul>
+                                <li><strong>Hébergeur</strong> de la plateforme web ;</li>
+                                <li><strong>Google Firebase Cloud Messaging</strong> pour l'acheminement des notifications push de l'application Aria-edu ;</li>
+                                <li>Prestataires de support ou de maintenance, dans la limite strictement nécessaire.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <p>Aucun destinataire commercial ou publicitaire n'est prévu dans le cadre standard d'Aria.</p>
+                </section>
+
+                <section id="conservation" class="legal-section">
+                    <h2><i class="fas fa-clock" aria-hidden="true"></i> Durées de conservation</h2>
+                    <div class="legal-table-wrap">
+                        <table class="legal-table">
+                            <thead>
+                                <tr>
+                                    <th>Type de donnée</th>
+                                    <th>Durée indicative</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Données de scolarité (notes, bulletins)</td>
+                                    <td>Selon obligations légales et politique d'archivage de l'établissement (souvent plusieurs années après la fin de scolarité).</td>
+                                </tr>
+                                <tr>
+                                    <td>Compte utilisateur actif</td>
+                                    <td>Durée de la scolarité ou du contrat avec l'établissement.</td>
+                                </tr>
+                                <tr>
+                                    <td>Journaux techniques / sécurité</td>
+                                    <td>Durée limitée et proportionnée (quelques semaines à mois).</td>
+                                </tr>
+                                <tr>
+                                    <td>Jetons de notification push</td>
+                                    <td>Tant que l'utilisateur conserve l'application et n'a pas révoqué les notifications.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="app-mobile" class="legal-section">
+                    <h2><i class="fas fa-mobile-screen-button" aria-hidden="true"></i> Application mobile Aria-edu</h2>
+                    <p>
+                        L'application mobile donne accès à la plateforme Aria. Les autorisations de l'appareil ne sont demandées que lorsque vous utilisez une fonctionnalité qui en a besoin.
+                    </p>
+                    <div class="legal-table-wrap">
+                        <table class="legal-table">
+                            <thead>
+                                <tr>
+                                    <th>Autorisation</th>
+                                    <th>Finalité</th>
+                                    <th>Exemple</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Caméra</strong></td>
+                                    <td>Scanner le QR code de connexion (carte élève/étudiant), photo d'identité, document.</td>
+                                    <td>Scan QR sur la page de connexion.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Photothèque</strong></td>
+                                    <td>Choisir une photo ou un document existant.</td>
+                                    <td>Photo de profil ou pièce jointe.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Microphone</strong></td>
+                                    <td>Son pour cours en ligne ou message vocal.</td>
+                                    <td>Visioconférence pédagogique.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Localisation</strong></td>
+                                    <td>Pointage de présence activé par l'établissement.</td>
+                                    <td>Validation de présence sur site.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Notifications</strong></td>
+                                    <td>Alertes scolaires (devoirs, messages, absences).</td>
+                                    <td>Rappel de devoir via push FCM.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>
+                        Les textes affichés dans les popups système iOS/Android décrivent ces usages conformément aux exigences des stores (Apple App Store, Google Play). Vous pouvez modifier vos choix dans les réglages de votre appareil.
+                    </p>
+                </section>
+
+                <section id="securite" class="legal-section">
+                    <h2><i class="fas fa-lock" aria-hidden="true"></i> Sécurité</h2>
+                    <p>Mesures mises en œuvre selon les risques&nbsp;:</p>
+                    <ul>
+                        <li>Chiffrement des communications (HTTPS).</li>
+                        <li>Contrôle d'accès par rôles et authentification.</li>
+                        <li>Journalisation des événements de sécurité.</li>
+                        <li>Limitation des tentatives de connexion.</li>
+                        <li>Sauvegardes et mises à jour régulières des composants.</li>
+                    </ul>
+                    <div class="legal-callout legal-callout--ok">
+                        Signalez immédiatement toute suspicion d'accès non autorisé à l'administration de votre établissement.
+                    </div>
+                </section>
+
+                <section id="cookies" class="legal-section">
+                    <h2><i class="fas fa-cookie-bite" aria-hidden="true"></i> Cookies et traceurs</h2>
+                    <p>
+                        La Plateforme utilise des cookies ou stockages locaux <strong>strictement nécessaires</strong> au fonctionnement (session, sécurité CSRF, préférences de langue).
+                    </p>
+                    <p>
+                        Des traceurs supplémentaires peuvent être déposés par des intégrations tierces (traduction, statistiques) selon le paramétrage. Pour les traceurs non essentiels, référez-vous aux indications affichées ou contactez votre établissement.
+                    </p>
+                </section>
+
+                <section id="droits" class="legal-section">
+                    <h2><i class="fas fa-scale-balanced" aria-hidden="true"></i> Vos droits (RGPD)</h2>
+                    <p>Sous réserve des exceptions légales, vous disposez des droits suivants&nbsp;:</p>
+                    <ul>
+                        <li><strong>Droit d'accès</strong> et de <strong>rectification</strong> ;</li>
+                        <li><strong>Droit à l'effacement</strong> («&nbsp;droit à l'oubli&nbsp;») ;</li>
+                        <li><strong>Droit à la limitation</strong> du traitement ;</li>
+                        <li><strong>Droit d'opposition</strong> pour motifs légitimes ;</li>
+                        <li><strong>Droit à la portabilité</strong> (cas prévus par le RGPD) ;</li>
+                        <li><strong>Droit de retirer votre consentement</strong> lorsque le traitement en est fondé ;</li>
+                        <li><strong>Droit de définir des directives</strong> post-mortem (loi française).</li>
+                    </ul>
+                    <h3>Comment exercer vos droits</h3>
+                    <ol>
+                        <li>Contactez l'administration de votre établissement (secrétariat, direction ou référent RGPD).</li>
+                        <li>Précisez le droit que vous souhaitez exercer et joignez une pièce d'identité si nécessaire.</li>
+                        <li>Une réponse vous sera adressée dans les délais légaux (généralement un mois, prolongeable).</li>
+                    </ol>
+                    <p>
+                        Pour la suppression de compte&nbsp;:
+                        <a href="{% url 'school_admin:suppression_compte' %}" class="legal-inline-link">page de demande de suppression</a>.
+                    </p>
+                    <p>
+                        Réclamation auprès de la CNIL&nbsp;:
+                        <a href="https://www.cnil.fr" class="legal-inline-link" target="_blank" rel="noopener noreferrer">cnil.fr</a>.
+                    </p>
+                </section>
+
+                <section id="mineurs" class="legal-section">
+                    <h2><i class="fas fa-child" aria-hidden="true"></i> Mineurs</h2>
+                    <p>
+                        Aria peut être utilisé par des élèves mineurs dans le cadre scolaire. Les données des mineurs sont traitées sous la responsabilité de l'établissement, avec l'information ou l'accord des titulaires de l'autorité parentale lorsque la loi l'exige.
+                    </p>
+                    <p>
+                        Les parents sont invités à accompagner l'usage du numérique et à signaler toute anomalie à la direction.
+                    </p>
+                </section>
+
+                <section id="transferts" class="legal-section">
+                    <h2><i class="fas fa-globe" aria-hidden="true"></i> Transferts hors EEE</h2>
+                    <p>
+                        Lorsque des prestataires (hébergement, Firebase/Google) sont situés hors de l'Espace économique européen, l'établissement et/ou l'exploitant veillent à la mise en place de garanties appropriées (clauses contractuelles types de la Commission européenne, décision d'adéquation, ou autres mécanismes prévus par le RGPD).
+                    </p>
+                </section>
+
+                <section id="violations" class="legal-section">
+                    <h2><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Violations de données</h2>
+                    <p>
+                        En cas de violation de données personnelles susceptible d'engendrer un risque pour vos droits et libertés, le responsable de traitement (établissement) et, le cas échéant, l'exploitant en qualité de sous-traitant, mettent en œuvre les procédures prévues par le RGPD&nbsp;: analyse du risque, notification à la CNIL si nécessaire, et information des personnes concernées lorsque la loi l'exige.
+                    </p>
+                </section>
+
+                <section id="modifications" class="legal-section">
+                    <h2><i class="fas fa-rotate" aria-hidden="true"></i> Évolution de la politique</h2>
+                    <p>
+                        Cette politique peut être mise à jour pour refléter l'évolution légale, technique ou fonctionnelle. La date de mise à jour figure en tête de page. En cas de changement substantiel, un avis peut être donné via la Plateforme ou par l'établissement.
+                    </p>
+                </section>
+
+                <section id="contact" class="legal-section">
+                    <h2><i class="fas fa-envelope" aria-hidden="true"></i> Contact</h2>
+                    <p>
+                        Pour toute question relative à cette politique ou à l'exercice de vos droits, contactez en priorité <strong>l'administration de votre établissement</strong>.
+                    </p>
+                    <p>
+                        Pour les règles d'usage de la plateforme, consultez les
+                        <a href="{% url 'school_admin:conditions_utilisation' %}" class="legal-inline-link">conditions d'utilisation</a>.
+                    </p>
+                </section>
+            </div>
+        </article>
+    </div>
+
+    <div class="legal-footer-cta">
+        <div class="legal-footer-cta-inner">
+            <p>Consultez aussi les conditions d'utilisation régissant l'accès à la plateforme Aria.</p>
+            <div class="btn-row">
+                <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn-legal-nav btn-legal-primary">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    Retour à la connexion
+                </a>
+                <a href="{% url 'school_admin:conditions_utilisation' %}" class="btn-legal-nav" style="background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); color: #fff;">
+                    Conditions d'utilisation
+                </a>
+                <a href="{% url 'school_admin:suppression_compte' %}" class="btn-legal-nav" style="background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); color: #fff;">
+                    Suppression de données
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <p class="legal-page-footnote">
+        Les présentes informations ne remplacent pas un conseil juridique personnalisé. Elles visent à informer les utilisateurs de bonne foi sur le traitement de leurs données personnelles.
+    </p>
+</body>
+</html>

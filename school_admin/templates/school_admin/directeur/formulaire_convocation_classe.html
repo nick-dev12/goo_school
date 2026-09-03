@@ -36,7 +36,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-users"></i>
                     {% trans "Convocation de Classe" %}
@@ -44,12 +45,6 @@
                 <p class="page-subtitle">
                     Créer une convocation pour tous les élèves de {{ classe.nom }}
                 </p>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:convocation_liste' %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour à la liste" %}</span>
-                </a>
             </div>
         </div>
 

@@ -18,7 +18,8 @@
 
     <div class="main-content-container">
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-scale-balanced"></i>
                     Justifications de notes - {{ classe.nom }}
@@ -26,12 +27,6 @@
                 <p class="page-subtitle">
                     {% trans "Consultez toutes les justifications de notes pour cette classe." %}
                 </p>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:justifications_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    {% trans "Retour aux justifications" %}
-                </a>
             </div>
         </div>
 

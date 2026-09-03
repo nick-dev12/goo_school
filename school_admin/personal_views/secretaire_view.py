@@ -715,6 +715,19 @@ def inscription_eleves(request):
                         montant_affiche = str(montant_par_eleve)
                     
                     messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_affiche}. Documents fournis: {documents_text}")
+
+                    from ..services.realtime_service import emit_etablissement_event
+                    emit_etablissement_event(
+                        etablissement.id,
+                        'eleve.inscrit',
+                        {
+                            'eleve_id': eleve.id,
+                            'classe_id': classe.id,
+                            'classe_nom': classe.nom,
+                            'nom_complet': eleve.nom_complet,
+                        },
+                    )
+
                     return redirect('secretaire:reçu_inscription_eleve', eleve_id=eleve.id)
                     
             except Exception as e:

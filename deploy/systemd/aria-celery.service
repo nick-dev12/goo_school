@@ -1,0 +1,17 @@
+[Unit]
+Description=Aria Goo School — Celery Worker
+After=network.target redis-server.service postgresql.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=nick
+Group=nick
+WorkingDirectory=/home/nick/aria/goo_school
+EnvironmentFile=/etc/aria/env
+ExecStart=/home/nick/aria/goo_school/venv/bin/celery -A school worker -l info --concurrency=2
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

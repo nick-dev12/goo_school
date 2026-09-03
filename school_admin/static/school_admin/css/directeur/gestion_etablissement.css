@@ -92,10 +92,10 @@
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
-    justify-content: flex-start;
+    width: 100%;
 }
 
-.nav-link-card {
+.main-content-container .navigation-container .nav-cards-grid .nav-link-card {
     display: flex;
     align-items: center;
     padding: 1.5rem;
@@ -106,11 +106,13 @@
     transition: all 0.3s ease;
     border: 1px solid #e5e7eb;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    flex: 1;
-    min-width: 280px;
-    max-width: 350px;
+    flex: 1 1 calc(33.333% - 1rem);
+    min-width: min(100%, 220px);
+    max-width: 100%;
+    width: auto;
     min-height: 100px;
     position: relative;
+    box-sizing: border-box;
 }
 
 .nav-link-card:hover {
@@ -271,17 +273,6 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-    .nav-cards-grid {
-        justify-content: center;
-    }
-    
-    .nav-link-card {
-        min-width: 250px;
-        max-width: 300px;
-    }
-}
-
 @media (max-width: 768px) {
     .main-content-container {
         padding: 1rem;
@@ -298,14 +289,13 @@
     }
     
     .nav-cards-grid {
-        flex-direction: column;
-        align-items: center;
+        gap: 1rem;
     }
-    
-    .nav-link-card {
-        min-width: 100%;
-        max-width: 100%;
-        width: 100%;
+
+    .main-content-container .navigation-container .nav-cards-grid .nav-link-card {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: min(100%, 150px);
+        padding: 1.25rem;
     }
     
     .action-item {

@@ -259,7 +259,8 @@
 
       <!-- En-tête de la page -->
       <div class="page-header">
-        <h1 class="page-title">
+        {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<h1 class="page-title">
           <i class="fas fa-sync-alt"></i>
           {% trans "Synchroniser la Facturation" %}
         </h1>
@@ -368,10 +369,6 @@
 
           <!-- Actions -->
           <div class="actions">
-            <a href="{% url 'secretaire:dashboard_secretaire' %}" class="btn btn-secondary">
-              <i class="fas fa-arrow-left"></i>
-              {% trans "Retour au tableau de bord" %}
-            </a>
             {% if nombre_actuel != eleves_actifs or montant_actuel != montant_total_calcule %}
               <form method="post" style="display: inline;">
                 {% csrf_token %}

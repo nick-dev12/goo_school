@@ -1,0 +1,11 @@
+# Redis pour le développement local (temps réel, Celery, cache)
+# Usage : docker compose -f docker-compose.redis.yml up -d
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: goo_school_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru

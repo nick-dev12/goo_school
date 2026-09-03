@@ -18,7 +18,8 @@
 
     <div class="container">
       <div class="page-header">
-        <div class="page-title-section">
+        {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
           <h1 class="page-title">
             <i class="fas fa-graduation-cap"></i>
             {% trans "Standards de réussite" %}
@@ -26,12 +27,6 @@
           <p class="page-subtitle">
             Configurez les seuils de réussite, les appréciations du conseil et les niveaux par matière pour {{ etablissement.nom }}.
           </p>
-        </div>
-        <div class="page-actions">
-          <a href="{% url 'directeur:bulletins_notes' %}{% if periode_active_id %}?periode={{ periode_active_id }}{% endif %}" class="btn-secondary">
-            <i class="fas fa-arrow-left"></i>
-            <span>{% trans "Retour aux bulletins" %}</span>
-          </a>
         </div>
       </div>
 

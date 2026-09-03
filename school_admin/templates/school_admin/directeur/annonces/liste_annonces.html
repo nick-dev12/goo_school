@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/liste_annonces.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/liste_annonces.css' %}?v=1.0.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>{% trans "Gestion des Annonces - Directeur" %}</title>
 </head>
@@ -16,7 +16,8 @@
     <div class="container">
         <!-- Header Section -->
         <div class="page-header">
-            <div class="header-content">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-content">
                 <h1><i class="fas fa-bullhorn"></i> {% trans "Gestion des Annonces" %}</h1>
                 <p>{% trans "Publiez des annonces importantes pour votre établissement" %}</p>
             </div>

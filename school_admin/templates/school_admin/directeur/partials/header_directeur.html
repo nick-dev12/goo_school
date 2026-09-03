@@ -5,7 +5,8 @@
   href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.2">
 <!-- Messages Template -->
 {% include 'school_admin/partials/messages.html' %}
-<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.6" />
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.0" />
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/page_header_back.css' %}?v=1.0.1" />
 <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1" />
 
 
@@ -39,7 +40,7 @@
           <span class="scanner-text">{% trans "Scanner" %}</span>
         </button>
 
-        <div class="header-profile">
+        <a href="{% url 'directeur:profil_etablissement' %}" class="header-profile" aria-label="{% trans 'Profil de l\'établissement' %}" title="{% trans 'Profil de l\'établissement' %}">
           {% if is_directeur %}
             <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
             <div class="header-user-info">
@@ -59,51 +60,45 @@
               <div class="header-user-role">{% if titre_direction %}{{ titre_direction }}{% else %}{% trans "Directeur" %}{% endif %}</div>
             </div>
           {% endif %}
-        </div>
+        </a>
       </div>
     </header>
 
     <!-- Welcome Banner -->
     <section class="welcome-banner">
       <div class="banner-content">
-        {% if is_directeur %}
-          <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
-        {% elif is_personnel_administratif and personnel %}
-          <h1 class="banner-title">Bienvenue, {{ personnel.prenom }} {{ personnel.nom }}</h1>
-        {% else %}
-          <h1 class="banner-title">Bienvenue, {{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</h1>
-        {% endif %}
-        <p class="banner-subtitle">
-          {% if is_directeur %}
-            {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
-          {% elif is_personnel_administratif and personnel %}
-            {{ personnel.etablissement.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
-          {% else %}
-            {{ request.user.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% if annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %} (Consultation){% endif %}{% elif periode_active %} - {{ periode_active.nom_periode }} - Année scolaire {{ periode_active.annee_scolaire }}{% else %} - Année scolaire en cours{% endif %}
-          {% endif %}
-        </p>
-        <!-- Sélecteur de session intégré -->
-        <div class="banner-session-selector">
-          <form method="post" action="{% url 'directeur:changer_session_directeur' %}?next={{ request.path }}" class="session-selector-form">
-            {% csrf_token %}
-            <label for="sessionSelector" class="session-label">
-              <i class="fas fa-calendar-alt"></i>
-              <span>{% trans "Session :" %}</span>
-            </label>
-            <select name="session_id" id="sessionSelector" class="banner-session-select" onchange="this.form.submit()" title="{% trans "Changer de session" %}">
-              <option value="">Session active ({{ annee_scolaire_reellement_active.libelle|default:"Aucune" }})</option>
-              {% for annee in toutes_annees_scolaires %}
-                <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
-                  {{ annee.libelle }}{% if annee.est_active %} (Active){% endif %}
-                </option>
-              {% endfor %}
-            </select>
-            {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
-              <span class="banner-session-indicator" title="{% trans "Vous consultez une session différente de la session active" %}">
-                <i class="fas fa-info-circle"></i>
-              </span>
+        <div class="banner-info-row">
+          <p class="banner-subtitle">
+            {% if is_directeur %}
+              {{ request.user.nom }}
+            {% elif is_personnel_administratif and personnel %}
+              {{ personnel.etablissement.nom }}
+            {% else %}
+              {{ request.user.nom }}
             {% endif %}
-          </form>
+          </p>
+          <div class="banner-session-selector">
+            <form method="post" action="{% url 'directeur:changer_session_directeur' %}?next={{ request.path }}" class="session-selector-form">
+              {% csrf_token %}
+              <label for="sessionSelector" class="session-label">
+                <i class="fas fa-calendar-alt"></i>
+                <span>{% trans "Session :" %}</span>
+              </label>
+              <select name="session_id" id="sessionSelector" class="banner-session-select" onchange="this.form.submit()" title="{% trans "Changer de session" %}">
+                <option value="">Session active ({{ annee_scolaire_reellement_active.libelle|default:"Aucune" }})</option>
+                {% for annee in toutes_annees_scolaires %}
+                  <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
+                    {{ annee.libelle }}{% if annee.est_active %} (Active){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
+                <span class="banner-session-indicator" title="{% trans "Vous consultez une session différente de la session active" %}">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              {% endif %}
+            </form>
+          </div>
         </div>
       </div>
       <div class="banner-actions">
@@ -122,14 +117,6 @@
         </a>
       </div>
     </section>
-
-    <!-- Bouton Retour -->
-    <div class="back-button-container">
-      <button id="backButton" class="back-button" aria-label="Retour à la page précédente" title="{% trans "Retour à la page précédente" %}">
-        <i class="fas fa-arrow-left"></i>
-        <span>{% trans "Retour" %}</span>
-      </button>
-    </div>
 
     <!-- Navigation Overlay -->
     <div class="navigation-overlay" id="navOverlay"></div>
@@ -245,6 +232,7 @@
 
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
+{% include 'school_admin/partials/realtime_scripts.html' %}
 <script>
   // Mettre à jour le compteur de notifications depuis le localStorage si disponible
   document.addEventListener('DOMContentLoaded', function() {

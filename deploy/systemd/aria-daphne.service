@@ -1,0 +1,17 @@
+[Unit]
+Description=Aria Goo School — Daphne ASGI (HTTP + WebSockets)
+After=network.target redis-server.service postgresql.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=nick
+Group=nick
+WorkingDirectory=/home/nick/aria/goo_school
+EnvironmentFile=/etc/aria/env
+ExecStart=/home/nick/aria/goo_school/venv/bin/daphne -b 127.0.0.1 -p 8001 school.asgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

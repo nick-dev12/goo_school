@@ -117,7 +117,8 @@
     <div class="main-content-wrapper">
         <!-- Page Header -->
         <div class="page-header-modern">
-            <div class="header-background-gradient"></div>
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-background-gradient"></div>
             <div class="header-content">
                 <div class="header-icon-circle">
                     <i class="fas fa-redo"></i>
@@ -126,10 +127,6 @@
                     <h1 class="page-title-modern">{% trans "Réinscription de l'Élève" %}</h1>
                     <p class="page-subtitle-modern">{{ eleve.nom_complet }} - {{ etablissement.nom }}</p>
                 </div>
-                <a href="{% url 'directeur:liste_reinscription' %}" class="btn-back-modern">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour" %}</span>
-                </a>
             </div>
         </div>
 

@@ -864,7 +864,12 @@ def dashboard_directeur(request):
     from ..model.professeur_model import Professeur
     from ..model.moyenne_model import Moyenne
     from ..model.inscription_eleve_model import InscriptionEleve
-    from datetime import datetime, timedelta
+    from datetime import timedelta
+    
+    now = timezone.now()
+    today = timezone.localdate()
+    date_annee_derniere = now - timedelta(days=365)
+    date_annee_derniere_inscription = today - timedelta(days=365)
     
     # Récupérer la session consultée par le directeur (peut être différente de la session active)
     annee_scolaire_active = _get_session_directeur(request, etablissement)
@@ -888,10 +893,9 @@ def dashboard_directeur(request):
     nombre_eleves_total = eleves.count()
     
     # Calculer le pourcentage de croissance (approximation basée sur les dates d'inscription récentes)
-    date_annee_derniere = datetime.now() - timedelta(days=365)
     eleves_annee_derniere = Eleve.objects.filter(
         etablissement=etablissement, 
-        date_inscription__lte=date_annee_derniere,
+        date_inscription__lte=date_annee_derniere_inscription,
         actif=True
     ).count()
     if eleves_annee_derniere > 0:
@@ -921,7 +925,7 @@ def dashboard_directeur(request):
     
     # === ÉVALUATIONS EN COURS ===
     # Récupérer les évaluations/devoirs de la semaine en cours
-    date_debut_semaine = datetime.now() - timedelta(days=datetime.now().weekday())
+    date_debut_semaine = today - timedelta(days=today.weekday())
     
     # Pour établissements primaires
     if etablissement.type_etablissement == 'primary':
@@ -975,7 +979,7 @@ def dashboard_directeur(request):
     alertes_count = 0
     
     # Alertes de présence (élèves avec beaucoup d'absences ce mois)
-    date_debut_mois = datetime.now().replace(day=1)
+    date_debut_mois = today.replace(day=1)
     eleves_avec_absences = 0
     for eleve in eleves[:100]:  # Limiter pour la performance
         absences_queryset = Presence.objects.filter(

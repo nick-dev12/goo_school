@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'school_admin/partials/seo_head.html' %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% include 'school_admin/partials/legal_document_styles.html' %}
+</head>
+<body>
+    <header class="legal-topbar">
+        <a href="{% url 'school_admin:connexion_compte_user' %}" class="legal-brand" aria-label="Aria — retour connexion">
+            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="" width="36" height="36">
+            <span>Aria</span>
+        </a>
+        <div class="legal-topbar-actions">
+            <span class="legal-chip"><i class="fas fa-file-contract" aria-hidden="true"></i> Conditions d'utilisation</span>
+            <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn-legal-nav btn-legal-primary">
+                <i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                Connexion
+            </a>
+        </div>
+    </header>
+
+    <div class="legal-hero">
+        <div class="legal-hero-inner">
+            <div class="legal-hero-content">
+                <h1>Conditions d'utilisation</h1>
+                <p class="legal-hero-lead">
+                    Règles d'accès et d'usage de la plateforme <strong>Aria</strong> et de l'application mobile <strong>Aria-edu</strong> au sein d'un environnement scolaire numérique.
+                </p>
+                <div class="legal-hero-meta" role="note">
+                    <span><i class="fas fa-calendar-check" aria-hidden="true"></i> Dernière mise à jour : 20 mai 2026</span>
+                    <span><i class="fas fa-language" aria-hidden="true"></i> Version de référence : français</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="legal-layout">
+        <aside class="legal-toc-wrap" aria-label="Sommaire">
+            <nav class="legal-toc">
+                <p class="legal-toc-title">Sommaire</p>
+                <ul>
+                    <li><a href="#introduction">Introduction</a></li>
+                    <li><a href="#definitions">Définitions</a></li>
+                    <li><a href="#acceptation">Acceptation</a></li>
+                    <li><a href="#services">Services proposés</a></li>
+                    <li><a href="#comptes">Comptes utilisateurs</a></li>
+                    <li><a href="#obligations">Obligations</a></li>
+                    <li><a href="#propriete">Propriété intellectuelle</a></li>
+                    <li><a href="#responsabilite">Responsabilité</a></li>
+                    <li><a href="#suppression">Suppression de compte</a></li>
+                    <li><a href="#modifications">Évolution</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <article class="legal-main">
+            <div class="legal-related-doc">
+                <strong>Document complémentaire :</strong> le traitement de vos données personnelles est décrit dans la
+                <a href="{% url 'school_admin:politique_confidentialite' %}" class="legal-inline-link">politique de confidentialité</a>.
+            </div>
+
+            <div class="trust-cards">
+                <div class="trust-card">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    <h3>Usage scolaire</h3>
+                    <p>La plateforme sert la vie administrative et pédagogique de l'établissement.</p>
+                </div>
+                <div class="trust-card">
+                    <i class="fas fa-user-lock" aria-hidden="true"></i>
+                    <h3>Accès contrôlé</h3>
+                    <p>Chaque rôle (élève, parent, enseignant, direction) accède aux données qui le concernent.</p>
+                </div>
+                <div class="trust-card">
+                    <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+                    <h3>Cadre légal</h3>
+                    <p>Les CGU complètent le règlement intérieur et les règles de l'établissement.</p>
+                </div>
+            </div>
+
+            <div class="legal-paper">
+                <section id="introduction" class="legal-section">
+                    <h2><i class="fas fa-book-open" aria-hidden="true"></i> Introduction</h2>
+                    <p>
+                        Les présentes conditions générales d'utilisation («&nbsp;<strong>CGU</strong>&nbsp;») régissent l'accès et l'utilisation du service en ligne <strong>Aria</strong> (la «&nbsp;<strong>Plateforme</strong>&nbsp;») et de l'application mobile <strong>Aria-edu</strong> (l'«&nbsp;<strong>Application</strong>&nbsp;»).
+                    </p>
+                    <p>
+                        La Plateforme est mise à disposition des <strong>établissements scolaires</strong> pour organiser la gestion administrative et pédagogique (emplois du temps, notes, bulletins, communications, présences, préinscriptions, etc.).
+                    </p>
+                    <div class="legal-callout legal-callout--info">
+                        <strong>Données personnelles :</strong> consultez la
+                        <a href="{% url 'school_admin:politique_confidentialite' %}" class="legal-inline-link">politique de confidentialité</a>
+                        pour connaître les finalités de traitement, vos droits et les contacts utiles.
+                    </div>
+                </section>
+
+                <section id="definitions" class="legal-section">
+                    <h2><i class="fas fa-list-ul" aria-hidden="true"></i> Définitions</h2>
+                    <ul>
+                        <li><strong>Compte :</strong> identifiants personnels permettant d'accéder à la Plateforme (matricule, courriel, mot de passe, etc.).</li>
+                        <li><strong>Établissement :</strong> structure scolaire abonnée ou habilitée à utiliser Aria.</li>
+                        <li><strong>Utilisateur :</strong> toute personne accédant à la Plateforme (direction, personnel, enseignants, élèves, parents).</li>
+                        <li><strong>Exploitant :</strong> l'entité qui développe et met à disposition la solution Aria.</li>
+                    </ul>
+                </section>
+
+                <section id="acceptation" class="legal-section">
+                    <h2><i class="fas fa-handshake" aria-hidden="true"></i> Acceptation</h2>
+                    <p>
+                        En vous connectant ou en cochant la case d'acceptation sur le formulaire de connexion, vous reconnaissez avoir lu et accepté les présentes CGU, dans la mesure permise par la loi.
+                    </p>
+                    <p>
+                        Pour les <strong>mineurs</strong>, l'usage est encadré par l'établissement et, le cas échéant, par les titulaires de l'autorité parentale, conformément aux textes applicables.
+                    </p>
+                </section>
+
+                <section id="services" class="legal-section">
+                    <h2><i class="fas fa-puzzle-piece" aria-hidden="true"></i> Services proposés</h2>
+                    <p>
+                        Aria propose des modules de gestion scolaire et de communication. Les fonctionnalités effectivement disponibles dépendent du paramétrage de l'établissement et du rôle de l'utilisateur, notamment&nbsp;:
+                    </p>
+                    <ul>
+                        <li>Consultation des emplois du temps, notes, bulletins et devoirs ;</li>
+                        <li>Communication entre acteurs de l'éducation ;</li>
+                        <li>Connexion par QR code (carte élève/étudiant) sur la page de connexion ;</li>
+                        <li>Notifications push via l'application mobile Aria-edu ;</li>
+                        <li>Modules optionnels (préinscription, comptabilité, etc.) selon l'abonnement de l'établissement.</li>
+                    </ul>
+                </section>
+
+                <section id="comptes" class="legal-section">
+                    <h2><i class="fas fa-id-card" aria-hidden="true"></i> Comptes utilisateurs</h2>
+                    <p>
+                        Les comptes sont en règle générale <strong>créés ou validés par l'établissement</strong>. Vous vous engagez à fournir des informations exactes et à conserver la confidentialité de vos identifiants.
+                    </p>
+                    <p>
+                        Toute connexion réalisée avec vos identifiants est réputée effectuée par vous, sauf preuve contraire ou signalement immédiat en cas de compromission.
+                    </p>
+                </section>
+
+                <section id="obligations" class="legal-section">
+                    <h2><i class="fas fa-shield-halved" aria-hidden="true"></i> Obligations des utilisateurs</h2>
+                    <ul>
+                        <li>Utiliser la Plateforme de manière loyale et conforme au cadre scolaire.</li>
+                        <li>Ne pas tenter d'accéder à des données ou espaces non autorisés.</li>
+                        <li>Ne pas introduire de virus, scripts malveillants ou contenus illicites.</li>
+                        <li>Ne pas usurper l'identité d'un tiers ni contourner les mesures de sécurité.</li>
+                        <li>Respecter la confidentialité des informations consultées (pas de diffusion abusive).</li>
+                    </ul>
+                    <h3>Sanctions</h3>
+                    <p>
+                        En cas de manquement grave, l'établissement et/ou l'exploitant peuvent suspendre ou clôturer un compte, restreindre certaines fonctionnalités ou saisir les autorités compétentes.
+                    </p>
+                </section>
+
+                <section id="propriete" class="legal-section">
+                    <h2><i class="fas fa-copyright" aria-hidden="true"></i> Propriété intellectuelle</h2>
+                    <p>
+                        Les éléments composant Aria (marque, interface, textes, graphismes, code) restent la propriété de leurs titulaires respectifs. Toute reproduction non autorisée est interdite.
+                    </p>
+                    <p>
+                        Les contenus pédagogiques déposés par les utilisateurs restent sous la responsabilité de leurs auteurs ; l'établissement peut définir les modalités de licence nécessaires au fonctionnement du service.
+                    </p>
+                </section>
+
+                <section id="responsabilite" class="legal-section">
+                    <h2><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Limitation de responsabilité</h2>
+                    <p>
+                        La Plateforme est fournie selon la disponibilité technique et les engagements contractuels de l'établissement. Des interruptions (maintenance, panne réseau, force majeure) peuvent survenir.
+                    </p>
+                    <ul>
+                        <li>L'exploitant n'est pas responsable des erreurs de saisie des utilisateurs ni des décisions pédagogiques de l'établissement.</li>
+                        <li>Les notes et moyennes affichées sont un outil de suivi ; seules les validations officielles de l'établissement font foi lorsque la loi l'exige.</li>
+                    </ul>
+                </section>
+
+                <section id="suppression" class="legal-section">
+                    <h2><i class="fas fa-user-xmark" aria-hidden="true"></i> Suppression de compte</h2>
+                    <p>
+                        La suppression d'un compte ou l'effacement de données peut nécessiter une demande auprès de la direction ou du secrétariat, sous réserve des obligations légales de conservation.
+                    </p>
+                    <p>
+                        Modalités détaillées&nbsp;:
+                        <a href="{% url 'school_admin:suppression_compte' %}" class="legal-inline-link">Demande de suppression de compte et des données</a>.
+                    </p>
+                </section>
+
+                <section id="modifications" class="legal-section">
+                    <h2><i class="fas fa-rotate" aria-hidden="true"></i> Évolution des CGU</h2>
+                    <p>
+                        Les présentes CGU peuvent être mises à jour pour refléter l'évolution légale, technique ou fonctionnelle de la Plateforme. La date de mise à jour figure en tête de page. En cas de changement substantiel, un avis peut être donné via la Plateforme ou par l'établissement.
+                    </p>
+                </section>
+
+                <section id="contact" class="legal-section">
+                    <h2><i class="fas fa-envelope" aria-hidden="true"></i> Contact</h2>
+                    <p>
+                        Pour toute question relative aux présentes CGU, contactez en priorité <strong>l'administration de votre établissement</strong> (secrétariat, direction).
+                    </p>
+                    <p>
+                        Pour les questions relatives aux données personnelles, consultez la
+                        <a href="{% url 'school_admin:politique_confidentialite' %}" class="legal-inline-link">politique de confidentialité</a>.
+                    </p>
+                </section>
+            </div>
+        </article>
+    </div>
+
+    <div class="legal-footer-cta">
+        <div class="legal-footer-cta-inner">
+            <p>Consultez aussi la politique de confidentialité pour le traitement de vos données personnelles.</p>
+            <div class="btn-row">
+                <a href="{% url 'school_admin:connexion_compte_user' %}" class="btn-legal-nav btn-legal-primary">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    Retour à la connexion
+                </a>
+                <a href="{% url 'school_admin:politique_confidentialite' %}" class="btn-legal-nav" style="background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); color: #fff;">
+                    Politique de confidentialité
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <p class="legal-page-footnote">
+        Les présentes informations ne remplacent pas un conseil juridique personnalisé.
+    </p>
+</body>
+</html>

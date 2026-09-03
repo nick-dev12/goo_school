@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:convert';
 import 'services/fcm_service.dart';
+import 'utils/permission_rationale.dart';
 import 'dart:async';
 
 // Handler pour les notifications en arrière-plan
@@ -259,14 +260,26 @@ class _WebViewScreenState extends State<WebViewScreen>
     );
   }
 
-  // Gérer la demande de caméra
+  // Gérer la demande de caméra (photo d'identité, document scolaire)
   Future<Map<String, dynamic>> _handleCameraRequest() async {
     try {
-      // Vérifier d'abord le statut de la permission de caméra
       PermissionStatus cameraStatus = await Permission.camera.status;
 
-      // Si la permission n'est pas accordée, la demander
       if (!cameraStatus.isGranted) {
+        if (mounted) {
+          final accepted = await showPermissionRationaleDialog(
+            context: context,
+            title: 'Accès à la caméra',
+            message: PermissionPurposeStrings.cameraSystem,
+          );
+          if (!accepted) {
+            return {
+              'success': false,
+              'error': 'L\'accès à la caméra a été refusé.',
+            };
+          }
+        }
+
         cameraStatus = await Permission.camera.request();
 
         // Si la permission est refusée de manière permanente
@@ -309,27 +322,42 @@ class _WebViewScreenState extends State<WebViewScreen>
     }
   }
 
-  // Gérer la demande de localisation
+  // Gérer la demande de localisation (pointage présence)
   Future<Map<String, dynamic>> _handleLocationRequest() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return {'success': false, 'error': 'Location services are disabled'};
-      }
-
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return {'success': false, 'error': 'Location permissions are denied'};
-        }
-      }
 
       if (permission == LocationPermission.deniedForever) {
         return {
           'success': false,
           'error': 'Location permissions are permanently denied',
         };
+      }
+
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          final accepted = await showPermissionRationaleDialog(
+            context: context,
+            title: 'Accès à la localisation',
+            message: PermissionPurposeStrings.locationSystem,
+          );
+          if (!accepted) {
+            return {
+              'success': false,
+              'error': 'Location permissions are denied',
+            };
+          }
+        }
+
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return {'success': false, 'error': 'Location permissions are denied'};
+        }
+      }
+
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return {'success': false, 'error': 'Location services are disabled'};
       }
 
       Position position = await Geolocator.getCurrentPosition(
@@ -615,7 +643,34 @@ class _WebViewScreenState extends State<WebViewScreen>
                   }
                 },
                 onPermissionRequest: (controller, request) async {
-                  // Autoriser caméra/micro par défaut pour la WebView
+                  final title = webViewPermissionTitle(request.resources);
+                  final message = webViewPermissionMessage(request.resources);
+
+                  if (title != null && message != null && mounted) {
+                    final accepted = await showPermissionRationaleDialog(
+                      context: context,
+                      title: title,
+                      message: message,
+                    );
+                    if (!accepted) {
+                      return PermissionResponse(
+                        resources: request.resources,
+                        action: PermissionResponseAction.DENY,
+                      );
+                    }
+                  }
+
+                  final resourceNames = request.resources
+                      .map((r) => r.toString().toLowerCase())
+                      .join(' ');
+                  if (resourceNames.contains('camera')) {
+                    await Permission.camera.request();
+                  }
+                  if (resourceNames.contains('microphone') ||
+                      resourceNames.contains('audio')) {
+                    await Permission.microphone.request();
+                  }
+
                   return PermissionResponse(
                     resources: request.resources,
                     action: PermissionResponseAction.GRANT,

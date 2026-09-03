@@ -37,7 +37,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-graduation-cap"></i>
                     {% trans "Certificats de Scolarité" %}
@@ -45,12 +46,6 @@
                 <p class="page-subtitle">
                     Générer des certificats de scolarité pour les élèves de {{ etablissement.nom }}
                 </p>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:gestion_administrative' %}" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour" %}</span>
-                </a>
             </div>
         </div>
 

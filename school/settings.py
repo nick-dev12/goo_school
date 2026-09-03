@@ -17,6 +17,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 import os
 
+import environ
+
+env = environ.Env(
+    DEBUG=(bool, True),
+    USE_CELERY=(bool, False),
+    USE_REDIS_CACHE=(bool, False),
+    REALTIME_LOCAL=(bool, False),
+)
+
+_env_file = BASE_DIR / '.env'
+if _env_file.is_file():
+    environ.Env.read_env(str(_env_file))
+
 # ...
 
 STATIC_URL = '/static/'
@@ -38,12 +51,11 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Utiliser une variable d'environnement en production
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG est False en production, True en développement
-# Par défaut, True en développement local
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = env.bool('DEBUG', default=True)
+REALTIME_LOCAL = env.bool('REALTIME_LOCAL', default=False)
 
 # Hosts autorisés
 ALLOWED_HOSTS = [
@@ -62,8 +74,26 @@ SEO_DEFAULT_OG_IMAGE = f'{SITE_URL.rstrip("/")}/static/school_admin/img/logo.jpe
 
 
 # Application definition
+# Temps réel local : copier .env.example vers .env et REALTIME_LOCAL=True (Redis requis sur 6379)
+
+_redis_default = 'redis://127.0.0.1:6379/0'
+REDIS_URL = env('REDIS_URL', default='').strip()
+if not REDIS_URL and (REALTIME_LOCAL or not DEBUG):
+    REDIS_URL = _redis_default
+
+_realtime_enabled = bool(REDIS_URL)
+USE_CELERY = env.bool(
+    'USE_CELERY',
+    default=_realtime_enabled and (REALTIME_LOCAL or not DEBUG),
+)
+USE_REDIS_CACHE = env.bool(
+    'USE_REDIS_CACHE',
+    default=_realtime_enabled and (REALTIME_LOCAL or not DEBUG),
+)
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -117,6 +147,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'school.wsgi.application'
+ASGI_APPLICATION = 'school.asgi.application'
 
 
 # Database
@@ -125,7 +156,7 @@ WSGI_APPLICATION = 'school.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'goo_school'),
+        'NAME': os.getenv('DB_NAME', 'aria'),
         'USER': os.getenv('DB_USER', 'postgres'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'Ludvanne'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
@@ -198,13 +229,53 @@ LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR = (
 )
 
 # Cache (limitation des tentatives de connexion, etc.)
-# En production multi-workers, préférer Redis/Memcached pour un état partagé.
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'school-admin-locmem',
+# En production multi-workers, utiliser Redis pour un état partagé.
+if USE_REDIS_CACHE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'school-admin-locmem',
+        }
+    }
+
+# ============================================
+# Temps réel — Django Channels (WebSockets)
+# ============================================
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
+
+# ============================================
+# Tâches asynchrones — Celery
+# ============================================
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', REDIS_URL)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Configuration du modèle d'utilisateur personnalisé
 AUTH_USER_MODEL = 'school_admin.CompteUser'

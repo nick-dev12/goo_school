@@ -230,11 +230,8 @@
     <div class="main-content-container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
-                <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-back" style="margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--gray-600);">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>{% trans "Retour à la liste" %}</span>
-                </a>
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-file-alt"></i>
                     {% trans "Détails de la préinscription" %}
@@ -453,10 +450,6 @@
             {% if preinscription.statut == 'en_attente' %}
             <div class="detail-card">
                 <div class="actions-container">
-                    <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-action btn-back">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>{% trans "Retour" %}</span>
-                    </a>
                     <button type="button" class="btn-action btn-validate" onclick="validerPreinscription()">
                         <i class="fas fa-check"></i>
                         <span>{% trans "Valider la préinscription" %}</span>
@@ -470,10 +463,6 @@
             {% else %}
             <div class="detail-card">
                 <div class="actions-container">
-                    <a href="{% url 'directeur:liste_preinscriptions' %}" class="btn-action btn-back">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>{% trans "Retour à la liste" %}</span>
-                    </a>
                 </div>
             </div>
             {% endif %}

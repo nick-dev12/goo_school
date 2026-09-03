@@ -200,12 +200,9 @@
     <div class="content-container">
       <!-- Page Header -->
       <div class="page-header">
-        <div class="header-content">
+        {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="header-content">
           <div class="header-actions">
-            <a href="{% url 'secretaire:liste_eleves' %}" class="btn-secondary">
-              <i class="fas fa-arrow-left"></i>
-              {% trans "Retour à la liste" %}
-            </a>
             <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="btn-primary">
               <i class="fas fa-print"></i>
               {% trans "Imprimer le reçu" %}

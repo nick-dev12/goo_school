@@ -182,7 +182,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="page-title-section">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+          <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-calculator"></i>
                     Détails Comptabilité - {{ eleve.nom }} {{ eleve.prenom }}
@@ -195,10 +196,6 @@
                 <a href="{% url 'directeur:enregistrer_paiement_directeur' eleve.id %}" class="btn btn-success">
                     <i class="fas fa-money-bill-wave"></i>
                     {% trans "Enregistrer un paiement" %}
-                </a>
-                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    {% trans "Retour à la liste" %}
                 </a>
             </div>
         </div>

@@ -33,7 +33,8 @@
         <div class="content-container">
             <!-- Page Header -->
             <div class="page-header">
-                <div class="breadcrumb">
+                {% include 'school_admin/directeur/partials/page_header_back.html' %}
+<div class="breadcrumb">
                     <a href="{% url 'secretaire:gestion_classes' %}" class="breadcrumb-link">
                         <i class="fas fa-chalkboard"></i>
                         {% trans "Classes" %}
@@ -54,10 +55,6 @@
                     <a href="{% url 'secretaire:imprimer_liste_eleves' classe.id %}" class="btn-action btn-primary" target="_blank">
                         <i class="fas fa-print"></i>
                         {% trans "Imprimer Liste" %}
-                    </a>
-                    <a href="{% url 'secretaire:gestion_classes' %}" class="btn-action btn-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        {% trans "Retour" %}
                     </a>
                 </div>
             </div>

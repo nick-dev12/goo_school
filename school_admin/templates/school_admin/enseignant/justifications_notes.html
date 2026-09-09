@@ -11,8 +11,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.3">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/justifications_notes.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
 </head>
-<body>
+<body data-live-page="justifications">
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <div class="main-content-container">
@@ -283,7 +284,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <form method="post" action="{% url 'enseignant:justifications_notes' %}" class="modal-form">
+            <form method="post" action="{% url 'enseignant:justifications_notes' %}" class="modal-form" id="formJustificationNote">
                 {% csrf_token %}
                 <input type="hidden" name="eleve_id" id="modalEleveId">
                 <input type="hidden" name="note_type" id="noteTypeInput" value="evaluation">
@@ -330,6 +331,7 @@
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
 
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+{% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>
 

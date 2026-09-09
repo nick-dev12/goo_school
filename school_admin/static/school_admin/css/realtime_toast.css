@@ -1,0 +1,69 @@
+/* Toasts temps réel — Aria */
+.aria-realtime-toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.aria-realtime-toast {
+  pointer-events: auto;
+  background: #ffffff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1rem;
+  animation: ariaRealtimeSlideIn 0.25s ease-out;
+}
+
+.aria-realtime-toast-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.25rem;
+}
+
+.aria-realtime-toast-body {
+  font-size: 0.8125rem;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.aria-realtime-toast--success {
+  border-left-color: #10b981;
+}
+
+.aria-realtime-toast--info {
+  border-left-color: #8b5cf6;
+}
+
+.aria-realtime-toast--warning {
+  border-left-color: #f59e0b;
+}
+
+@keyframes ariaRealtimeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .aria-realtime-toast-container {
+    top: auto;
+    bottom: 5rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    max-width: none;
+  }
+}

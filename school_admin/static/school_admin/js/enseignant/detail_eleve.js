@@ -21,7 +21,7 @@ function ouvrirModalModification(presenceId, statutActuel, date) {
     });
     
     // Mettre à jour l'action du formulaire
-    const form = document.getElementById('form-modifier-presence');
+    const form = document.getElementById('formModifierPresence');
     form.action = `/enseignant/modifier-presence/${presenceId}/`;
     
     // Afficher le modal

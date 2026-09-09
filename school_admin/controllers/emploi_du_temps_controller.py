@@ -58,6 +58,33 @@ from ..utils.session_utils import get_session_active
 logger = logging.getLogger(__name__)
 
 
+def _emploi_live_response(request, etablissement, classe_id, emploi_id=None, message=None, field_errors=None, form_data=None):
+    from django.urls import reverse
+    from ..services.realtime_helpers import wants_json_response, json_ok, json_fail, emit_live
+    from ..services.live_serializers import serialize_emploi_refresh_item
+
+    item = serialize_emploi_refresh_item(classe_id, emploi_id)
+
+    if field_errors:
+        if wants_json_response(request):
+            return json_fail(field_errors=field_errors, message=message)
+        if form_data is not None:
+            request.session['creneau_form_data'] = form_data
+            request.session['creneau_field_errors'] = field_errors
+        return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe_id)
+
+    emit_live(
+        etablissement.id,
+        'emploi.mise_a_jour',
+        {'event': 'emploi.mise_a_jour', 'item': item},
+    )
+    if wants_json_response(request):
+        return json_ok(message=message or 'Emploi du temps mis à jour.', item=item)
+    if message:
+        messages.success(request, message)
+    return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe_id)
+
+
 class EmploiDuTempsController:
     """
     Contrôleur pour gérer les emplois du temps des classes
@@ -701,6 +728,17 @@ class EmploiDuTempsController:
                 f"L'emploi du temps de la classe {emploi.classe.nom} a été publié et les notifications sont en cours d'envoi.",
             )
 
+        from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+        from ..services.live_serializers import serialize_emploi_refresh_item
+        item = serialize_emploi_refresh_item(emploi.classe.id, emploi.id)
+        emit_live(
+            etablissement.id,
+            'emploi.mise_a_jour',
+            {'event': 'emploi.mise_a_jour', 'item': item},
+        )
+        if wants_json_response(request):
+            return json_ok(message="Emploi du temps publié.", item=item)
+
         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi.classe.id)
     
     @staticmethod
@@ -997,9 +1035,14 @@ class EmploiDuTempsController:
                         
                         emploi_du_temps.marquer_comme_modifie()
                         
-                        messages.success(request, "Le créneau a été ajouté avec succès !")
                         EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
-                        return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
+                        return _emploi_live_response(
+                            request,
+                            etablissement,
+                            emploi_du_temps.classe.id,
+                            emploi_id=emploi_du_temps.id,
+                            message="Le créneau a été ajouté avec succès !",
+                        )
                         
                 except Exception as e:
                     logger.error(f"Erreur lors de l'ajout du créneau: {str(e)}")
@@ -1007,9 +1050,14 @@ class EmploiDuTempsController:
             
             # En cas d'erreur, stocker les données en session et rediriger vers detail_emploi_du_temps
             if not is_valid:
-                request.session['creneau_form_data'] = form_data
-                request.session['creneau_field_errors'] = field_errors
-                return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
+                return _emploi_live_response(
+                    request,
+                    etablissement,
+                    emploi_du_temps.classe.id,
+                    emploi_id=emploi_du_temps.id,
+                    field_errors=field_errors,
+                    form_data=form_data,
+                )
         
         # Si c'est une requête GET, rediriger vers detail_emploi_du_temps
         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=emploi_du_temps.classe.id)
@@ -1222,9 +1270,14 @@ class EmploiDuTempsController:
                     creneau.save()
                     emploi_du_temps.marquer_comme_modifie()
 
-                messages.success(request, "Le créneau a été modifié avec succès !")
                 EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
-                return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe_id)
+                return _emploi_live_response(
+                    request,
+                    etablissement,
+                    classe_id,
+                    emploi_id=emploi_du_temps.id,
+                    message="Le créneau a été modifié avec succès !",
+                )
             except Exception as e:
                 logger.error("Erreur lors de la modification du créneau: %s", str(e))
                 field_errors['non_field_errors'] = "Une erreur est survenue lors de la modification du créneau."
@@ -1263,10 +1316,19 @@ class EmploiDuTempsController:
             try:
                 creneau.delete()
                 emploi_du_temps.marquer_comme_modifie()
-                messages.success(request, "Le créneau a été supprimé avec succès.")
                 EmploiDuTempsController._alerter_republication(request, emploi_du_temps)
+                return _emploi_live_response(
+                    request,
+                    etablissement,
+                    classe_id,
+                    emploi_id=emploi_du_temps.id,
+                    message="Le créneau a été supprimé avec succès.",
+                )
             except Exception as e:
                 logger.error(f"Erreur lors de la suppression du créneau: {str(e)}")
+                from ..services.realtime_helpers import wants_json_response, json_fail
+                if wants_json_response(request):
+                    return json_fail(message="Une erreur est survenue lors de la suppression du créneau.")
                 messages.error(request, "Une erreur est survenue lors de la suppression du créneau.")
         
         return redirect('administrateur_etablissement:detail_emploi_du_temps', classe_id=classe_id)

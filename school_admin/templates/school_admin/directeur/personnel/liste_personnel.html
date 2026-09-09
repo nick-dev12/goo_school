@@ -27,10 +27,22 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1"
     />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.6"
+    />
     <!-- intl-tel-input CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
   </head>
-  <body>
+  <body data-live-page="personnel"{% if field_errors %} data-open-modal-personnel="1"{% endif %}>
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -49,30 +61,29 @@
           </p>
         </div>
         <div class="page-actions">
-          <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-add btn-primary">
+          <button type="button" class="btn-add btn-primary" onclick="openModalProfesseur()">
             <i class="fas fa-chalkboard-teacher"></i>
             <span>{% trans "Ajouter un professeur" %}</span>
-          </a>
-          <button type="button" class="btn-add btn-secondary" onclick="toggleFormAjouter()">
+          </button>
+          <button type="button" class="btn-add btn-secondary" onclick="openModalPersonnel()">
             <i class="fas fa-user-tie"></i>
-            <span id="btnAjouterText">{% trans "Ajouter du personnel" %}</span>
+            <span>{% trans "Ajouter du personnel" %}</span>
           </button>
         </div>
       </div>
 
-      <!-- Formulaire d'ajout de personnel (masqué par défaut) -->
-      <div id="formAjouterPersonnelContainer" style="display: none;">
-        <div class="form-ajouter-wrapper">
-          <div class="form-ajouter-header">
-            <h2>
-              <i class="fas fa-user-plus"></i>
-              {% trans "Ajouter un Membre du Personnel" %}
-            </h2>
-            <button type="button" class="btn-close-form" onclick="toggleFormAjouter()">
+      <!-- Modals d'ajout (plein écran) -->
+      <div id="modalAjouterPersonnel" class="modal-creneau-fullscreen personnel-form-modal">
+        <div class="modal-creneau-overlay" onclick="closeModalPersonnel()"></div>
+        <div class="modal-creneau-content">
+          <div class="modal-creneau-header">
+            <h2><i class="fas fa-user-plus"></i> {% trans "Ajouter un Membre du Personnel" %}</h2>
+            <button type="button" class="modal-creneau-close" onclick="closeModalPersonnel()" aria-label="{% trans 'Fermer' %}">
               <i class="fas fa-times"></i>
             </button>
           </div>
-          
+          <div class="modal-creneau-body">
+        <div class="form-ajouter-wrapper">
           <form id="formAjouterPersonnel" method="post" action="{% url 'personnel:ajouter_personnel' %}">
             {% csrf_token %}
             
@@ -108,11 +119,11 @@
                 
                 <div class="form-grid">
                   <div class="form-group">
-                    <label for="nom" class="form-label">
+                    <label for="personnel_nom" class="form-label">
                       {% trans "Nom" %} <span class="required">*</span>
                     </label>
                     <input type="text" 
-                           id="nom" 
+                           id="personnel_nom" 
                            name="nom" 
                            class="form-input" 
                            required
@@ -120,11 +131,11 @@
                   </div>
                   
                   <div class="form-group">
-                    <label for="prenom" class="form-label">
+                    <label for="personnel_prenom" class="form-label">
                       {% trans "Prénom <span class=\"required\">*</span>" %}
                     </label>
                     <input type="text" 
-                           id="prenom" 
+                           id="personnel_prenom" 
                            name="prenom" 
                            class="form-input" 
                            required
@@ -132,12 +143,12 @@
                   </div>
                   
                   <div class="form-group">
-                    <label for="email" class="form-label">
+                    <label for="personnel_email" class="form-label">
                       {% trans "Email" %}
                       <span class="label-optional" style="font-weight: normal; color: var(--gray-500); font-size: 0.75rem;">{% trans "(Facultatif)" %}</span>
                     </label>
                     <input type="email" 
-                           id="email" 
+                           id="personnel_email" 
                            name="email" 
                            class="form-input" 
                            value="{{ form_data.email|default:'' }}"
@@ -145,17 +156,17 @@
                   </div>
                   
                   <div class="form-group">
-                    <label for="telephone" class="form-label">
+                    <label for="personnel_telephone" class="form-label">
                       {% trans "Téléphone <span class=\"required\">*</span>" %}
                     </label>
                     <input type="tel" 
-                           id="telephone" 
-                           name="telephone" 
+                           id="personnel_telephone" 
+                           name="telephone"
                            class="form-input" 
                            required
                            value="{{ form_data.telephone|default:'' }}">
-                    <input type="hidden" name="telephone_full" id="telephone_full">
-                    <small class="form-text" id="phone-error" style="color: #dc3545; display: none; font-size: 0.75rem; margin-top: 4px;"></small>
+                    <input type="hidden" name="telephone_full" id="personnel_telephone_full">
+                    <small class="form-text" id="personnel_phone-error" style="color: #dc3545; display: none; font-size: 0.75rem; margin-top: 4px;"></small>
                   </div>
                 </div>
               </div>
@@ -168,10 +179,10 @@
                 </h3>
                 
                 <div class="form-group">
-                  <label for="fonction" class="form-label">
+                  <label for="personnel_fonction" class="form-label">
                     {% trans "Fonction" %} <span class="required">*</span>
                   </label>
-                  <select id="fonction" 
+                  <select id="personnel_fonction" 
                           name="fonction" 
                           class="form-input" 
                           required
@@ -227,7 +238,7 @@
             </div>
             
             <div class="form-ajouter-footer">
-              <button type="button" class="btn-form btn-cancel" onclick="toggleFormAjouter()">
+              <button type="button" class="btn-modal-cancel" onclick="closeModalPersonnel()">
                 <i class="fas fa-times"></i>
                 {% trans "Annuler" %}
               </button>
@@ -237,6 +248,25 @@
               </button>
             </div>
           </form>
+        </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="modalAjouterProfesseur" class="modal-creneau-fullscreen personnel-form-modal">
+        <div class="modal-creneau-overlay" onclick="closeModalProfesseur()"></div>
+        <div class="modal-creneau-content">
+          <div class="modal-creneau-header">
+            <h2><i class="fas fa-chalkboard-teacher"></i> {% trans "Ajouter un Professeur" %}</h2>
+            <button type="button" class="modal-creneau-close" onclick="closeModalProfesseur()" aria-label="{% trans 'Fermer' %}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-creneau-body">
+            {% with form_data=prof_form_data field_errors=prof_field_errors %}
+              {% include 'school_admin/directeur/personnel/partials/form_ajouter_professeur_inner.html' %}
+            {% endwith %}
+          </div>
         </div>
       </div>
 
@@ -289,7 +319,7 @@
           
           <div class="personnel-grid" id="professeurs-grid">
             {% for professeur in professeurs %}
-              <div class="personnel-card professeur-card" data-matiere="{{ professeur.matiere_principale.id }}">
+              <div class="personnel-card professeur-card" data-professeur-id="{{ professeur.id }}" data-matiere="{{ professeur.matiere_principale.id }}">
                 <div class="card-header">
                   <div class="avatar">
                     <i class="fas fa-chalkboard-teacher"></i>
@@ -334,10 +364,10 @@
                 </div>
                 <h3>{% trans "Aucun professeur" %}</h3>
                 <p>{% trans "Commencez par ajouter des professeurs à votre équipe" %}</p>
-                <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-add">
+                <button type="button" class="btn-add" onclick="openModalProfesseur()">
                   <i class="fas fa-plus"></i>
                   <span>{% trans "Ajouter le premier professeur" %}</span>
-                </a>
+                </button>
               </div>
             {% endfor %}
           </div>
@@ -352,7 +382,7 @@
             </div>
             <div class="personnel-grid" id="{{ key }}-grid">
               {% for membre in categorie.personnel %}
-                <div class="personnel-card">
+                <div class="personnel-card" data-personnel-id="{{ membre.id }}">
                   <div class="card-header">
                     <div class="avatar">
                       <i class="fas {{ categorie.icon }}"></i>
@@ -394,10 +424,10 @@
                   </div>
                   <h3>Aucun membre dans {{ categorie.label }}</h3>
                   <p>{% trans "Commencez par ajouter du personnel" %}</p>
-                  <a href="{% url 'personnel:ajouter_personnel' %}" class="btn-add">
+                  <button type="button" class="btn-add" onclick="openModalPersonnel()">
                     <i class="fas fa-plus"></i>
                     <span>{% trans "Ajouter un membre" %}</span>
-                  </a>
+                  </button>
                 </div>
               {% endfor %}
             </div>
@@ -412,31 +442,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
     
     <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_personnel_modals.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}?v=1.0.5"></script>
     <script>
-      function toggleFormAjouter() {
-        const container = document.getElementById('formAjouterPersonnelContainer');
-        const btnText = document.getElementById('btnAjouterText');
-        
-        if (container.style.display === 'none' || !container.style.display) {
-          container.style.display = 'block';
-          if (btnText) btnText.textContent = 'Annuler';
-          // Scroll vers le formulaire
-          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          container.style.display = 'none';
-          if (btnText) btnText.textContent = 'Ajouter du personnel';
-        }
-      }
-
-      // Afficher automatiquement le formulaire s'il y a des erreurs
-      {% if field_errors %}
-        document.addEventListener('DOMContentLoaded', function() {
-          toggleFormAjouter();
-        });
-      {% endif %}
-
       function updatePermissionsByFunction() {
-        const fonctionSelect = document.getElementById('fonction');
+        const fonctionSelect = document.getElementById('personnel_fonction');
         if (!fonctionSelect) return;
         
         const fonction = fonctionSelect.value;
@@ -451,12 +461,10 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            // Décocher toutes les permissions
-            document.querySelectorAll('#formAjouterPersonnelContainer input[type="checkbox"][name^="permission_"]').forEach(cb => {
+            document.querySelectorAll('#modalAjouterPersonnel input[type="checkbox"][name^="permission_"]').forEach(cb => {
               cb.checked = false;
             });
             
-            // Cocher les permissions par défaut
             data.permissions.forEach(perm => {
               const checkbox = document.getElementById(`permission_${perm}`);
               if (checkbox) {
@@ -469,114 +477,8 @@
           console.error('Erreur lors de la récupération des permissions:', error);
         });
       }
-
-      // Initialisation de intl-tel-input pour le téléphone
-      document.addEventListener('DOMContentLoaded', function() {
-        const phoneInput = document.querySelector("#telephone");
-        const phoneFullInput = document.querySelector("#telephone_full");
-        const phoneError = document.querySelector("#phone-error");
-        const form = document.getElementById("formAjouterPersonnel");
-        
-        if (!phoneInput || !form) return;
-        
-        // Initialisation de intl-tel-input
-        const iti = window.intlTelInput(phoneInput, {
-          utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js",
-          separateDialCode: true,
-          initialCountry: "auto",
-          preferredCountries: ["sn", "ci", "cm", "fr"],
-          geoIpLookup: function(callback) {
-            fetch("https://ipapi.co/json")
-              .then(function(res) {
-                return res.json();
-              })
-              .then(function(data) {
-                callback(data.country_code);
-              })
-              .catch(function() {
-                callback("sn");
-              });
-          },
-          nationalMode: false,
-          autoFormat: true,
-          autoPlaceholder: "aggressive"
-        });
-        
-        // Validation en temps réel
-        phoneInput.addEventListener('blur', function() {
-          if (phoneInput.value.trim()) {
-            if (iti.isValidNumber()) {
-              phoneError.style.display = 'none';
-              phoneError.textContent = '';
-              phoneInput.classList.remove('is-invalid');
-              phoneFullInput.value = iti.getNumber();
-            } else {
-              const errorCode = iti.getValidationError();
-              let errorMessage = 'Numéro de téléphone invalide.';
-              
-              switch(errorCode) {
-                case window.intlTelInputUtils.validationError.TOO_SHORT:
-                  errorMessage = 'Le numéro de téléphone est trop court.';
-                  break;
-                case window.intlTelInputUtils.validationError.TOO_LONG:
-                  errorMessage = 'Le numéro de téléphone est trop long.';
-                  break;
-                case window.intlTelInputUtils.validationError.INVALID_COUNTRY_CODE:
-                  errorMessage = 'Code pays invalide.';
-                  break;
-                case window.intlTelInputUtils.validationError.INVALID_LENGTH:
-                  errorMessage = 'Longueur du numéro invalide.';
-                  break;
-                case window.intlTelInputUtils.validationError.NOT_A_NUMBER:
-                  errorMessage = 'Ceci n\'est pas un numéro de téléphone valide.';
-                  break;
-              }
-              
-              phoneError.textContent = errorMessage;
-              phoneError.style.display = 'block';
-              phoneInput.classList.add('is-invalid');
-              phoneFullInput.value = '';
-            }
-          }
-        });
-        
-        // Réinitialiser l'erreur quand l'utilisateur tape
-        phoneInput.addEventListener('input', function() {
-          phoneError.style.display = 'none';
-          phoneInput.classList.remove('is-invalid');
-        });
-        
-        // Récupérer le numéro formaté avant la soumission du formulaire
-        form.addEventListener('submit', function(e) {
-          if (phoneInput.value.trim()) {
-            if (iti.isValidNumber()) {
-              // Remplir le champ hidden avec le numéro au format E.164
-              phoneFullInput.value = iti.getNumber();
-              // Optionnel : remplir aussi le champ visible avec le numéro formaté
-              phoneInput.value = iti.getNumber();
-            } else {
-              // Empêcher la soumission si le numéro n'est pas valide
-              e.preventDefault();
-              phoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
-              phoneError.style.display = 'block';
-              phoneInput.classList.add('is-invalid');
-              phoneInput.focus();
-              return false;
-            }
-          }
-        });
-        
-        // Si une valeur existe déjà, la formater
-        if (phoneInput.value) {
-          try {
-            iti.setNumber(phoneInput.value);
-            phoneFullInput.value = iti.getNumber();
-          } catch (e) {
-            console.log('Erreur lors du formatage du numéro existant:', e);
-          }
-        }
-      });
     </script>
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

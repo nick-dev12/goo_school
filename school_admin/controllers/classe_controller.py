@@ -15,6 +15,8 @@ import random
 import string
 import json
 
+from django.urls import reverse
+
 from ..model.classe_model import Classe
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.etablissement_model import Etablissement
@@ -84,7 +86,87 @@ class ClasseController:
     """
     Contrôleur pour gérer les classes d'un établissement
     """
-    
+
+    @staticmethod
+    def _emit_classe_realtime(etablissement_id, event_type, payload):
+        from ..services.realtime_service import schedule_etablissement_event
+
+        try:
+            schedule_etablissement_event(etablissement_id, event_type, payload)
+        except Exception as exc:
+            logger.warning('Événement temps réel classe ignoré [%s]: %s', event_type, exc)
+
+    @staticmethod
+    def _classe_placement_payload(classe, est_superieur):
+        if est_superieur:
+            filiere = classe.department.nom if classe.department else "Sans spécialité"
+            niveau_lmd = classe.niveau_lmd or 'L1'
+            niveau_key = (
+                (classe.niveau_libelle or niveau_lmd) if niveau_lmd == 'AUTRE' else niveau_lmd
+            )
+            return {
+                'est_superieur': True,
+                'filiere_nom': filiere,
+                'niveau_key': niveau_key,
+            }
+        return {
+            'est_superieur': False,
+            'niveau_scolaire': classe.niveau,
+        }
+
+    @staticmethod
+    def _wants_json_response(request):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return True
+        return 'application/json' in request.headers.get('Accept', '')
+
+    @staticmethod
+    def _serialize_classe_liste_item(classe, est_superieur, nombre_enseignants=0):
+        """Sérialise une classe pour API JSON et WebSocket (comme TimaLove messages)."""
+        niveau_display = (
+            classe.get_libelle_niveau_superieur_complet()
+            if est_superieur
+            else classe.get_niveau_display()
+        )
+        icon_map = {
+            'maternelle': 'baby',
+            'primaire': 'child',
+            'college': 'graduation-cap',
+            'lycee': 'university',
+        }
+        examens = []
+        if est_superieur:
+            for lien in classe.liens_examens_concours.all():
+                examens.append({
+                    'libelle': lien.option.libelle,
+                    'description': lien.option.description or '',
+                })
+
+        item = {
+            'id': classe.id,
+            'nom': classe.nom,
+            'nom_complet': classe.nom_complet,
+            'niveau': classe.niveau,
+            'niveau_display': niveau_display,
+            'niveau_badge_class': 'niveau-superieur' if est_superieur else f'niveau-{classe.niveau}',
+            'icon': 'book' if est_superieur else icon_map.get(classe.niveau, 'book'),
+            'actif': classe.actif,
+            'nombre_eleves': classe.nombre_eleves,
+            'capacite_max': classe.capacite_max,
+            'taux_occupation': classe.taux_occupation,
+            'code_classe': classe.code_classe,
+            'nombre_enseignants': nombre_enseignants,
+            'date_creation': (
+                timezone.localtime(classe.date_creation).strftime('%d/%m/%Y')
+                if classe.date_creation else ''
+            ),
+            'detail_url': reverse('administrateur_etablissement:detail_classe', args=[classe.id]),
+            'toggle_url': reverse('administrateur_etablissement:toggle_actif', args=[classe.id]),
+            'examens': examens,
+        }
+        item.update(ClasseController._classe_placement_payload(classe, est_superieur))
+        return item
+
     @staticmethod
     def generate_code_classe(nom, niveau, etablissement, niveau_lmd=None):
         """
@@ -569,8 +651,27 @@ class ClasseController:
                             ClasseController.sync_classe_examens_concours(
                                 classe, form_data.get('examens_concours_ids') or []
                             )
-                        
-                        messages.success(request, f"La classe {classe.nom_complet} a été ajoutée avec succès !")
+
+                        classe = Classe.objects.select_related(
+                            'department', 'academic_level'
+                        ).prefetch_related(_PREFETCH_LIENS_EXAMENS).get(pk=classe.pk)
+
+                        item = ClasseController._serialize_classe_liste_item(classe, est_superieur, 0)
+                        success_message = f"La classe {classe.nom_complet} a été ajoutée avec succès !"
+                        ClasseController._emit_classe_realtime(
+                            etablissement.id,
+                            'classe.creee',
+                            {'event': 'classe.creee', 'item': item},
+                        )
+
+                        if ClasseController._wants_json_response(request):
+                            return JsonResponse({
+                                'ok': True,
+                                'message': success_message,
+                                'item': item,
+                            })
+
+                        messages.success(request, success_message)
                         return redirect('administrateur_etablissement:liste_classes')
                         
                 except Exception as e:
@@ -609,6 +710,9 @@ class ClasseController:
         
         # Si c'est une requête POST avec des erreurs, afficher la liste avec le modal ouvert
         if request.method == 'POST' and field_errors:
+            if ClasseController._wants_json_response(request):
+                return JsonResponse({'ok': False, 'field_errors': field_errors}, status=400)
+
             # Récupérer les classes pour la liste
             classes = Classe.objects.filter(
                 etablissement=etablissement
@@ -1222,12 +1326,59 @@ class ClasseController:
             
             status = "activée" if classe.actif else "désactivée"
             messages.success(request, f"La classe {classe.nom_complet} a été {status}.")
-            
+            ClasseController._emit_classe_realtime(
+                etablissement.id,
+                'classe.modifiee',
+                {
+                    'event': 'classe.modifiee',
+                    'item': ClasseController._serialize_classe_liste_item(
+                        classe,
+                        etablissement.type_etablissement == 'superieur',
+                        classe.affectations.filter(actif=True).count(),
+                    ),
+                    'actif': classe.actif,
+                },
+            )
+
         except Classe.DoesNotExist:
             messages.error(request, "Classe non trouvée.")
         
         return redirect('administrateur_etablissement:liste_classes')
     
+    @staticmethod
+    @login_required
+    def classe_carte_fragment(request, classe_id):
+        """Retourne le HTML d'une carte classe pour insertion temps réel."""
+        if isinstance(request.user, PersonnelAdministratif):
+            etablissement = request.user.etablissement
+        elif isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            return JsonResponse({'error': 'Accès non autorisé.'}, status=403)
+
+        classe = get_object_or_404(
+            Classe.objects.select_related('department', 'academic_level').prefetch_related(
+                _PREFETCH_LIENS_EXAMENS,
+            ),
+            id=classe_id,
+            etablissement=etablissement,
+        )
+        classe_data = {
+            'classe': classe,
+            'nombre_enseignants': classe.affectations.filter(actif=True).count(),
+        }
+        est_superieur = etablissement.type_etablissement == 'superieur'
+        return render(
+            request,
+            'school_admin/directeur/administrateur_etablissement/classes/partials/classe_card_liste.html',
+            {
+                'classe': classe,
+                'classe_data': classe_data,
+                'est_superieur': est_superieur,
+                'libelle_eleves': None,
+            },
+        )
+
     @staticmethod
     def get_classe_data(request, classe_id):
         """
@@ -1394,6 +1545,18 @@ class ClasseController:
                             )
                         
                         messages.success(request, f"La classe {classe.nom_complet} a été modifiée avec succès !")
+                        ClasseController._emit_classe_realtime(
+                            etablissement.id,
+                            'classe.modifiee',
+                            {
+                                'event': 'classe.modifiee',
+                                'item': ClasseController._serialize_classe_liste_item(
+                                    classe,
+                                    est_superieur_mod,
+                                    classe.affectations.filter(actif=True).count(),
+                                ),
+                            },
+                        )
                         return redirect(
                             'administrateur_etablissement:detail_classe',
                             classe_id=classe.id,
@@ -1463,8 +1626,20 @@ class ClasseController:
                 
                 # Supprimer la classe
                 nom_classe = classe.nom_complet
+                est_sup = etablissement.type_etablissement == 'superieur'
+                classe_item = ClasseController._serialize_classe_liste_item(
+                    classe,
+                    est_sup,
+                    classe.affectations.filter(actif=True).count(),
+                )
                 classe.delete()
-                
+
+                ClasseController._emit_classe_realtime(
+                    etablissement.id,
+                    'classe.supprimee',
+                    {'event': 'classe.supprimee', 'item': classe_item},
+                )
+
                 messages.success(request, f"La classe {nom_classe} a été supprimée avec succès.")
                 
         except Exception as e:

@@ -33,6 +33,7 @@ from ..model.evaluation_primaire_model import EvaluationPrimaire
 from ..model.note_primaire_model import NotePrimaire, MoyenneMatierePrimaire
 from ..model.exercice_maison_model import ExerciceMaison
 from ..model.justification_note_model import JustificationNote
+from .enseignant_view import _emit_enseignant_live
 from ..model.note_examen_model import NoteExamen
 from ..model.presence_model import Presence, ListePresence
 from ..model.sanction_model import Sanction
@@ -936,6 +937,10 @@ def gestion_notes_primaire(request):
         'matieres_releve_complet': matieres_releve_complet,
         'releve_deja_soumis': releve_deja_soumis,
         'annee_scolaire_active': annee_scolaire_active,
+        'open_evaluation': request.GET.get('open_evaluation') == '1',
+        'eval_classe_id': request.GET.get('eval_classe', ''),
+        'eval_matiere_id': request.GET.get('eval_matiere', ''),
+        'eval_periode_id': request.GET.get('eval_periode', ''),
     }
     
     return render(request, 'school_admin/enseignant/primaire/gestion_notes_primaire.html', context)
@@ -1927,6 +1932,8 @@ def creer_evaluation_primaire(request, classe_id):
     periodes = periodes.order_by('date_debut')
     
     if request.method == 'POST':
+        from ..services.realtime_helpers import wants_json_response, json_ok, json_fail
+
         try:
             with transaction.atomic():
                 # Récupérer les données du formulaire
@@ -1936,20 +1943,31 @@ def creer_evaluation_primaire(request, classe_id):
                 date_evaluation = request.POST.get('date_evaluation')
                 bareme = request.POST.get('bareme', 20)
                 periode_id = request.POST.get('periode')
-                
+
                 # Validation
                 if not all([titre, matiere_id, date_evaluation, periode_id]):
+                    if wants_json_response(request):
+                        return json_fail(field_errors={'__all__': "Tous les champs obligatoires doivent être remplis."})
                     messages.error(request, "Tous les champs obligatoires doivent être remplis.")
                     return redirect(request.path)
-                
+
                 matiere = get_object_or_404(Matiere, id=matiere_id)
                 periode = get_object_or_404(PeriodeScolaire, id=periode_id)
-                
+
                 # Vérifier que le professeur enseigne cette matière
                 if matiere not in matieres:
+                    if wants_json_response(request):
+                        return json_fail(field_errors={'matiere': "Vous n'enseignez pas cette matière dans cette classe."})
                     messages.error(request, "Vous n'enseignez pas cette matière dans cette classe.")
                     return redirect(request.path)
-                
+
+                date_eval_obj = parse_date(date_evaluation)
+                if not date_eval_obj:
+                    if wants_json_response(request):
+                        return json_fail(field_errors={'date_evaluation': "La date n'est pas valide."})
+                    messages.error(request, "La date n'est pas valide.")
+                    return redirect(request.path)
+
                 # Créer l'évaluation
                 evaluation = EvaluationPrimaire.objects.create(
                     titre=titre,
@@ -1957,13 +1975,13 @@ def creer_evaluation_primaire(request, classe_id):
                     matiere=matiere,
                     classe=classe,
                     professeur=professeur,
-                    date_evaluation=date_evaluation,
+                    date_evaluation=date_eval_obj,
                     bareme=bareme,
                     periode_scolaire=periode,
                     actif=True,
                     annee_scolaire=annee_scolaire_active,
                 )
-                
+
                 # Créer automatiquement les notes pour tous les élèves via InscriptionEleve
                 eleves = _get_eleves_classe_par_inscription(classe, professeur.etablissement, annee_scolaire_active)
                 for eleve in eleves:
@@ -1973,17 +1991,32 @@ def creer_evaluation_primaire(request, classe_id):
                         absent=False,
                         annee_scolaire=annee_scolaire_active,
                     )
-                    
-                # Programmer l'envoi des notifications en arrière-plan
-                from ..services.notification_tasks import schedule_evaluation_primaire_notification
-                schedule_evaluation_primaire_notification(evaluation.id)
-                logger.info(f"Envoi des notifications programmé en arrière-plan pour l'évaluation primaire {evaluation.id}")
-                
-                messages.success(request, f"Évaluation '{titre}' créée avec succès pour {matiere.nom}.")
-                return redirect('enseignant_primaire:noter_eleves', classe_id=classe.id)
-                
+
+            from ..services.notification_tasks import schedule_evaluation_primaire_notification
+            schedule_evaluation_primaire_notification(evaluation.id)
+            logger.info(
+                f"Envoi des notifications programmé en arrière-plan pour l'évaluation primaire {evaluation.id}"
+            )
+
+            _emit_enseignant_live(
+                professeur,
+                'evaluation.creee',
+                classe_id=classe.id,
+                classe_nom=classe.nom,
+                matiere_id=matiere.id,
+                matiere_nom=matiere.nom,
+                evaluation_id=evaluation.id,
+                titre=evaluation.titre,
+            )
+            if wants_json_response(request):
+                return json_ok(message=f"Évaluation '{titre}' créée avec succès.")
+            messages.success(request, f"Évaluation '{titre}' créée avec succès pour {matiere.nom}.")
+            return redirect('enseignant_primaire:noter_eleves', classe_id=classe.id)
+
         except Exception as e:
             logger.error(f"Erreur lors de la création de l'évaluation: {e}")
+            if wants_json_response(request):
+                return json_fail(field_errors={'__all__': f"Une erreur est survenue : {str(e)}"})
             messages.error(request, f"Une erreur est survenue: {str(e)}")
     
     context = {
@@ -1991,10 +2024,32 @@ def creer_evaluation_primaire(request, classe_id):
         'classe': classe,
         'matieres': matieres,
         'periodes': periodes,
-        'form_data': request.POST if request.method == 'POST' else {},
+        'form_data': request.POST if request.method == 'POST' else {
+            'matiere': request.GET.get('matiere', ''),
+            'periode': request.GET.get('periode', ''),
+        },
+        'errors': {},
+        'nombre_eleves': _get_eleves_classe_par_inscription(
+            classe, professeur.etablissement, annee_scolaire_active
+        ).count() if classe else 0,
         'aujourdhui': timezone.now().date().isoformat(),
         'annee_scolaire_active': annee_scolaire_active,
+        'eval_matiere_id': request.GET.get('matiere', ''),
+        'eval_periode_id': request.GET.get('periode', ''),
     }
+
+    if request.method == 'GET':
+        if request.GET.get('partial'):
+            return render(request, 'school_admin/enseignant/primaire/partials/form_creer_evaluation_inner.html', context)
+        from django.urls import reverse
+        params = ['open_evaluation=1', f'eval_classe={classe_id}']
+        matiere_q = request.GET.get('matiere')
+        periode_q = request.GET.get('periode')
+        if matiere_q:
+            params.append(f'eval_matiere={matiere_q}')
+        if periode_q:
+            params.append(f'eval_periode={periode_q}')
+        return redirect(reverse('enseignant_primaire:gestion_notes') + '?' + '&'.join(params))
     
     return render(request, 'school_admin/enseignant/primaire/creer_evaluation_primaire.html', context)
 
@@ -2896,6 +2951,20 @@ def soumettre_releve_primaire(request, classe_id):
                 nb_soumises = moyennes.update(
                     soumis=True,
                     date_soumission=timezone.now()
+                )
+
+                from ..services.realtime_helpers import emit_live
+                emit_live(
+                    professeur.etablissement.id,
+                    'notes.mise_a_jour',
+                    {
+                        'event': 'notes.mise_a_jour',
+                        'classe_id': classe.id,
+                        'classe_nom': classe.nom,
+                        'periode_id': periode.id,
+                        'est_primaire': True,
+                        'count': nb_soumises,
+                    },
                 )
                 
                 try:

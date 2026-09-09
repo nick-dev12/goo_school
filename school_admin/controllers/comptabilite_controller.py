@@ -837,10 +837,29 @@ class ComptabiliteController:
                     # Message de succès avec le nouveau reste à payer (après refresh_from_db)
                     nouveau_reste = frais_inscription.get_reste_a_payer()
                     if nouveau_reste == 0:
-                        messages.success(request, f"Paiement complet enregistré ! Frais d'inscription totalement payé ({montant_decimal} {devise_monnaie}).")
+                        success_msg = f"Paiement complet enregistré ! Frais d'inscription totalement payé ({montant_decimal} {devise_monnaie})."
                     else:
-                        messages.success(request, f"Paiement de {montant_decimal} {devise_monnaie} enregistré. Reste à payer : {nouveau_reste} {devise_monnaie}.")
-                    
+                        success_msg = f"Paiement de {montant_decimal} {devise_monnaie} enregistré. Reste à payer : {nouveau_reste} {devise_monnaie}."
+                    messages.success(request, success_msg)
+
+                    from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+                    from ..services.live_serializers import (
+                        serialize_comptabilite_paiement_result,
+                        serialize_comptabilite_eleve_snapshot,
+                    )
+
+                    snapshot = serialize_comptabilite_eleve_snapshot(
+                        eleve_id_int, etablissement, annee_scolaire_active, devise_monnaie
+                    )
+                    live_item = serialize_comptabilite_paiement_result(eleve_id_int, success_msg, snapshot=snapshot)
+                    emit_live(
+                        etablissement.id,
+                        'comptabilite.mise_a_jour',
+                        {'event': 'comptabilite.mise_a_jour', 'item': live_item},
+                    )
+                    if wants_json_response(request):
+                        return json_ok(message=success_msg, item=live_item)
+
                     return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
             except Exception as e:
                 messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
@@ -981,10 +1000,29 @@ class ComptabiliteController:
                     # Message de succès avec le nouveau reste à payer (après refresh_from_db)
                     nouveau_reste = mensualite.get_reste_a_payer()
                     if nouveau_reste == 0:
-                        messages.success(request, f"Paiement complet enregistré ! Mensualité {mensualite.periode} totalement payée ({montant_decimal} {devise_monnaie}).")
+                        success_msg = f"Paiement complet enregistré ! Mensualité {mensualite.periode} totalement payée ({montant_decimal} {devise_monnaie})."
                     else:
-                        messages.success(request, f"Paiement de {montant_decimal} {devise_monnaie} enregistré. Reste à payer : {nouveau_reste} {devise_monnaie}.")
-                    
+                        success_msg = f"Paiement de {montant_decimal} {devise_monnaie} enregistré. Reste à payer : {nouveau_reste} {devise_monnaie}."
+                    messages.success(request, success_msg)
+
+                    from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+                    from ..services.live_serializers import (
+                        serialize_comptabilite_paiement_result,
+                        serialize_comptabilite_eleve_snapshot,
+                    )
+
+                    snapshot = serialize_comptabilite_eleve_snapshot(
+                        eleve_id_int, etablissement, annee_scolaire_active, devise_monnaie
+                    )
+                    live_item = serialize_comptabilite_paiement_result(eleve_id_int, success_msg, snapshot=snapshot)
+                    emit_live(
+                        etablissement.id,
+                        'comptabilite.mise_a_jour',
+                        {'event': 'comptabilite.mise_a_jour', 'item': live_item},
+                    )
+                    if wants_json_response(request):
+                        return json_ok(message=success_msg, item=live_item)
+
                     return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
             except Exception as e:
                 messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
@@ -1189,7 +1227,19 @@ class ComptabiliteController:
                 # La mise à jour automatique du système est gérée par le signal post_save
                 # qui appelle automatiquement mettre_a_jour_systeme_comptabilite() après la sauvegarde
                 messages.success(request, "Paramètres de comptabilité enregistrés avec succès. Le système a été mis à jour automatiquement.")
-                
+
+                from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+                from ..services.live_serializers import serialize_comptabilite_parametres
+
+                item = serialize_comptabilite_parametres(parametres, etablissement)
+                emit_live(
+                    etablissement.id,
+                    'comptabilite.parametres',
+                    {'event': 'comptabilite.parametres', 'item': item},
+                )
+                if wants_json_response(request):
+                    return json_ok(message="Paramètres enregistrés.", item=item)
+
                 return redirect('directeur:parametres_comptabilite_directeur')
             
             except Exception as e:

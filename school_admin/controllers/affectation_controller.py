@@ -23,6 +23,32 @@ from ..utils.session_utils import get_session_active
 
 logger = logging.getLogger(__name__)
 
+
+def _affectation_fail(request, message, level='error'):
+    from ..services.realtime_helpers import wants_json_response, json_fail
+    if wants_json_response(request):
+        return json_fail(message=message)
+    if level == 'warning':
+        messages.warning(request, message)
+    else:
+        messages.error(request, message)
+    return redirect('affectation:affectation_professeurs')
+
+
+def _affectation_done(request, etablissement, professeur_id, action):
+    from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+    from ..services.live_serializers import serialize_affectation_refresh_item
+
+    item = serialize_affectation_refresh_item(professeur_id, action)
+    emit_live(
+        etablissement.id,
+        'affectation.mise_a_jour',
+        {'event': 'affectation.mise_a_jour', 'item': item},
+    )
+    if wants_json_response(request):
+        return json_ok(message='Affectation mise à jour.', item=item)
+    return redirect('affectation:affectation_professeurs')
+
 class AffectationController:
     
     @staticmethod
@@ -288,8 +314,7 @@ class AffectationController:
                 professeur = Professeur.objects.get(id=professeur_id, etablissement=etablissement)
                 classe = Classe.objects.get(id=classe_id, etablissement=etablissement)
             except (Professeur.DoesNotExist, Classe.DoesNotExist):
-                messages.error(request, 'Professeur ou classe non trouvé.')
-                return redirect('affectation:affectation_professeurs')
+                return _affectation_fail(request, 'Professeur ou classe non trouvé.')
             
             # Récupérer la matière si spécifiée
             matiere = None
@@ -304,8 +329,10 @@ class AffectationController:
             annee_scolaire_active = get_session_active(request, etablissement)
             
             if not annee_scolaire_active:
-                messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'effectuer une affectation.")
-                return redirect('affectation:affectation_professeurs')
+                return _affectation_fail(
+                    request,
+                    "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'effectuer une affectation.",
+                )
             
             with transaction.atomic():
                 if action == 'add':
@@ -351,8 +378,7 @@ class AffectationController:
                                 messages_conflit.append(f"{prof_nom} enseigne déjà: {matieres_str}")
                             
                             message_final = f"Impossible d'affecter {professeur.nom_complet} à la classe {classe.nom}. " + " | ".join(messages_conflit)
-                            messages.error(request, message_final)
-                            return redirect('affectation:affectation_professeurs')
+                            return _affectation_fail(request, message_final)
                     
                     # Pour les écoles primaires, utiliser AffectationProfesseurPrimaire
                     if etablissement.type_etablissement == 'primary':
@@ -514,10 +540,14 @@ class AffectationController:
                             affectation.save()
                             messages.success(request, f"Affectation du professeur {professeur.nom} à la classe {classe.nom} pour {matiere_nom} supprimée")
                 else:
-                    messages.error(request, 'Action invalide.')
-                    return redirect('affectation:affectation_professeurs')
+                    return _affectation_fail(request, 'Action invalide.')
             
-            return redirect('affectation:affectation_professeurs')
+            return _affectation_done(
+                request,
+                etablissement,
+                professeur.id,
+                action,
+            )
         
         return redirect('affectation:affectation_professeurs')
     

@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_periodes_scolaires.css' %}?v=1.3.0">
 </head>
-<body>
+<body data-live-page="periodes">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="container">
@@ -125,7 +125,7 @@
                         {% if tab.periodes %}
                         <div class="periodes-grid">
                             {% for periode in tab.periodes %}
-                            <div class="periode-card {% if periode.est_en_cours %}active{% elif periode.est_passee %}terminee{% else %}a-venir{% endif %}">
+                            <div class="periode-card {% if periode.est_en_cours %}active{% elif periode.est_passee %}terminee{% else %}a-venir{% endif %}" data-periode-id="{{ periode.id }}">
                                 <div class="periode-header">
                                     <div class="periode-titre">{{ periode.libelle_affichage_superieur }}</div>
                                     <span class="periode-badge {% if periode.est_active %}actif{% else %}inactif{% endif %}">
@@ -194,7 +194,7 @@
                         </h3>
                         <div class="periodes-grid">
                             {% for periode in periodes_annee %}
-                            <div class="periode-card {% if periode.est_en_cours %}active{% elif periode.est_passee %}terminee{% else %}a-venir{% endif %}">
+                            <div class="periode-card {% if periode.est_en_cours %}active{% elif periode.est_passee %}terminee{% else %}a-venir{% endif %}" data-periode-id="{{ periode.id }}">
                                 <div class="periode-header">
                                     <div class="periode-titre">{{ periode.nom_periode }}</div>
                                     <span class="periode-badge {% if periode.est_active %}actif{% else %}inactif{% endif %}">
@@ -366,7 +366,7 @@
     <!-- Modal Modification -->
     <div class="modal-overlay modal-periode-edit" id="periodeEditModal" aria-hidden="true" aria-labelledby="editModalTitle">
         <div class="modal-dialog periode-form-modal__dialog" role="document">
-            <form class="modal-form modal-form--periode" method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
+            <form class="modal-form modal-form--periode" method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}" id="formEditPeriode">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="modifier">
                 <input type="hidden" name="periode_id" id="edit_periode_id">
@@ -526,7 +526,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <form method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}">
+            <form method="post" action="{% url 'directeur:gestion_periodes_scolaires' %}" id="formDeletePeriode">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="supprimer">
                 <input type="hidden" name="periode_id" id="delete_periode_id">
@@ -1303,6 +1303,7 @@
         })();
     </script>
 
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

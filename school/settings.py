@@ -276,6 +276,7 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_IMPORTS = ('school_admin.tasks.celery_tasks',)
 
 # Configuration du modèle d'utilisateur personnalisé
 AUTH_USER_MODEL = 'school_admin.CompteUser'

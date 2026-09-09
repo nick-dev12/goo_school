@@ -364,7 +364,7 @@
         }
     </style>
 </head>
-<body>
+<body data-live-page="compta-parametres" data-devise="{{ devise_monnaie|default:'FCFA' }}">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -442,24 +442,24 @@
                         {% if etablissement.type_etablissement_comptabilite == 'prive' %}
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Montant frais d'inscription" %}</div>
-                            <div class="parametre-item-value amount">{{ parametres.montant_frais_inscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                            <div class="parametre-item-value amount" data-param="montant_frais_inscription">{{ parametres.montant_frais_inscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         </div>
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Montant frais de réinscription" %}</div>
-                            <div class="parametre-item-value amount">{{ parametres.montant_frais_reinscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                            <div class="parametre-item-value amount" data-param="montant_frais_reinscription">{{ parametres.montant_frais_reinscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         </div>
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Montant mensualité mensuelle" %}</div>
-                            <div class="parametre-item-value amount">{{ parametres.montant_mensualite|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                            <div class="parametre-item-value amount" data-param="montant_mensualite">{{ parametres.montant_mensualite|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         </div>
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Type de facturation" %}</div>
-                            <div class="parametre-item-value">{{ parametres.get_type_facturation_display }}</div>
+                            <div class="parametre-item-value" data-param="type_facturation_display">{{ parametres.get_type_facturation_display }}</div>
                         </div>
                         {% else %}
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Montant facturation annuelle" %}</div>
-                            <div class="parametre-item-value amount">{{ parametres.montant_facturation_annuelle|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                            <div class="parametre-item-value amount" data-param="montant_facturation_annuelle">{{ parametres.montant_facturation_annuelle|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         </div>
                         {% endif %}
                     </div>
@@ -475,7 +475,7 @@
                     <div class="parametres-display">
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Autoriser les retards de paiement" %}</div>
-                            <div class="parametre-item-value boolean">
+                            <div class="parametre-item-value boolean" data-param="autoriser_retards">
                                 {% if parametres.autoriser_retards %}
                                     <span class="badge-success"><i class="fas fa-check"></i> {% trans "Activé" %}</span>
                                 {% else %}
@@ -485,7 +485,7 @@
                         </div>
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Autoriser les paiements partiels" %}</div>
-                            <div class="parametre-item-value boolean">
+                            <div class="parametre-item-value boolean" data-param="autoriser_paiements_partiels">
                                 {% if parametres.autoriser_paiements_partiels %}
                                     <span class="badge-success"><i class="fas fa-check"></i> {% trans "Activé" %}</span>
                                 {% else %}
@@ -495,7 +495,7 @@
                         </div>
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Délai de tolérance pour retard" %}</div>
-                            <div class="parametre-item-value">{{ parametres.delai_tolerance_retard }} jours</div>
+                            <div class="parametre-item-value" data-param="delai_tolerance_retard">{{ parametres.delai_tolerance_retard }} jours</div>
                         </div>
                         <div class="parametre-item">
                             <div class="parametre-item-label">{% trans "Nombre max de paiements partiels" %}</div>
@@ -1068,6 +1068,7 @@
         });
     </script>
 
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

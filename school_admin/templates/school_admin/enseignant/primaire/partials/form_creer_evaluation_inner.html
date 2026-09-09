@@ -1,0 +1,93 @@
+<form method="post" action="{% url 'enseignant_primaire:creer_evaluation' classe.id %}" class="evaluation-form evaluation-form--modal" id="formCreerEvaluation">
+  {% csrf_token %}
+
+  {% if errors.general %}
+  <div class="alert alert-danger">
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ errors.general }}</p>
+  </div>
+  {% endif %}
+
+  <div class="classe-info-card eval-modal-info">
+    <div class="info-item">
+      <i class="fas fa-chalkboard"></i>
+      <span><strong>Classe :</strong> {{ classe.nom }}</span>
+    </div>
+    {% if nombre_eleves is not None %}
+    <div class="info-item">
+      <i class="fas fa-users"></i>
+      <span><strong>Effectif :</strong> {{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
+    </div>
+    {% endif %}
+    {% if matieres %}
+    <div class="info-item">
+      <i class="fas fa-layer-group"></i>
+      <span><strong>Matières :</strong> {{ matieres|length }} disponible{{ matieres|length|pluralize }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="form-container">
+    <div class="form-section">
+      <h2 class="section-title"><i class="fas fa-info-circle"></i> Informations générales</h2>
+      <div class="form-grid form-grid--3">
+        <div class="form-group {% if errors.matiere %}has-error{% endif %}">
+          <label for="matiere"><i class="fas fa-book"></i> Matière <span class="required">*</span></label>
+          <select name="matiere" id="matiere" required>
+            <option value="">-- Sélectionnez une matière --</option>
+            {% for matiere in matieres %}
+            <option value="{{ matiere.id }}" {% if form_data.matiere|stringformat:"s" == matiere.id|stringformat:"s" or eval_matiere_id|stringformat:"s" == matiere.id|stringformat:"s" %}selected{% endif %}>{{ matiere.nom }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.matiere %}<span class="error-message">{{ errors.matiere }}</span>{% endif %}
+        </div>
+        <div class="form-group {% if errors.titre %}has-error{% endif %}">
+          <label for="titre"><i class="fas fa-heading"></i> Titre <span class="required">*</span></label>
+          <input type="text" name="titre" id="titre" value="{{ form_data.titre|default:'' }}" required placeholder="Ex: Dictée, Contrôle de calcul…">
+          {% if errors.titre %}<span class="error-message">{{ errors.titre }}</span>{% endif %}
+        </div>
+        <div class="form-group {% if errors.periode %}has-error{% endif %}">
+          <label for="periode"><i class="fas fa-calendar-alt"></i> Période <span class="required">*</span></label>
+          <select name="periode" id="periode" required>
+            <option value="">-- Sélectionnez une période --</option>
+            {% for periode in periodes %}
+            <option value="{{ periode.id }}" {% if form_data.periode|stringformat:"s" == periode.id|stringformat:"s" or eval_periode_id|stringformat:"s" == periode.id|stringformat:"s" %}selected{% endif %}>{{ periode.nom_periode }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.periode %}<span class="error-message">{{ errors.periode }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title"><i class="fas fa-cog"></i> Paramètres</h2>
+      <div class="form-grid">
+        <div class="form-group {% if errors.date_evaluation %}has-error{% endif %}">
+          <label for="date_evaluation"><i class="fas fa-calendar"></i> Date <span class="required">*</span></label>
+          <input type="date" name="date_evaluation" id="date_evaluation" value="{{ form_data.date_evaluation|default:aujourdhui }}" required>
+          {% if errors.date_evaluation %}<span class="error-message">{{ errors.date_evaluation }}</span>{% endif %}
+        </div>
+        <div class="form-group {% if errors.bareme %}has-error{% endif %}">
+          <label for="bareme"><i class="fas fa-calculator"></i> Barème <span class="required">*</span></label>
+          <input type="number" name="bareme" id="bareme" value="{{ form_data.bareme|default:'20' }}" min="1" step="0.5" required placeholder="20">
+          <span class="help-text">Note maximale (ex. 20)</span>
+          {% if errors.bareme %}<span class="error-message">{{ errors.bareme }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-group full-width {% if errors.description %}has-error{% endif %}">
+        <label for="description"><i class="fas fa-align-left"></i> Description</label>
+        <textarea name="description" id="description" rows="3" placeholder="Consignes, chapitres couverts… (facultatif)">{{ form_data.description|default:'' }}</textarea>
+        {% if errors.description %}<span class="error-message">{{ errors.description }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-actions form-actions--modal">
+      <button type="button" class="btn-modal-cancel" data-close-eval-modal>
+        <i class="fas fa-times"></i> Annuler
+      </button>
+      <button type="submit" class="btn btn-primary btn-eval-submit">
+        <i class="fas fa-save"></i> Créer l'évaluation
+      </button>
+    </div>
+  </div>
+</form>

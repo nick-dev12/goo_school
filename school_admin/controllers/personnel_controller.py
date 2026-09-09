@@ -71,6 +71,34 @@ class PersonnelController:
                 categories['autres']['personnel'].append(personnel)
         
         return categories
+
+    @staticmethod
+    def get_category_key(fonction):
+        """Retourne la clé d'onglet pour une fonction de personnel."""
+        fonctions_direction = [
+            'directeur_adjoint_primaire', 'principal_adjoint',
+            'proviseur_adjoint', 'directeur_principal',
+            'directeur_section_primaire', 'principal_section_college', 'proviseur_section_lycee',
+        ]
+        fonctions_censeurs = [
+            'censeur', 'censeur_etudes', 'censeur_adjoint',
+            'censeur_premier_cycle', 'censeur_second_cycle',
+            'censeur_pedagogie', 'censeur_vie_scolaire',
+        ]
+        fonctions_surveillants = ['surveillant_general', 'surveillant']
+        fonctions_administration = [
+            'secretaire_principal', 'secretaire', 'gestionnaire', 'comptable',
+            'intendant', 'secretaire_vie_scolaire',
+        ]
+        if fonction in fonctions_direction:
+            return 'direction'
+        if fonction in fonctions_censeurs:
+            return 'censeurs'
+        if fonction in fonctions_surveillants:
+            return 'surveillants'
+        if fonction in fonctions_administration:
+            return 'administration'
+        return 'autres'
     
     @staticmethod
     def get_fonctions_par_type_etablissement(type_etablissement):
@@ -360,6 +388,9 @@ class PersonnelController:
         permissions_defaut = []
         if form_data.get('fonction'):
             permissions_defaut = get_permissions_par_fonction(form_data['fonction'])
+
+        from ..controllers.professeur_controller import ProfesseurController
+        prof_ctx = ProfesseurController.build_ajouter_form_context(etablissement)
         
         context = {
             'personnel': personnel,
@@ -373,6 +404,15 @@ class PersonnelController:
             'fonctions_disponibles': fonctions_disponibles,
             'permissions_par_categorie': permissions_par_categorie,
             'permissions_defaut': permissions_defaut,
+            'prof_form_data': prof_ctx['form_data'],
+            'prof_field_errors': prof_ctx['field_errors'],
+            'matieres': prof_ctx['matieres'],
+            'departments': prof_ctx['departments'],
+            'matieres_superieur_flat': prof_ctx['matieres_superieur_flat'],
+            'niveaux_lmd_options_selection': prof_ctx['niveaux_lmd_options_selection'],
+            'niveaux_par_department': prof_ctx['niveaux_par_department'],
+            'est_superieur': prof_ctx['est_superieur'],
+            'type_etablissement': prof_ctx['type_etablissement'],
         }
         
         # Nettoyer la session après utilisation
@@ -482,6 +522,9 @@ class PersonnelController:
             
             # Si il y a des erreurs, stocker dans la session et rediriger
             if not is_valid:
+                from ..services.realtime_helpers import wants_json_response, json_fail
+                if wants_json_response(request):
+                    return json_fail(field_errors=field_errors)
                 request.session['form_data_personnel'] = form_data
                 request.session['field_errors_personnel'] = field_errors
                 return redirect('personnel:liste_personnel')
@@ -551,10 +594,23 @@ class PersonnelController:
                         personnel.set_password(mot_de_passe)
                         personnel.save()
                         
-                        messages.success(
-                            request, 
-                            f"Le personnel {personnel.nom_complet} a été ajouté avec succès ! Identifiant: {username} | Mot de passe provisoire: {mot_de_passe}"
+                        from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+                        from ..services.live_serializers import serialize_personnel_liste_item
+
+                        success_message = (
+                            f"Le personnel {personnel.nom_complet} a été ajouté avec succès ! "
+                            f"Identifiant: {username} | Mot de passe provisoire: {mot_de_passe}"
                         )
+                        item = serialize_personnel_liste_item(personnel)
+                        emit_live(
+                            etablissement.id,
+                            'personnel.cree',
+                            {'event': 'personnel.cree', 'item': item},
+                        )
+                        if wants_json_response(request):
+                            return json_ok(message=success_message, item=item)
+
+                        messages.success(request, success_message)
                         
                         return redirect('personnel:liste_personnel')
                         
@@ -562,6 +618,9 @@ class PersonnelController:
                     logger.error(f"Erreur lors de l'ajout du personnel: {str(e)}")
                     field_errors['__all__'] = [f"Une erreur est survenue lors de l'ajout du personnel: {str(e)}"]
                     is_valid = False
+                    from ..services.realtime_helpers import wants_json_response, json_fail
+                    if wants_json_response(request):
+                        return json_fail(field_errors=field_errors)
                     request.session['form_data_personnel'] = form_data
                     request.session['field_errors_personnel'] = field_errors
                     return redirect('personnel:liste_personnel')

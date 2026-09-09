@@ -30,196 +30,20 @@
     </div>
 
     <!-- Reçu Container -->
-    <div class="receipt-container">
-      <!-- En-tête du reçu -->
-      <div class="receipt-header">
-        <div class="ministry-info">
-          <div class="ministry-name">{% trans "MINISTÈRE DE L'ÉDUCATION NATIONALE" %}</div>
-          <div class="regional-directorate">DIRECTION DE {{ etablissement_info.ville|upper }}</div>
-          <div class="school-name">{{ etablissement_info.nom|upper }}</div>
-          <div class="school-address">{{ etablissement_info.adresse }} - {{ etablissement_info.ville }}</div>
-          <div class="school-contact">
-            Tél.: {{ etablissement_info.telephone|default:"Non renseigné" }} / {{ etablissement_info.email }}
-          </div>
-        </div>
-        <div class="receipt-info">
-          <div class="receipt-title">{% trans "REÇU D'INSCRIPTION N°" %}</div>
-          <div class="receipt-number">{{ eleve.matricule_eleve|default:eleve_info.numero_eleve }}</div>
-          <div class="receipt-date">Édition du {{ "now"|date:"d/m/Y H:i:s" }}</div>
-        </div>
-      </div>
-
-      <!-- Informations de l'élève -->
-      <div class="student-info-box">
-        <div class="student-header">
-          <span class="student-label">{% trans "M." %}</span>
-          <span class="student-label">{% trans "l'élève" %}</span>
-          <span class="student-name">{{ eleve_info.nom_complet|upper }}</span>
-          <span class="student-label">{% trans "a effectué une inscription pour" %}</span>
-        </div>
-        <div class="student-details">
-          <div class="detail-row">
-           <div class="detail-item">
-            <span class="label">{% trans "Classe:" %}</span>
-            <span class="value">{{ eleve_info.classe }}</span>
-           </div>
-           <div class="detail-item">
-            <span class="label">{% trans "Matric:" %}</span>
-            <span class="value">{{ eleve.matricule_eleve|default:eleve_info.numero_eleve }}</span>
-           </div>
-           <div class="detail-item">
-            <span class="label">{% trans "Statut:" %}</span>
-            <span class="value">{{ eleve.statut|upper }}</span>
-           </div>
-          </div>
-          <div class="detail-row">
-           <div class="detail-item">
-            <span class="label">{% trans "Date:" %}</span>
-            <span class="value">{{ "now"|date:"d/m/Y H:i:s" }}</span>
-           </div>
-           <div class="detail-item">
-            <span class="label">{% trans "Enregistré par:" %}</span>
-            <span class="value">{% trans "SECRÉTAIRE" %}</span>
-           </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Informations personnelles de l'élève -->
-      <div class="student-details-section">
-        <div class="section-title">{% trans "Informations Personnelles" %}</div>
-        <div class="details-grid">
-          <div class="detail-item1">
-            <span class="label">{% trans "Date de naissance:" %}</span>
-            <span class="value">{{ eleve_info.date_naissance|date:"d/m/Y" }}</span>
-          </div>
-          <div class="detail-item1">
-            <span class="label">{% trans "Lieu de naissance:" %}</span>
-            <span class="value">{{ eleve_info.lieu_naissance }}</span>
-          </div>
-          <div class="detail-item1">
-            <span class="label">{% trans "Sexe:" %}</span>
-            <span class="value">{{ eleve_info.sexe }}</span>
-          </div>
-          <div class="detail-item1">
-            <span class="label">{% trans "Nationalité:" %}</span>
-            <span class="value">{{ eleve_info.nationalite }}</span>
-          </div>
-          <div class="detail-item1">
-            <span class="label">{% trans "Adresse:" %}</span>
-            <span class="value">{{ eleve_info.adresse }}</span>
-          </div>
-          <div class="detail-item1">
-            <span class="label">{% trans "Téléphone:" %}</span>
-            <span class="value">{{ eleve_info.telephone|default:"Non renseigné" }}</span>
-          </div>
-          <div class="detail-item1">
-            <span class="label">{% trans "Email:" %}</span>
-            <span class="value">{{ eleve_info.email|default:"Non renseigné" }}</span>
-          </div>
-        </div>
-      </div>
-
-
-      <!-- Informations de connexion -->
-      <div class="login-section">
-        <div class="login-title">
-          <i class="fas fa-key"></i>
-          {% trans "Informations de Connexion" %}
-        </div>
-        
-        <!-- IDENTIFIANTS ÉLÈVE -->
-        <div class="login-details eleve-section">
-          <div class="login-section-header eleve-header">
-            <i class="fas fa-user-graduate"></i>
-            {% trans "ESPACE ÉLÈVE" %}
-          </div>
-          <div class="login-content-wrapper">
-            {% if identifiants_info.qr_auth_url_eleve %}
-            <div class="qr-code-section">
-              <div class="qr-code-label">
-                <i class="fas fa-qrcode"></i>
-                <span>{% trans "QR Code" %}</span>
-              </div>
-              <div class="qr-code-container" id="qrCodeEleve"></div>
-              <div class="qr-code-instruction">
-                {% trans "Scannez pour vous connecter" %}
-              </div>
-            </div>
-            {% endif %}
-            <div class="login-credentials">
-              <div class="login-item">
-                <span class="login-label">{% trans "Identifiant:" %}</span>
-                <span class="login-value">{{ identifiants_info.matricule_eleve }}</span>
-              </div>
-              <div class="login-item">
-                <span class="login-label">{% trans "Mot de passe:" %}</span>
-                <span class="login-value password-value">{{ identifiants_info.mot_de_passe_eleve }}</span>
-              </div>
-              <div class="login-warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <strong>{% trans "Important :" %}</strong> {% trans "Modifier le mot de passe lors de la première connexion" %}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- IDENTIFIANTS PARENT -->
-        <div class="login-details parent-section">
-          <div class="login-section-header parent-header">
-            <i class="fas fa-users"></i>
-            ESPACE PARENT ({{ identifiants_info.type_parent }})
-          </div>
-          <div class="login-content-wrapper">
-            {% if identifiants_info.qr_auth_url_parent %}
-            <div class="qr-code-section">
-              <div class="qr-code-label">
-                <i class="fas fa-qrcode"></i>
-                <span>{% trans "QR Code" %}</span>
-              </div>
-              <div class="qr-code-container" id="qrCodeParent"></div>
-              <div class="qr-code-instruction">
-                {% trans "Scannez pour vous connecter" %}
-              </div>
-            </div>
-            {% endif %}
-            <div class="login-credentials">
-              <div class="parent-name">
-                <strong>{% trans "Nom :" %}</strong> {{ identifiants_info.nom_parent }}
-              </div>
-              <div class="login-item">
-                <span class="login-label">{% trans "Identifiant:" %}</span>
-                <span class="login-value">{{ identifiants_info.matricule_parent }}</span>
-              </div>
-              <div class="login-item">
-                <span class="login-label">{% trans "Mot de passe:" %}</span>
-                <span class="login-value password-value">{{ identifiants_info.mot_de_passe_parent }}</span>
-              </div>
-              <div class="login-warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <strong>{% trans "Important :" %}</strong> {% trans "Modifier le mot de passe lors de la première connexion" %}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pied de page simple -->
-      <div class="receipt-footer">
-        <div class="footer-text">{% trans "Ce reçu confirme l'inscription de l'élève dans notre établissement." %}</div>
-        <div class="footer-date">Émis le {{ "now"|date:"d/m/Y à H:i" }}</div>
-      </div>
+    <div class="receipt-page-wrapper">
+      {% include 'school_admin/directeur/secretaire/partials/recu_inscription_eleve_inner.html' %}
     </div>
 
     <script>
-      // Générer les QR codes au chargement de la page
-      document.addEventListener('DOMContentLoaded', function() {
-        {% if identifiants_info.qr_auth_url_eleve %}
-        // QR Code pour l'élève
-        const qrEleve = document.getElementById('qrCodeEleve');
-        if (qrEleve && typeof QRCode !== 'undefined') {
+      function initRecuQrCodes(root) {
+        root = root || document;
+        if (typeof QRCode === 'undefined') {
+          return;
+        }
+        var qrEleve = root.querySelector('#qrCodeEleve');
+        if (qrEleve && qrEleve.dataset.qrUrl && !qrEleve.querySelector('canvas')) {
           new QRCode(qrEleve, {
-            text: '{{ identifiants_info.qr_auth_url_eleve }}',
+            text: qrEleve.dataset.qrUrl,
             width: 120,
             height: 120,
             colorDark: '#000000',
@@ -227,14 +51,10 @@
             correctLevel: QRCode.CorrectLevel.M
           });
         }
-        {% endif %}
-        
-        {% if identifiants_info.qr_auth_url_parent %}
-        // QR Code pour le parent
-        const qrParent = document.getElementById('qrCodeParent');
-        if (qrParent && typeof QRCode !== 'undefined') {
+        var qrParent = root.querySelector('#qrCodeParent');
+        if (qrParent && qrParent.dataset.qrUrl && !qrParent.querySelector('canvas')) {
           new QRCode(qrParent, {
-            text: '{{ identifiants_info.qr_auth_url_parent }}',
+            text: qrParent.dataset.qrUrl,
             width: 120,
             height: 120,
             colorDark: '#000000',
@@ -242,7 +62,9 @@
             correctLevel: QRCode.CorrectLevel.M
           });
         }
-        {% endif %}
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        initRecuQrCodes(document);
       });
     </script>
 

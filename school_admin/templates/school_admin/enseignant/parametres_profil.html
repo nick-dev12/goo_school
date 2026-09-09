@@ -29,8 +29,9 @@
             color: var(--white, #ffffff);
         }
     </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
 </head>
-<body>
+<body data-live-page="profil">
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
     {% include 'school_admin/enseignant/partials/annee_scolaire_badge.html' %}
 
@@ -72,7 +73,7 @@
                     <div class="section-header">
                         <h2><i class="fas fa-user"></i> Informations personnelles</h2>
                     </div>
-                    <form method="post" class="info-form">
+                    <form method="post" class="info-form" id="formProfilInfos" data-live-form="1">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="update_info">
                         
@@ -125,7 +126,7 @@
                     <div class="section-header">
                         <h2><i class="fas fa-lock"></i> Sécurité - Changer le mot de passe</h2>
                     </div>
-                    <form method="post" class="password-form">
+                    <form method="post" class="password-form" id="formProfilPassword" data-live-form="1">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="change_password">
                         
@@ -358,6 +359,7 @@
     </script>
 
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+{% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>
 

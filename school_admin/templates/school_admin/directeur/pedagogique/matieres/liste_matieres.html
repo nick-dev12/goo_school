@@ -24,7 +24,7 @@
         href="{% static 'school_admin/css/directeur/matieres.css' %}?v=1.0.1"
     />
 </head>
-<body>
+<body data-live-page="matieres">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -438,7 +438,7 @@
                                                     {% if mod_item.matieres %}
                                                     <div class="matieres-grid matieres-cards-grid">
                                                         {% for m_item in mod_item.matieres %}
-                                                        <div class="matiere-card" data-matiere="{{ m_item.matiere.nom|lower }}" data-type="{{ m_item.matiere.type_matiere }}">
+                                                        <div class="matiere-card" data-matiere-id="{{ m_item.matiere.id }}" data-matiere="{{ m_item.matiere.nom|lower }}" data-type="{{ m_item.matiere.type_matiere }}">
                                                             <div class="card-header">
                                                                 <div class="matiere-info">
                                                                     <h3 class="matiere-nom">{{ m_item.matiere.nom }}</h3>
@@ -504,7 +504,7 @@
                 <div class="matieres-grid">
                     {% for matiere_data in matieres_avec_coefficients %}
                         {% with matiere=matiere_data.matiere %}
-                        <div class="matiere-card" data-matiere="{{ matiere.nom|lower }}" data-type="{{ matiere.type_matiere }}">
+                        <div class="matiere-card" data-matiere-id="{{ matiere.id }}" data-matiere="{{ matiere.nom|lower }}" data-type="{{ matiere.type_matiere }}">
                             <div class="card-header">
                                 <div class="matiere-info">
                                     <h3 class="matiere-nom">{{ matiere.nom }}</h3>
@@ -888,6 +888,7 @@
         }
     </style>
 
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

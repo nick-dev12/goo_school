@@ -15,6 +15,8 @@ from ..model.coefficient_matiere_groupe_model import CoefficientMatiereGroupe
 from ..model.academic_structure_model import Department
 from ..model.module_model import Module
 from ..model.classe_model import libelle_cle_niveau_superieur
+from ..services.realtime_helpers import wants_json_response, json_ok, json_fail, emit_live
+from ..services.live_serializers import serialize_matiere_item
 
 logger = logging.getLogger(__name__)
 
@@ -556,6 +558,20 @@ class MatiereController:
                                 request,
                                 f"{len(matieres_creees)} matière(s) '{form_data['nom']}' ajoutée(s) avec succès !"
                             )
+                            items = [
+                                serialize_matiere_item(m, est_superieur=True)
+                                for m in matieres_creees
+                            ]
+                            emit_live(
+                                etablissement.id,
+                                'matiere.creee',
+                                {'event': 'matiere.creee', 'items': items},
+                            )
+                            if wants_json_response(request):
+                                return json_ok(
+                                    message=f"{len(items)} matière(s) ajoutée(s).",
+                                    items=items,
+                                )
                             return redirect('matiere:liste_matieres')
                         else:
                             # Primaire / Lycée : une seule matière
@@ -599,6 +615,19 @@ class MatiereController:
                                         defaults={'coefficient': coefficient}
                                     )
                             messages.success(request, f"La matière '{matiere.nom_complet}' a été ajoutée avec succès !")
+                            item = serialize_matiere_item(
+                                matiere,
+                                est_superieur=False,
+                                est_lycee=est_lycee,
+                                coefficients_par_groupe=form_data.get('coefficients_par_groupe'),
+                            )
+                            emit_live(
+                                etablissement.id,
+                                'matiere.creee',
+                                {'event': 'matiere.creee', 'item': item},
+                            )
+                            if wants_json_response(request):
+                                return json_ok(message=f"Matière '{matiere.nom}' ajoutée.", item=item)
                             return redirect('matiere:liste_matieres')
                         
                 except Exception as e:
@@ -735,6 +764,9 @@ class MatiereController:
             form_data['credits'] = ''
         if 'classes_ids' not in form_data:
             form_data['classes_ids'] = []
+
+        if request.method == 'POST' and field_errors and wants_json_response(request):
+            return json_fail(field_errors=field_errors)
         
         context = {
             'form_data': form_data,
@@ -1076,6 +1108,26 @@ class MatiereController:
                                 ).delete()
                         
                         messages.success(request, f"La matière '{matiere.nom_complet}' a été modifiée avec succès !")
+
+                        coeffs = {}
+                        if est_lycee:
+                            for coeff in CoefficientMatiereGroupe.objects.filter(
+                                matiere=matiere, etablissement=etablissement
+                            ):
+                                coeffs[coeff.nom_groupe] = float(coeff.coefficient)
+                        item = serialize_matiere_item(
+                            matiere,
+                            est_superieur=est_superieur,
+                            est_lycee=est_lycee,
+                            coefficients_par_groupe=coeffs,
+                        )
+                        emit_live(
+                            etablissement.id,
+                            'matiere.modifiee',
+                            {'event': 'matiere.modifiee', 'item': item},
+                        )
+                        if wants_json_response(request):
+                            return json_ok(message=f"Matière '{matiere.nom}' mise à jour.", item=item)
                         return redirect('matiere:detail_matiere', matiere_id=matiere.id)
                         
                 except Exception as e:
@@ -1094,7 +1146,14 @@ class MatiereController:
                     else:
                         field_errors['__all__'] = "Une erreur est survenue lors de la modification de la matière. Veuillez réessayer."
                     is_valid = False
-        else:
+
+        if request.method == 'POST' and not is_valid and wants_json_response(request):
+            return json_fail(
+                message=field_errors.get('__all__', 'Corrigez les erreurs du formulaire.'),
+                field_errors=field_errors,
+            )
+
+        if request.method != 'POST':
             # Pré-remplir le formulaire avec les données actuelles
             # Extraire les groupes de classes associées
             groupes_selectionnes = set()
@@ -1204,9 +1263,22 @@ class MatiereController:
             
             status = "activée" if matiere.actif else "désactivée"
             messages.success(request, f"La matière '{matiere.nom_complet}' a été {status}.")
+
+            est_lycee = etablissement.type_etablissement in ['lycée', 'collège_lycée', 'lycee_college', 'mixte', 'lycee', 'college']
+            est_superieur = etablissement.type_etablissement == 'superieur'
+            item = serialize_matiere_item(matiere, est_superieur=est_superieur, est_lycee=est_lycee)
+            emit_live(
+                etablissement.id,
+                'matiere.modifiee',
+                {'event': 'matiere.modifiee', 'item': item},
+            )
+            if wants_json_response(request):
+                return json_ok(message=f"Matière {status}.", item=item)
             
         except Matiere.DoesNotExist:
             messages.error(request, "Matière non trouvée.")
+            if wants_json_response(request):
+                return json_fail(message="Matière non trouvée.", status=404)
         
         return redirect('matiere:liste_matieres')
     
@@ -1256,7 +1328,10 @@ class MatiereController:
                         messages.info(request, f"Les {professeurs_principaux.count()} professeur(s) ayant '{nom_matiere}' comme matière principale ont été réassignés à '{matiere_remplacement.nom}'.")
                     else:
                         # Si aucune autre matière n'existe, on ne peut pas supprimer
-                        messages.error(request, f"Impossible de supprimer la matière '{nom_matiere}' car elle est la seule matière de l'établissement et {total_professeurs} professeur(s) en dépendent. Veuillez d'abord créer une autre matière ou réassigner les professeurs.")
+                        err_msg = f"Impossible de supprimer la matière '{nom_matiere}' car elle est la seule matière de l'établissement et {total_professeurs} professeur(s) en dépendent."
+                        messages.error(request, err_msg + " Veuillez d'abord créer une autre matière ou réassigner les professeurs.")
+                        if wants_json_response(request):
+                            return json_fail(message=err_msg)
                         return redirect('matiere:detail_matiere', matiere_id=matiere_id)
                     
                     # Retirer la matière des matières secondaires
@@ -1267,10 +1342,21 @@ class MatiereController:
                         messages.info(request, f"La matière '{nom_matiere}' a été retirée des matières secondaires de {professeurs_secondaires.count()} professeur(s).")
                 
                 # Supprimer la matière
+                matiere_id_deleted = matiere.id
+                deleted_item = {'id': matiere_id_deleted, 'nom': nom_matiere}
                 matiere.delete()
                 messages.success(request, f"La matière '{nom_matiere}' a été supprimée avec succès !")
+                emit_live(
+                    etablissement.id,
+                    'matiere.supprimee',
+                    {'event': 'matiere.supprimee', 'item': deleted_item},
+                )
+                if wants_json_response(request):
+                    return json_ok(message=f"Matière '{nom_matiere}' supprimée.", item=deleted_item)
             
         except Matiere.DoesNotExist:
             messages.error(request, "Matière non trouvée.")
+            if wants_json_response(request):
+                return json_fail(message="Matière non trouvée.", status=404)
         
         return redirect('matiere:liste_matieres')

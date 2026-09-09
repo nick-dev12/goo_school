@@ -21,6 +21,7 @@ urlpatterns = [
     path('classes/filieres/<int:filiere_id>/supprimer/', ClasseController.supprimer_filiere, name='supprimer_filiere'),
     # URLs spécifiques avant l'URL générique detail_classe pour éviter les conflits
     path('classes/<int:classe_id>/data/', ClasseController.get_classe_data, name='get_classe_data'),
+    path('classes/<int:classe_id>/carte/', ClasseController.classe_carte_fragment, name='classe_carte_fragment'),
     path('classes/<int:classe_id>/modifier/', ClasseController.modifier_classe, name='modifier_classe'),
     path('classes/<int:classe_id>/supprimer/', ClasseController.supprimer_classe, name='supprimer_classe'),
     path('classes/<int:classe_id>/toggle/', ClasseController.toggle_actif, name='toggle_actif'),

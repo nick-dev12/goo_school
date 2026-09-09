@@ -1,0 +1,222 @@
+<div class="presence-modal-content">
+        <!-- Status Banner -->
+        {% if soumission_existante or formulaire_desactive %}
+            <div class="presence-status-banner validee" style="background: #fbbf24; border-left: 4px solid #f59e0b;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div class="status-content">
+                    <strong>Liste de présence déjà soumise</strong>
+                    <p>{{ message_soumission|default:"Les présences ont déjà été soumises pour aujourd'hui. Vous ne pouvez plus les modifier." }}</p>
+                    {% if soumission_existante %}
+                        <p style="font-size: 0.9em; margin-top: 0.5rem;">Date de soumission : {{ soumission_existante.date_soumission|date:"d/m/Y à H:i" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% elif liste_presence.validee %}
+            <div class="presence-status-banner validee">
+                <i class="fas fa-check-circle"></i>
+                <div class="status-content">
+                    <strong>Liste de présence déjà validée</strong>
+                    <p>Cette liste a été validée le {{ liste_presence.date_validation|date:"d/m/Y à H:i" }}. Vous ne pouvez plus la modifier.</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="presence-status-banner en-cours">
+                <i class="fas fa-clipboard-check"></i>
+                <div class="status-content">
+                    <strong>Liste de présence en cours</strong>
+                    <p>Marquez les présences et absences, puis validez la liste pour enregistrer définitivement.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1 class="page-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    Liste de présence
+                </h1>
+                <p class="page-subtitle">{{ classe.nom }} - {{ nombre_eleves }} élèves - {{ today|date:"d/m/Y" }}</p>
+                <p class="enseignant-classe-niveau liste-presence-niveau"><i class="fas fa-layer-group" aria-hidden="true"></i>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</p>
+            </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="info-cards">
+            <div class="info-card">
+                <div class="info-icon" style="background: #667eea;">
+                    <i class="fas fa-chalkboard"></i>
+                </div>
+                <div class="info-content">
+                    <strong>Classe :</strong>
+                    <span>{{ classe.nom }}</span>
+                    <span class="enseignant-classe-niveau info-card-niveau"> — {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</span>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-icon" style="background: #f59e0b;">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="info-content">
+                    <strong>Date :</strong>
+                    <span>{{ today|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-icon" style="background: #10b981;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="info-content">
+                    <strong>Effectif :</strong>
+                    <span>{{ nombre_eleves }} élèves</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire de présence -->
+        <form method="post" action="{% url 'enseignant:valider_presence' classe.id %}" id="presence-form" data-live-form="1">
+            {% csrf_token %}
+            
+            <!-- Champs cachés avec toutes les données utiles -->
+            <input type="hidden" name="classe_id" value="{{ classe.id }}">
+            <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
+            <input type="hidden" name="etablissement_id" value="{{ classe.etablissement.id }}">
+            {% if matiere %}
+                <input type="hidden" name="matiere_id" value="{{ matiere.id }}">
+            {% else %}
+                <input type="hidden" name="matiere_id" value="">
+            {% endif %}
+            
+            <!-- Affichage de la matière sélectionnée si applicable -->
+            {% if matiere %}
+                <div class="info-card" style="margin-bottom: 1rem;">
+                    <div class="info-icon" style="background: #8b5cf6;">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="info-content">
+                        <strong>Matière :</strong>
+                        <span>{{ matiere.nom }}</span>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Actions buttons (top) - Retiré pour éviter la double soumission -->
+
+            <!-- Table de présence -->
+            <div class="presence-table-container">
+                <table class="presence-table">
+                    <thead>
+                        <tr>
+                            <th class="col-numero">#</th>
+                            <th class="col-eleve">Élève</th>
+                            <th class="col-statut" colspan="4">Statut de présence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in eleves_avec_presence %}
+                            <tr class="{% cycle 'row-even' 'row-odd' %}">
+                                <td class="col-numero">{{ forloop.counter }}</td>
+                                <td class="col-eleve">
+                                    <div class="eleve-info">
+                                        <div class="eleve-avatar">
+                                            {{ item.eleve.nom.0 }}{{ item.eleve.prenom.0 }}
+                                        </div>
+                                        <div class="eleve-details">
+                                            <div class="eleve-nom">{{ item.eleve.nom_complet }}</div>
+                                            <div class="eleve-meta">Matricule: {{ item.eleve.matricule }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td colspan="4" class="col-statut-container">
+                                    <div class="statut-buttons">
+                                        <label class="statut-option present {% if item.statut == 'present' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="present" 
+                                                   {% if item.statut == 'present' %}checked{% endif %}
+                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-check-circle"></i>
+                                            </span>
+                                            <span class="statut-label">Présent</span>
+                                        </label>
+                                        
+                                        <label class="statut-option absent {% if item.statut == 'absent' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="absent" 
+                                                   {% if item.statut == 'absent' %}checked{% endif %}
+                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-times-circle"></i>
+                                            </span>
+                                            <span class="statut-label">Absent</span>
+                                        </label>
+                                        
+                                        <label class="statut-option retard {% if item.statut == 'retard' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="retard" 
+                                                   {% if item.statut == 'retard' %}checked{% endif %}
+                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-clock"></i>
+                                            </span>
+                                            <span class="statut-label">Retard</span>
+                                        </label>
+                                        
+                                        <label class="statut-option absent-justifie {% if item.statut == 'absent_justifie' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
+                                            <input type="radio" 
+                                                   name="presence_{{ item.eleve.id }}" 
+                                                   value="absent_justifie" 
+                                                   {% if item.statut == 'absent_justifie' %}checked{% endif %}
+                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
+                                            <span class="statut-icon">
+                                                <i class="fas fa-file-medical"></i>
+                                            </span>
+                                            <span class="statut-label">Absent Justifié</span>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Actions buttons (bottom) -->
+            {% if not formulaire_desactive and not liste_presence.validee %}
+                <div class="actions-container bottom-actions">
+                    <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider cette liste de présence ? Cette action est définitive pour aujourd\'hui.');">
+                        <i class="fas fa-check-circle"></i>
+                        Valider la liste de présence
+                    </button>
+                    {% if modal_mode %}
+                    <button type="button" class="btn-secondary" data-close-presence-modal>
+                        <i class="fas fa-times"></i>
+                        Fermer
+                    </button>
+                    {% else %}
+                    <a href="{% url 'enseignant:gestion_presence' %}" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour
+                    </a>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="actions-container bottom-actions">
+                    {% if modal_mode %}
+                    <button type="button" class="btn-secondary" data-close-presence-modal>
+                        <i class="fas fa-times"></i>
+                        Fermer
+                    </button>
+                    {% else %}
+                    <a href="{% url 'enseignant:gestion_presence' %}" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour
+                    </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </form>
+</div>

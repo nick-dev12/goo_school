@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}?v=1.2.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
-<body>
+<body data-live-page="notes-resultats">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
@@ -785,6 +785,9 @@
                     throw new Error(data.message || 'Erreur inconnue');
                 }
                 alert(data.message || 'Déblocage effectué avec succès.');
+                if (window.refreshLiveTabsNow) {
+                    window.refreshLiveTabsNow('Relevé débloqué.', true);
+                }
                 if (ctx.apiUrl) {
                     chargerDetailsMatiere(ctx.apiUrl, !!ctx.estPrimaire);
                 }
@@ -1135,6 +1138,9 @@
             filterNotesPrimaireStudents(classeId);
         }
     </script>
+
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.0"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

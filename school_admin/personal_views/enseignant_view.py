@@ -27,6 +27,32 @@ from django.db.models.functions import Lower
 logger = logging.getLogger(__name__)
 
 
+def _emit_enseignant_live(professeur, event_type, **extra):
+    """Émet un événement temps réel pour l'établissement du professeur."""
+    from ..services.realtime_helpers import emit_live
+
+    etablissement_id = getattr(professeur, 'etablissement_id', None)
+    if not etablissement_id:
+        return
+    payload = {'event': event_type}
+    for key, value in extra.items():
+        if value is not None:
+            payload[key] = value
+    emit_live(etablissement_id, event_type, payload)
+
+
+def _format_date_fr(value):
+    """Formate une date ou une chaîne ISO en jj/mm/aaaa."""
+    if not value:
+        return ''
+    if isinstance(value, str):
+        parsed = parse_date(value[:10])
+        if not parsed:
+            return value
+        value = parsed
+    return date_format(value, 'd/m/Y')
+
+
 def _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active=None):
     """
     Récupère les élèves d'une classe depuis InscriptionEleve pour l'année scolaire active.
@@ -1118,8 +1144,19 @@ def gestion_notes_enseignant(request):
         'sessions_examens_par_classe': sessions_examens_par_classe,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
+        'open_evaluation': request.GET.get('open_evaluation') == '1',
+        'eval_classe_id': request.GET.get('eval_classe', ''),
+        'eval_matiere_id': request.GET.get('eval_matiere', ''),
+        'eval_periode_id': request.GET.get('eval_periode', ''),
     }
-    
+
+    if request.GET.get('live_partial') == 'notes' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(
+            request,
+            'school_admin/enseignant/partials/gestion_notes_live_fragment.html',
+            context,
+        )
+
     return render(request, 'school_admin/enseignant/gestion_notes.html', context)
 def justifications_notes_enseignant(request):
     """
@@ -1305,6 +1342,10 @@ def justifications_notes_enseignant(request):
         if justification_obj:
             from ..services.notification_tasks import schedule_justification_note_directeur_notification
             schedule_justification_note_directeur_notification(justification_obj.id)
+
+        from ..services.realtime_helpers import wants_json_response, json_ok
+        if wants_json_response(request):
+            return json_ok(message="Demande de justification enregistrée.")
 
         # Rediriger en gardant le paramètre periode
         return _redirect_with_periode()
@@ -1854,6 +1895,17 @@ def exercices_maison_enseignant(request):
             logger.info(f"Envoi des notifications programmé en arrière-plan pour l'exercice de maison {exercice.id}")
 
         messages.success(request, f"Exercice de maison « {titre} » {action_message} avec succès.")
+        event_type = 'exercice.modifie' if exercice_id else 'exercice.publie'
+        _emit_enseignant_live(
+            professeur,
+            event_type,
+            classe_id=classe_obj.id,
+            classe_nom=classe_obj.nom,
+            titre=titre,
+        )
+        from ..services.realtime_helpers import wants_json_response, json_ok
+        if wants_json_response(request):
+            return json_ok(message=f"Exercice « {titre} » {action_message} avec succès.")
 
         query_params = {
             'classe': classe_obj.id,
@@ -2124,7 +2176,14 @@ def gestion_presence_enseignant(request):
         'matiere_principale': professeur.matiere_principale,
         'annee_scolaire_active': annee_scolaire_active,
     }
-    
+
+    if request.GET.get('live_partial') == 'presence' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(
+            request,
+            'school_admin/enseignant/partials/gestion_presence_live_fragment.html',
+            context,
+        )
+
     return render(request, 'school_admin/enseignant/gestion_presence.html', context)
 def eleves_en_difficulte_enseignant(request):
     """
@@ -3224,6 +3283,26 @@ def noter_eleves_enseignant(request, classe_id):
                     else:
                         messages.success(request, f"✓ {notes_enregistrees} notes enregistrées avec succès !")
 
+                    if notes_enregistrees:
+                        _emit_enseignant_live(
+                            professeur,
+                            'notes.mise_a_jour',
+                            action='saisie',
+                            classe_id=classe.id,
+                            classe_nom=classe.nom,
+                            matiere_id=matiere_enseignee.id if matiere_enseignee else None,
+                            matiere_nom=matiere_enseignee.nom if matiere_enseignee else None,
+                            periode_id=periode_active_obj.id if periode_active_obj else None,
+                            count=notes_enregistrees,
+                        )
+                        from ..services.realtime_helpers import wants_json_response, json_ok
+                        if wants_json_response(request):
+                            return json_ok(
+                                message=f"{notes_enregistrees} notes enregistrées.",
+                                classe_id=classe.id,
+                                matiere_id=matiere_enseignee.id if matiere_enseignee else None,
+                            )
+
                 except Exception as e:
                     logger.error(f"Erreur transaction notes: {str(e)}")
                     messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
@@ -3426,8 +3505,13 @@ def creer_evaluation_enseignant(request, classe_id):
         # Validation
         if not titre:
             errors['titre'] = "Le titre est obligatoire."
+        date_eval_obj = None
         if not date_evaluation:
             errors['date_evaluation'] = "La date est obligatoire."
+        else:
+            date_eval_obj = parse_date(date_evaluation)
+            if not date_eval_obj:
+                errors['date_evaluation'] = "La date n'est pas valide."
         
         # Période : supérieur + module → imposée par ModuleClasse (strict, ignore toute autre valeur POST)
         periode_scolaire = None
@@ -3476,39 +3560,71 @@ def creer_evaluation_enseignant(request, classe_id):
         
         # Si pas d'erreurs, créer l'évaluation
         if not errors:
+            from ..services.realtime_helpers import wants_json_response, json_ok
+
             try:
+                matiere_enseignee = matiere_pour_periode
                 with transaction.atomic():
-                    matiere_enseignee = matiere_pour_periode
-                    
                     evaluation = Evaluation.objects.create(
                         titre=titre,
                         description=description,
                         classe=classe,
                         professeur=professeur,
                         matiere=matiere_enseignee,
-                        date_evaluation=date_evaluation,
+                        date_evaluation=date_eval_obj,
                         bareme=bareme_float,
                         periode_scolaire=periode_scolaire,
                         actif=True,
                         annee_scolaire=annee_scolaire_active
                     )
-                    
-                    logger.info(f"Évaluation créée: {evaluation.id} - {evaluation.titre}")
-                    
-                    # Programmer l'envoi des notifications en arrière-plan
-                    from ..services.notification_tasks import schedule_evaluation_notification
-                    schedule_evaluation_notification(evaluation.id)
-                    logger.info(f"Envoi des notifications programmé en arrière-plan pour l'évaluation {evaluation.id}")
-                    
-                    messages.success(request, f"L'évaluation '{evaluation.titre}' a été créée avec succès !")
-                    if matiere_id:
-                        return redirect(f"/enseignant/notes/?matiere={matiere_id}")
-                    return redirect('enseignant:gestion_notes')
-                    
+
+                logger.info(f"Évaluation créée: {evaluation.id} - {evaluation.titre}")
+
+                from ..services.notification_tasks import schedule_evaluation_notification
+                schedule_evaluation_notification(evaluation.id)
+                logger.info(
+                    f"Envoi des notifications programmé en arrière-plan pour l'évaluation {evaluation.id}"
+                )
+
+                from ..services.live_serializers import serialize_evaluation_live_item
+
+                live_item = serialize_evaluation_live_item(evaluation)
+                _emit_enseignant_live(
+                    professeur,
+                    'evaluation.creee',
+                    classe_id=classe.id,
+                    classe_nom=classe.nom,
+                    matiere_id=matiere_enseignee.id,
+                    matiere_nom=matiere_enseignee.nom,
+                    evaluation_id=evaluation.id,
+                    titre=evaluation.titre,
+                    date=_format_date_fr(evaluation.date_evaluation),
+                    periode_id=evaluation.periode_scolaire_id,
+                    item=live_item,
+                )
+                if wants_json_response(request):
+                    return json_ok(
+                        message=f"L'évaluation '{evaluation.titre}' a été créée avec succès !",
+                        item=live_item,
+                    )
+
+                messages.success(request, f"L'évaluation '{evaluation.titre}' a été créée avec succès !")
+                if matiere_id:
+                    return redirect(f"/enseignant/notes/?matiere={matiere_id}")
+                return redirect('enseignant:gestion_notes')
+
             except Exception as e:
                 logger.error(f"Erreur lors de la création de l'évaluation: {str(e)}")
                 errors['general'] = f"Erreur lors de la création de l'évaluation : {str(e)}"
-        
+
+        from ..services.realtime_helpers import wants_json_response, json_fail
+
+        if errors and wants_json_response(request):
+            field_errors = {k: v for k, v in errors.items() if k != 'general'}
+            if errors.get('general'):
+                field_errors['__all__'] = errors['general']
+            return json_fail(field_errors=field_errors)
+
         # Stocker les erreurs et les données dans le contexte
         if ctx_periode_sup and ctx_periode_sup['periode_verrouillee_sup']:
             periodes_scolaires = ctx_periode_sup['periodes_scolaires'].order_by('date_debut')
@@ -3553,7 +3669,6 @@ def creer_evaluation_enseignant(request, classe_id):
             etablissement, classe, annee_scolaire_active
         )
     
-    # Compter le nombre d'élèves actifs dans la classe
     eleves_queryset = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
     nombre_eleves = eleves_queryset.count()
     
@@ -3584,8 +3699,27 @@ def creer_evaluation_enseignant(request, classe_id):
             ctx_periode_sup.get('avertissement_periode_sup') if ctx_periode_sup else None
         ),
     }
-    
-    return render(request, 'school_admin/enseignant/creer_evaluation.html', context)
+
+    if request.GET.get('partial'):
+        return render(request, 'school_admin/enseignant/partials/form_creer_evaluation_inner.html', context)
+
+    from django.urls import reverse
+    redirect_params = []
+    if matiere_id:
+        redirect_params.append(f'matiere={matiere_id}')
+    periode_q = request.GET.get('periode')
+    if periode_q:
+        redirect_params.append(f'periode={periode_q}')
+    redirect_params.append('open_evaluation=1')
+    redirect_params.append(f'eval_classe={classe_id}')
+    if matiere_id:
+        redirect_params.append(f'eval_matiere={matiere_id}')
+    if periode_q:
+        redirect_params.append(f'eval_periode={periode_q}')
+    redirect_url = reverse('enseignant:gestion_notes')
+    if redirect_params:
+        redirect_url = f"{redirect_url}?{'&'.join(redirect_params)}"
+    return redirect(redirect_url)
 
 
 def liste_evaluations_enseignant(request):
@@ -3790,9 +3924,22 @@ def supprimer_evaluation_enseignant(request, evaluation_id):
         
         logger.info(f"Évaluation {evaluation_id} supprimée par {professeur.nom_complet}")
         
+        _emit_enseignant_live(
+            professeur,
+            'evaluation.supprimee',
+            evaluation_id=evaluation_id,
+            titre=titre_evaluation,
+            classe_id=evaluation.classe_id,
+            classe_nom=evaluation.classe.nom if evaluation.classe else '',
+        )
+        from ..services.realtime_helpers import wants_json_response, json_ok, json_fail
+        if wants_json_response(request):
+            return json_ok(message=f"L'évaluation '{titre_evaluation}' a été supprimée avec succès.")
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': True,
+                'ok': True,
                 'message': f"L'évaluation '{titre_evaluation}' a été supprimée avec succès.",
             })
         
@@ -3908,9 +4055,24 @@ def modifier_evaluation_enseignant(request, evaluation_id):
                 evaluation.periode_scolaire = periode_scolaire
                 evaluation.save()
                 
+                _emit_enseignant_live(
+                    professeur,
+                    'evaluation.modifiee',
+                    evaluation_id=evaluation.id,
+                    titre=titre,
+                    classe_id=evaluation.classe_id,
+                    classe_nom=evaluation.classe.nom if evaluation.classe else '',
+                    matiere_id=matiere.id,
+                    matiere_nom=matiere.nom,
+                )
+                from ..services.realtime_helpers import wants_json_response, json_ok
+                if wants_json_response(request):
+                    return json_ok(message=f"Évaluation '{titre}' modifiée avec succès.")
+                
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({
                         'success': True,
+                        'ok': True,
                         'message': f"Évaluation '{titre}' modifiée avec succès.",
                         'redirect_url': '/enseignant/evaluations/'
                     })
@@ -4548,6 +4710,20 @@ def soumettre_releve_notes(request, classe_id):
         
         logger.info(f"Relevé soumis - Classe: {classe.nom}, Période: {periode_active.nom_periode}, Professeur: {professeur.nom_complet}")
         success_msg = f"✓ Relevé de notes soumis avec succès pour {periode_active.nom_periode} ! Les notes sont maintenant verrouillées."
+
+        from ..services.realtime_helpers import emit_live
+        emit_live(
+            professeur.etablissement.id,
+            'notes.mise_a_jour',
+            {
+                'event': 'notes.mise_a_jour',
+                'classe_id': classe.id,
+                'classe_nom': classe.nom,
+                'periode_id': periode_active.id,
+                'matiere_id': matiere_submit.id if matiere_submit else None,
+                'matiere_nom': matiere_submit.nom if matiere_submit else None,
+            },
+        )
         
         try:
             DirecteurNotificationService.notify_releve_submission(
@@ -4565,9 +4741,12 @@ def soumettre_releve_notes(request, classe_id):
             )
         
         # Si appel AJAX, renvoyer JSON
+        from ..services.realtime_helpers import wants_json_response, json_ok
+        if wants_json_response(request):
+            return json_ok(message=success_msg)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             from django.http import JsonResponse
-            return JsonResponse({'success': True, 'message': success_msg})
+            return JsonResponse({'success': True, 'ok': True, 'message': success_msg})
         messages.success(request, success_msg)
         
     except PeriodeScolaire.DoesNotExist:
@@ -5605,9 +5784,22 @@ def liste_presence_enseignant(request, classe_id):
         'formulaire_desactive': formulaire_desactive,
         'message_soumission': message_soumission,
         'annee_scolaire_active': annee_scolaire_active,
+        'modal_mode': request.GET.get('partial') == '1',
     }
-    
+
+    if request.GET.get('partial') == '1' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'school_admin/enseignant/partials/liste_presence_inner.html', context)
+
     return render(request, 'school_admin/enseignant/liste_presence.html', context)
+
+
+def _presence_json_error(request, message, status=400):
+    from ..services.realtime_helpers import wants_json_response, json_fail
+    if wants_json_response(request):
+        return json_fail(field_errors={'__all__': message}, status=status)
+    return None
+
+
 def valider_presence_enseignant(request, classe_id):
     """
     Enregistre et valide la liste de présence
@@ -5643,6 +5835,9 @@ def valider_presence_enseignant(request, classe_id):
     # Validation des données reçues
     if not classe_id_post or not professeur_id_post or not etablissement_id_post:
         logger.error(f"Données manquantes dans la soumission - Classe: {classe_id_post}, Prof: {professeur_id_post}, Etab: {etablissement_id_post}")
+        err = _presence_json_error(request, "Données manquantes. Veuillez réessayer.")
+        if err:
+            return err
         messages.error(request, "Données manquantes. Veuillez réessayer.")
         return redirect('enseignant:liste_presence', classe_id=classe_id)
     
@@ -5727,6 +5922,10 @@ def valider_presence_enseignant(request, classe_id):
             
             if soumission_existante:
                 matiere_msg = f" pour la matière {matiere_selectionnee.nom}" if matiere_selectionnee else ""
+                warn_msg = f"Les présences{matiere_msg} ont déjà été soumises pour aujourd'hui."
+                err = _presence_json_error(request, warn_msg)
+                if err:
+                    return err
                 messages.warning(
                     request, 
                     f"La liste de présence{matiere_msg} a déjà été soumise pour aujourd'hui."
@@ -5838,17 +6037,34 @@ def valider_presence_enseignant(request, classe_id):
                 logger.info(f"Envoi des notifications programmé en arrière-plan pour {len(presence_ids)} présence(s)")
             
             matiere_msg = f" pour la matière {matiere_selectionnee.nom}" if matiere_selectionnee else ""
-            messages.success(
-                request,
+            success_msg = (
                 f"Liste de présence{matiere_msg} soumise avec succès ! "
                 f"{nombre_presents} présent(s), {nombre_absents} absent(s)."
             )
+            _emit_enseignant_live(
+                professeur,
+                'presence.mise_a_jour',
+                classe_id=classe.id,
+                classe_nom=classe.nom,
+                count=len(presences_creees),
+            )
+            from ..services.realtime_helpers import wants_json_response, json_ok
+            if wants_json_response(request):
+                return json_ok(message=success_msg, classe_id=classe.id)
+            messages.success(request, success_msg)
             
     except Exception as e:
         logger.error(f"Erreur lors de la soumission de la liste de présence: {str(e)}", exc_info=True)
+        err = _presence_json_error(request, f"Erreur lors de la soumission : {str(e)}")
+        if err:
+            return err
         messages.error(request, f"Erreur lors de la soumission : {str(e)}")
     
-    return redirect('enseignant:gestion_eleves')
+    from django.urls import reverse
+    if matiere_selectionnee:
+        url = reverse('enseignant:liste_presence', args=[classe_id]) + f'?matiere={matiere_selectionnee.id}'
+        return redirect(url)
+    return redirect('enseignant:liste_presence', classe_id=classe_id)
 
 
 
@@ -6276,6 +6492,17 @@ def modifier_presence_eleve(request, presence_id):
             request,
             f"Présence modifiée : {presence.get_statut_display()}"
         )
+        _emit_enseignant_live(
+            professeur,
+            'presence.mise_a_jour',
+            classe_id=presence.classe_id,
+            classe_nom=presence.classe.nom if presence.classe else '',
+            eleve_id=eleve.id,
+            count=1,
+        )
+        from ..services.realtime_helpers import wants_json_response, json_ok
+        if wants_json_response(request):
+            return json_ok(message=f"Présence modifiée : {presence.get_statut_display()}", eleve_id=eleve.id)
     else:
         messages.error(request, "Statut invalide.")
     
@@ -6476,6 +6703,19 @@ def justifier_absence_eleve(request):
             request,
             f"Absence du {presence.date.strftime('%d/%m/%Y')} justifiée avec succès : {presence.get_type_justificatif_display()}"
         )
+        _emit_enseignant_live(
+            professeur,
+            'presence.mise_a_jour',
+            classe_id=presence.classe_id,
+            eleve_id=eleve.id,
+            count=1,
+        )
+        from ..services.realtime_helpers import wants_json_response, json_ok
+        if wants_json_response(request):
+            return json_ok(
+                message=f"Absence justifiée pour {eleve.nom_complet}.",
+                eleve_id=eleve.id,
+            )
     except Exception as e:
         logger.error(f"Erreur justification absence: {str(e)}")
         messages.error(request, f"Erreur lors de la justification : {str(e)}")
@@ -6939,6 +7179,22 @@ def soumettre_sanction_eleve(request):
             request,
             f"Sanction '{sanction.get_type_sanction_display()}' enregistrée avec succès pour {eleve.nom_complet}."
         )
+        _emit_enseignant_live(
+            professeur,
+            'sanction.ajoutee',
+            eleve_id=eleve.id,
+            eleve_nom=eleve.nom_complet,
+            classe_id=classe.id,
+            classe_nom=classe.nom,
+            type_sanction=sanction.get_type_sanction_display(),
+        )
+        from ..services.realtime_helpers import wants_json_response, json_ok
+        if wants_json_response(request):
+            return json_ok(
+                message=f"Sanction enregistrée pour {eleve.nom_complet}.",
+                eleve_id=eleve.id,
+                classe_id=classe.id,
+            )
         
         # Envoyer les notifications push
         try:
@@ -7211,6 +7467,7 @@ def parametres_profil_enseignant(request):
     
     # Gestion POST pour mise à jour des informations
     if request.method == 'POST':
+        from ..services.realtime_helpers import wants_json_response, json_ok, json_fail
         action = request.POST.get('action')
         
         if action == 'update_info':
@@ -7224,6 +7481,8 @@ def parametres_profil_enseignant(request):
                 professeur.adresse = adresse
             
             professeur.save()
+            if wants_json_response(request):
+                return json_ok(message="Informations mises à jour avec succès.")
             messages.success(request, "Informations mises à jour avec succès.")
             logger.info(f"Infos mises à jour - Professeur: {professeur.nom_complet}")
             
@@ -7265,9 +7524,13 @@ def parametres_profil_enseignant(request):
                 professeur.save()
                 # Maintenir la session active après changement de mot de passe
                 update_session_auth_hash(request, professeur)
+                if wants_json_response(request):
+                    return json_ok(message="Mot de passe modifié avec succès.")
                 messages.success(request, "Mot de passe modifié avec succès.")
                 logger.info(f"Mot de passe changé - Professeur: {professeur.nom_complet}")
         
+        if wants_json_response(request):
+            return json_fail(message="Veuillez corriger les erreurs du formulaire.")
         return redirect('enseignant:parametres_profil')
     
     # Statistiques

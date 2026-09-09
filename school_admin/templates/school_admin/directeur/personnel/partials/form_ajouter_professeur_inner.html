@@ -1,0 +1,313 @@
+{% load i18n %}
+
+                 <form method="post" action="{% url 'professeur:ajouter_professeur' %}" class="professeur-form" id="ajouterProfesseurForm">
+                     {% csrf_token %}
+                    
+                    <!-- Messages d'erreur généraux -->
+                    {% if field_errors %}
+                        <div class="alert alert-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>{% trans "Erreurs détectées :" %}</strong> {% trans "Veuillez corriger les champs marqués en rouge." %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Informations personnelles -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h3 class="section-title">{% trans "Informations personnelles" %}</h3>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="nom">
+                                    <i class="fas fa-id-card"></i>
+                                    {% trans "Nom de famille *" %}
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if field_errors.nom %}is-invalid{% endif %}" 
+                                       id="nom" 
+                                       name="nom" 
+                                       value="{{ form_data.nom }}"
+                                       placeholder="Ex: Dupont">
+                                {% if field_errors.nom %}
+                                    <div class="invalid-feedback">{{ field_errors.nom }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="prenom">
+                                    <i class="fas fa-user"></i>
+                                    {% trans "Prénom *" %}
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if field_errors.prenom %}is-invalid{% endif %}" 
+                                       id="prenom" 
+                                       name="prenom" 
+                                       value="{{ form_data.prenom }}"
+                                       placeholder="Ex: Marie"
+                                       required>
+                                {% if field_errors.prenom %}
+                                    <div class="invalid-feedback">{{ field_errors.prenom }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="email">
+                                    <i class="fas fa-envelope"></i>
+                                    {% trans "Adresse email" %}
+                                    <span class="label-optional">{% trans "(Facultatif)" %}</span>
+                                </label>
+                                <input type="email" 
+                                       class="form-control {% if field_errors.email %}is-invalid{% endif %}" 
+                                       id="email" 
+                                       name="email" 
+                                       value="{{ form_data.email }}"
+                                       placeholder="Ex: marie.dupont@email.com">
+                                {% if field_errors.email %}
+                                    <div class="invalid-feedback">{{ field_errors.email }}</div>
+                                {% endif %}
+                        
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="telephone">
+                                    <i class="fas fa-phone"></i>
+                                    {% trans "Téléphone *" %}
+                                </label>
+                                <input type="tel" 
+                                       class="form-control {% if field_errors.telephone %}is-invalid{% endif %}" 
+                                       id="telephone" 
+                                       name="telephone" 
+                                       value="{{ form_data.telephone }}"
+                                       placeholder=""
+                                       required>
+                                <input type="hidden" name="telephone_full" id="telephone_full">
+                                {% if field_errors.telephone %}
+                                    <div class="invalid-feedback">{{ field_errors.telephone }}</div>
+                                {% endif %}
+                                <small class="form-text" id="phone-error" style="color: #dc3545; display: none;"></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations professionnelles -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <h3 class="section-title">{% trans "Informations professionnelles" %}</h3>
+                        </div>
+                        
+                        {% if est_superieur %}
+                            <!-- Pour le supérieur : Filière puis matière principale (uniquement les matières de la filière) -->
+                            <div class="form-group">
+                                <label class="form-label" for="department">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {% trans "Filière *" %}
+                                </label>
+                                {% if departments %}
+                                    <select class="form-control {% if field_errors.department %}is-invalid{% endif %}" 
+                                            id="department" 
+                                            name="department" 
+                                            required>
+                                        <option value="">{% trans "Sélectionnez une filière" %}</option>
+                                        {% for dep in departments %}
+                                            <option value="{{ dep.id }}" {% if form_data.department == dep.id|stringformat:"s" %}selected{% endif %}>{{ dep.nom }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <p class="form-hint" style="font-size: 12px; color: #666; margin-top: 6px;">
+                                        <i class="fas fa-info-circle"></i>
+                                        {% trans "Chaque professeur est rattaché à une filière (ex: Logistique, Mines, etc.)" %}
+                                    </p>
+                                {% else %}
+                                    <div class="alert alert-error" style="padding: 10px; font-size: 0.9rem;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {% trans "Aucune filière configurée. Veuillez d'abord créer des filières dans la gestion de l'établissement." %}
+                                    </div>
+                                {% endif %}
+                                {% if field_errors.department %}
+                                    <div class="invalid-feedback">{{ field_errors.department }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group" id="niveau-lmd-wrap" {% if not form_data.department %}style="display: none;"{% endif %}>
+                                <label class="form-label" for="niveau_lmd">
+                                    <i class="fas fa-layer-group"></i>
+                                    {% trans "Niveau dans la filière *" %}
+                                </label>
+                                <select class="form-control {% if field_errors.niveau_lmd %}is-invalid{% endif %}"
+                                        id="niveau_lmd"
+                                        name="niveau_lmd"
+                                        {% if not form_data.department %}disabled{% endif %}>
+                                    <option value="">{% trans "Sélectionnez un niveau (L1, L2, M1…)" %}</option>
+                                    {% for opt in niveaux_lmd_options_selection %}
+                                        <option value="{{ opt.key }}" {% if form_data.niveau_lmd == opt.key %}selected{% endif %}>{{ opt.label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <p class="form-hint" style="font-size: 12px; color: #666; margin-top: 6px;">
+                                    <i class="fas fa-info-circle"></i>
+                                    {% trans "Les niveaux listés proviennent des classes et des modules de cette filière (Licence à Doctorat, BTS, etc.)." %}
+                                </p>
+                                {% if field_errors.niveau_lmd %}
+                                    <div class="invalid-feedback d-block">{{ field_errors.niveau_lmd }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group" id="matieres-superieur-container" {% if not form_data.department or not form_data.niveau_lmd %}style="display: none;"{% endif %}>
+                                <label class="form-label" for="matiere-principale-search">
+                                    <i class="fas fa-book"></i>
+                                    {% trans "Matière enseignée *" %}
+                                </label>
+                                <p class="form-hint matiere-superieur-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    {% trans "Seules les matières de la filière et du niveau choisis sont affichées. Utilisez la recherche pour filtrer par nom, code ou module." %}
+                                </p>
+                                <div class="matiere-search-wrap">
+                                    <label for="matiere-principale-search" class="sr-only">{% trans "Rechercher une matière" %}</label>
+                                    <input type="search"
+                                           class="form-control matiere-search-input"
+                                           id="matiere-principale-search"
+                                           autocomplete="off"
+                                           placeholder="{% trans 'Rechercher une matière…' %}"
+                                           {% if not form_data.department or not form_data.niveau_lmd %}disabled{% endif %}>
+                                </div>
+                                <div class="matiere-principale-selected-bar" id="matiere-principale-selected-bar" hidden>
+                                    <span class="matiere-principale-selected-label" id="matiere-principale-selected-label"></span>
+                                    <button type="button" class="btn-matiere-clear" id="matiere-principale-clear" aria-label="{% trans 'Changer de matière' %}">
+                                        <i class="fas fa-times"></i> {% trans "Changer" %}
+                                    </button>
+                                </div>
+                                <input type="hidden"
+                                       name="matiere_principale"
+                                       id="input_matiere_principale"
+                                       value="{{ form_data.matiere_principale }}">
+                                <p class="matiere-filter-empty-msg" id="matiere-principale-no-results" hidden role="status">
+                                    {% trans "Aucune matière ne correspond à votre recherche." %}
+                                </p>
+                                <div class="matiere-pick-list {% if field_errors.matiere_principale %}is-invalid-border{% endif %}"
+                                     id="matiere-principale-list"
+                                     role="listbox"
+                                     aria-label="{% trans 'Liste des matières' %}"
+                                     aria-live="polite"
+                                     aria-relevant="additions removals">
+                                    {% for m in matieres_superieur_flat %}
+                                    <button type="button"
+                                            class="matiere-pick-item {% if form_data.matiere_principale == m.id|stringformat:'s' and form_data.department == m.department_id|stringformat:'s' and form_data.niveau_lmd in m.niveau_lmd_keys_list %}is-selected{% endif %}"
+                                            data-matiere-id="{{ m.id }}"
+                                            data-department-id="{{ m.department_id }}"
+                                            data-niveau-lmd-keys="{{ m.niveau_lmd_keys_csv|escape }}"
+                                            data-matiere-search="{{ m.nom|escape }} {{ m.code|escape }} {{ m.module_nom|escape }}"
+                                            role="option"
+                                            aria-selected="{% if form_data.matiere_principale == m.id|stringformat:'s' and form_data.department == m.department_id|stringformat:'s' and form_data.niveau_lmd in m.niveau_lmd_keys_list %}true{% else %}false{% endif %}">
+                                        <span class="matiere-pick-main">{{ m.nom }}</span>
+                                        <span class="matiere-pick-meta">
+                                            {% if m.module_nom %}<span class="matiere-pick-module">{{ m.module_nom }}</span> · {% endif %}
+                                            <span class="matiere-pick-code">{{ m.code }}</span>
+                                        </span>
+                                    </button>
+                                    {% empty %}
+                                    <p class="text-muted matiere-pick-empty">{% trans "Aucune matière enregistrée pour une filière. Créez des matières rattachées à une filière dans la gestion académique." %}</p>
+                                    {% endfor %}
+                                </div>
+                                {% if field_errors.matiere_principale %}
+                                    <div class="invalid-feedback d-block">{{ field_errors.matiere_principale }}</div>
+                                {% endif %}
+                            </div>
+                        {% elif type_etablissement == 'primary' %}
+                            <!-- Pour le primaire : Sélection multiple de matières -->
+                            <div class="form-group-full">
+                                <label class="form-label">
+                                    <i class="fas fa-books"></i>
+                                    {% trans "Matières enseignées *" %}
+                                    <span class="label-hint">{% trans "(Sélectionnez toutes les matières que le professeur enseignera)" %}</span>
+                                </label>
+                                <div class="matieres-checkbox-grid {% if field_errors.matieres_secondaires %}is-invalid{% endif %}">
+                                    {% for matiere in matieres %}
+                                        <label class="checkbox-card">
+                                            <input type="checkbox" 
+                                                   name="matieres_secondaires" 
+                                                   value="{{ matiere.id }}"
+                                                   {% if matiere.id|stringformat:"s" in form_data.matieres_secondaires %}checked{% endif %}>
+                                            <div class="checkbox-content">
+                                                <i class="fas fa-book"></i>
+                                                <span class="matiere-nom">{{ matiere.nom }}</span>
+                                                <span class="matiere-code">{{ matiere.code }}</span>
+                                            </div>
+                                            <div class="checkbox-check">
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                        </label>
+                                    {% empty %}
+                                        <p class="text-muted">{% trans "Aucune matière disponible. Veuillez d'abord ajouter des matières." %}</p>
+                                    {% endfor %}
+                                </div>
+                                {% if field_errors.matieres_secondaires %}
+                                    <div class="invalid-feedback">{{ field_errors.matieres_secondaires }}</div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <!-- Pour collège/lycée : Matière principale unique -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="matiere_principale">
+                                        <i class="fas fa-book"></i>
+                                        {% trans "Matière principale *" %}
+                                    </label>
+                                    <select class="form-control {% if field_errors.matiere_principale %}is-invalid{% endif %}" 
+                                            id="matiere_principale" 
+                                            name="matiere_principale" 
+                                            required>
+                                        <option value="">{% trans "Sélectionnez une matière" %}</option>
+                                        {% for matiere in matieres %}
+                                            <option value="{{ matiere.id }}" {% if form_data.matiere_principale == matiere.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ matiere.nom }}
+                                            </option>
+                                        {% empty %}
+                                            <option value="" disabled>{% trans "Aucune matière disponible" %}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if field_errors.matiere_principale %}
+                                        <div class="invalid-feedback">{{ field_errors.matiere_principale }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Informations de connexion -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-key"></i>
+                            </div>
+                            <h3 class="section-title">{% trans "Informations de connexion" %}</h3>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <strong>{% trans "Génération automatique du mot de passe" %}</strong>
+                                <p>{% trans "Un mot de passe provisoire sera généré automatiquement lors de la création du compte. Ce mot de passe sera affiché dans la page de détails du professeur après l'ajout." %}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="form-actions">
+                        <button type="button" class="btn-modal-cancel" onclick="if(window.closeModalProfesseur){closeModalProfesseur();}else{window.history.back();}">
+                            <i class="fas fa-times"></i>
+                            <span>{% trans "Annuler" %}</span>
+                        </button>
+                        <button type="submit" class="btn-submit btn-gradient">
+                            <i class="fas fa-save"></i>
+                            <span>{% trans "Ajouter le professeur" %}</span>
+                        </button>
+                    </div>
+                </form>
+                {% if est_superieur %}
+                {{ niveaux_par_department|json_script:"niveaux-lmd-par-filiere-data" }}
+                {% endif %}

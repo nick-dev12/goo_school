@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.2.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
-<body>
+<body data-live-page="suivi-presence">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
@@ -565,7 +565,7 @@
                 </h3>
                 <button type="button" class="modal-justification-close" onclick="fermerModalJustification()">&times;</button>
             </div>
-            <form action="{% url 'directeur:justifier_absence' %}" method="POST">
+            <form id="formJustifierAbsence" action="{% url 'directeur:justifier_absence' %}" method="POST">
                 {% csrf_token %}
                 <div class="modal-justification-body">
                     <div class="modal-justification-info">
@@ -922,6 +922,9 @@
             filterPresenceStudents(moisId);
         }
     </script>
+
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.0"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

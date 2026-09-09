@@ -1,0 +1,107 @@
+{% load i18n %}
+{% if est_superieur %}
+<div class="classe-card" data-classe-id="{{ classe.id }}">
+  <div class="classe-header">
+    <div class="classe-icon"><i class="fas fa-book"></i></div>
+    <div class="classe-info">
+      <h3 class="classe-nom">{{ classe.nom }}</h3>
+      <p class="classe-niveau">{{ classe.get_libelle_niveau_superieur_complet }}</p>
+      <div class="classe-badge niveau-superieur"><span>{{ classe.get_libelle_niveau_superieur_complet }}</span></div>
+    </div>
+    <div class="classe-status">
+      <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+        <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+        <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+      </div>
+    </div>
+  </div>
+  <div class="classe-details">
+    <div class="detail-row">
+      <div class="detail-item"><i class="fas fa-user-graduate"></i> <span class="detail-label">{% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}:</span> <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span></div>
+      <div class="detail-item"><i class="fas fa-chalkboard-teacher"></i> <span class="detail-label">{% trans "Enseignants:" %}</span> <span class="detail-value">{{ classe_data.nombre_enseignants }}</span></div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-item"><i class="fas fa-chart-pie"></i> <span class="detail-label">{% trans "Occupation:" %}</span> <span class="detail-value">{{ classe.taux_occupation }}%</span></div>
+      <div class="detail-item"><i class="fas fa-code"></i> <span class="detail-label">{% trans "Code:" %}</span> <span class="detail-value">{{ classe.code_classe }}</span></div>
+    </div>
+  </div>
+  {% if classe.liens_examens_concours.count %}
+  <div class="classe-card-examens">
+    <div class="classe-card-examens-label"><i class="fas fa-flag-checkered"></i> {% trans "Examens & concours" %}</div>
+    <div class="classe-card-examens-tags">
+      {% for lien in classe.liens_examens_concours.all %}
+      <span class="classe-examen-tag" title="{{ lien.option.description|default:'' }}"><i class="fas fa-certificate"></i> {{ lien.option.libelle }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  <div class="classe-actions">
+    <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail"><i class="fas fa-eye"></i> <span>{% trans "Détails" %}</span></a>
+    <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}"><i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i> <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span></a>
+  </div>
+</div>
+{% else %}
+<div class="classe-card" data-classe-id="{{ classe.id }}">
+  <div class="classe-header">
+    <div class="classe-icon">
+      <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+    </div>
+    <div class="classe-info">
+      <h3 class="classe-nom">{{ classe.nom }}</h3>
+      <p class="classe-niveau">{{ classe.get_niveau_display }}</p>
+      <div class="classe-badge niveau-{{ classe.niveau }}">
+        <span>{{ classe.get_niveau_display }}</span>
+      </div>
+    </div>
+    <div class="classe-status">
+      <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
+        <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
+        <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
+      </div>
+    </div>
+  </div>
+  <div class="classe-details">
+    <div class="detail-row">
+      <div class="detail-item">
+        <i class="fas fa-user-graduate"></i>
+        <span class="detail-label">{% if libelle_eleves %}{{ libelle_eleves }}:{% else %}{% trans "Élèves:" %}{% endif %}</span>
+        <span class="detail-value">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</span>
+      </div>
+      <div class="detail-item">
+        <i class="fas fa-chalkboard-teacher"></i>
+        <span class="detail-label">{% trans "Enseignants:" %}</span>
+        <span class="detail-value">{{ classe_data.nombre_enseignants }}</span>
+      </div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-item">
+        <i class="fas fa-chart-pie"></i>
+        <span class="detail-label">{% trans "Occupation:" %}</span>
+        <span class="detail-value">{{ classe.taux_occupation }}%</span>
+      </div>
+      <div class="detail-item">
+        <i class="fas fa-calendar-plus"></i>
+        <span class="detail-label">{% trans "Créée:" %}</span>
+        <span class="detail-value">{{ classe.date_creation|date:"d/m/Y" }}</span>
+      </div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-item full-width">
+        <i class="fas fa-code"></i>
+        <span class="detail-label">{% trans "Code:" %}</span>
+        <span class="detail-value">{{ classe.code_classe }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="classe-actions">
+    <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail">
+      <i class="fas fa-eye"></i>
+      <span>{% trans "Détails" %}</span>
+    </a>
+    <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
+      <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+      <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
+    </a>
+  </div>
+</div>
+{% endif %}

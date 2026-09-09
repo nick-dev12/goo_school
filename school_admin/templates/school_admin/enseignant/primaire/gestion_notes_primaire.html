@@ -9,8 +9,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.0.3">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.3">
 </head>
-<body>
+<body data-live-page="notes-gestion" data-enseignant-space="primaire"{% if open_evaluation %} data-open-evaluation-modal="1" data-eval-classe-id="{{ eval_classe_id }}" data-eval-matiere-id="{{ eval_matiere_id }}" data-eval-periode-id="{{ eval_periode_id }}"{% endif %}>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <div class="main-content-container">
@@ -125,11 +128,14 @@
                             <i class="fas fa-file-alt"></i>
                             Voir le relevé de notes complet
                         </a>
-                        <a href="{% url 'enseignant_primaire:creer_evaluation' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}" 
-                           class="btn btn-primary">
+                        <button type="button"
+                                class="btn btn-primary"
+                                data-open-evaluation-modal
+                                data-classe-id="{{ classe_selectionnee.id }}"
+                                data-periode-id="{{ periode_selectionnee.id }}">
                             <i class="fas fa-plus"></i>
                             Créer une évaluation
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -370,9 +376,23 @@
         {% endif %}
     </div>
 
+    <div id="modalCreerEvaluation" class="modal-creneau-fullscreen enseignant-form-modal">
+        <div class="modal-creneau-overlay"></div>
+        <div class="modal-creneau-content">
+            <div class="modal-creneau-header">
+                <h2><i class="fas fa-plus-circle"></i> Créer une évaluation</h2>
+                <button type="button" class="modal-creneau-close" onclick="closeModalEnseignant('modalCreerEvaluation')" aria-label="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-creneau-body" id="modalCreerEvaluationBody"></div>
+        </div>
+    </div>
+
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
     <script src="{% static 'school_admin/js/enseignant/primaire/gestion_notes_primaire.js' %}"></script>
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+{% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>

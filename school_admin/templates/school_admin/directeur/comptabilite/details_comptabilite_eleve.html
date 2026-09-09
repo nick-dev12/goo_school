@@ -174,7 +174,7 @@
         }
     </style>
 </head>
-<body>
+<body data-live-page="compta-details" data-eleve-id="{{ eleve.id }}" data-devise="{{ devise_monnaie|default:'FCFA' }}">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -214,20 +214,20 @@
             <div class="summary-cards">
                 <div class="summary-card">
                     <div class="summary-card-label">{% trans "Total dû" %}</div>
-                    <div class="summary-card-value">{{ total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="summary-card-value" data-summary="total_du">{{ total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                 </div>
                 <div class="summary-card success">
                     <div class="summary-card-label">{% trans "Total payé" %}</div>
-                    <div class="summary-card-value">{{ total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="summary-card-value" data-summary="total_paye">{{ total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                 </div>
-                <div class="summary-card {% if reste_a_payer > 0 %}danger{% else %}success{% endif %}">
+                <div class="summary-card {% if reste_a_payer > 0 %}danger{% else %}success{% endif %}" data-summary-card="reste">
                     <div class="summary-card-label">{% trans "Reste à payer" %}</div>
-                    <div class="summary-card-value">{{ reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                    <div class="summary-card-value" data-summary="reste_a_payer">{{ reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                 </div>
-                <div class="summary-card {% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}">
+                <div class="summary-card {% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}" data-summary-card="statut">
                     <div class="summary-card-label">{% trans "Statut" %}</div>
                     <div class="summary-card-value">
-                        <span class="badge badge-{% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}">
+                        <span class="badge badge-{% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}" data-summary="statut_display">
                             {{ comptabilite.get_statut_paiement_display }}
                         </span>
                     </div>
@@ -254,10 +254,10 @@
                                     <th>{% trans "Actions" %}</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="comptaFraisBody">
                                 {% for frais_data in frais_inscription_avec_paiements %}
                                     {% with frais=frais_data.frais reste=frais_data.reste_a_payer %}
-                                    <tr>
+                                    <tr data-frais-id="{{ frais.id }}">
                                         <td>{{ frais.get_type_frais_display }}</td>
                                         <td><strong>{{ frais_data.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
                                         <td>{{ frais_data.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
@@ -295,7 +295,7 @@
 
             <!-- Mensualités -->
             {% if etablissement.type_etablissement_comptabilite == 'prive' %}
-            <div class="section-card">
+            <div class="section-card" id="comptaMensualitesSection">
                 <h2 class="section-title">
                     <i class="fas fa-calendar-alt"></i>
                     {% trans "Mensualités" %}
@@ -315,10 +315,10 @@
                                     <th>{% trans "Actions" %}</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="comptaMensualitesBody">
                                 {% for mensualite_data in mensualites_avec_paiements %}
                                     {% with mensualite=mensualite_data.mensualite reste=mensualite_data.reste_a_payer %}
-                                    <tr>
+                                    <tr data-mensualite-id="{{ mensualite.id }}">
                                         <td>{{ eleve.nom }} {{ eleve.prenom }}</td>
                                         <td>{{ mensualite.periode }}</td>
                                         <td><strong>{{ mensualite_data.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
@@ -387,9 +387,9 @@
                                     <th>{% trans "Référence" %}</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="comptaPaiementsBody">
                                 {% for paiement in paiements %}
-                                    <tr>
+                                    <tr data-paiement-id="{{ paiement.id }}">
                                         <td>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</td>
                                         <td>{{ paiement.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
                                         <td>{{ paiement.get_type_paiement_display|default:"-" }}</td>
@@ -701,6 +701,7 @@
         });
     </script>
 
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

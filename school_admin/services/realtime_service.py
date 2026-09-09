@@ -12,6 +12,24 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def schedule_etablissement_event(
+    etablissement_id: int,
+    event_type: str,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    """Émet un événement après commit (Celery si disponible, sinon thread)."""
+    from school_admin.services.task_dispatcher import run_after_commit
+
+    safe_payload = payload or {}
+    run_after_commit(
+        emit_etablissement_event,
+        'school_admin.tasks.celery_tasks.emit_realtime_event_task',
+        etablissement_id,
+        event_type,
+        safe_payload,
+    )
+
+
 def emit_etablissement_event(etablissement_id: int, event_type: str, payload: dict[str, Any] | None = None) -> None:
     """
     Diffuse un événement à tous les clients connectés à un établissement.

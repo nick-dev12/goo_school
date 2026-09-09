@@ -382,6 +382,68 @@ class ProfesseurController:
         }
         
         return render(request, 'school_admin/directeur/personnel/professeurs/liste_professeurs.html', context)
+
+    @staticmethod
+    def build_ajouter_form_context(etablissement, form_data=None, field_errors=None, is_valid=True):
+        """Contexte partagé pour le formulaire d'ajout de professeur (page ou modal)."""
+        if form_data is None:
+            form_data = {
+                'department': '',
+                'niveau_lmd': '',
+                'matiere_principale': '',
+                'matieres_secondaires': [],
+                'nom': '',
+                'prenom': '',
+                'email': '',
+                'telephone': '',
+            }
+        if field_errors is None:
+            field_errors = {}
+
+        from ..model.matiere_model import Matiere
+        from ..model.academic_structure_model import Department
+
+        matieres = Matiere.objects.filter(etablissement=etablissement).select_related(
+            'department', 'module'
+        ).order_by('nom')
+
+        departments = []
+        matieres_superieur_flat = []
+        if etablissement.type_etablissement == 'superieur':
+            departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+            matieres_superieur_flat = _build_matieres_superieur_flat(etablissement)
+
+        niveaux_lmd_options_selection = []
+        if etablissement.type_etablissement == 'superieur' and form_data.get('department'):
+            try:
+                dep_sel = int(form_data['department'])
+                niveaux_lmd_options_selection = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep_sel
+                )
+            except (TypeError, ValueError):
+                niveaux_lmd_options_selection = []
+
+        niveaux_par_department = {}
+        if etablissement.type_etablissement == 'superieur':
+            for dep in departments:
+                niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep.id
+                )
+
+        return {
+            'form_data': form_data,
+            'field_errors': field_errors,
+            'is_valid': is_valid,
+            'etablissement': etablissement,
+            'matieres': matieres,
+            'departments': departments,
+            'matieres_superieur_flat': matieres_superieur_flat,
+            'niveaux_lmd_options_selection': niveaux_lmd_options_selection,
+            'niveaux_par_department': niveaux_par_department,
+            'niveau_choices': Professeur.NIVEAU_CHOICES,
+            'type_etablissement': etablissement.type_etablissement,
+            'est_superieur': etablissement.type_etablissement == 'superieur',
+        }
     
     @staticmethod
     @login_required
@@ -595,7 +657,23 @@ class ProfesseurController:
                             )
                             professeur.matieres_secondaires.set(matieres_secondaires_qs)
                         
-                        messages.success(request, f"Le professeur {professeur.nom_complet} a été ajouté avec succès ! Mot de passe provisoire : {mot_de_passe_provisoire}")
+                        from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+                        from ..services.live_serializers import serialize_professeur_liste_item
+
+                        success_message = (
+                            f"Le professeur {professeur.nom_complet} a été ajouté avec succès ! "
+                            f"Mot de passe provisoire : {mot_de_passe_provisoire}"
+                        )
+                        item = serialize_professeur_liste_item(professeur)
+                        emit_live(
+                            etablissement.id,
+                            'professeur.cree',
+                            {'event': 'professeur.cree', 'item': item},
+                        )
+                        if wants_json_response(request):
+                            return json_ok(message=success_message, item=item)
+
+                        messages.success(request, success_message)
                         return redirect('professeur:detail_professeur', professeur_id=professeur.id)
                         
                 except Exception as e:
@@ -603,49 +681,17 @@ class ProfesseurController:
                     field_errors['__all__'] = "Une erreur est survenue lors de l'ajout du professeur."
                     is_valid = False
         
-        # Récupérer les matières de l'établissement
-        from ..model.matiere_model import Matiere
-        from ..model.academic_structure_model import Department
-        matieres = Matiere.objects.filter(etablissement=etablissement).select_related('department', 'module').order_by('nom')
-        
-        departments = []
-        matieres_superieur_flat = []
-        if etablissement.type_etablissement == 'superieur':
-            departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
-            # Matières rattachées à une filière (catalogue supérieur ; filtrage par filière côté interface)
-            matieres_superieur_flat = _build_matieres_superieur_flat(etablissement)
-        
-        niveaux_lmd_options_selection = []
-        if etablissement.type_etablissement == 'superieur' and form_data.get('department'):
-            try:
-                dep_sel = int(form_data['department'])
-                niveaux_lmd_options_selection = _niveaux_lmd_disponibles_pour_department(
-                    etablissement, dep_sel
-                )
-            except (TypeError, ValueError):
-                niveaux_lmd_options_selection = []
+        from ..services.realtime_helpers import wants_json_response, json_fail
 
-        niveaux_par_department = {}
-        if etablissement.type_etablissement == 'superieur':
-            for dep in departments:
-                niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
-                    etablissement, dep.id
-                )
+        if request.method == 'POST' and not is_valid and wants_json_response(request):
+            return json_fail(field_errors=field_errors)
 
-        context = {
-            'form_data': form_data,
-            'field_errors': field_errors,
-            'is_valid': is_valid,
-            'etablissement': etablissement,
-            'matieres': matieres,
-            'departments': departments,
-            'matieres_superieur_flat': matieres_superieur_flat,
-            'niveaux_lmd_options_selection': niveaux_lmd_options_selection,
-            'niveaux_par_department': niveaux_par_department,
-            'niveau_choices': Professeur.NIVEAU_CHOICES,
-            'type_etablissement': etablissement.type_etablissement,
-            'est_superieur': etablissement.type_etablissement == 'superieur',
-        }
+        context = ProfesseurController.build_ajouter_form_context(
+            etablissement,
+            form_data=form_data,
+            field_errors=field_errors,
+            is_valid=is_valid,
+        )
         
         return render(request, 'school_admin/directeur/personnel/professeurs/ajouter_professeur.html', context)
     

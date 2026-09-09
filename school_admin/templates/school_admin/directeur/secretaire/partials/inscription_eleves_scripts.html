@@ -1,0 +1,220 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('#inscriptionForm');
+  if (!form) {
+    return;
+  }
+
+  const countrySearchInput = document.getElementById('nationalite_search');
+  const countrySelect = document.getElementById('nationalite');
+  const countryDropdown = document.getElementById('country_dropdown');
+  let highlightedIndex = -1;
+  let filteredCountries = [];
+
+  function normalizeString(str) {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  if (countrySearchInput && countrySelect && countryDropdown) {
+    const allCountries = Array.from(countrySelect.options).slice(1).map(function (option) {
+      const text = option.textContent.trim();
+      return {
+        value: option.value,
+        text: text,
+        searchText: normalizeString(text),
+      };
+    });
+
+    if (countrySelect.value) {
+      const selectedOption = Array.from(countrySelect.options).find(function (opt) {
+        return opt.value === countrySelect.value;
+      });
+      if (selectedOption) {
+        countrySearchInput.value = selectedOption.textContent.trim();
+        countrySearchInput.classList.add('has-value');
+      }
+    }
+
+    function filterCountries(searchTerm) {
+      const normalizedTerm = normalizeString(searchTerm);
+      if (normalizedTerm === '') {
+        filteredCountries = [];
+        countryDropdown.style.display = 'none';
+        return;
+      }
+      filteredCountries = allCountries.filter(function (country) {
+        return country.searchText.includes(normalizedTerm);
+      }).slice(0, 20);
+      renderDropdown();
+    }
+
+    function renderDropdown() {
+      countryDropdown.innerHTML = '';
+      if (filteredCountries.length === 0) {
+        countryDropdown.innerHTML = '<div class="country-dropdown-item no-results">Aucun pays trouvé</div>';
+        countryDropdown.style.display = 'block';
+        return;
+      }
+      filteredCountries.forEach(function (country, index) {
+        const item = document.createElement('div');
+        item.className = 'country-dropdown-item';
+        item.textContent = country.text;
+        item.dataset.value = country.value;
+        item.dataset.index = index;
+        item.addEventListener('click', function () {
+          selectCountry(country.value, country.text);
+        });
+        item.addEventListener('mouseenter', function () {
+          highlightItem(index);
+        });
+        countryDropdown.appendChild(item);
+      });
+      countryDropdown.style.display = 'block';
+      highlightedIndex = -1;
+    }
+
+    function selectCountry(value, text) {
+      countrySearchInput.value = text;
+      countrySelect.value = value;
+      countryDropdown.style.display = 'none';
+      countrySearchInput.classList.add('has-value');
+      highlightedIndex = -1;
+      countrySelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function highlightItem(index) {
+      const items = countryDropdown.querySelectorAll('.country-dropdown-item:not(.no-results)');
+      items.forEach(function (item, i) {
+        item.classList.toggle('highlighted', i === index);
+      });
+      highlightedIndex = index;
+    }
+
+    countrySearchInput.addEventListener('input', function (e) {
+      filterCountries(e.target.value);
+      if (e.target.value === '') {
+        countrySelect.value = '';
+        countrySearchInput.classList.remove('has-value');
+      }
+    });
+
+    countrySearchInput.addEventListener('focus', function () {
+      if (filteredCountries.length > 0 || countrySearchInput.value.trim() !== '') {
+        filterCountries(countrySearchInput.value);
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!countrySearchInput.contains(e.target) && !countryDropdown.contains(e.target)) {
+        countryDropdown.style.display = 'none';
+      }
+    });
+
+    countrySearchInput.addEventListener('keydown', function (e) {
+      const items = countryDropdown.querySelectorAll('.country-dropdown-item:not(.no-results)');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (items.length > 0) {
+          highlightedIndex = (highlightedIndex + 1) % items.length;
+          highlightItem(highlightedIndex);
+          items[highlightedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (items.length > 0) {
+          highlightedIndex = highlightedIndex <= 0 ? items.length - 1 : highlightedIndex - 1;
+          highlightItem(highlightedIndex);
+          items[highlightedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      } else if (e.key === 'Enter' && highlightedIndex >= 0 && filteredCountries[highlightedIndex]) {
+        e.preventDefault();
+        const country = filteredCountries[highlightedIndex];
+        selectCountry(country.value, country.text);
+      } else if (e.key === 'Escape') {
+        countryDropdown.style.display = 'none';
+        highlightedIndex = -1;
+      }
+    });
+
+    form.addEventListener('submit', function (e) {
+      if (!countrySelect.value) {
+        e.preventDefault();
+        countrySearchInput.focus();
+        countrySearchInput.classList.add('input-error');
+        return false;
+      }
+    }, true);
+  }
+
+  const parentPhoneInput = document.querySelector('#parent_telephone');
+  const parentPhoneFullInput = document.querySelector('#parent_telephone_full');
+  const parentPhoneError = document.querySelector('#parent-phone-error');
+
+  if (parentPhoneInput && window.intlTelInput) {
+    const itiParent = window.intlTelInput(parentPhoneInput, {
+      utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js',
+      separateDialCode: true,
+      initialCountry: 'auto',
+      preferredCountries: ['sn', 'ci', 'cm', 'fr'],
+      geoIpLookup: function (callback) {
+        fetch('https://ipapi.co/json')
+          .then(function (res) { return res.json(); })
+          .then(function (data) { callback(data.country_code); })
+          .catch(function () { callback('sn'); });
+      },
+      nationalMode: false,
+      autoFormat: true,
+      autoPlaceholder: 'aggressive',
+    });
+
+    parentPhoneInput.addEventListener('blur', function () {
+      if (!parentPhoneInput.value.trim()) return;
+      if (itiParent.isValidNumber()) {
+        if (parentPhoneError) parentPhoneError.style.display = 'none';
+        parentPhoneInput.classList.remove('input-error');
+        if (parentPhoneFullInput) parentPhoneFullInput.value = itiParent.getNumber();
+      } else if (parentPhoneError) {
+        parentPhoneError.textContent = 'Numéro de téléphone invalide.';
+        parentPhoneError.style.display = 'block';
+        parentPhoneInput.classList.add('input-error');
+        if (parentPhoneFullInput) parentPhoneFullInput.value = '';
+      }
+    });
+
+    form.addEventListener('submit', function (e) {
+      if (!parentPhoneInput.value.trim()) return;
+      if (itiParent.isValidNumber()) {
+        if (parentPhoneFullInput) parentPhoneFullInput.value = itiParent.getNumber();
+        parentPhoneInput.value = itiParent.getNumber();
+      } else {
+        e.preventDefault();
+        if (parentPhoneError) {
+          parentPhoneError.textContent = 'Veuillez entrer un numéro de téléphone valide.';
+          parentPhoneError.style.display = 'block';
+        }
+        parentPhoneInput.classList.add('input-error');
+        parentPhoneInput.focus();
+      }
+    }, true);
+  }
+});
+
+function resetForm() {
+  if (!confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ? Toutes les données saisies seront perdues.')) {
+    return;
+  }
+  var form = document.getElementById('inscriptionForm');
+  if (form) {
+    form.reset();
+  }
+  var phoneFull = document.getElementById('parent_telephone_full');
+  if (phoneFull) {
+    phoneFull.value = '';
+  }
+}
+</script>

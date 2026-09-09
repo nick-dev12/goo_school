@@ -53,7 +53,7 @@
             <div class="nav-cards-grid">
                 {% check_permission request.user "eleves_inscrire" as can_inscrire_eleves %}
                 {% if can_inscrire_eleves or is_directeur %}
-                <a href="{% url 'secretaire:inscription_eleves' %}" class="nav-link-card">
+                <a href="{% url 'secretaire:liste_eleves' %}?inscrire=1" class="nav-link-card">
                     <div class="nav-card-icon neo-green">
                         <i class="fas fa-user-plus"></i>
                     </div>

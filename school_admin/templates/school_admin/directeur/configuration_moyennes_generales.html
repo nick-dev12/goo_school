@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/configuration_moyennes.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
   </head>
-  <body class="configuration-page">
+  <body class="configuration-page" data-live-page="bulletins-config-moyennes">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="config-container">
@@ -48,7 +48,7 @@
 
       <section class="config-section">
         <h2 class="section-title"><i class="fas fa-balance-scale"></i> {% trans "Pondération des composantes" %}</h2>
-        <form method="post" class="config-card">
+        <form method="post" class="config-card" id="formConfigMoyennes">
           {% csrf_token %}
           <p>
             {% trans "Configurez la pondération entre contrôle continu et examens pour l'année scolaire" %} <strong>{{ annee_scolaire }}</strong>.
@@ -158,6 +158,9 @@
       </section>
     </div>
   
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/bulletins_live.js' %}?v=1.0.0"></script>
+
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

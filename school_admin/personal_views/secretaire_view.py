@@ -134,6 +134,13 @@ def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
             total_transferts += classe_info['stats']['transferts']
             total_reinscriptions += classe_info['stats']['reinscriptions']
 
+    tab_index = 0
+    for categorie_key in classes_grouped.keys():
+        tab_index += 1
+        main_tab_id = f'tab-{tab_index}'
+        for classe_info in classes_grouped[categorie_key]['classes']:
+            classe_info['main_tab_id'] = main_tab_id
+
     stats_generales = {
         'total_eleves': total_eleves,
         'total_classes': classes.count(),
@@ -144,6 +151,87 @@ def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
     }
 
     return classes_grouped, stats_generales
+
+
+def _main_tab_id_for_classe(etablissement, classe_id, annee_scolaire_active=None):
+    classes_grouped, _ = _build_classes_grouped_data(etablissement, annee_scolaire_active)
+    for data in classes_grouped.values():
+        for classe_info in data['classes']:
+            if classe_info['classe'].id == classe_id:
+                return classe_info.get('main_tab_id', 'tab-1')
+    return 'tab-1'
+
+
+def _resolve_eleves_access(request, permission_inscrire=False):
+    from ..utils.decorators_permissions import check_permission
+
+    user = request.user
+    if isinstance(user, PersonnelAdministratif):
+        if permission_inscrire:
+            if not check_permission(user, 'eleves_inscrire') and user.fonction != 'secretaire_principal':
+                messages.error(request, "Vous n'avez pas la permission d'inscrire des élèves.")
+                return None, None, redirect('directeur:dashboard_directeur')
+        elif not check_permission(user, 'eleves_liste'):
+            messages.error(request, "Vous n'avez pas la permission de voir la liste des élèves.")
+            return None, None, redirect('directeur:dashboard_directeur')
+        etablissement = user.etablissement
+    elif isinstance(user, Etablissement):
+        etablissement = user
+    else:
+        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
+        return None, None, redirect('school_admin:connexion_compte_user')
+
+    if not etablissement:
+        messages.error(request, "Aucun établissement associé à votre compte.")
+        return None, None, redirect('school_admin:connexion_compte_user')
+
+    return user, etablissement, None
+
+
+def _default_inscription_form_data():
+    return {
+        'statut': 'nouvelle',
+        'date_inscription': date.today().strftime('%Y-%m-%d'),
+        'nationalite': '',
+        'department_inscription': '',
+        'parent_nom': '',
+        'parent_prenom': '',
+        'parent_telephone': '',
+        'parent_adresse': '',
+        'parent_profession': '',
+        'parent_lien': '',
+    }
+
+
+def _build_inscription_form_context(etablissement, form_data=None, field_errors=None):
+    est_superieur = etablissement.type_etablissement == 'superieur'
+    if est_superieur:
+        classes = (
+            Classe.objects.filter(etablissement=etablissement, actif=True, niveau='superieur')
+            .select_related('department', 'academic_level')
+            .order_by('department__nom', 'nom')
+        )
+        departments_inscription = list(
+            Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+        )
+    else:
+        classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
+        departments_inscription = []
+
+    try:
+        pays_list = [(code, str(nom)) for code, nom in countries]
+    except Exception as exc:
+        logging.getLogger(__name__).error("Erreur lors de la récupération des pays: %s", exc)
+        pays_list = []
+
+    return {
+        'classes': classes,
+        'est_superieur': est_superieur,
+        'departments_inscription': departments_inscription,
+        'form_data': form_data or _default_inscription_form_data(),
+        'field_errors': field_errors or {},
+        'pays_list': pays_list,
+    }
 
 
 def _archiver_inscription_eleve_parent(eleve, parent, etablissement, annee_scolaire, date_inscription):
@@ -326,441 +414,405 @@ def dashboard_secretaire(request):
 @login_required
 def inscription_eleves(request):
     """
-    Page d'inscription des élèves pour le secrétaire ou le directeur ou le personnel avec permission
+    Traite l'inscription des élèves (POST JSON). GET redirige vers la liste.
     """
-    # Récupérer l'utilisateur connecté
-    user = request.user
-    
-    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur soit un personnel avec la permission
-    from ..utils.decorators_permissions import check_permission
-    
-    if isinstance(user, PersonnelAdministratif):
-        # Vérifier la permission d'inscription ou être secrétaire principal
-        if not check_permission(user, 'eleves_inscrire') and user.fonction != 'secretaire_principal':
-            messages.error(request, "Vous n'avez pas la permission d'inscrire des élèves.")
-            return redirect('directeur:dashboard_directeur')
-        etablissement = user.etablissement
-    elif isinstance(user, Etablissement):
-        etablissement = user
-    else:
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    if not etablissement:
-        messages.error(request, "Aucun établissement associé à votre compte.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'année scolaire active ou consultée
+    user, etablissement, denied = _resolve_eleves_access(request, permission_inscrire=True)
+    if denied:
+        return denied
+
+    if request.method == 'GET':
+        return redirect('secretaire:liste_eleves')
+
     if isinstance(user, Etablissement):
         annee_scolaire_active = get_session_consultee(request, etablissement)
     else:
         annee_scolaire_active = get_session_active(request, etablissement)
     if not annee_scolaire_active:
-        messages.error(
-            request,
-            "Aucune année scolaire active n'a été trouvée. Créez ou activez d'abord une session pour continuer l'inscription."
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        message = (
+            "Aucune année scolaire active n'a été trouvée. "
+            "Créez ou activez d'abord une session pour continuer l'inscription."
         )
+        if wants_json_response(request):
+            return json_fail(message=message)
+        messages.error(request, message)
         if isinstance(user, Etablissement):
             return redirect('directeur:creer_annee_scolaire_obligatoire')
         return redirect('secretaire:dashboard_secretaire')
-    
-    # Classes : supérieur = filière + classes LMD (cohérence avec l'affectation)
+
     est_superieur = etablissement.type_etablissement == 'superieur'
     if est_superieur:
-        classes = (
-            Classe.objects.filter(etablissement=etablissement, actif=True, niveau='superieur')
-            .select_related('department', 'academic_level')
-            .order_by('department__nom', 'nom')
-        )
         departments_inscription = list(
             Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
         )
     else:
-        classes = Classe.objects.filter(etablissement=etablissement, actif=True).order_by('niveau', 'nom')
         departments_inscription = []
-    
-    form_data = {
-        'statut': 'nouvelle',  # Valeur par défaut
-        'date_inscription': date.today().strftime('%Y-%m-%d'),  # Date du jour par défaut
-        'nationalite': '',  # Initialiser le champ nationalité
-        'department_inscription': '',
-        # Initialiser les champs parent/tuteur
-        'parent_nom': '',
-        'parent_prenom': '',
-        'parent_telephone': '',
-        'parent_adresse': '',
-        'parent_profession': '',
-        'parent_lien': '',
-    }
+
+    form_data = _default_inscription_form_data()
     field_errors = {}
+    # Récupération des données
+    form_data = {
+        'nom': request.POST.get('nom', '').strip(),
+        'prenom': request.POST.get('prenom', '').strip(),
+        'date_naissance': request.POST.get('date_naissance', ''),
+        'lieu_naissance': request.POST.get('lieu_naissance', '').strip(),
+        'sexe': request.POST.get('sexe', ''),
+        'nationalite': request.POST.get('nationalite', '').strip(),
+        'adresse': request.POST.get('adresse', '').strip(),
+        'classe': request.POST.get('classe', ''),
+        'date_inscription': request.POST.get('date_inscription', ''),
+        'statut': request.POST.get('statut', ''),
+        # Champs parent/tuteur
+        'parent_nom': request.POST.get('parent_nom', '').strip(),
+        'parent_prenom': request.POST.get('parent_prenom', '').strip(),
+        # Pour le téléphone parent, utiliser le numéro formaté (parent_telephone_full) s'il existe, sinon utiliser parent_telephone
+        'parent_telephone': request.POST.get('parent_telephone_full', '').strip() or request.POST.get('parent_telephone', '').strip(),
+        'parent_adresse': request.POST.get('parent_adresse', '').strip(),
+        'parent_profession': request.POST.get('parent_profession', '').strip(),
+        'parent_lien': request.POST.get('parent_lien', ''),
+        # Mot de passe provisoire
+        'mot_de_passe_provisoire': request.POST.get('mot_de_passe_provisoire', ''),
+        # Documents d'identité
+        'document_acte_naissance': request.POST.get('document_acte_naissance') == 'true',
+        'document_cni': request.POST.get('document_cni') == 'true',
+        'document_passeport': request.POST.get('document_passeport') == 'true',
+        # Documents scolaires
+        'document_bulletin_precedent': request.POST.get('document_bulletin_precedent') == 'true',
+        'document_certificat_scolarite': request.POST.get('document_certificat_scolarite') == 'true',
+        'document_livret_scolaire': request.POST.get('document_livret_scolaire') == 'true',
+        # Documents médicaux
+        'document_certificat_medical': request.POST.get('document_certificat_medical') == 'true',
+        'document_carnet_vaccination': request.POST.get('document_carnet_vaccination') == 'true',
+        'document_assurance_maladie': request.POST.get('document_assurance_maladie') == 'true',
+        # Documents administratifs
+        'document_justificatif_domicile': request.POST.get('document_justificatif_domicile') == 'true',
+        'document_photo_identite': request.POST.get('document_photo_identite') == 'true',
+        'document_autorisation_parentale': request.POST.get('document_autorisation_parentale') == 'true',
+        'department_inscription': request.POST.get('department_inscription', '').strip(),
+    }
     
-    if request.method == 'POST':
-        # Récupération des données
-        form_data = {
-            'nom': request.POST.get('nom', '').strip(),
-            'prenom': request.POST.get('prenom', '').strip(),
-            'date_naissance': request.POST.get('date_naissance', ''),
-            'lieu_naissance': request.POST.get('lieu_naissance', '').strip(),
-            'sexe': request.POST.get('sexe', ''),
-            'nationalite': request.POST.get('nationalite', '').strip(),
-            'adresse': request.POST.get('adresse', '').strip(),
-            'classe': request.POST.get('classe', ''),
-            'date_inscription': request.POST.get('date_inscription', ''),
-            'statut': request.POST.get('statut', ''),
-            # Champs parent/tuteur
-            'parent_nom': request.POST.get('parent_nom', '').strip(),
-            'parent_prenom': request.POST.get('parent_prenom', '').strip(),
-            # Pour le téléphone parent, utiliser le numéro formaté (parent_telephone_full) s'il existe, sinon utiliser parent_telephone
-            'parent_telephone': request.POST.get('parent_telephone_full', '').strip() or request.POST.get('parent_telephone', '').strip(),
-            'parent_adresse': request.POST.get('parent_adresse', '').strip(),
-            'parent_profession': request.POST.get('parent_profession', '').strip(),
-            'parent_lien': request.POST.get('parent_lien', ''),
-            # Mot de passe provisoire
-            'mot_de_passe_provisoire': request.POST.get('mot_de_passe_provisoire', ''),
-            # Documents d'identité
-            'document_acte_naissance': request.POST.get('document_acte_naissance') == 'true',
-            'document_cni': request.POST.get('document_cni') == 'true',
-            'document_passeport': request.POST.get('document_passeport') == 'true',
-            # Documents scolaires
-            'document_bulletin_precedent': request.POST.get('document_bulletin_precedent') == 'true',
-            'document_certificat_scolarite': request.POST.get('document_certificat_scolarite') == 'true',
-            'document_livret_scolaire': request.POST.get('document_livret_scolaire') == 'true',
-            # Documents médicaux
-            'document_certificat_medical': request.POST.get('document_certificat_medical') == 'true',
-            'document_carnet_vaccination': request.POST.get('document_carnet_vaccination') == 'true',
-            'document_assurance_maladie': request.POST.get('document_assurance_maladie') == 'true',
-            # Documents administratifs
-            'document_justificatif_domicile': request.POST.get('document_justificatif_domicile') == 'true',
-            'document_photo_identite': request.POST.get('document_photo_identite') == 'true',
-            'document_autorisation_parentale': request.POST.get('document_autorisation_parentale') == 'true',
-            'department_inscription': request.POST.get('department_inscription', '').strip(),
-        }
-        
-        # Validation
-        is_valid = True
-        inscription_date_obj = None
-        
-        # Champs obligatoires (adresse supprimée de la liste)
-        required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'classe', 'date_inscription', 'statut']
-        for field in required_fields:
-            if not form_data[field]:
-                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+    # Validation
+    is_valid = True
+    inscription_date_obj = None
+    
+    # Champs obligatoires (adresse supprimée de la liste)
+    required_fields = ['nom', 'prenom', 'date_naissance', 'lieu_naissance', 'sexe', 'nationalite', 'classe', 'date_inscription', 'statut']
+    for field in required_fields:
+        if not form_data[field]:
+            field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+            is_valid = False
+    
+    # Validation des champs parent/tuteur
+    parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
+    for field in parent_required:
+        if not form_data[field]:
+            field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+            is_valid = False
+    
+    # Validation de la date de naissance
+    if form_data['date_naissance']:
+        try:
+            birth_date = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
+            if birth_date > date.today():
+                field_errors['date_naissance'] = "La date de naissance ne peut pas être dans le futur."
                 is_valid = False
-        
-        # Validation des champs parent/tuteur
-        parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
-        for field in parent_required:
-            if not form_data[field]:
-                field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
+        except ValueError:
+            field_errors['date_naissance'] = "Format de date invalide."
+            is_valid = False
+    
+    # Validation de la date d'inscription
+    if form_data['date_inscription']:
+        try:
+            inscription_date = datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date()
+            inscription_date_obj = inscription_date
+            if inscription_date > date.today():
+                field_errors['date_inscription'] = "La date d'inscription ne peut pas être dans le futur."
                 is_valid = False
-        
-        # Validation de la date de naissance
-        if form_data['date_naissance']:
-            try:
-                birth_date = datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date()
-                if birth_date > date.today():
-                    field_errors['date_naissance'] = "La date de naissance ne peut pas être dans le futur."
+        except ValueError:
+            field_errors['date_inscription'] = "Format de date invalide."
+            is_valid = False
+    
+    # Génération automatique du matricule et mots de passe
+    import random
+    # Générer le matricule élève (nouveau format)
+    matricule_eleve = Eleve.generer_matricule_eleve(etablissement)
+    form_data['matricule_eleve'] = matricule_eleve
+    
+    # Générer le mot de passe élève (format XXXXXX - 6 chiffres sans tiret)
+    mot_de_passe_eleve = Eleve.generer_mot_de_passe()
+    form_data['mot_de_passe_provisoire'] = mot_de_passe_eleve
+    
+    # Générer le matricule parent et mot de passe parent
+    from ..model.parent_model import Parent
+    matricule_parent = Parent.generer_matricule_parent(etablissement)
+    mot_de_passe_parent = Parent.generer_mot_de_passe()
+    form_data['matricule_parent'] = matricule_parent
+    form_data['mot_de_passe_parent'] = mot_de_passe_parent
+    
+    # Validation de la classe
+    if form_data['classe']:
+        try:
+            classe = Classe.objects.select_related('department', 'academic_level').get(
+                id=form_data['classe'], etablissement=etablissement
+            )
+            if est_superieur and classe.niveau != 'superieur':
+                field_errors['classe'] = "La classe sélectionnée n'est pas valide pour un établissement supérieur."
+                is_valid = False
+            elif est_superieur and departments_inscription and classe.department_id:
+                dep_sel = form_data.get('department_inscription', '')
+                if not dep_sel:
+                    field_errors['department_inscription'] = (
+                        "Veuillez sélectionner une filière avant la classe."
+                    )
                     is_valid = False
-            except ValueError:
-                field_errors['date_naissance'] = "Format de date invalide."
-                is_valid = False
-        
-        # Validation de la date d'inscription
-        if form_data['date_inscription']:
-            try:
-                inscription_date = datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date()
-                inscription_date_obj = inscription_date
-                if inscription_date > date.today():
-                    field_errors['date_inscription'] = "La date d'inscription ne peut pas être dans le futur."
+                elif str(classe.department_id) != dep_sel:
+                    field_errors['classe'] = "La classe ne correspond pas à la filière sélectionnée."
                     is_valid = False
-            except ValueError:
-                field_errors['date_inscription'] = "Format de date invalide."
-                is_valid = False
-        
-        # Génération automatique du matricule et mots de passe
-        import random
-        # Générer le matricule élève (nouveau format)
-        matricule_eleve = Eleve.generer_matricule_eleve(etablissement)
-        form_data['matricule_eleve'] = matricule_eleve
-        
-        # Générer le mot de passe élève (format XXXXXX - 6 chiffres sans tiret)
-        mot_de_passe_eleve = Eleve.generer_mot_de_passe()
-        form_data['mot_de_passe_provisoire'] = mot_de_passe_eleve
-        
-        # Générer le matricule parent et mot de passe parent
-        from ..model.parent_model import Parent
-        matricule_parent = Parent.generer_matricule_parent(etablissement)
-        mot_de_passe_parent = Parent.generer_mot_de_passe()
-        form_data['matricule_parent'] = matricule_parent
-        form_data['mot_de_passe_parent'] = mot_de_passe_parent
-        
-        # Validation de la classe
-        if form_data['classe']:
-            try:
-                classe = Classe.objects.select_related('department', 'academic_level').get(
-                    id=form_data['classe'], etablissement=etablissement
-                )
-                if est_superieur and classe.niveau != 'superieur':
-                    field_errors['classe'] = "La classe sélectionnée n'est pas valide pour un établissement supérieur."
+            
+            # Vérifier les places disponibles dans la classe
+            if 'classe' not in field_errors and 'department_inscription' not in field_errors:
+                places_disponibles = classe.places_disponibles
+                if places_disponibles <= 0:
+                    field_errors['classe'] = f"La classe {classe.nom} est pleine. Aucune place disponible ({classe.capacite_max}/{classe.capacite_max} élèves)."
                     is_valid = False
-                elif est_superieur and departments_inscription and classe.department_id:
-                    dep_sel = form_data.get('department_inscription', '')
-                    if not dep_sel:
-                        field_errors['department_inscription'] = (
-                            "Veuillez sélectionner une filière avant la classe."
-                        )
-                        is_valid = False
-                    elif str(classe.department_id) != dep_sel:
-                        field_errors['classe'] = "La classe ne correspond pas à la filière sélectionnée."
-                        is_valid = False
+                elif places_disponibles == 1:
+                    # Avertissement si il ne reste qu'une place
+                    messages.warning(request, f"Attention : Il ne reste qu'une place disponible dans la classe {classe.nom}.")
                 
-                # Vérifier les places disponibles dans la classe
-                if 'classe' not in field_errors and 'department_inscription' not in field_errors:
-                    places_disponibles = classe.places_disponibles
-                    if places_disponibles <= 0:
-                        field_errors['classe'] = f"La classe {classe.nom} est pleine. Aucune place disponible ({classe.capacite_max}/{classe.capacite_max} élèves)."
-                        is_valid = False
-                    elif places_disponibles == 1:
-                        # Avertissement si il ne reste qu'une place
-                        messages.warning(request, f"Attention : Il ne reste qu'une place disponible dans la classe {classe.nom}.")
-                    
-            except Classe.DoesNotExist:
-                field_errors['classe'] = "La classe sélectionnée n'existe pas."
-                is_valid = False
-        
-        # Validation du sexe
-        if form_data['sexe'] not in ['M', 'F']:
-            field_errors['sexe'] = "Le sexe doit être Masculin ou Féminin."
+        except Classe.DoesNotExist:
+            field_errors['classe'] = "La classe sélectionnée n'existe pas."
             is_valid = False
-        
-        # Validation du statut
-        if form_data['statut'] not in ['nouvelle', 'transfert', 'reinscription']:
-            field_errors['statut'] = "Le type d'inscription sélectionné n'est pas valide."
-            is_valid = False
-        
-        # Validation du lien parent/tuteur
-        if form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
-            field_errors['parent_lien'] = "Le lien avec l'élève sélectionné n'est pas valide."
-            is_valid = False
-        
-        # Si tout est valide, traiter l'inscription
-        if is_valid:
-            try:
-                with transaction.atomic():
-                    
-                    # Récupérer la classe et vérifier à nouveau les places disponibles
-                    classe = Classe.objects.get(id=form_data['classe'], etablissement=etablissement)
-                    
-                    # Vérification finale des places disponibles (au cas où la capacité aurait changé)
-                    if classe.places_disponibles <= 0:
-                        field_errors['classe'] = f"La classe {classe.nom} est maintenant pleine. Aucune place disponible ({classe.capacite_max}/{classe.capacite_max} élèves)."
-                        is_valid = False
-                        raise Exception("Classe pleine")
-                    
-                    # Formater les noms et prénoms
-                    nom_formate = formater_nom(form_data['nom'])
-                    prenom_formate = formater_prenom(form_data['prenom'])
-                    parent_nom_formate = formater_nom(form_data['parent_nom'])
-                    parent_prenom_formate = formater_prenom(form_data['parent_prenom'])
-                    
-                    # Créer l'élève
-                    eleve = Eleve(
-                        nom=nom_formate,
-                        prenom=prenom_formate,
-                        date_naissance=datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date(),
-                        lieu_naissance=form_data['lieu_naissance'],
-                        sexe=form_data['sexe'],
-                        nationalite=form_data['nationalite'],
-                        adresse=form_data['adresse'] if form_data['adresse'] else None,
-                        numero_eleve=form_data['matricule_eleve'],  # Assigner numero_eleve avec le matricule
-                        matricule_eleve=form_data['matricule_eleve'],
+    
+    # Validation du sexe
+    if form_data['sexe'] not in ['M', 'F']:
+        field_errors['sexe'] = "Le sexe doit être Masculin ou Féminin."
+        is_valid = False
+    
+    # Validation du statut
+    if form_data['statut'] not in ['nouvelle', 'transfert', 'reinscription']:
+        field_errors['statut'] = "Le type d'inscription sélectionné n'est pas valide."
+        is_valid = False
+    
+    # Validation du lien parent/tuteur
+    if form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
+        field_errors['parent_lien'] = "Le lien avec l'élève sélectionné n'est pas valide."
+        is_valid = False
+    
+    # Si tout est valide, traiter l'inscription
+    if is_valid:
+        try:
+            with transaction.atomic():
+                
+                # Récupérer la classe et vérifier à nouveau les places disponibles
+                classe = Classe.objects.get(id=form_data['classe'], etablissement=etablissement)
+                
+                # Vérification finale des places disponibles (au cas où la capacité aurait changé)
+                if classe.places_disponibles <= 0:
+                    field_errors['classe'] = f"La classe {classe.nom} est maintenant pleine. Aucune place disponible ({classe.capacite_max}/{classe.capacite_max} élèves)."
+                    is_valid = False
+                    raise Exception("Classe pleine")
+                
+                # Formater les noms et prénoms
+                nom_formate = formater_nom(form_data['nom'])
+                prenom_formate = formater_prenom(form_data['prenom'])
+                parent_nom_formate = formater_nom(form_data['parent_nom'])
+                parent_prenom_formate = formater_prenom(form_data['parent_prenom'])
+                
+                # Créer l'élève
+                eleve = Eleve(
+                    nom=nom_formate,
+                    prenom=prenom_formate,
+                    date_naissance=datetime.strptime(form_data['date_naissance'], '%Y-%m-%d').date(),
+                    lieu_naissance=form_data['lieu_naissance'],
+                    sexe=form_data['sexe'],
+                    nationalite=form_data['nationalite'],
+                    adresse=form_data['adresse'] if form_data['adresse'] else None,
+                    numero_eleve=form_data['matricule_eleve'],  # Assigner numero_eleve avec le matricule
+                    matricule_eleve=form_data['matricule_eleve'],
+                    etablissement=etablissement,
+                    classe=classe,
+                    date_inscription=inscription_date_obj or datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date(),
+                    statut=form_data['statut'],
+                    # Champs parent/tuteur
+                    parent_nom=parent_nom_formate,
+                    parent_prenom=parent_prenom_formate,
+                    parent_telephone=form_data['parent_telephone'],
+                    parent_adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else None,
+                    parent_profession=form_data['parent_profession'] if form_data['parent_profession'] else None,
+                    parent_lien=form_data['parent_lien'],
+                    # Mot de passe provisoire
+                    mot_de_passe_provisoire=form_data['mot_de_passe_provisoire'],
+                    mot_de_passe_eleve_modifie=False,
+                    # Documents d'identité
+                    document_acte_naissance=form_data['document_acte_naissance'],
+                    document_cni=form_data['document_cni'],
+                    document_passeport=form_data['document_passeport'],
+                    # Documents scolaires
+                    document_bulletin_precedent=form_data['document_bulletin_precedent'],
+                    document_certificat_scolarite=form_data['document_certificat_scolarite'],
+                    document_livret_scolaire=form_data['document_livret_scolaire'],
+                    # Documents médicaux
+                    document_certificat_medical=form_data['document_certificat_medical'],
+                    document_carnet_vaccination=form_data['document_carnet_vaccination'],
+                    document_assurance_maladie=form_data['document_assurance_maladie'],
+                    # Documents administratifs
+                    document_justificatif_domicile=form_data['document_justificatif_domicile'],
+                    document_photo_identite=form_data['document_photo_identite'],
+                    document_autorisation_parentale=form_data['document_autorisation_parentale'],
+                    # Configuration de base
+                    username=form_data['matricule_eleve'],  # Utiliser le nouveau matricule comme username
+                    is_active=True,
+                    is_staff=False,
+                    is_superuser=False,
+                )
+                
+                # Définir le mot de passe pour la connexion AVANT la sauvegarde
+                eleve.set_password(form_data['mot_de_passe_provisoire'])
+                
+                # Sauvegarder l'élève
+                eleve.save()
+                
+                # Créer le compte Parent
+                from ..model.parent_model import Parent
+                from ..model.lien_familial_model import LienFamilial
+                from django.contrib.auth.hashers import make_password
+                
+                # Vérifier si un parent avec ce téléphone existe déjà
+                parent_existant = None
+                if form_data['parent_telephone']:
+                    parent_existant = Parent.objects.filter(
+                        telephone=form_data['parent_telephone'],
+                        etablissement=etablissement
+                    ).first()
+                
+                if parent_existant:
+                    # Utiliser le parent existant et créer le lien
+                    parent = parent_existant
+                    print(f"[INFO] Parent existant trouvé : {parent.nom_complet}")
+                else:
+                    # Créer un nouveau compte parent
+                    parent = Parent(
+                        matricule_parental=form_data['matricule_parent'],
+                        type_parent=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                        nom=parent_nom_formate,
+                        prenom=parent_prenom_formate,
+                        telephone=form_data['parent_telephone'],
+                        email='',
+                        adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
+                        profession=form_data['parent_profession'] if form_data['parent_profession'] else '',
                         etablissement=etablissement,
-                        classe=classe,
-                        date_inscription=inscription_date_obj or datetime.strptime(form_data['date_inscription'], '%Y-%m-%d').date(),
-                        statut=form_data['statut'],
-                        # Champs parent/tuteur
-                        parent_nom=parent_nom_formate,
-                        parent_prenom=parent_prenom_formate,
-                        parent_telephone=form_data['parent_telephone'],
-                        parent_adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else None,
-                        parent_profession=form_data['parent_profession'] if form_data['parent_profession'] else None,
-                        parent_lien=form_data['parent_lien'],
-                        # Mot de passe provisoire
-                        mot_de_passe_provisoire=form_data['mot_de_passe_provisoire'],
-                        mot_de_passe_eleve_modifie=False,
-                        # Documents d'identité
-                        document_acte_naissance=form_data['document_acte_naissance'],
-                        document_cni=form_data['document_cni'],
-                        document_passeport=form_data['document_passeport'],
-                        # Documents scolaires
-                        document_bulletin_precedent=form_data['document_bulletin_precedent'],
-                        document_certificat_scolarite=form_data['document_certificat_scolarite'],
-                        document_livret_scolaire=form_data['document_livret_scolaire'],
-                        # Documents médicaux
-                        document_certificat_medical=form_data['document_certificat_medical'],
-                        document_carnet_vaccination=form_data['document_carnet_vaccination'],
-                        document_assurance_maladie=form_data['document_assurance_maladie'],
-                        # Documents administratifs
-                        document_justificatif_domicile=form_data['document_justificatif_domicile'],
-                        document_photo_identite=form_data['document_photo_identite'],
-                        document_autorisation_parentale=form_data['document_autorisation_parentale'],
-                        # Configuration de base
-                        username=form_data['matricule_eleve'],  # Utiliser le nouveau matricule comme username
+                        mot_de_passe_provisoire=form_data['mot_de_passe_parent'],
+                        mot_de_passe_modifie=False,
+                        username=form_data['matricule_parent'],
                         is_active=True,
                         is_staff=False,
                         is_superuser=False,
                     )
-                    
-                    # Définir le mot de passe pour la connexion AVANT la sauvegarde
-                    eleve.set_password(form_data['mot_de_passe_provisoire'])
-                    
-                    # Sauvegarder l'élève
-                    eleve.save()
-                    
-                    # Créer le compte Parent
-                    from ..model.parent_model import Parent
-                    from ..model.lien_familial_model import LienFamilial
-                    from django.contrib.auth.hashers import make_password
-                    
-                    # Vérifier si un parent avec ce téléphone existe déjà
-                    parent_existant = None
-                    if form_data['parent_telephone']:
-                        parent_existant = Parent.objects.filter(
-                            telephone=form_data['parent_telephone'],
-                            etablissement=etablissement
-                        ).first()
-                    
-                    if parent_existant:
-                        # Utiliser le parent existant et créer le lien
-                        parent = parent_existant
-                        print(f"[INFO] Parent existant trouvé : {parent.nom_complet}")
-                    else:
-                        # Créer un nouveau compte parent
-                        parent = Parent(
-                            matricule_parental=form_data['matricule_parent'],
-                            type_parent=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
-                            nom=parent_nom_formate,
-                            prenom=parent_prenom_formate,
-                            telephone=form_data['parent_telephone'],
-                            email='',
-                            adresse=form_data['parent_adresse'] if form_data['parent_adresse'] else '',
-                            profession=form_data['parent_profession'] if form_data['parent_profession'] else '',
-                            etablissement=etablissement,
-                            mot_de_passe_provisoire=form_data['mot_de_passe_parent'],
-                            mot_de_passe_modifie=False,
-                            username=form_data['matricule_parent'],
-                            is_active=True,
-                            is_staff=False,
-                            is_superuser=False,
-                        )
-                        parent.set_password(form_data['mot_de_passe_parent'])
-                        parent.save()
-                        print(f"[INFO] Nouveau parent créé : {parent.nom_complet}")
-                    
-                    # Créer le lien familial
-                    lien = LienFamilial.objects.create(
-                        parent=parent,
-                        eleve=eleve,
-                        type_lien=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
-                        statut='valide',
-                        est_inscripteur=True,
-                        actif=True
-                    )
-                    print(f"[INFO] Lien familial créé : {parent.nom_complet} -> {eleve.nom_complet}")
-                    
-                    # Stocker les informations du parent dans form_data pour le reçu
-                    form_data['parent_cree'] = parent
-                    
-                    # Archiver l'inscription dans les tables dédiées
-                    _archiver_inscription_eleve_parent(
-                        eleve=eleve,
-                        parent=parent,
-                        etablissement=etablissement,
-                        annee_scolaire=annee_scolaire_active,
-                        date_inscription=inscription_date_obj or eleve.date_inscription
-                    )
-                    
-                    # Créer les frais d'inscription si le module comptabilité est activé
-                    if etablissement.module_comptabilite:
-                        from ..utils.comptabilite_utils import creer_frais_inscription
-                        type_frais = 'inscription' if form_data['statut'] == 'nouvelle' else 'reinscription'
-                        try:
-                            creer_frais_inscription(eleve, annee_scolaire_active, type_frais)
-                        except Exception as e:
-                            # Logger l'erreur mais ne pas bloquer l'inscription
-                            import logging
-                            logger = logging.getLogger(__name__)
-                            logger.error(f"Erreur lors de la création des frais d'inscription pour {eleve.nom_complet}: {str(e)}")
-                    
-                    # La facturation de l'établissement est automatiquement mise à jour
-                    # par la méthode save() du modèle Eleve via recalculer_facturation()
-                    
-                    # Mettre à jour la date de dernière facturation
-                    from django.utils import timezone
-                    etablissement.date_derniere_facturation = timezone.now()
-                    etablissement.save(update_fields=['date_derniere_facturation'])
-                    
-                    # Log des documents fournis
-                    documents_fournis = eleve.documents_fournis_liste
-                    documents_text = ", ".join(documents_fournis) if documents_fournis else "Aucun document"
-                    
-                    # Récupérer le montant par élève pour le message
-                    montant_par_eleve = etablissement.montant_par_eleve
-                    
-                    # Formater le montant avec la devise si disponible
-                    devise_etablissement = etablissement.devise_monnaie
-                    if devise_etablissement:
-                        montant_affiche = f"{montant_par_eleve} {devise_etablissement}"
-                    else:
-                        montant_affiche = str(montant_par_eleve)
-                    
-                    messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_affiche}. Documents fournis: {documents_text}")
+                    parent.set_password(form_data['mot_de_passe_parent'])
+                    parent.save()
+                    print(f"[INFO] Nouveau parent créé : {parent.nom_complet}")
+                
+                # Créer le lien familial
+                lien = LienFamilial.objects.create(
+                    parent=parent,
+                    eleve=eleve,
+                    type_lien=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                    statut='valide',
+                    est_inscripteur=True,
+                    actif=True
+                )
+                print(f"[INFO] Lien familial créé : {parent.nom_complet} -> {eleve.nom_complet}")
+                
+                # Stocker les informations du parent dans form_data pour le reçu
+                form_data['parent_cree'] = parent
+                
+                # Archiver l'inscription dans les tables dédiées
+                _archiver_inscription_eleve_parent(
+                    eleve=eleve,
+                    parent=parent,
+                    etablissement=etablissement,
+                    annee_scolaire=annee_scolaire_active,
+                    date_inscription=inscription_date_obj or eleve.date_inscription
+                )
+                
+                # Créer les frais d'inscription si le module comptabilité est activé
+                if etablissement.module_comptabilite:
+                    from ..utils.comptabilite_utils import creer_frais_inscription
+                    type_frais = 'inscription' if form_data['statut'] == 'nouvelle' else 'reinscription'
+                    try:
+                        creer_frais_inscription(eleve, annee_scolaire_active, type_frais)
+                    except Exception as e:
+                        # Logger l'erreur mais ne pas bloquer l'inscription
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Erreur lors de la création des frais d'inscription pour {eleve.nom_complet}: {str(e)}")
+                
+                # La facturation de l'établissement est automatiquement mise à jour
+                # par la méthode save() du modèle Eleve via recalculer_facturation()
+                
+                # Mettre à jour la date de dernière facturation
+                from django.utils import timezone
+                etablissement.date_derniere_facturation = timezone.now()
+                etablissement.save(update_fields=['date_derniere_facturation'])
+                
+                # Log des documents fournis
+                documents_fournis = eleve.documents_fournis_liste
+                documents_text = ", ".join(documents_fournis) if documents_fournis else "Aucun document"
+                
+                # Récupérer le montant par élève pour le message
+                montant_par_eleve = etablissement.montant_par_eleve
+                
+                # Formater le montant avec la devise si disponible
+                devise_etablissement = etablissement.devise_monnaie
+                if devise_etablissement:
+                    montant_affiche = f"{montant_par_eleve} {devise_etablissement}"
+                else:
+                    montant_affiche = str(montant_par_eleve)
+                
+                messages.success(request, f"L'élève {form_data['prenom']} {form_data['nom']} a été inscrit avec succès ! Montant ajouté: {montant_affiche}. Documents fournis: {documents_text}")
 
-                    from ..services.realtime_service import emit_etablissement_event
-                    emit_etablissement_event(
-                        etablissement.id,
-                        'eleve.inscrit',
-                        {
-                            'eleve_id': eleve.id,
-                            'classe_id': classe.id,
-                            'classe_nom': classe.nom,
-                            'nom_complet': eleve.nom_complet,
-                        },
-                    )
+                from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+                from ..services.live_serializers import serialize_eleve_inscrit_item
+                from ..model.presence_model import Presence
 
-                    return redirect('secretaire:reçu_inscription_eleve', eleve_id=eleve.id)
-                    
-            except Exception as e:
-                field_errors['__all__'] = f"Une erreur est survenue lors de l'inscription: {str(e)}. Veuillez réessayer."
-                is_valid = False
-    
-    # Récupérer la liste des pays pour le select
-    # Convertir en liste de tuples (code, nom) pour le template
-    try:
-        pays_list = [(code, str(nom)) for code, nom in countries]
-    except Exception as e:
-        # En cas d'erreur, utiliser une liste vide
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Erreur lors de la récupération des pays: {str(e)}")
-        pays_list = []
-    
-    context = {
-        'user': user,
-        'etablissement': etablissement,
-        'is_directeur': isinstance(user, Etablissement),
-        'is_personnel_administratif': isinstance(user, PersonnelAdministratif),
-        'personnel': user if isinstance(user, PersonnelAdministratif) else None,
-        'classes': classes,
-        'est_superieur': est_superieur,
-        'departments_inscription': departments_inscription,
-        'form_data': form_data,
-        'field_errors': field_errors,
-        'pays_list': pays_list,
-        'annee_scolaire_active': annee_scolaire_active,
-    }
-    
-    return render(request, 'school_admin/directeur/secretaire/inscription_eleves.html', context)
+                main_tab_id = _main_tab_id_for_classe(
+                    etablissement, classe.id, annee_scolaire_active
+                )
+                nombre_absences = Presence.get_nombre_absences(eleve, annee_scolaire=annee_scolaire_active)
+                item = serialize_eleve_inscrit_item(
+                    eleve, classe, main_tab_id, nombre_absences=nombre_absences
+                )
+                item['mot_de_passe_parent'] = form_data.get('mot_de_passe_parent', '')
+                item['matricule_parent'] = form_data.get('matricule_parent', '')
+                success_message = (
+                    f"L'élève {eleve.nom_complet} a été inscrit avec succès. "
+                    f"Identifiant élève : {item['matricule']} — "
+                    f"Mot de passe provisoire : {item['mot_de_passe_provisoire']}"
+                )
+                emit_live(
+                    etablissement.id,
+                    'eleve.inscrit',
+                    {'event': 'eleve.inscrit', 'item': item},
+                )
+                from django.urls import reverse
+                recu_url = reverse('secretaire:reçu_inscription_eleve', args=[eleve.id])
+                if wants_json_response(request):
+                    return json_ok(item=item, recu_url=recu_url)
+                return redirect('secretaire:liste_eleves')
+                
+        except Exception as e:
+            field_errors['__all__'] = f"Une erreur est survenue lors de l'inscription: {str(e)}. Veuillez réessayer."
+            is_valid = False
+
+    from ..services.realtime_helpers import wants_json_response, json_fail
+    if not is_valid:
+        if wants_json_response(request):
+            return json_fail(field_errors=field_errors)
+        request.session['inscription_form_data'] = form_data
+        request.session['inscription_field_errors'] = field_errors
+        return redirect('secretaire:liste_eleves?inscrire=1')
+
+    return redirect('secretaire:liste_eleves')
 
 
 @login_required
@@ -768,27 +820,9 @@ def liste_eleves(request):
     """
     Page de liste des élèves inscrits par classe
     """
-    # Récupérer l'utilisateur connecté
-    user = request.user
-    
-    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur soit un personnel avec la permission
-    from ..utils.decorators_permissions import check_permission
-    
-    if isinstance(user, PersonnelAdministratif):
-        # Vérifier la permission de voir la liste des élèves
-        if not check_permission(user, 'eleves_liste'):
-            messages.error(request, "Vous n'avez pas la permission de voir la liste des élèves.")
-            return redirect('directeur:dashboard_directeur')
-        etablissement = user.etablissement
-    elif isinstance(user, Etablissement):
-        etablissement = user
-    else:
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    if not etablissement:
-        messages.error(request, "Aucun établissement associé à votre compte.")
-        return redirect('school_admin:connexion_compte_user')
+    user, etablissement, denied = _resolve_eleves_access(request, permission_inscrire=False)
+    if denied:
+        return denied
     
     # Récupérer l'année scolaire active ou consultée
     if isinstance(user, Etablissement):
@@ -801,6 +835,14 @@ def liste_eleves(request):
     
     classes_grouped, stats_generales = _build_classes_grouped_data(etablissement, annee_scolaire_active)
 
+    session_form_data = request.session.pop('inscription_form_data', None)
+    session_field_errors = request.session.pop('inscription_field_errors', None)
+    inscription_ctx = _build_inscription_form_context(
+        etablissement,
+        form_data=session_form_data,
+        field_errors=session_field_errors or {},
+    )
+
     context = {
         'user': user,
         'etablissement': etablissement,
@@ -811,6 +853,8 @@ def liste_eleves(request):
         'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
+        'open_inscription_modal': request.GET.get('inscrire') == '1' or bool(session_field_errors),
+        **inscription_ctx,
     }
     
     return render(request, 'school_admin/directeur/secretaire/liste_eleves.html', context)
@@ -1201,7 +1245,15 @@ def reçu_inscription_eleve(request, eleve_id):
         'identifiants_info': identifiants_info,
         'parent_inscripteur': parent_inscripteur,
     }
-    
+
+    from ..services.realtime_helpers import wants_json_response
+    if wants_json_response(request) or request.GET.get('partial') == '1':
+        return render(
+            request,
+            'school_admin/directeur/secretaire/partials/recu_inscription_eleve_inner.html',
+            context,
+        )
+
     return render(request, 'school_admin/directeur/secretaire/reçu_inscription_eleve.html', context)
 
 

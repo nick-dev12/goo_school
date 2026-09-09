@@ -14,6 +14,19 @@ from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
+
+def _emit_realtime(etablissement_id: int, event_type: str, payload: dict | None = None) -> None:
+    """Diffuse un événement WebSocket à l'établissement."""
+    if not etablissement_id:
+        return
+    try:
+        from school_admin.services.realtime_service import emit_etablissement_event
+
+        emit_etablissement_event(etablissement_id, event_type, payload or {})
+    except Exception:  # pragma: no cover
+        logger.exception('Echec emission temps reel [%s]', event_type)
+
+
 if TYPE_CHECKING:
     from school_admin.model.lien_familial_model import LienFamilial
 
@@ -183,6 +196,15 @@ def _send_annonce_notifications(annonce_id: int) -> None:
                 "Erreur lors de la notification élèves pour l'annonce %s",
                 annonce_id,
             )
+
+    _emit_realtime(
+        annonce.etablissement_id,
+        'annonce.publiee',
+        {
+            'annonce_id': annonce.id,
+            'titre': annonce.titre,
+        },
+    )
 
 
 def _notify_parent_links(
@@ -382,6 +404,16 @@ def _send_emploi_publication(emploi_id: int) -> None:
         },
     )
 
+    _emit_realtime(
+        etablissement.id,
+        'emploi.publie',
+        {
+            'emploi_id': emploi.id,
+            'classe_id': classe.id,
+            'classe_nom': classe.nom,
+        },
+    )
+
 
 def schedule_bulletin_publication(classe_id: int, periode_id: int, etablissement_id: int) -> None:
     """
@@ -502,6 +534,17 @@ def _send_bulletin_publication(classe_id: int, periode_id: int, etablissement_id
                 )
     except Exception:  # pragma: no cover
         logger.exception("Erreur lors de la notification élèves pour les bulletins")
+
+    _emit_realtime(
+        etablissement_id,
+        'bulletin.publie',
+        {
+            'classe_id': classe.id,
+            'classe_nom': classe.nom,
+            'periode_id': periode.id,
+            'periode_nom': periode_nom,
+        },
+    )
 
 
 def schedule_evaluation_notification(evaluation_id: int) -> None:
@@ -677,6 +720,18 @@ def _send_evaluation_notifications(evaluation_id: int) -> None:
         "Notifications d'évaluation %s envoyées pour %d élève(s)",
         evaluation.id,
         len(eleves),
+    )
+
+    _emit_realtime(
+        evaluation.classe.etablissement_id,
+        'evaluation.creee',
+        {
+            'evaluation_id': evaluation.id,
+            'classe_id': evaluation.classe_id,
+            'classe_nom': classe_nom,
+            'matiere_nom': matiere_nom,
+            'date': date_claire,
+        },
     )
 
 
@@ -855,6 +910,19 @@ def _send_evaluation_primaire_notifications(evaluation_id: int) -> None:
         len(eleves),
     )
 
+    _emit_realtime(
+        evaluation.classe.etablissement_id,
+        'evaluation.creee',
+        {
+            'evaluation_id': evaluation.id,
+            'classe_id': evaluation.classe_id,
+            'classe_nom': classe_nom,
+            'matiere_nom': matiere_nom,
+            'date': date_claire,
+            'niveau': 'primaire',
+        },
+    )
+
 
 def schedule_exercice_maison_notification(exercice_id: int) -> None:
     """
@@ -1019,6 +1087,19 @@ def _send_exercice_maison_notifications(exercice_id: int) -> None:
         exercice.id,
         len(eleves),
     )
+
+    if etablissement:
+        _emit_realtime(
+            etablissement.id,
+            'exercice.publie',
+            {
+                'exercice_id': exercice.id,
+                'classe_id': classe.id,
+                'classe_nom': classe.nom,
+                'titre': exercice.titre,
+                'matiere_nom': matiere.nom if matiere else '',
+            },
+        )
 
 
 def schedule_presence_notifications(presence_ids: list[int]) -> None:
@@ -1199,6 +1280,18 @@ def _send_presence_notifications(presence_ids: list[int]) -> None:
         len(presence_ids),
     )
 
+    etablissement_id = getattr(classe.etablissement, 'id', None) or getattr(classe, 'etablissement_id', None)
+    _emit_realtime(
+        etablissement_id,
+        'presence.mise_a_jour',
+        {
+            'classe_id': classe.id,
+            'classe_nom': classe.nom,
+            'date': date_presence.isoformat(),
+            'count': len(presence_ids),
+        },
+    )
+
 
 def schedule_justification_note_directeur_notification(justification_id: int) -> None:
     """
@@ -1259,5 +1352,17 @@ def _send_justification_note_directeur_notification(justification_id: int) -> No
             notification_error,
             exc_info=True,
         )
+        return
+
+    _emit_realtime(
+        justification.etablissement_id,
+        'justification.soumise',
+        {
+            'justification_id': justification.id,
+            'eleve_id': justification.eleve_id,
+            'classe_id': justification.classe_id,
+            'professeur_id': justification.professeur_id,
+        },
+    )
 
 

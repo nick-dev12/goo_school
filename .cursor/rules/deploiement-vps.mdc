@@ -1,0 +1,77 @@
+---
+description: Déploiement du site goo_school sur le VPS de production via deploy.sh
+alwaysApply: true
+---
+
+# Déploiement VPS production (goo_school)
+
+## Connexion SSH
+
+- **Alias** : `goo-school-vps`
+- **Équivalent** : `ssh -p 22 nick@157.173.102.180`
+- **Auth** : clé SSH locale `~/.ssh/id_ed25519` (sans mot de passe)
+- **Site** : https://aria-edu.com
+
+## Chemins exacts sur le VPS (vérifiés le 2026-09-09)
+
+| Élément | Chemin absolu |
+|---------|---------------|
+| Dossier projet | `/home/nick/aria/goo_school` |
+| Script deploy | `/home/nick/aria/goo_school/deploy.sh` |
+| manage.py | `/home/nick/aria/goo_school/manage.py` |
+| Environnement virtuel | `/home/nick/aria/goo_school/venv` |
+| Dépôt Git | `https://github.com/nick-dev12/goo_school.git` |
+
+Alias utile côté serveur : `~/aria/goo_school` (= `/home/nick/aria/goo_school`)
+
+## Services systemd
+
+- `nginx` — reverse proxy (actif)
+- `aria-daphne` — serveur ASGI HTTP + WebSockets (actif)
+- `aria-celery` — worker Celery (actif)
+- `gunicorn` — redémarré par `deploy.sh` (service présent)
+
+## Quand l'utilisateur demande une mise à jour / déploiement sur le VPS
+
+Exécuter le déploiement toi-même via SSH. Ne pas se contenter d'expliquer les commandes.
+
+### 1. Prérequis Git (local)
+
+`deploy.sh` fait `git pull origin main` sur le serveur. Avant de déployer :
+- vérifier que les changements à déployer sont sur `origin/main` ;
+- si des commits locaux ne sont pas poussés, informer l'utilisateur et pousser seulement s'il l'a demandé explicitement.
+
+### 2. Lancer le déploiement
+
+Utiliser **uniquement** le script du projet :
+
+```bash
+ssh goo-school-vps "cd /home/nick/aria/goo_school && bash deploy.sh"
+```
+
+Ne pas réimplémenter manuellement les étapes de `deploy.sh` sauf pour un dépannage ciblé après échec.
+
+### 3. Vérifications obligatoires post-déploiement
+
+Après `deploy.sh`, contrôler que tout s'est bien passé :
+
+```bash
+ssh goo-school-vps "systemctl is-active nginx aria-daphne aria-celery"
+ssh goo-school-vps "curl -sI https://aria-edu.com | head -1"
+```
+
+Critères de succès :
+- exit code 0 de `deploy.sh` ;
+- `nginx`, `aria-daphne` et `aria-celery` actifs ;
+- réponse HTTP 200 (ou 301/302 valide) sur https://aria-edu.com.
+
+### 4. En cas d'échec
+
+- lire la sortie complète de `deploy.sh` ;
+- identifier l'étape en échec (git pull, pip, migrate, collectstatic, gunicorn, nginx) ;
+- proposer et appliquer un correctif minimal ;
+- relancer `deploy.sh` si pertinent.
+
+### 5. Rapport à l'utilisateur
+
+Indiquer clairement : déploiement réussi ou échoué, services vérifiés, URL à contrôler dans le navigateur (Ctrl+F5).

@@ -36,3 +36,14 @@ def send_emploi_publication_task(self, emploi_id: int) -> None:
 @shared_task
 def celery_ping() -> str:
     return 'pong'
+
+
+@shared_task
+def emit_realtime_event_task(
+    etablissement_id: int,
+    event_type: str,
+    payload: dict | None = None,
+) -> None:
+    from school_admin.services.realtime_service import emit_etablissement_event
+
+    emit_etablissement_event(etablissement_id, event_type, payload or {})

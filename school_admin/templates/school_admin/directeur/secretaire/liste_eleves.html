@@ -27,10 +27,27 @@
     />
     <link
       rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0"
+    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
+    <link
+      rel="stylesheet"
+      href="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"
+    />
+    <link
+      rel="stylesheet"
       href="{% static 'school_admin/css/partials/messages.css' %}"
     />
   </head>
-  <body>
+  <body data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -52,10 +69,10 @@
           </p>
         </div>
         <div class="page-actions">
-          <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
+          <button type="button" class="btn-primary" onclick="openModalInscriptionEleve()">
             <i class="fas fa-user-plus"></i>
             <span>{% trans "Nouvel élève" %}</span>
-          </a>
+          </button>
         </div>
       </div>
 
@@ -132,7 +149,7 @@
 
               <!-- Contenu des sous-onglets (classes) -->
               {% for classe_data in data.classes %}
-                <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}" data-main-tab="tab-{{ forloop.parentloop.counter }}">
                   <!-- En-tête de la classe -->
                   <div class="class-header">
                   <div class="class-info">
@@ -442,6 +459,7 @@
                       
                       {% for eleve_data in classe_data.eleves %}
                         <div class="list-row {% if not eleve_data.eleve.actif %}eleve-desactive{% endif %}" 
+                             data-eleve-id="{{ eleve_data.eleve.id }}"
                              data-nom="{{ eleve_data.eleve.nom|lower }}"
                              data-prenom="{{ eleve_data.eleve.prenom|lower }}"
                              data-email="{{ eleve_data.eleve.email|lower|default:'' }}"
@@ -516,10 +534,10 @@
                       </div>
                       <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
                       <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
-                      <a href="{% url 'secretaire:inscription_eleves' %}" class="btn-primary">
+                      <button type="button" class="btn-primary" onclick="openModalInscriptionEleve()">
                         <i class="fas fa-user-plus"></i>
                         {% trans "Inscrire un élève" %}
-                      </a>
+                      </button>
                     </div>
                   {% endif %}
                   </div>
@@ -528,6 +546,43 @@
             </div>
           {% endfor %}
         </div>
+      </div>
+    </div>
+
+    <!-- Modal inscription élève (plein écran) -->
+    <div id="modalInscriptionEleve" class="modal-creneau-fullscreen personnel-form-modal">
+      <div class="modal-creneau-overlay" onclick="closeModalInscriptionEleve()"></div>
+      <div class="modal-creneau-content modal-creneau-content-wide">
+        <div class="modal-creneau-header">
+          <h2><i class="fas fa-user-graduate"></i> {% trans "Inscription d'un élève" %}</h2>
+          <button type="button" class="modal-creneau-close" onclick="closeModalInscriptionEleve()" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-creneau-body">
+          <div class="form-container-modern">
+            {% include 'school_admin/directeur/secretaire/partials/form_inscription_eleve_inner.html' %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal reçu d'inscription -->
+    <div id="modalRecuEleve" class="modal-creneau-fullscreen personnel-form-modal">
+      <div class="modal-creneau-overlay" onclick="closeModalRecuEleve()"></div>
+      <div class="modal-creneau-content modal-creneau-content-wide modal-recu-content">
+        <div class="modal-creneau-header">
+          <h2><i class="fas fa-receipt"></i> {% trans "Reçu d'inscription" %}</h2>
+          <div class="modal-recu-actions">
+            <button type="button" class="btn-recu-print" onclick="printRecuEleveModal()">
+              <i class="fas fa-print"></i> {% trans "Imprimer" %}
+            </button>
+            <button type="button" class="modal-creneau-close" onclick="closeModalRecuEleve()" aria-label="{% trans 'Fermer' %}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-creneau-body modal-recu-body" id="modalRecuEleveBody"></div>
       </div>
     </div>
 
@@ -820,6 +875,96 @@
       }
 
     </script>
+
+    <style>
+      .eleve-row-new {
+        animation: eleveRowHighlight 2.5s ease;
+        background: rgba(59, 130, 246, 0.08);
+      }
+      @keyframes eleveRowHighlight {
+        0% { background: rgba(16, 185, 129, 0.25); }
+        100% { background: transparent; }
+      }
+      #modalInscriptionEleve .modal-creneau-content {
+        max-width: 980px;
+      }
+      #modalInscriptionEleve .form-container-modern {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        max-width: none;
+      }
+      .country-search-wrapper { position: relative; width: 100%; }
+      .country-search-icon {
+        position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+        color: #9ca3af; pointer-events: none; z-index: 2;
+      }
+      #nationalite_search { width: 100%; padding-right: 45px; }
+      .country-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+        border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 8px 8px;
+        max-height: 300px; overflow-y: auto; z-index: 1000;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); margin-top: -1px;
+      }
+      .country-dropdown-item {
+        padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f3f4f6;
+      }
+      .country-dropdown-item:hover, .country-dropdown-item.highlighted {
+        background: rgba(59,130,246,0.1); color: #3b82f6;
+      }
+      .country-select-hidden { position: absolute; opacity: 0; pointer-events: none; }
+      #modalRecuEleve .modal-recu-body {
+        background: #f5f5f5;
+        padding: 1rem;
+        overflow-y: auto;
+      }
+      #modalRecuEleve .receipt-container {
+        max-width: 21cm;
+        margin: 0 auto;
+        font-size: 10px;
+      }
+      #modalRecuEleve .modal-recu-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      #modalRecuEleve .btn-recu-print {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.85rem;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .recu-loading, .recu-error {
+        text-align: center;
+        padding: 2rem;
+        color: #4b5563;
+        font-size: 1rem;
+      }
+      .eleve-row-new {
+        animation: eleveRowHighlight 2.5s ease-out;
+        background: rgba(16, 185, 129, 0.12);
+      }
+      @keyframes eleveRowHighlight {
+        0% { background: rgba(16, 185, 129, 0.35); }
+        100% { background: transparent; }
+      }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    {% include 'school_admin/directeur/secretaire/partials/inscription_eleves_scripts.html' %}
+    {% if est_superieur %}
+    <script src="{% static 'school_admin/js/directeur/inscription_superieur_filiere_classe.js' %}?v=1.0.0"></script>
+    {% endif %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="{% static 'school_admin/js/realtime_page.js' %}?v=1.0.2"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

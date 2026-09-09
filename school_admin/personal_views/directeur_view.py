@@ -3578,6 +3578,13 @@ def calculer_moyennes_periode(request, classe_id):
             request,
             f"✅ Moyennes de période enregistrées pour la classe {classe.nom}.",
         )
+        _emit_bulletin_live(
+            etablissement.id,
+            'calculer_moyennes',
+            classe_id=classe.id,
+            classe_nom=classe.nom,
+            periode_id=periode.id,
+        )
         _appliquer_moyenne_annuelle_complementaire(
             request,
             etablissement,
@@ -3618,6 +3625,17 @@ def _redirect_bulletins_notes_apres_action(request, classe_id, periode_id_fallba
     if params:
         redirect_url = f"{redirect_url}?{'&'.join(params)}"
     return redirect_url
+
+
+def _emit_bulletin_live(etablissement_id, action, **extra):
+    """Émet un événement temps réel pour les pages bulletins."""
+    from ..services.realtime_helpers import emit_live
+
+    payload = {'event': 'bulletin.mise_a_jour', 'action': action}
+    for key, value in extra.items():
+        if value is not None:
+            payload[key] = value
+    emit_live(etablissement_id, 'bulletin.mise_a_jour', payload)
 
 
 def _appliquer_moyenne_annuelle_complementaire(
@@ -5437,6 +5455,14 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                         moyenne_periode.save(update_fields=['rang'])
 
         messages.success(request, f"✅ La moyenne générale de {eleve.nom_complet} a été calculée et mise à jour avec succès. Les rangs de la classe ont également été recalculés.")
+        _emit_bulletin_live(
+            etablissement.id,
+            'calculer_eleve',
+            classe_id=classe.id,
+            classe_nom=classe.nom,
+            eleve_id=eleve.id,
+            periode_id=periode.id,
+        )
     except Exception as e:
         logger.error(f"Erreur lors du calcul de la moyenne de l'élève: {str(e)}", exc_info=True)
         messages.error(request, f"❌ Erreur lors du calcul de la moyenne: {str(e)}")
@@ -5530,6 +5556,22 @@ def mettre_a_jour_visibilite_bulletins(request, classe_id):
         )
     else:
         messages.info(request, "Aucune modification de visibilité n'a été nécessaire.")
+
+    _emit_bulletin_live(
+        etablissement.id,
+        'visibilite',
+        classe_id=classe.id,
+        classe_nom=classe.nom,
+        periode_id=periode.id,
+    )
+
+    from ..services.realtime_helpers import wants_json_response, json_ok
+    if wants_json_response(request):
+        return json_ok(
+            message=f"Visibilité mise à jour pour la classe {classe.nom}.",
+            classe_id=classe.id,
+            periode_id=periode.id,
+        )
 
     redirect_url = reverse('directeur:bulletins_notes')
     if selected_periode_id:
@@ -5642,8 +5684,25 @@ def publier_bulletins_classe(request, classe_id):
             request,
             "📣 Les notifications sont en cours d'envoi en arrière-plan.",
         )
+        _emit_bulletin_live(
+            etablissement.id,
+            'publier',
+            classe_id=classe.id,
+            classe_nom=classe.nom,
+            periode_id=periode.id,
+            count=publies,
+        )
     else:
         messages.info(request, "Aucun bulletin supplémentaire à publier : tous les bulletins étaient déjà marqués comme publiés.")
+
+    from ..services.realtime_helpers import wants_json_response, json_ok
+    if wants_json_response(request):
+        return json_ok(
+            message=f"{publies} bulletin(s) publié(s) pour {classe.nom}.",
+            classe_id=classe.id,
+            periode_id=periode.id,
+            count=publies,
+        )
 
     redirect_url = reverse('directeur:bulletins_notes')
     if selected_periode_id:
@@ -5927,6 +5986,10 @@ def configuration_moyennes_generales(request):
             ponderation.annee_scolaire = annee_scolaire
             ponderation.etablissement = etablissement
             ponderation.save()
+            _emit_bulletin_live(etablissement.id, 'config_moyennes')
+            from ..services.realtime_helpers import wants_json_response, json_ok
+            if wants_json_response(request):
+                return json_ok(message="Pondération enregistrée avec succès.")
             messages.success(request, "Pondération enregistrée avec succès.")
             return redirect('directeur:configuration_moyennes_generales')
         messages.error(request, "Veuillez corriger les erreurs indiquées.")
@@ -6020,6 +6083,10 @@ def configuration_standards_reussite(request):
                 standards.moyenne_passage = moyenne_passage
                 standards.annee_scolaire = annee_scolaire_active
                 standards.save(update_fields=['moyenne_passage', 'annee_scolaire', 'date_modification'])
+                _emit_bulletin_live(etablissement.id, 'config_standards', section='general')
+                from ..services.realtime_helpers import wants_json_response, json_ok
+                if wants_json_response(request):
+                    return json_ok(message="Seuils généraux enregistrés avec succès.")
                 messages.success(request, "Seuils généraux enregistrés avec succès.")
                 redirect_url = reverse('directeur:configuration_standards_reussite')
                 if periode_active_id:
@@ -6058,6 +6125,10 @@ def configuration_standards_reussite(request):
                 ])
                 standards.annee_scolaire = annee_scolaire_active
                 standards.save(update_fields=['annee_scolaire', 'date_modification'])
+                _emit_bulletin_live(etablissement.id, 'config_standards', section='conseil')
+                from ..services.realtime_helpers import wants_json_response, json_ok
+                if wants_json_response(request):
+                    return json_ok(message="Appréciations du conseil enregistrées avec succès.")
                 messages.success(request, "Appréciations du conseil enregistrées avec succès.")
                 redirect_url = reverse('directeur:configuration_standards_reussite')
                 if periode_active_id:
@@ -6099,6 +6170,10 @@ def configuration_standards_reussite(request):
                 ])
                 standards.annee_scolaire = annee_scolaire_active
                 standards.save(update_fields=['annee_scolaire', 'date_modification'])
+                _emit_bulletin_live(etablissement.id, 'config_standards', section='matieres')
+                from ..services.realtime_helpers import wants_json_response, json_ok
+                if wants_json_response(request):
+                    return json_ok(message="Paliers d'appréciation enregistrés avec succès.")
                 messages.success(request, "Paliers d'appréciation enregistrés avec succès.")
                 redirect_url = reverse('directeur:configuration_standards_reussite')
                 if periode_active_id:
@@ -6384,16 +6459,25 @@ def justifier_absence_directeur(request):
     Permet au directeur de justifier une absence sélectionnée en la marquant comme présence.
     """
     if request.method != 'POST':
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        if wants_json_response(request):
+            return json_fail(message='Méthode non autorisée.')
         messages.error(request, "Méthode non autorisée.")
         return redirect('directeur:suivi_presence')
 
     if not isinstance(request.user, Etablissement):
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        if wants_json_response(request):
+            return json_fail(message='Accès non autorisé.')
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
 
     presence_id = request.POST.get('presence_id')
 
     if not presence_id:
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        if wants_json_response(request):
+            return json_fail(message='Veuillez sélectionner une absence à justifier.')
         messages.error(request, "Veuillez sélectionner une absence à justifier.")
         return redirect('directeur:suivi_presence')
 
@@ -6404,10 +6488,16 @@ def justifier_absence_directeur(request):
     presence = get_object_or_404(Presence.objects.select_related('eleve', 'classe', 'etablissement'), id=presence_id)
 
     if presence.etablissement != request.user:
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        if wants_json_response(request):
+            return json_fail(message="Vous ne pouvez pas modifier une présence qui n'appartient pas à votre établissement.")
         messages.error(request, "Vous ne pouvez pas modifier une présence qui n'appartient pas à votre établissement.")
         return redirect('directeur:suivi_presence')
 
     if presence.statut != 'absent':
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        if wants_json_response(request):
+            return json_fail(message='Seules les absences non justifiées peuvent être converties.')
         messages.warning(request, "Seules les absences non justifiées peuvent être converties.")
         return redirect('directeur:suivi_presence')
 
@@ -6482,7 +6572,26 @@ def justifier_absence_directeur(request):
             request,
             f"L'absence du {presence.date.strftime('%d/%m/%Y')} pour {presence.eleve.nom_complet} a été justifiée avec succès."
         )
+
+        from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+        emit_live(
+            presence.etablissement.id,
+            'presence.mise_a_jour',
+            {
+                'event': 'presence.mise_a_jour',
+                'classe_id': presence.classe_id,
+                'classe_nom': presence.classe.nom if presence.classe else '',
+                'eleve_id': presence.eleve_id,
+                'presence_id': presence.id,
+                'date': presence.date.isoformat() if presence.date else None,
+            },
+        )
+        if wants_json_response(request):
+            return json_ok(message=f"Absence justifiée pour {presence.eleve.nom_complet}.")
     except Exception as error:
+        from ..services.realtime_helpers import wants_json_response, json_fail
+        if wants_json_response(request):
+            return json_fail(message=f"Erreur lors de la justification de l'absence : {error}")
         messages.error(request, f"Erreur lors de la justification de l'absence : {error}")
 
     return redirect('directeur:suivi_presence')
@@ -6528,6 +6637,15 @@ def gestion_periodes_scolaires(request):
         return redirect('school_admin:connexion_compte_user')
     
     etablissement = request.user
+
+    from ..services.realtime_helpers import wants_json_response, json_ok, json_fail, emit_live
+    from ..services.live_serializers import serialize_periode_item, serialize_annee_scolaire_item
+
+    def _periode_fail(message, status=400):
+        messages.error(request, message)
+        if wants_json_response(request):
+            return json_fail(field_errors={'__all__': message}, status=status)
+        return redirect('directeur:gestion_periodes_scolaires')
     
     # Récupérer l'année scolaire en cours (septembre N à août N+1)
     from datetime import date
@@ -6588,6 +6706,10 @@ def gestion_periodes_scolaires(request):
                 )
                 
                 messages.success(request, f"Année scolaire {libelle} créée avec succès.")
+                item = serialize_annee_scolaire_item(annee_scolaire)
+                emit_live(etablissement.id, 'annee_scolaire.creee', {'event': 'annee_scolaire.creee', 'item': item})
+                if wants_json_response(request):
+                    return json_ok(message=f"Année scolaire {libelle} créée.", item=item)
                 return redirect('directeur:gestion_periodes_scolaires')
             
             elif action == 'ajouter':
@@ -6602,7 +6724,10 @@ def gestion_periodes_scolaires(request):
                 annee_scolaire_active = _get_session_directeur(request, etablissement)
                 
                 if not annee_scolaire_active:
-                    messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une période.")
+                    msg = "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant d'ajouter une période."
+                    messages.error(request, msg)
+                    if wants_json_response(request):
+                        return json_fail(field_errors={'__all__': msg}, status=400)
                     return redirect('directeur:creer_annee_scolaire_obligatoire')
                 
                 with transaction.atomic():
@@ -6616,27 +6741,21 @@ def gestion_periodes_scolaires(request):
                         niveau_lmd = request.POST.get('niveau_lmd', '').strip()
                         type_periode = 'semestre'
                         if not est_semestre_valide_pour_niveau(nom_periode, niveau_lmd):
-                            messages.error(
-                                request,
-                                "Le semestre choisi ne correspond pas au niveau (ex. Licence 1 : Semestre 1–2 ; Licence 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.).",
+                            return _periode_fail(
+                                "Le semestre choisi ne correspond pas au niveau (ex. Licence 1 : Semestre 1–2 ; Licence 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.)."
                             )
-                            return redirect('directeur:gestion_periodes_scolaires')
                         if niveau_lmd not in NIVEAUX_PERIODE_SUPERIEUR_KEYS:
-                            messages.error(request, "Veuillez sélectionner un niveau (Licence à Doctorat).")
-                            return redirect('directeur:gestion_periodes_scolaires')
+                            return _periode_fail("Veuillez sélectionner un niveau (Licence à Doctorat).")
                         if not all([date_debut_str, date_fin_str]):
-                            messages.error(request, "Les dates de début et de fin sont obligatoires.")
-                            return redirect('directeur:gestion_periodes_scolaires')
+                            return _periode_fail("Les dates de début et de fin sont obligatoires.")
                     else:
                         nom_periode = request.POST.get('nom_periode', '').strip()
                         type_periode = request.POST.get('type_periode', 'trimestre').strip()
                         niveau_lmd = ''
                         if not all([nom_periode, date_debut_str, date_fin_str]):
-                            messages.error(request, "Tous les champs obligatoires doivent être remplis.")
-                            return redirect('directeur:gestion_periodes_scolaires')
+                            return _periode_fail("Tous les champs obligatoires doivent être remplis.")
                         if type_periode not in dict(PeriodeScolaire.TYPE_PERIODE_CHOICES):
-                            messages.error(request, "Type de période invalide.")
-                            return redirect('directeur:gestion_periodes_scolaires')
+                            return _periode_fail("Type de période invalide.")
 
                     date_debut = _parse_date(date_debut_str)
                     date_fin = _parse_date(date_fin_str)
@@ -6654,6 +6773,10 @@ def gestion_periodes_scolaires(request):
                     )
 
                     messages.success(request, f"La période '{periode.nom_periode}' a été créée avec succès pour l'année scolaire {annee_scolaire_active.libelle}.")
+                    item = serialize_periode_item(periode)
+                    emit_live(etablissement.id, 'periode.creee', {'event': 'periode.creee', 'item': item})
+                    if wants_json_response(request):
+                        return json_ok(message=f"Période '{periode.nom_periode}' créée.", item=item)
                     return redirect('directeur:gestion_periodes_scolaires')
 
             elif action == 'modifier':
@@ -6663,8 +6786,7 @@ def gestion_periodes_scolaires(request):
                 )
                 periode_id = request.POST.get('periode_id')
                 if not periode_id:
-                    messages.error(request, "Période introuvable.")
-                    return redirect('directeur:gestion_periodes_scolaires')
+                    return _periode_fail("Période introuvable.")
 
                 with transaction.atomic():
                     periode = PeriodeScolaire.objects.get(id=periode_id, etablissement=etablissement)
@@ -6673,14 +6795,11 @@ def gestion_periodes_scolaires(request):
                         nom_periode = request.POST.get('nom_periode_semestre', '').strip()
                         niveau_lmd = request.POST.get('niveau_lmd', '').strip()
                         if not est_semestre_valide_pour_niveau(nom_periode, niveau_lmd):
-                            messages.error(
-                                request,
-                                "Le semestre choisi ne correspond pas au niveau (ex. Licence 1 : Semestre 1–2 ; Licence 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.).",
+                            return _periode_fail(
+                                "Le semestre choisi ne correspond pas au niveau (ex. Licence 1 : Semestre 1–2 ; Licence 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.)."
                             )
-                            return redirect('directeur:gestion_periodes_scolaires')
                         if niveau_lmd not in NIVEAUX_PERIODE_SUPERIEUR_KEYS:
-                            messages.error(request, "Veuillez sélectionner un niveau (Licence à Doctorat).")
-                            return redirect('directeur:gestion_periodes_scolaires')
+                            return _periode_fail("Veuillez sélectionner un niveau (Licence à Doctorat).")
                         periode.nom_periode = nom_periode
                         periode.niveau_lmd = niveau_lmd
                         periode.type_periode = 'semestre'
@@ -6696,28 +6815,33 @@ def gestion_periodes_scolaires(request):
                     periode.save()
 
                     messages.success(request, f"La période '{periode.nom_periode}' a été mise à jour.")
+                    item = serialize_periode_item(periode)
+                    emit_live(etablissement.id, 'periode.modifiee', {'event': 'periode.modifiee', 'item': item})
+                    if wants_json_response(request):
+                        return json_ok(message=f"Période '{periode.nom_periode}' mise à jour.", item=item)
                     return redirect('directeur:gestion_periodes_scolaires')
 
             elif action == 'supprimer':
                 periode_id = request.POST.get('periode_id')
                 if not periode_id:
-                    messages.error(request, "Période introuvable.")
-                    return redirect('directeur:gestion_periodes_scolaires')
+                    return _periode_fail("Période introuvable.")
 
                 with transaction.atomic():
                     periode = PeriodeScolaire.objects.get(id=periode_id, etablissement=etablissement)
                     nom_periode = periode.nom_periode
+                    item = serialize_periode_item(periode)
                     periode.delete()
+                    emit_live(etablissement.id, 'periode.supprimee', {'event': 'periode.supprimee', 'item': item})
                     messages.success(request, f"La période '{nom_periode}' a été supprimée.")
+                    if wants_json_response(request):
+                        return json_ok(message=f"Période '{nom_periode}' supprimée.", item=item)
                     return redirect('directeur:gestion_periodes_scolaires')
 
             else:
-                messages.error(request, "Action invalide.")
-                return redirect('directeur:gestion_periodes_scolaires')
+                return _periode_fail("Action invalide.")
 
         except PeriodeScolaire.DoesNotExist:
-            messages.error(request, "Période introuvable.")
-            return redirect('directeur:gestion_periodes_scolaires')
+            return _periode_fail("Période introuvable.")
         except ValidationError as e:
             # Extraire le message d'erreur de manière lisible (sans les détails techniques)
             error_message = "Une erreur s'est produite lors de la validation."
@@ -6756,11 +6880,9 @@ def gestion_periodes_scolaires(request):
                 else:
                     error_message = error_str.strip("'\"[]")
             
-            messages.error(request, error_message)
-            return redirect('directeur:gestion_periodes_scolaires')
+            return _periode_fail(error_message)
         except Exception as e:
-            messages.error(request, f"Erreur lors du traitement de la période : {str(e)}")
-            return redirect('directeur:gestion_periodes_scolaires')
+            return _periode_fail(f"Erreur lors du traitement de la période : {str(e)}")
     
     # Récupérer l'année scolaire active AVANT de récupérer les périodes
     from ..model.annee_scolaire_model import AnneeScolaire
@@ -7325,6 +7447,21 @@ def api_debloquer_releve_matiere(request):
             "Déblocage effectué avec succès. "
             "Le professeur peut à nouveau modifier et soumettre le relevé."
         )
+
+    from ..services.realtime_helpers import emit_live
+    emit_live(
+        etablissement.id,
+        'notes.mise_a_jour',
+        {
+            'event': 'notes.mise_a_jour',
+            'classe_id': classe.id,
+            'classe_nom': classe.nom,
+            'periode_id': periode.id,
+            'matiere_id': matiere.id,
+            'matiere_nom': matiere.nom,
+            'action': 'debloquer',
+        },
+    )
 
     return JsonResponse(
         {

@@ -119,13 +119,19 @@ function initializeFormValidation() {
  */
 window.confirmDelete = function(matiereId) {
     if (!matiereId) {
-        console.error('ID de matière non fourni');
-        alert('Erreur : Impossible de récupérer l\'ID de la matière');
+        alert('Erreur : ID matière manquant.');
         return;
     }
-    
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette matière ? Cette action est irréversible.')) {
-        // Rediriger vers l'URL de suppression
-        window.location.href = `/matieres/${matiereId}/supprimer/`;
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette matière ? Cette action est irréversible.')) {
+        return;
     }
+    if (window.AriaLive && AriaLive.fetchJsonUrl) {
+        AriaLive.fetchJsonUrl('/matieres/' + matiereId + '/supprimer/', {
+            onSuccess: function () {
+                window.location.href = '/matieres/';
+            },
+        });
+        return;
+    }
+    window.location.href = '/matieres/' + matiereId + '/supprimer/';
 };

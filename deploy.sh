@@ -79,9 +79,12 @@ sudo chgrp -R www-data ~/aria/goo_school/staticfiles/
 sudo chmod -R 755 ~/aria/goo_school/staticfiles/
 sudo find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
 
-# Redémarrer Gunicorn
-echo "🔄 Redémarrage de Gunicorn..."
-sudo systemctl restart gunicorn
+# Redémarrer les services applicatifs (ASGI + Celery)
+echo "🔄 Redémarrage de aria-daphne..."
+sudo systemctl restart aria-daphne
+
+echo "🔄 Redémarrage de aria-celery..."
+sudo systemctl restart aria-celery
 
 # Recharger Nginx
 echo "🔄 Rechargement de Nginx..."

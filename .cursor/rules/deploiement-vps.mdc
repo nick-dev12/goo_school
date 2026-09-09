@@ -29,7 +29,7 @@ Alias utile côté serveur : `~/aria/goo_school` (= `/home/nick/aria/goo_school`
 - `nginx` — reverse proxy (actif)
 - `aria-daphne` — serveur ASGI HTTP + WebSockets (actif)
 - `aria-celery` — worker Celery (actif)
-- `gunicorn` — redémarré par `deploy.sh` (service présent)
+- `deploy.sh` redémarre `aria-daphne`, `aria-celery` et recharge `nginx`
 
 ## Quand l'utilisateur demande une mise à jour / déploiement sur le VPS
 
@@ -68,7 +68,7 @@ Critères de succès :
 ### 4. En cas d'échec
 
 - lire la sortie complète de `deploy.sh` ;
-- identifier l'étape en échec (git pull, pip, migrate, collectstatic, gunicorn, nginx) ;
+- identifier l'étape en échec (git pull, pip, migrate, collectstatic, aria-daphne, aria-celery, nginx) ;
 - proposer et appliquer un correctif minimal ;
 - relancer `deploy.sh` si pertinent.
 

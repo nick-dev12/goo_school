@@ -11,6 +11,7 @@ alwaysApply: true
 - **Équivalent** : `ssh -p 22 nick@157.173.102.180`
 - **Auth** : clé SSH locale `~/.ssh/id_ed25519` (sans mot de passe)
 - **Site** : https://aria-edu.com
+- **Sudo (user nick)** : `Ludvanne12@` — passer via `SUDO_PASSWORD` pour `deploy.sh`
 
 ## Chemins exacts sur le VPS (vérifiés le 2026-09-09)
 
@@ -46,8 +47,10 @@ Exécuter le déploiement toi-même via SSH. Ne pas se contenter d'expliquer les
 Utiliser **uniquement** le script du projet :
 
 ```bash
-ssh goo-school-vps "cd /home/nick/aria/goo_school && bash deploy.sh"
+ssh goo-school-vps "cd /home/nick/aria/goo_school && git pull origin main && SUDO_PASSWORD='Ludvanne12@' bash deploy.sh"
 ```
+
+Si `deploy.sh` vient d'être modifié, relancer une deuxième fois (le script en cours d'exécution garde l'ancienne version en mémoire).
 
 Ne pas réimplémenter manuellement les étapes de `deploy.sh` sauf pour un dépannage ciblé après échec.
 

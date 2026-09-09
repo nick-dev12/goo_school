@@ -8,6 +8,16 @@
 
 set -e  # Arrêter en cas d'erreur
 
+run_sudo() {
+    if sudo -n "$@" 2>/dev/null; then
+        return 0
+    elif [ -n "${SUDO_PASSWORD:-}" ]; then
+        echo "$SUDO_PASSWORD" | sudo -S "$@"
+    else
+        sudo "$@"
+    fi
+}
+
 # Obtenir le chemin absolu du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
@@ -75,10 +85,10 @@ python manage.py collectstatic --noinput --clear
 
 # Corriger les permissions
 echo "🔐 Correction des permissions..."
-if sudo -n true 2>/dev/null; then
-    sudo chgrp -R www-data ~/aria/goo_school/staticfiles/
-    sudo chmod -R 755 ~/aria/goo_school/staticfiles/
-    sudo find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
+if sudo -n true 2>/dev/null || [ -n "${SUDO_PASSWORD:-}" ]; then
+    run_sudo chgrp -R www-data ~/aria/goo_school/staticfiles/
+    run_sudo chmod -R 755 ~/aria/goo_school/staticfiles/
+    run_sudo find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
 else
     echo "⚠️  sudo indisponible — permissions locales appliquées sans chgrp www-data"
     chmod -R u+rwX,go+rX ~/aria/goo_school/staticfiles/
@@ -89,27 +99,39 @@ fi
 DAPHNE_PATTERN='/home/nick/aria/goo_school/venv/bin/daphne -b 127.0.0.1 -p 8001'
 CELERY_PATTERN='/home/nick/aria/goo_school/venv/bin/celery -A school worker'
 
+wait_for_process() {
+    local pattern="$1"
+    local name="$2"
+    local attempt=0
+    while [ "$attempt" -lt 15 ]; do
+        if pgrep -f "$pattern" >/dev/null; then
+            echo "✅ ${name} redémarré (systemd Restart=always)"
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+    echo "❌ ${name} n'a pas redémarré"
+    return 1
+}
+
 echo "🔄 Redémarrage de aria-daphne..."
-if sudo -n systemctl restart aria-daphne 2>/dev/null; then
+if run_sudo systemctl restart aria-daphne 2>/dev/null; then
     echo "✅ aria-daphne redémarré (systemctl)"
 elif pgrep -f "$DAPHNE_PATTERN" >/dev/null; then
     pkill -f "$DAPHNE_PATTERN"
-    sleep 3
-    pgrep -f "$DAPHNE_PATTERN" >/dev/null || { echo "❌ aria-daphne n'a pas redémarré"; exit 1; }
-    echo "✅ aria-daphne redémarré (systemd Restart=always)"
+    wait_for_process "$DAPHNE_PATTERN" "aria-daphne" || exit 1
 else
     echo "❌ aria-daphne introuvable"
     exit 1
 fi
 
 echo "🔄 Redémarrage de aria-celery..."
-if sudo -n systemctl restart aria-celery 2>/dev/null; then
+if run_sudo systemctl restart aria-celery 2>/dev/null; then
     echo "✅ aria-celery redémarré (systemctl)"
 elif pgrep -f "$CELERY_PATTERN" >/dev/null; then
     pkill -f "$CELERY_PATTERN"
-    sleep 3
-    pgrep -f "$CELERY_PATTERN" >/dev/null || { echo "❌ aria-celery n'a pas redémarré"; exit 1; }
-    echo "✅ aria-celery redémarré (systemd Restart=always)"
+    wait_for_process "$CELERY_PATTERN" "aria-celery" || exit 1
 else
     echo "❌ aria-celery introuvable"
     exit 1
@@ -117,7 +139,7 @@ fi
 
 # Recharger Nginx (optionnel si sudo indisponible)
 echo "🔄 Rechargement de Nginx..."
-if sudo -n systemctl reload nginx 2>/dev/null; then
+if run_sudo systemctl reload nginx 2>/dev/null; then
     echo "✅ nginx rechargé"
 else
     echo "⚠️  nginx non rechargé (sudo indisponible) — généralement non bloquant"

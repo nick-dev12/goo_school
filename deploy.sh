@@ -75,9 +75,15 @@ python manage.py collectstatic --noinput --clear
 
 # Corriger les permissions
 echo "🔐 Correction des permissions..."
-sudo chgrp -R www-data ~/aria/goo_school/staticfiles/
-sudo chmod -R 755 ~/aria/goo_school/staticfiles/
-sudo find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
+if sudo -n true 2>/dev/null; then
+    sudo chgrp -R www-data ~/aria/goo_school/staticfiles/
+    sudo chmod -R 755 ~/aria/goo_school/staticfiles/
+    sudo find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
+else
+    echo "⚠️  sudo indisponible — permissions locales appliquées sans chgrp www-data"
+    chmod -R u+rwX,go+rX ~/aria/goo_school/staticfiles/
+    find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
+fi
 
 # Redémarrer les services applicatifs (ASGI + Celery)
 echo "🔄 Redémarrage de aria-daphne..."

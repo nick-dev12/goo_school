@@ -86,15 +86,42 @@ else
 fi
 
 # Redémarrer les services applicatifs (ASGI + Celery)
+DAPHNE_PATTERN='/home/nick/aria/goo_school/venv/bin/daphne -b 127.0.0.1 -p 8001'
+CELERY_PATTERN='/home/nick/aria/goo_school/venv/bin/celery -A school worker'
+
 echo "🔄 Redémarrage de aria-daphne..."
-sudo systemctl restart aria-daphne
+if sudo -n systemctl restart aria-daphne 2>/dev/null; then
+    echo "✅ aria-daphne redémarré (systemctl)"
+elif pgrep -f "$DAPHNE_PATTERN" >/dev/null; then
+    pkill -f "$DAPHNE_PATTERN"
+    sleep 3
+    pgrep -f "$DAPHNE_PATTERN" >/dev/null || { echo "❌ aria-daphne n'a pas redémarré"; exit 1; }
+    echo "✅ aria-daphne redémarré (systemd Restart=always)"
+else
+    echo "❌ aria-daphne introuvable"
+    exit 1
+fi
 
 echo "🔄 Redémarrage de aria-celery..."
-sudo systemctl restart aria-celery
+if sudo -n systemctl restart aria-celery 2>/dev/null; then
+    echo "✅ aria-celery redémarré (systemctl)"
+elif pgrep -f "$CELERY_PATTERN" >/dev/null; then
+    pkill -f "$CELERY_PATTERN"
+    sleep 3
+    pgrep -f "$CELERY_PATTERN" >/dev/null || { echo "❌ aria-celery n'a pas redémarré"; exit 1; }
+    echo "✅ aria-celery redémarré (systemd Restart=always)"
+else
+    echo "❌ aria-celery introuvable"
+    exit 1
+fi
 
-# Recharger Nginx
+# Recharger Nginx (optionnel si sudo indisponible)
 echo "🔄 Rechargement de Nginx..."
-sudo systemctl reload nginx
+if sudo -n systemctl reload nginx 2>/dev/null; then
+    echo "✅ nginx rechargé"
+else
+    echo "⚠️  nginx non rechargé (sudo indisponible) — généralement non bloquant"
+fi
 
 echo ""
 echo "✅ Déploiement terminé avec succès!"
